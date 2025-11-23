@@ -16,6 +16,7 @@
     "baseUrl": "./src",
     "paths": {
       "core/*": ["core/*"],
+      "@core/*": ["core/*"],
       "@errors/*": ["core/errors/*"],
       "@interfaces/*": ["core/interfaces/*"],
       "@types/*": ["core/types/*"],
@@ -26,5 +27,5 @@
     }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }

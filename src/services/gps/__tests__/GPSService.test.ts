@@ -1,5 +1,6 @@
 import { GPSService } from "../GPSService";
-import { GPSFixQuality } from "@core/types";
+import { GPSFixQuality } from "@core/types/GPSTypes";
+import { GPSError, GPSErrorCode } from "@core/errors";
 
 // Mock serialport module
 jest.mock("serialport", () => {
@@ -85,7 +86,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_DEVICE_NOT_FOUND");
+        const error = result.error as GPSError;
+        expect(error.code).toBe("GPS_DEVICE_NOT_FOUND");
       }
 
       await invalidService.dispose();
@@ -105,7 +107,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_DEVICE_NOT_INITIALIZED");
+        const error = result.error as GPSError;
+        expect(error.code).toBe("GPS_DEVICE_NOT_INITIALIZED");
       }
     });
 
@@ -115,7 +118,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_NO_FIX");
+        const error = result.error as GPSError; // Explicitly cast to GPSError
+        expect(error.code).toBe("GPS_NO_FIX");
       }
     });
   });
@@ -126,7 +130,10 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_DEVICE_NOT_INITIALIZED");
+        if (!result.success) {
+          const error = result.error as GPSError; // Explicitly cast to GPSError
+          expect(error.code).toBe("GPS_DEVICE_NOT_INITIALIZED");
+        }
       }
     });
 
@@ -165,7 +172,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_ALREADY_TRACKING");
+        const error = result.error as GPSError; // Explicitly cast to GPSError
+        expect(error.code).toBe("GPS_ALREADY_TRACKING");
       }
     });
 
@@ -182,7 +190,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_NOT_TRACKING");
+        const error = result.error as GPSError; // Explicitly cast to GPSError
+        expect(error.code).toBe("GPS_NOT_TRACKING");
       }
     });
 
@@ -238,7 +247,8 @@ describe("GPSService", () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.code).toBe("GPS_FIX_TIMEOUT");
+        const error = result.error as GPSError; // Explicitly cast to GPSError
+        expect(error.code).toBe("GPS_FIX_TIMEOUT");
       }
     }, 10000);
   });

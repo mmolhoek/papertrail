@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs
+logs/
+*.log
+
+# Environment
+.env
+.env.local
+
+# Config (except defaults)
+config/production.json
+config/local.json
+
+# Data
+data/gpx-files/*
+!data/gpx-files/.gitkeep
+data/cache/*
+!data/cache/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.aider*
