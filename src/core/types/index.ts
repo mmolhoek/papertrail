@@ -6,6 +6,7 @@
 
 // Result type and helpers
 export * from "./ResultTypes";
+export * from "./ConfigTypes";
 // GPS types and enums
 export * from "./GPSTypes";
 
