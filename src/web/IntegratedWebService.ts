@@ -1,35 +1,48 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express } from "express";
 import http from "http";
 import path from "path";
-import { Server as SocketIOServer } from "socket.io";
-import { Result, success, failure, WebConfig } from "@core/types";
-import { WebError, WebErrorCode } from "@core/errors";
-import { IWebInterfaceService } from "core/interfaces";
+import { Server as SocketIOServer, Socket } from "socket.io";
+import {
+  IWebInterfaceService,
+  Result,
+  success,
+  failure,
+  WebConfig,
+} from "@core/types";
+import { IRenderingOrchestrator } from "@core/interfaces";
+import { WebError } from "@core/errors";
+import { WebController } from "./WebController";
 
 /**
- * Web Interface Service Implementation
+ * Integrated Web Interface Service
  *
- * Provides HTTP API and WebSocket communication for the mobile interface
+ * Combines WebInterfaceService with WebController to provide
+ * a fully integrated web interface connected to the orchestrator.
  */
-export class WebInterfaceService implements IWebInterfaceService {
+export class IntegratedWebService implements IWebInterfaceService {
   private app: Express;
   private server: http.Server | null = null;
   private io: SocketIOServer | null = null;
   private running: boolean = false;
+  private controller: WebController;
+  private gpsUpdateUnsubscribe: (() => void) | null = null;
+  private displayUpdateUnsubscribe: (() => void) | null = null;
 
   constructor(
+    private readonly orchestrator: IRenderingOrchestrator,
     private readonly config: WebConfig = {
       port: 3000,
       host: "0.0.0.0",
       cors: true,
       apiBasePath: "/api",
-      staticDirectory: path.join(__dirname, "../../web/public"),
+      staticDirectory: path.join(__dirname, "../public"),
       websocket: {
         enabled: true,
       },
     },
   ) {
     this.app = express();
+    this.controller = new WebController(orchestrator);
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -59,6 +72,9 @@ export class WebInterfaceService implements IWebInterfaceService {
         this.setupWebSocket();
       }
 
+      // Subscribe to orchestrator events
+      this.subscribeToOrchestratorEvents();
+
       // Start listening
       await new Promise<void>((resolve, reject) => {
         this.server!.listen(this.config.port, this.config.host, () => {
@@ -74,7 +90,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
       this.running = true;
       console.log(
-        `Web server started on http://${this.config.host}:${this.config.port}`,
+        `✓ Web interface started on http://${this.config.host}:${this.config.port}`,
       );
 
       return success(undefined);
@@ -103,6 +119,9 @@ export class WebInterfaceService implements IWebInterfaceService {
     }
 
     try {
+      // Unsubscribe from orchestrator events
+      this.unsubscribeFromOrchestratorEvents();
+
       // Close WebSocket connections
       if (this.io) {
         this.io.close();
@@ -119,7 +138,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
       this.server = null;
       this.running = false;
-      console.log("Web server stopped");
+      console.log("✓ Web interface stopped");
 
       return success(undefined);
     } catch (error) {
@@ -127,18 +146,14 @@ export class WebInterfaceService implements IWebInterfaceService {
         return failure(
           new WebError(
             `Failed to stop server: ${error.message}`,
-            WebErrorCode.SERVER_STOP_FAILED,
+            "WEB_SERVER_STOP_FAILED",
             false,
             { originalError: error.message },
           ),
         );
       }
       return failure(
-        new WebError(
-          "Failed to stop server",
-          WebErrorCode.SERVER_STOP_FAILED,
-          false,
-        ),
+        new WebError("Failed to stop server", "WEB_SERVER_STOP_FAILED", false),
       );
     }
   }
@@ -169,7 +184,7 @@ export class WebInterfaceService implements IWebInterfaceService {
   /**
    * Register a WebSocket connection handler
    */
-  onWebSocketConnection(handler: (socket: any) => void): void {
+  onWebSocketConnection(handler: (socket: Socket) => void): void {
     if (this.io) {
       this.io.on("connection", handler);
     }
@@ -224,90 +239,97 @@ export class WebInterfaceService implements IWebInterfaceService {
   }
 
   /**
-   * Setup Express routes
+   * Setup Express routes connected to controller
    */
   private setupRoutes(): void {
     const api = this.config.apiBasePath;
 
     // Health check
-    this.app.get(`${api}/health`, (req, res) => {
-      res.json({ status: "ok", timestamp: new Date().toISOString() });
-    });
+    this.app.get(`${api}/health`, (req, res) =>
+      this.controller.getHealth(req, res),
+    );
 
-    // Placeholder routes - will be connected to orchestrator later
-    this.app.get(`${api}/gps/position`, (req, res) => {
-      res.json({
-        message: "GPS position endpoint",
-        // Will return actual GPS data when connected to orchestrator
-      });
-    });
+    // GPS endpoints
+    this.app.get(`${api}/gps/position`, (req, res) =>
+      this.controller.getGPSPosition(req, res),
+    );
 
-    this.app.get(`${api}/gps/status`, (req, res) => {
-      res.json({
-        message: "GPS status endpoint",
-      });
-    });
+    this.app.get(`${api}/gps/status`, (req, res) =>
+      this.controller.getGPSStatus(req, res),
+    );
 
-    this.app.get(`${api}/map/files`, (req, res) => {
-      res.json({
-        message: "List GPX files endpoint",
-      });
-    });
+    // Map endpoints
+    this.app.get(`${api}/map/files`, (req, res) =>
+      this.controller.getGPXFiles(req, res),
+    );
 
-    this.app.get(`${api}/map/active`, (req, res) => {
-      res.json({
-        message: "Get active GPX file endpoint",
-      });
-    });
+    this.app.get(`${api}/map/active`, (req, res) =>
+      this.controller.getActiveGPX(req, res),
+    );
 
-    this.app.post(`${api}/map/active`, (req, res) => {
-      res.json({
-        message: "Set active GPX file endpoint",
-      });
-    });
+    this.app.post(`${api}/map/active`, (req, res) =>
+      this.controller.setActiveGPX(req, res),
+    );
 
-    this.app.post(`${api}/display/update`, (req, res) => {
-      res.json({
-        message: "Update display endpoint",
-      });
-    });
+    // Display endpoints
+    this.app.post(`${api}/display/update`, (req, res) =>
+      this.controller.updateDisplay(req, res),
+    );
 
-    this.app.post(`${api}/display/clear`, (req, res) => {
-      res.json({
-        message: "Clear display endpoint",
-      });
-    });
+    this.app.post(`${api}/display/clear`, (req, res) =>
+      this.controller.clearDisplay(req, res),
+    );
 
-    this.app.get(`${api}/system/status`, (req, res) => {
-      res.json({
-        message: "System status endpoint",
-      });
-    });
+    // System endpoints
+    this.app.get(`${api}/system/status`, (req, res) =>
+      this.controller.getSystemStatus(req, res),
+    );
 
-    this.app.post(`${api}/config/zoom`, (req, res) => {
-      res.json({
-        message: "Set zoom level endpoint",
-      });
-    });
+    // Config endpoints
+    this.app.post(`${api}/config/zoom`, (req, res) =>
+      this.controller.setZoom(req, res),
+    );
+
+    this.app.post(`${api}/config/auto-center`, (req, res) =>
+      this.controller.setAutoCenter(req, res),
+    );
+
+    this.app.post(`${api}/config/rotate-bearing`, (req, res) =>
+      this.controller.setRotateWithBearing(req, res),
+    );
+
+    // Auto-update endpoints
+    this.app.post(`${api}/auto-update/start`, (req, res) =>
+      this.controller.startAutoUpdate(req, res),
+    );
+
+    this.app.post(`${api}/auto-update/stop`, (req, res) =>
+      this.controller.stopAutoUpdate(req, res),
+    );
 
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({
-        error: "Not Found",
-        path: req.path,
+        success: false,
+        error: {
+          code: "NOT_FOUND",
+          message: "Endpoint not found",
+          path: req.path,
+        },
       });
     });
 
     // Error handler
-    this.app.use(
-      (err: Error, req: Request, res: Response, next: NextFunction) => {
-        console.error("Express error:", err);
-        res.status(500).json({
-          error: "Internal Server Error",
-          message: err.message,
-        });
-      },
-    );
+    this.app.use((err: Error, req: any, res: any, next: any) => {
+      console.error("Express error:", err);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Internal server error",
+        },
+      });
+    });
   }
 
   /**
@@ -316,7 +338,7 @@ export class WebInterfaceService implements IWebInterfaceService {
   private setupWebSocket(): void {
     if (!this.io) return;
 
-    this.io.on("connection", (socket) => {
+    this.io.on("connection", (socket: Socket) => {
       console.log("Client connected:", socket.id);
 
       // Handle disconnection
@@ -329,20 +351,57 @@ export class WebInterfaceService implements IWebInterfaceService {
         socket.emit("pong");
       });
 
-      // Placeholder event handlers - will be connected to orchestrator later
+      // GPS subscription
       socket.on("gps:subscribe", () => {
-        console.log("Client subscribed to GPS updates");
-        // Will emit GPS updates when connected to orchestrator
+        console.log("Client subscribed to GPS updates:", socket.id);
+        // Client will receive broadcasts
       });
 
       socket.on("gps:unsubscribe", () => {
-        console.log("Client unsubscribed from GPS updates");
+        console.log("Client unsubscribed from GPS updates:", socket.id);
       });
 
-      socket.on("display:refresh", () => {
-        console.log("Client requested display refresh");
-        // Will trigger display update when connected to orchestrator
+      // Display refresh request
+      socket.on("display:refresh", async () => {
+        console.log("Client requested display refresh:", socket.id);
+        await this.orchestrator.updateDisplay();
       });
     });
   }
+
+  /**
+   * Subscribe to orchestrator events and broadcast to clients
+   */
+  private subscribeToOrchestratorEvents(): void {
+    // Subscribe to display updates
+    this.displayUpdateUnsubscribe = this.orchestrator.onDisplayUpdate(
+      (success) => {
+        this.broadcast("display:updated", { success });
+      },
+    );
+
+    // Subscribe to errors
+    this.orchestrator.onError((error) => {
+      this.broadcast("error", {
+        code: error.name,
+        message: error.message,
+      });
+    });
+  }
+
+  /**
+   * Unsubscribe from orchestrator events
+   */
+  private unsubscribeFromOrchestratorEvents(): void {
+    if (this.gpsUpdateUnsubscribe) {
+      this.gpsUpdateUnsubscribe();
+      this.gpsUpdateUnsubscribe = null;
+    }
+
+    if (this.displayUpdateUnsubscribe) {
+      this.displayUpdateUnsubscribe();
+      this.displayUpdateUnsubscribe = null;
+    }
+  }
 }
+
