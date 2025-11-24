@@ -1,34 +1,29 @@
-import { BaseError } from './BaseError';
+import { BaseError } from "./BaseError";
 
 /**
  * Web-related error codes
  */
 export enum WebErrorCode {
   // Server errors
-  SERVER_START_FAILED = 'WEB_SERVER_START_FAILED',
-  SERVER_STOP_FAILED = 'WEB_SERVER_STOP_FAILED',
-  SERVER_NOT_RUNNING = 'WEB_SERVER_NOT_RUNNING',
-  PORT_IN_USE = 'WEB_PORT_IN_USE',
-  
+  SERVER_START_FAILED = "WEB_SERVER_START_FAILED",
+  SERVER_STOP_FAILED = "WEB_SERVER_STOP_FAILED",
+  SERVER_NOT_RUNNING = "WEB_SERVER_NOT_RUNNING",
+  PORT_IN_USE = "WEB_PORT_IN_USE",
   // Request errors
-  INVALID_REQUEST = 'WEB_INVALID_REQUEST',
-  MISSING_PARAMETER = 'WEB_MISSING_PARAMETER',
-  INVALID_PARAMETER = 'WEB_INVALID_PARAMETER',
-  
+  INVALID_REQUEST = "WEB_INVALID_REQUEST",
+  MISSING_PARAMETER = "WEB_MISSING_PARAMETER",
+  INVALID_PARAMETER = "WEB_INVALID_PARAMETER",
   // Authentication errors
-  UNAUTHORIZED = 'WEB_UNAUTHORIZED',
-  FORBIDDEN = 'WEB_FORBIDDEN',
-  
+  UNAUTHORIZED = "WEB_UNAUTHORIZED",
+  FORBIDDEN = "WEB_FORBIDDEN",
   // Resource errors
-  NOT_FOUND = 'WEB_NOT_FOUND',
-  METHOD_NOT_ALLOWED = 'WEB_METHOD_NOT_ALLOWED',
-  
+  NOT_FOUND = "WEB_NOT_FOUND",
+  METHOD_NOT_ALLOWED = "WEB_METHOD_NOT_ALLOWED",
   // WebSocket errors
-  WEBSOCKET_ERROR = 'WEB_WEBSOCKET_ERROR',
-  BROADCAST_FAILED = 'WEB_BROADCAST_FAILED',
-  
+  WEBSOCKET_ERROR = "WEB_WEBSOCKET_ERROR",
+  BROADCAST_FAILED = "WEB_BROADCAST_FAILED",
   // Generic
-  UNKNOWN = 'WEB_UNKNOWN_ERROR',
+  UNKNOWN = "WEB_UNKNOWN_ERROR",
 }
 
 /**
@@ -45,7 +40,7 @@ export class WebError extends BaseError {
     code: WebErrorCode = WebErrorCode.UNKNOWN,
     recoverable: boolean = false,
     context?: Record<string, any>,
-    statusCode?: number
+    statusCode?: number,
   ) {
     super(message, code, recoverable, context);
     this.statusCode = statusCode;
@@ -60,7 +55,7 @@ export class WebError extends BaseError {
       WebErrorCode.SERVER_START_FAILED,
       false,
       { port, originalError: error.message },
-      500
+      500,
     );
   }
 
@@ -73,7 +68,7 @@ export class WebError extends BaseError {
       WebErrorCode.PORT_IN_USE,
       false,
       { port },
-      500
+      500,
     );
   }
 
@@ -82,11 +77,11 @@ export class WebError extends BaseError {
    */
   static serverNotRunning(): WebError {
     return new WebError(
-      'Web server is not running',
+      "Web server is not running",
       WebErrorCode.SERVER_NOT_RUNNING,
       false,
       {},
-      503
+      503,
     );
   }
 
@@ -99,7 +94,7 @@ export class WebError extends BaseError {
       WebErrorCode.INVALID_REQUEST,
       false,
       { reason },
-      400
+      400,
     );
   }
 
@@ -112,20 +107,24 @@ export class WebError extends BaseError {
       WebErrorCode.MISSING_PARAMETER,
       false,
       { parameter },
-      400
+      400,
     );
   }
 
   /**
    * Create error for invalid parameter
    */
-  static invalidParameter(parameter: string, value: any, expected: string): WebError {
+  static invalidParameter(
+    parameter: string,
+    value: any,
+    expected: string,
+  ): WebError {
     return new WebError(
       `Invalid parameter ${parameter}: ${value} (expected: ${expected})`,
       WebErrorCode.INVALID_PARAMETER,
       false,
       { parameter, value, expected },
-      400
+      400,
     );
   }
 
@@ -134,11 +133,11 @@ export class WebError extends BaseError {
    */
   static unauthorized(reason?: string): WebError {
     return new WebError(
-      reason || 'Unauthorized access',
+      reason || "Unauthorized access",
       WebErrorCode.UNAUTHORIZED,
       false,
       { reason },
-      401
+      401,
     );
   }
 
@@ -147,11 +146,11 @@ export class WebError extends BaseError {
    */
   static forbidden(reason?: string): WebError {
     return new WebError(
-      reason || 'Forbidden',
+      reason || "Forbidden",
       WebErrorCode.FORBIDDEN,
       false,
       { reason },
-      403
+      403,
     );
   }
 
@@ -164,7 +163,7 @@ export class WebError extends BaseError {
       WebErrorCode.NOT_FOUND,
       false,
       { resource },
-      404
+      404,
     );
   }
 
@@ -177,7 +176,7 @@ export class WebError extends BaseError {
       WebErrorCode.METHOD_NOT_ALLOWED,
       false,
       { method, path },
-      405
+      405,
     );
   }
 
@@ -190,7 +189,7 @@ export class WebError extends BaseError {
       WebErrorCode.WEBSOCKET_ERROR,
       true,
       { originalError: error.message },
-      500
+      500,
     );
   }
 
@@ -204,23 +203,24 @@ export class WebError extends BaseError {
   getUserMessage(): string {
     switch (this.code) {
       case WebErrorCode.SERVER_START_FAILED:
-        return 'Failed to start web interface. Please check configuration.';
+        return "Failed to start web interface. Please check configuration.";
       case WebErrorCode.PORT_IN_USE:
-        return 'Web interface port is already in use. Please change the port.';
+        return "Web interface port is already in use. Please change the port.";
       case WebErrorCode.SERVER_NOT_RUNNING:
-        return 'Web interface is not running.';
+        return "Web interface is not running.";
       case WebErrorCode.INVALID_REQUEST:
-        return 'Invalid request. Please check your input.';
+        return "Invalid request. Please check your input.";
       case WebErrorCode.MISSING_PARAMETER:
-        return 'Missing required information. Please check your input.';
+        return "Missing required information. Please check your input.";
       case WebErrorCode.UNAUTHORIZED:
-        return 'Authentication required. Please log in.';
+        return "Authentication required. Please log in.";
       case WebErrorCode.FORBIDDEN:
-        return 'You do not have permission to access this resource.';
+        return "You do not have permission to access this resource.";
       case WebErrorCode.NOT_FOUND:
-        return 'Resource not found.';
+        return "Resource not found.";
       default:
-        return 'Web interface error occurred. Please try again.';
+        return "Web interface error occurred. Please try again.";
     }
   }
 }
+

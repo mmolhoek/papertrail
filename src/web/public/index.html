@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Papertrail - GPS Tracker Control</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📍 Papertrail</h1>
+            <p class="subtitle">GPS Tracker Control Panel</p>
+        </header>
+
+        <main>
+            <!-- Status Section -->
+            <section class="card status-section">
+                <h2>System Status</h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <span class="label">GPS Status:</span>
+                        <span class="value" id="gps-status">Unknown</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Satellites:</span>
+                        <span class="value" id="satellites">0</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Display:</span>
+                        <span class="value" id="display-status">Unknown</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="label">Active Track:</span>
+                        <span class="value" id="active-track">None</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- GPS Position Section -->
+            <section class="card position-section">
+                <h2>Current Position</h2>
+                <div class="position-display">
+                    <div class="coordinate">
+                        <span class="label">Latitude:</span>
+                        <span class="value" id="latitude">--</span>
+                    </div>
+                    <div class="coordinate">
+                        <span class="label">Longitude:</span>
+                        <span class="value" id="longitude">--</span>
+                    </div>
+                    <div class="coordinate">
+                        <span class="label">Altitude:</span>
+                        <span class="value" id="altitude">--</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Track Selection Section -->
+            <section class="card track-section">
+                <h2>GPX Track Selection</h2>
+                <div class="track-controls">
+                    <select id="track-select" class="track-select">
+                        <option value="">Select a track...</option>
+                    </select>
+                    <button id="load-track-btn" class="btn btn-primary">Load Track</button>
+                </div>
+                <div id="track-info" class="track-info hidden">
+                    <p><strong>Points:</strong> <span id="track-points">0</span></p>
+                    <p><strong>Distance:</strong> <span id="track-distance">0 km</span></p>
+                </div>
+            </section>
+
+            <!-- Display Controls Section -->
+            <section class="card controls-section">
+                <h2>Display Controls</h2>
+                <div class="control-grid">
+                    <div class="control-group">
+                        <label for="zoom-control">Zoom Level: <span id="zoom-value">14</span></label>
+                        <input type="range" id="zoom-control" min="1" max="20" value="14">
+                    </div>
+                    <div class="button-group">
+                        <button id="zoom-in-btn" class="btn">Zoom In (+)</button>
+                        <button id="zoom-out-btn" class="btn">Zoom Out (-)</button>
+                    </div>
+                    <div class="button-group">
+                        <button id="refresh-btn" class="btn btn-primary">🔄 Refresh Display</button>
+                        <button id="clear-btn" class="btn btn-secondary">Clear Display</button>
+                    </div>
+                    <div class="checkbox-group">
+                        <label>
+                            <input type="checkbox" id="auto-center" checked>
+                            Auto-center on GPS
+                        </label>
+                        <label>
+                            <input type="checkbox" id="auto-refresh">
+                            Auto-refresh (every 5s)
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Connection Status -->
+            <section class="connection-status">
+                <div id="connection-indicator" class="indicator disconnected">
+                    <span class="dot"></span>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Papertrail GPS Tracker © 2025</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
