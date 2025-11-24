@@ -1,6 +1,5 @@
 import { ConfigService } from "../ConfigService";
 import * as fs from "fs/promises";
-import * as path from "path";
 
 // Mock fs module
 jest.mock("fs/promises");

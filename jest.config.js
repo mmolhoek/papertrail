@@ -4,6 +4,7 @@ module.exports = {
   roots: ["<rootDir>/src"],
   testMatch: ["**/__tests__/**/*.test.ts"],
   moduleNameMapper: {
+    "^core/(.*)$": "<rootDir>/src/core/$1",
     "^@core/types$": "<rootDir>/src/core/types",
     "^@core/interfaces$": "<rootDir>/src/core/interfaces",
     "^@core/types/(.*)$": "<rootDir>/src/core/types/$1",

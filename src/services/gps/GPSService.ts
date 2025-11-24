@@ -330,20 +330,4 @@ export class GPSService implements IGPSService {
       }
     });
   }
-
-  /**
-   * Update current status and notify callbacks
-   */
-  private updateStatus(status: GPSStatus): void {
-    this.currentStatus = status;
-
-    // Notify all status callbacks
-    this.statusCallbacks.forEach((callback) => {
-      try {
-        callback(status);
-      } catch (error) {
-        console.error("Error in status callback:", error);
-      }
-    });
-  }
 }
