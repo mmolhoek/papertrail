@@ -2,16 +2,10 @@ import express, { Express } from "express";
 import http from "http";
 import path from "path";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import {
-  IWebInterfaceService,
-  Result,
-  success,
-  failure,
-  WebConfig,
-} from "@core/types";
-import { IRenderingOrchestrator } from "@core/interfaces";
-import { WebError } from "@core/errors";
-import { WebController } from "./WebController";
+import { Result, success, failure, WebConfig } from "@core/types";
+import { IRenderingOrchestrator, IWebInterfaceService } from "@core/interfaces";
+import { WebError, WebErrorCode } from "@core/errors";
+import { WebController } from "./controllers/WebController";
 
 /**
  * Integrated Web Interface Service
@@ -146,14 +140,18 @@ export class IntegratedWebService implements IWebInterfaceService {
         return failure(
           new WebError(
             `Failed to stop server: ${error.message}`,
-            "WEB_SERVER_STOP_FAILED",
+            WebErrorCode.SERVER_STOP_FAILED,
             false,
             { originalError: error.message },
           ),
         );
       }
       return failure(
-        new WebError("Failed to stop server", "WEB_SERVER_STOP_FAILED", false),
+        new WebError(
+          "Failed to stop server",
+          WebErrorCode.SERVER_STOP_FAILED,
+          false,
+        ),
       );
     }
   }
@@ -232,7 +230,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     this.app.use(express.static(this.config.staticDirectory));
 
     // Logging middleware
-    this.app.use((req, res, next) => {
+    this.app.use((req, _res, next) => {
       console.log(`${req.method} ${req.path}`);
       next();
     });
@@ -320,7 +318,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     });
 
     // Error handler
-    this.app.use((err: Error, req: any, res: any, next: any) => {
+    this.app.use((err: Error, _req: any, res: any, _next: any) => {
       console.error("Express error:", err);
       res.status(500).json({
         success: false,
@@ -404,4 +402,3 @@ export class IntegratedWebService implements IWebInterfaceService {
     }
   }
 }
-

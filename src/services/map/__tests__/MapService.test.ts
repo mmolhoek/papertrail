@@ -52,7 +52,14 @@ describe("MapService", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mapService = new MapService(testDirectory, 10 * 1024 * 1024, true);
+    mapService = new MapService({
+      gpxDirectory: testDirectory,
+      maxFileSize: 10 * 1024 * 1024,
+      enableCache: true,
+      defaultZoomLevel: 12,
+      minZoomLevel: 1,
+      maxZoomLevel: 20,
+    });
 
     // Default path.join mock
     mockPath.join.mockImplementation((...args) => args.join("/"));
@@ -462,4 +469,3 @@ describe("MapService", () => {
     });
   });
 });
-

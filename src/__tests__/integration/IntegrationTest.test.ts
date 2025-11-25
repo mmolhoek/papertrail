@@ -5,7 +5,7 @@ import {
   IGPSService,
   IConfigService,
 } from "@core/interfaces";
-import { Result, success, GPSCoordinate, SystemStatus } from "@core/types";
+import { success, GPSCoordinate, SystemStatus } from "@core/types";
 import http from "http";
 
 /**
@@ -382,4 +382,3 @@ function makeRequest(
     req.end();
   });
 }
-

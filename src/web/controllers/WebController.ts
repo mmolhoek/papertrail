@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { IRenderingOrchestrator } from "@core/interfaces";
 import { isSuccess } from "@core/types";
+import { WebError } from "core/errors";
 
 /**
  * Web Controller
@@ -14,7 +15,7 @@ export class WebController {
   /**
    * Health check endpoint
    */
-  async getHealth(req: Request, res: Response): Promise<void> {
+  async getHealth(_req: Request, res: Response): Promise<void> {
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
@@ -24,7 +25,7 @@ export class WebController {
   /**
    * Get current GPS position
    */
-  async getGPSPosition(req: Request, res: Response): Promise<void> {
+  async getGPSPosition(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.getCurrentPosition();
 
     if (isSuccess(result)) {
@@ -44,8 +45,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -54,7 +55,7 @@ export class WebController {
   /**
    * Get GPS status
    */
-  async getGPSStatus(req: Request, res: Response): Promise<void> {
+  async getGPSStatus(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
@@ -71,8 +72,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -81,7 +82,7 @@ export class WebController {
   /**
    * Get list of available GPX files
    */
-  async getGPXFiles(req: Request, res: Response): Promise<void> {
+  async getGPXFiles(_req: Request, res: Response): Promise<void> {
     // This will be implemented when MapService is available
     // For now, return placeholder
     res.json({
@@ -95,7 +96,7 @@ export class WebController {
   /**
    * Get active GPX file
    */
-  async getActiveGPX(req: Request, res: Response): Promise<void> {
+  async getActiveGPX(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
@@ -109,8 +110,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -144,8 +145,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -154,7 +155,7 @@ export class WebController {
   /**
    * Update display
    */
-  async updateDisplay(req: Request, res: Response): Promise<void> {
+  async updateDisplay(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.updateDisplay();
 
     if (isSuccess(result)) {
@@ -166,8 +167,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -176,7 +177,7 @@ export class WebController {
   /**
    * Clear display
    */
-  async clearDisplay(req: Request, res: Response): Promise<void> {
+  async clearDisplay(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.clearDisplay();
 
     if (isSuccess(result)) {
@@ -188,8 +189,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -198,7 +199,7 @@ export class WebController {
   /**
    * Get system status
    */
-  async getSystemStatus(req: Request, res: Response): Promise<void> {
+  async getSystemStatus(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
@@ -210,8 +211,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -248,8 +249,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -258,7 +259,7 @@ export class WebController {
   /**
    * Start auto-update
    */
-  async startAutoUpdate(req: Request, res: Response): Promise<void> {
+  async startAutoUpdate(_req: Request, res: Response): Promise<void> {
     const result = await this.orchestrator.startAutoUpdate();
 
     if (isSuccess(result)) {
@@ -270,8 +271,8 @@ export class WebController {
       res.status(500).json({
         success: false,
         error: {
-          code: result.error.code,
-          message: result.error.getUserMessage(),
+          code: (result.error as WebError).code,
+          message: (result.error as WebError).getUserMessage(),
         },
       });
     }
@@ -280,7 +281,7 @@ export class WebController {
   /**
    * Stop auto-update
    */
-  async stopAutoUpdate(req: Request, res: Response): Promise<void> {
+  async stopAutoUpdate(_req: Request, res: Response): Promise<void> {
     this.orchestrator.stopAutoUpdate();
     res.json({
       success: true,
@@ -336,4 +337,3 @@ export class WebController {
     });
   }
 }
-

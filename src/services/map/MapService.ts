@@ -11,6 +11,7 @@ import {
   Bounds,
   success,
   failure,
+  MapConfig,
 } from "@core/types";
 import { MapError, MapErrorCode } from "@core/errors";
 
@@ -24,9 +25,14 @@ export class MapService implements IMapService {
   private cache: Map<string, GPXFile> = new Map();
 
   constructor(
-    private readonly gpxDirectory: string = "./data/gpx-files",
-    private readonly maxFileSize: number = 10 * 1024 * 1024, // 10 MB
-    private readonly enableCache: boolean = true,
+    private readonly config: MapConfig = {
+      gpxDirectory: "./data/gpx-files",
+      maxFileSize: 10 * 1024 * 1024, // 10 MB
+      enableCache: true,
+      defaultZoomLevel: 12,
+      minZoomLevel: 1,
+      maxZoomLevel: 20,
+    },
   ) {}
 
   /**
@@ -35,7 +41,7 @@ export class MapService implements IMapService {
   async loadGPXFile(filePath: string): Promise<Result<GPXFile>> {
     try {
       // Check cache first
-      if (this.enableCache && this.cache.has(filePath)) {
+      if (this.config.enableCache && this.cache.has(filePath)) {
         return success(this.cache.get(filePath)!);
       }
 
@@ -48,9 +54,9 @@ export class MapService implements IMapService {
 
       // Check file size
       const stats = await fs.stat(filePath);
-      if (stats.size > this.maxFileSize) {
+      if (stats.size > this.config.maxFileSize) {
         return failure(
-          MapError.fileTooLarge(filePath, stats.size, this.maxFileSize),
+          MapError.fileTooLarge(filePath, stats.size, this.config.maxFileSize),
         );
       }
 
@@ -61,7 +67,7 @@ export class MapService implements IMapService {
       const gpxFile = await this.parseGPX(content, filePath);
 
       // Cache the result
-      if (this.enableCache) {
+      if (this.config.enableCache) {
         this.cache.set(filePath, gpxFile);
       }
 
@@ -121,21 +127,21 @@ export class MapService implements IMapService {
     try {
       // Check if directory exists
       try {
-        await fs.access(this.gpxDirectory);
+        await fs.access(this.config.gpxDirectory);
       } catch {
-        return failure(MapError.directoryNotFound(this.gpxDirectory));
+        return failure(MapError.directoryNotFound(this.config.gpxDirectory));
       }
 
       // Read directory
-      const files = await fs.readdir(this.gpxDirectory);
+      const files = await fs.readdir(this.config.gpxDirectory);
 
       // Filter for .gpx files
       const gpxFiles = files
         .filter((file) => file.toLowerCase().endsWith(".gpx"))
-        .map((file) => path.join(this.gpxDirectory, file));
+        .map((file) => path.join(this.config.gpxDirectory, file));
 
       if (gpxFiles.length === 0) {
-        return failure(MapError.noGPXFiles(this.gpxDirectory));
+        return failure(MapError.noGPXFiles(this.config.gpxDirectory));
       }
 
       return success(gpxFiles);
@@ -146,7 +152,7 @@ export class MapService implements IMapService {
             `Failed to list GPX files: ${error.message}`,
             MapErrorCode.DIRECTORY_READ_ERROR,
             false,
-            { directory: this.gpxDirectory },
+            { directory: this.config.gpxDirectory },
           ),
         );
       }
@@ -565,4 +571,3 @@ export class MapService implements IMapService {
     return (2 * area) / d3;
   }
 }
-
