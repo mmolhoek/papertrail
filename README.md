@@ -134,6 +134,38 @@ http://your-pi-ip:3000
 
 Default port is 3000 (configurable via `WEB_PORT` environment variable).
 
+## How a request flows through the system
+
+```diagram
+
+┌─────────────────────────────────────────────┐
+│ Mobile Web Browser                          │
+│ (<http://your-pi-ip:3000>)                  │
+└─────────────┬───────────────────────────────┘
+              │ HTTP/WebSocket
+              ▼
+┌─────────────────────────────────────────────┐
+│ IntegratedWebService                        │
+│ (coordinates all requests)                  │
+│ ├─ Express HTTP Server                      │
+│ ├─ Socket.IO WebSocket                      │
+│ └─ WebController                            │
+└─────────────┬───────────────────────────────┘
+              │ Method calls
+              ▼
+┌─────────────────────────────────────────────┐
+│ RenderingOrchestrator                       │
+│ (coordinates all services)                  │
+└───┬──────┬──────┬──────┬──────┬─────────────┘
+    │      │      │      │      │
+    ▼      ▼      ▼      ▼      ▼
+   GPS    Map    SVG   Epaper Config (services)
+    │      │      │      │      │
+    ▼      ▼      ▼      ▼      ▼
+Hardware Files Canvas Display State
+
+```
+
 ## API Endpoints
 
 ### GPS
@@ -279,4 +311,3 @@ Contributions welcome! Please ensure tests pass before submitting PRs.
 npm test
 npm run lint
 ```
-
