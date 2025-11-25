@@ -8,8 +8,8 @@ import {
   Point2D,
   success,
   failure,
-} from "@core/types";
-import { DisplayError } from "@core/errors";
+} from "../../core/types";
+import { DisplayError } from "../../core/errors";
 
 /**
  * SVG Service Implementation
@@ -433,4 +433,3 @@ export class SVGService implements ISVGService {
     }
   }
 }
-

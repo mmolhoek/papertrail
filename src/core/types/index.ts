@@ -3,15 +3,8 @@
  *
  * This barrel file exports all type definitions used throughout the application.
  */
-
-// Result type and helpers
 export * from "./ResultTypes";
 export * from "./ConfigTypes";
-// GPS types and enums
 export * from "./GPSTypes";
-
-// Map types
 export * from "./MapTypes";
-
-// Display types and enums
 export * from "./DisplayTypes";

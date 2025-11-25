@@ -1,6 +1,6 @@
-import { ServiceContainer } from "@di/ServiceContainer";
-import { IntegratedWebService } from "@web/IntegratedWebService";
-import { isSuccess } from "@core/types";
+import { ServiceContainer } from "./di/ServiceContainer";
+import { IntegratedWebService } from "./web/IntegratedWebService";
+import { isSuccess } from "./core/types";
 
 /**
  * Main Entry Point for Papertrail GPS Tracker
@@ -125,4 +125,3 @@ main().catch((error) => {
   console.error("Failed to start application:", error);
   process.exit(1);
 });
-

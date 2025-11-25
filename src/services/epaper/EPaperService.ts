@@ -7,8 +7,8 @@ import {
   DisplayUpdateMode,
   success,
   failure,
-} from "@core/types";
-import { DisplayError, DisplayErrorCode } from "@core/errors";
+} from "../../core/types";
+import { DisplayError, DisplayErrorCode } from "../../core/errors";
 
 /**
  * E-Paper Service Implementation

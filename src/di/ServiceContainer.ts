@@ -7,13 +7,13 @@ import {
   IRenderingOrchestrator,
 } from "@core/interfaces";
 import { WebConfig, GPSConfig, EpaperConfig, MapConfig } from "@core/types";
-import { GPSService } from "@services/gps/GPSService";
+import { GPSService } from "../services/gps/GPSService";
 // Import other services when they're implemented
-import { MapService } from "@services/map/MapService";
-import { SVGService } from "@services/svg/SVGService";
-import { ConfigService } from "@services/config/ConfigService";
-import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
-import { EpaperService } from "@services/epaper/EPaperService";
+import { MapService } from "../services/map/MapService";
+import { SVGService } from "../services/svg/SVGService";
+import { ConfigService } from "../services/config/ConfigService";
+import { RenderingOrchestrator } from "../services/orchestrator/RenderingOrchestrator";
+import { EpaperService } from "../services/epaper/EPaperService";
 
 /**
  * Service Container (Dependency Injection Container)

@@ -12,8 +12,8 @@ import {
   SystemStatus,
   success,
   failure,
-} from "@core/types";
-import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
+} from "../../core/types";
+import { OrchestratorError, OrchestratorErrorCode } from "../../core/errors";
 
 /**
  * Rendering Orchestrator Implementation

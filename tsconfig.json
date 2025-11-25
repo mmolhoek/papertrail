@@ -15,11 +15,8 @@
     "sourceMap": true,
     "baseUrl": "./src",
     "paths": {
-      "core/*": ["core/*"],
       "@core/*": ["core/*"],
       "@errors/*": ["core/errors/*"],
-      "@interfaces/*": ["core/interfaces/*"],
-      "@types/*": ["core/types/*"],
       "@services/*": ["services/*"],
       "@di/*": ["di/*"],
       "@web/*": ["web/*"],

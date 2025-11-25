@@ -2,9 +2,9 @@ import express, { Express } from "express";
 import http from "http";
 import path from "path";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { Result, success, failure, WebConfig } from "@core/types";
+import { Result, success, failure, WebConfig } from "../core/types";
 import { IRenderingOrchestrator, IWebInterfaceService } from "@core/interfaces";
-import { WebError, WebErrorCode } from "@core/errors";
+import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 
 /**

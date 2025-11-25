@@ -12,8 +12,8 @@ import {
   success,
   failure,
   MapConfig,
-} from "@core/types";
-import { MapError, MapErrorCode } from "@core/errors";
+} from "../../core/types";
+import { MapError, MapErrorCode } from "../../core/errors";
 
 /**
  * Map Service Implementation

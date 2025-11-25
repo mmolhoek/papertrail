@@ -9,8 +9,8 @@ import {
   GPSFixQuality,
   success,
   failure,
-} from "@core/types";
-import { GPSError, GPSErrorCode } from "@core/errors";
+} from "../../core/types";
+import { GPSError, GPSErrorCode } from "../../core/errors";
 
 /**
  * GPS Service Implementation

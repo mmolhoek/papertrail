@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { IRenderingOrchestrator } from "@core/interfaces";
-import { isSuccess } from "@core/types";
+import { isSuccess } from "../../core/types";
 import { WebError } from "core/errors";
 
 /**

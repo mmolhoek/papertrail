@@ -8,8 +8,8 @@ import {
   RenderOptions,
   success,
   failure,
-} from "@core/types";
-import { ConfigError } from "@core/errors";
+} from "../../core/types";
+import { ConfigError } from "../../core/errors";
 
 /**
  * Config Service Implementation
