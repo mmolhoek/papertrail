@@ -300,7 +300,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
     // Error handler
     this.app.use(
-      (err: Error, req: Request, res: Response, next: NextFunction) => {
+      (err: Error, req: Request, res: Response, _next: NextFunction) => {
         console.error("Express error:", err);
         res.status(500).json({
           error: "Internal Server Error",
@@ -332,6 +332,7 @@ export class WebInterfaceService implements IWebInterfaceService {
       // Placeholder event handlers - will be connected to orchestrator later
       socket.on("gps:subscribe", () => {
         console.log("Client subscribed to GPS updates");
+
         // Will emit GPS updates when connected to orchestrator
       });
 
