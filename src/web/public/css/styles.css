@@ -157,8 +157,62 @@ header h1 {
   margin: 4px 0;
 }
 
-.hidden {
+/* System Messages */
+#system-messages {
+  position: fixed;
+  bottom: 80px; /* Added space between system messages and connection status */
+  right: 20px;
+  z-index: 1000;
+}
+
+#system-messages .indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: var(--card-background);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+#system-messages .indicator.hidden {
   display: none;
+}
+
+#system-messages .indicator.info {
+  background-color: #d9edf7;
+  color: #31708f;
+}
+
+#system-messages .indicator.success {
+  background-color: #dff0d8;
+  color: #3c763d;
+}
+
+#system-messages .indicator.error {
+  background-color: #f2dede;
+  color: #a94442;
+}
+
+#system-messages .indicator .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+#system-messages .indicator.info .dot {
+  background-color: #31708f;
+}
+
+#system-messages .indicator.success .dot {
+  background-color: #3c763d;
+}
+
+#system-messages .indicator.error .dot {
+  background-color: #a94442;
 }
 
 /* Controls Section */
@@ -317,8 +371,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 @keyframes pulse {
-  0%,
-  100% {
+  0% {
     opacity: 1;
   }
   50% {

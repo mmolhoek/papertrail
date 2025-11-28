@@ -8,6 +8,24 @@ class PapertrailClient {
     this.init();
   }
 
+  // Show a system message
+  showMessage(message, type = "info") {
+    const messageIndicator = document.getElementById("message-indicator");
+    const messageText = document.getElementById("message-text");
+
+    // Set message content and type
+    messageText.textContent = message;
+    messageIndicator.className = `indicator ${type}`;
+
+    // Show the message indicator
+    messageIndicator.classList.remove("hidden");
+
+    // Automatically hide the message after 5 seconds
+    setTimeout(() => {
+      messageIndicator.classList.add("hidden");
+    }, 5000);
+  }
+
   init() {
     // Initialize WebSocket
     this.initWebSocket();
@@ -105,13 +123,17 @@ class PapertrailClient {
       this.populateTrackList(tracks);
 
       // Load system status
-      const statusResponse = await this.fetchJSON(`${this.apiBase}/system/status`);
+      const statusResponse = await this.fetchJSON(
+        `${this.apiBase}/system/status`,
+      );
       if (statusResponse && statusResponse.data) {
         this.updateSystemStatus(statusResponse.data);
       }
 
       // Load GPS position
-      const positionResponse = await this.fetchJSON(`${this.apiBase}/gps/position`);
+      const positionResponse = await this.fetchJSON(
+        `${this.apiBase}/gps/position`,
+      );
       if (positionResponse && positionResponse.data) {
         this.updateGPSPosition(positionResponse.data);
       }
@@ -125,7 +147,7 @@ class PapertrailClient {
     const trackPath = select.value;
 
     if (!trackPath) {
-      alert("Please select a track");
+      this.showMessage("Please select a track", "error");
       return;
     }
 
@@ -135,11 +157,11 @@ class PapertrailClient {
         body: JSON.stringify({ path: trackPath }),
       });
 
-      alert("Track loaded successfully");
+      this.showMessage("Track loaded successfully", "success");
       this.refreshDisplay();
     } catch (error) {
       console.error("Error loading track:", error);
-      alert("Failed to load track");
+      this.showMessage("Failed to load track", "error");
     }
   }
 
@@ -196,10 +218,10 @@ class PapertrailClient {
       await this.fetchJSON(`${this.apiBase}/display/clear`, {
         method: "POST",
       });
-      alert("Display cleared successfully");
+      this.showMessage("Display cleared successfully", "success");
     } catch (error) {
       console.error("Error clearing display:", error);
-      alert("Failed to clear display");
+      this.showMessage("Failed to clear display", "error");
     }
   }
 
@@ -257,7 +279,9 @@ class PapertrailClient {
       if (gpsStatusElement) {
         const isActive = data.isTracking !== undefined ? data.isTracking : true;
         gpsStatusElement.textContent = isActive ? "✓ Active" : "✗ Inactive";
-        gpsStatusElement.className = isActive ? "value status-good" : "value status-bad";
+        gpsStatusElement.className = isActive
+          ? "value status-good"
+          : "value status-bad";
       }
 
       // Update fix status display
@@ -324,13 +348,18 @@ class PapertrailClient {
         if (gpsStatusElement && gpsStatusElement.textContent === "Unknown") {
           const gpsStatus = data.gps.connected ? "✓ Active" : "✗ Inactive";
           gpsStatusElement.textContent = gpsStatus;
-          gpsStatusElement.className = data.gps.connected ? "value status-good" : "value status-bad";
+          gpsStatusElement.className = data.gps.connected
+            ? "value status-good"
+            : "value status-bad";
         }
 
         // Note: Satellites are now updated via real-time gps:update/gps:status events
         // Only update if we don't have real-time data yet
         const satellitesElement = document.getElementById("satellites");
-        if (satellitesElement.textContent === "0" || satellitesElement.textContent === "") {
+        if (
+          satellitesElement.textContent === "0" ||
+          satellitesElement.textContent === ""
+        ) {
           satellitesElement.textContent = data.gps.satellitesInUse || 0;
         }
       }
@@ -399,4 +428,3 @@ class PapertrailClient {
 document.addEventListener("DOMContentLoaded", () => {
   window.app = new PapertrailClient();
 });
-
