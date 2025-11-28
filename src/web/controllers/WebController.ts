@@ -178,19 +178,29 @@ export class WebController {
    * Clear display
    */
   async clearDisplay(_req: Request, res: Response): Promise<void> {
-    const result = await this.orchestrator.clearDisplay();
+    try {
+      const result = await this.orchestrator.clearDisplay();
 
-    if (isSuccess(result)) {
-      res.json({
-        success: true,
-        message: "Display cleared successfully",
-      });
-    } else {
+      if (isSuccess(result)) {
+        res.json({
+          success: true,
+          message: "Display cleared successfully",
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: {
+            code: (result.error as WebError).code,
+            message: (result.error as WebError).getUserMessage(),
+          },
+        });
+      }
+    } catch (error) {
       res.status(500).json({
         success: false,
         error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unexpected error occurred while clearing the display.",
         },
       });
     }

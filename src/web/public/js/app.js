@@ -196,7 +196,7 @@ class PapertrailClient {
       await this.fetchJSON(`${this.apiBase}/display/clear`, {
         method: "POST",
       });
-      alert("Display cleared");
+      alert("Display cleared successfully");
     } catch (error) {
       console.error("Error clearing display:", error);
       alert("Failed to clear display");

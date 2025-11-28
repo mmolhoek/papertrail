@@ -442,7 +442,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    return await this.epaperService.clear();
+    const result = await this.epaperService.clear();
+    if (!result.success) {
+      return failure(
+        OrchestratorError.updateFailed("Clear display", result.error)
+      );
+    }
+    return success(undefined);
   }
 
   /**
