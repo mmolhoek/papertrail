@@ -247,6 +247,15 @@ class PapertrailClient {
 
   updateGPSStatus(data) {
     if (data) {
+      // Update GPS connection status
+      // If we're receiving GPS data, the GPS is active
+      const gpsStatusElement = document.getElementById("gps-status");
+      if (gpsStatusElement) {
+        const isActive = data.isTracking !== undefined ? data.isTracking : true;
+        gpsStatusElement.textContent = isActive ? "✓ Active" : "✗ Inactive";
+        gpsStatusElement.className = isActive ? "value status-good" : "value status-bad";
+      }
+
       // Update fix status display
       const fixElement = document.getElementById("gps-fix-status");
       if (fixElement) {
@@ -305,8 +314,15 @@ class PapertrailClient {
   updateSystemStatus(data) {
     if (data) {
       if (data.gps) {
-        const gpsStatus = data.gps.connected ? "✓ Active" : "✗ Inactive";
-        document.getElementById("gps-status").textContent = gpsStatus;
+        // Note: GPS Status is now updated via real-time gps:update/gps:status events
+        // Only update on initial load if element still shows "Unknown"
+        const gpsStatusElement = document.getElementById("gps-status");
+        if (gpsStatusElement && gpsStatusElement.textContent === "Unknown") {
+          const gpsStatus = data.gps.connected ? "✓ Active" : "✗ Inactive";
+          gpsStatusElement.textContent = gpsStatus;
+          gpsStatusElement.className = data.gps.connected ? "value status-good" : "value status-bad";
+        }
+
         // Note: Satellites are now updated via real-time gps:update/gps:status events
         // Only update if we don't have real-time data yet
         const satellitesElement = document.getElementById("satellites");
