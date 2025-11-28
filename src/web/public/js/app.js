@@ -4,8 +4,47 @@ class PapertrailClient {
     this.socket = null;
     this.apiBase = "/api";
     this.autoRefreshInterval = null;
+    this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
+    this.setupHamburgerMenu();
 
     this.init();
+  }
+
+  // Bind and initialize the hamburger menu
+
+    setupHamburgerMenu() {
+    const menuToggle = document.getElementById("menu-toggle");
+    const menuContent = document.getElementById("menu-content");
+
+    menuToggle.addEventListener("click", () => {
+      menuContent.classList.toggle("hidden");
+    });
+
+    // Show the GPX Track Selection panel
+    const trackSelectionButton = document.getElementById(
+      "menu-track-selection",
+    );
+    const trackSelectionPanel = document.getElementById(
+      "track-selection-panel",
+    );
+    trackSelectionButton.addEventListener("click", () => {
+      const isHidden = trackSelectionPanel.style.display === "none";
+      trackSelectionPanel.style.display = isHidden ? "block" : "none";
+      menuContent.classList.add("hidden");
+    });
+
+    // Show the Display Controls panel
+    const displayControlsButton = document.getElementById(
+      "menu-display-controls",
+    );
+    const displayControlsPanel = document.getElementById(
+      "display-controls-panel",
+    );
+    displayControlsButton.addEventListener("click", () => {
+      const isHidden = displayControlsPanel.style.display === "none";
+      displayControlsPanel.style.display = isHidden ? "block" : "none";
+      menuContent.classList.add("hidden");
+    });
   }
 
   // Show a system message

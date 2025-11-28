@@ -421,3 +421,52 @@ footer {
   }
 }
 
+/* Hamburger Menu */
+.hamburger-menu {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+
+.menu-toggle {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 15px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.menu-content {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+}
+
+.menu-content.hidden {
+  display: none;
+}
+
+.menu-item {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.menu-item:hover {
+  background: #1d4ed8;
+}

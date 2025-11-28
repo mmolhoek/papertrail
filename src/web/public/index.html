@@ -14,6 +14,15 @@
       </header>
 
       <main>
+        <!-- Hamburger Menu -->
+        <nav class="hamburger-menu">
+          <button id="menu-toggle" class="menu-toggle">☰</button>
+          <div id="menu-content" class="menu-content hidden">
+            <button id="menu-track-selection" class="menu-item">GPX Track Selection</button>
+            <button id="menu-display-controls" class="menu-item">Display Controls</button>
+          </div>
+        </nav>
+
         <!-- Status Section -->
         <section class="card status-section">
           <h2>System Status</h2>
@@ -65,7 +74,7 @@
         </section>
 
         <!-- Track Selection Section -->
-        <section class="card track-section">
+        <section class="card track-section hidden" id="track-selection-panel" style="display: none;">
           <h2>GPX Track Selection</h2>
           <div class="track-controls">
             <select id="track-select" class="track-select">
@@ -84,7 +93,7 @@
         </section>
 
         <!-- Display Controls Section -->
-        <section class="card controls-section">
+        <section class="card controls-section hidden" id="display-controls-panel" style="display: none;">
           <h2>Display Controls</h2>
           <div class="control-grid">
             <div class="control-group">
