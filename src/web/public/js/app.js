@@ -36,6 +36,10 @@ class PapertrailClient {
 
     this.socket.on("gps:update", (data) => {
       this.updateGPSPosition(data);
+      // Position updates now include fix status
+      if (data.fixQuality !== undefined) {
+        this.updateGPSStatus(data);
+      }
     });
 
     this.socket.on("gps:status", (data) => {
@@ -266,13 +270,34 @@ class PapertrailClient {
 
       // Update satellites count
       if (data.satellitesInUse !== undefined) {
-        document.getElementById("satellites").textContent = data.satellitesInUse;
+        const satellitesElement = document.getElementById("satellites");
+        satellitesElement.textContent = data.satellitesInUse;
+
+        // Color-code satellites: green if 4+, yellow if 1-3, red if 0
+        if (data.satellitesInUse >= 4) {
+          satellitesElement.className = "value status-good";
+        } else if (data.satellitesInUse > 0) {
+          satellitesElement.className = "value status-unknown";
+        } else {
+          satellitesElement.className = "value status-bad";
+        }
       }
 
-      // Update HDOP if element exists
+      // Update HDOP (Horizontal Dilution of Precision - lower is better)
       const hdopElement = document.getElementById("gps-hdop");
       if (hdopElement && data.hdop !== undefined) {
         hdopElement.textContent = data.hdop.toFixed(1);
+
+        // Color-code HDOP: <2=excellent, 2-5=good, 5-10=moderate, >10=poor
+        if (data.hdop < 2) {
+          hdopElement.className = "value status-good";
+        } else if (data.hdop < 5) {
+          hdopElement.className = "value status-good";
+        } else if (data.hdop < 10) {
+          hdopElement.className = "value status-unknown";
+        } else {
+          hdopElement.className = "value status-bad";
+        }
       }
     }
   }
@@ -282,8 +307,12 @@ class PapertrailClient {
       if (data.gps) {
         const gpsStatus = data.gps.connected ? "✓ Active" : "✗ Inactive";
         document.getElementById("gps-status").textContent = gpsStatus;
-        document.getElementById("satellites").textContent =
-          data.gps.satellitesInUse || 0;
+        // Note: Satellites are now updated via real-time gps:update/gps:status events
+        // Only update if we don't have real-time data yet
+        const satellitesElement = document.getElementById("satellites");
+        if (satellitesElement.textContent === "0" || satellitesElement.textContent === "") {
+          satellitesElement.textContent = data.gps.satellitesInUse || 0;
+        }
       }
 
       if (data.display) {

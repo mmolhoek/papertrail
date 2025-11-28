@@ -29,6 +29,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
+  private latestGPSStatus: { fixQuality: number; satellitesInUse: number; hdop: number } | null = null;
 
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
@@ -392,6 +393,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       );
 
       // Broadcast to ALL connected WebSocket clients
+      // Include the latest GPS status (fix quality, satellites, hdop) with the position
       this.broadcast("gps:update", {
         latitude: position.latitude,
         longitude: position.longitude,
@@ -400,6 +402,10 @@ export class IntegratedWebService implements IWebInterfaceService {
         accuracy: position.accuracy,
         speed: position.speed,
         bearing: position.bearing,
+        // Include current fix status
+        fixQuality: this.latestGPSStatus?.fixQuality ?? 0,
+        satellitesInUse: this.latestGPSStatus?.satellitesInUse ?? 0,
+        hdop: this.latestGPSStatus?.hdop ?? 99.9,
       });
     });
 
@@ -409,6 +415,13 @@ export class IntegratedWebService implements IWebInterfaceService {
       console.log(
         `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
       );
+
+      // Store the latest status so we can include it in position updates
+      this.latestGPSStatus = {
+        fixQuality: status.fixQuality,
+        satellitesInUse: status.satellitesInUse,
+        hdop: status.hdop,
+      };
 
       // Broadcast to ALL connected WebSocket clients
       this.broadcast("gps:status", {
