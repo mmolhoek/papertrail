@@ -9,6 +9,7 @@ import {
 import {
   Result,
   GPSCoordinate,
+  GPSStatus,
   SystemStatus,
   success,
   failure,
@@ -25,9 +26,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isInitialized: boolean = false;
   private autoUpdateInterval: NodeJS.Timeout | null = null;
   private gpsUpdateCallbacks: Array<(position: GPSCoordinate) => void> = [];
+  private gpsStatusCallbacks: Array<(status: GPSStatus) => void> = [];
   private displayUpdateCallbacks: Array<(success: boolean) => void> = [];
   private errorCallbacks: Array<(error: Error) => void> = [];
   private gpsUnsubscribe: (() => void) | null = null;
+  private gpsStatusUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly gpsService: IGPSService,
@@ -76,6 +79,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       // Subscribe to GPS position updates from the GPS service
       this.subscribeToGPSUpdates();
 
+      // Subscribe to GPS status changes from the GPS service
+      this.subscribeToGPSStatusChanges();
+
       this.isInitialized = true;
       return success(undefined);
     } catch (error) {
@@ -111,6 +117,32 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             error instanceof Error
               ? error
               : new Error("Unknown error in GPS update callback"),
+          );
+        }
+      });
+    });
+  }
+
+  /**
+   * Subscribe to GPS status changes from the GPS service
+   * and forward them to all registered callbacks
+   */
+  private subscribeToGPSStatusChanges(): void {
+    if (this.gpsStatusUnsubscribe) {
+      this.gpsStatusUnsubscribe();
+    }
+
+    this.gpsStatusUnsubscribe = this.gpsService.onStatusChange((status) => {
+      // Notify all GPS status callbacks
+      this.gpsStatusCallbacks.forEach((callback) => {
+        try {
+          callback(status);
+        } catch (error) {
+          console.error("Error in GPS status callback:", error);
+          this.notifyError(
+            error instanceof Error
+              ? error
+              : new Error("Unknown error in GPS status callback"),
           );
         }
       });
@@ -462,6 +494,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Register a callback for GPS status changes
+   */
+  onGPSStatusChange(callback: (status: GPSStatus) => void): () => void {
+    this.gpsStatusCallbacks.push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.gpsStatusCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.gpsStatusCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
    * Register a callback for display updates
    */
   onDisplayUpdate(callback: (success: boolean) => void): () => void {
@@ -501,11 +548,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.gpsUnsubscribe = null;
     }
 
+    // Unsubscribe from GPS status changes
+    if (this.gpsStatusUnsubscribe) {
+      this.gpsStatusUnsubscribe();
+      this.gpsStatusUnsubscribe = null;
+    }
+
     // Stop auto-update if running
     this.stopAutoUpdate();
 
     // Clear all callbacks
     this.gpsUpdateCallbacks = [];
+    this.gpsStatusCallbacks = [];
     this.displayUpdateCallbacks = [];
     this.errorCallbacks = [];
 

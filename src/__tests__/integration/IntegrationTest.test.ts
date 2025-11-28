@@ -269,6 +269,7 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     setAutoCenter: jest.fn(),
     setRotateWithBearing: jest.fn(),
     onGPSUpdate: jest.fn().mockReturnValue(() => {}),
+    onGPSStatusChange: jest.fn().mockReturnValue(() => {}),
     onDisplayUpdate: jest.fn().mockReturnValue(() => {}),
     onError: jest.fn().mockReturnValue(() => {}),
     dispose: jest.fn().mockResolvedValue(undefined),

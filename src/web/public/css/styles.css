@@ -91,6 +91,19 @@ header h1 {
   color: var(--text-primary);
 }
 
+/* GPS Fix Status Colors */
+.status-good {
+  color: var(--success-color) !important;
+}
+
+.status-bad {
+  color: var(--danger-color) !important;
+}
+
+.status-unknown {
+  color: var(--warning-color) !important;
+}
+
 /* Position Section */
 .position-display {
   display: flex;

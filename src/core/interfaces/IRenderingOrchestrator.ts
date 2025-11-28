@@ -1,4 +1,4 @@
-import { Result, GPSCoordinate, SystemStatus } from "@core/types";
+import { Result, GPSCoordinate, GPSStatus, SystemStatus } from "@core/types";
 
 /**
  * Rendering Orchestrator Interface
@@ -122,6 +122,13 @@ export interface IRenderingOrchestrator {
    * @returns Unsubscribe function
    */
   onGPSUpdate(callback: (position: GPSCoordinate) => void): () => void;
+
+  /**
+   * Register a callback for GPS status changes
+   * @param callback Function to call when GPS status changes (fix quality, satellites, etc.)
+   * @returns Unsubscribe function
+   */
+  onGPSStatusChange(callback: (status: GPSStatus) => void): () => void;
 
   /**
    * Register a callback for display updates

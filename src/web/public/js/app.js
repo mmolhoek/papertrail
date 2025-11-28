@@ -38,6 +38,10 @@ class PapertrailClient {
       this.updateGPSPosition(data);
     });
 
+    this.socket.on("gps:status", (data) => {
+      this.updateGPSStatus(data);
+    });
+
     this.socket.on("status:update", (data) => {
       this.updateSystemStatus(data);
     });
@@ -234,6 +238,42 @@ class PapertrailClient {
       document.getElementById("altitude").textContent = data.altitude
         ? data.altitude.toFixed(1) + " m"
         : "--";
+    }
+  }
+
+  updateGPSStatus(data) {
+    if (data) {
+      // Update fix status display
+      const fixElement = document.getElementById("gps-fix-status");
+      if (fixElement) {
+        const fixQualityNames = [
+          "No Fix",
+          "GPS Fix",
+          "DGPS Fix",
+          "PPS Fix",
+          "RTK Fix",
+          "Float RTK",
+          "Estimated",
+          "Manual",
+          "Simulation",
+        ];
+        const fixName = fixQualityNames[data.fixQuality] || "Unknown";
+        const hasFix = data.fixQuality > 0;
+
+        fixElement.textContent = hasFix ? "✓ " + fixName : "✗ " + fixName;
+        fixElement.className = hasFix ? "status-good" : "status-bad";
+      }
+
+      // Update satellites count
+      if (data.satellitesInUse !== undefined) {
+        document.getElementById("satellites").textContent = data.satellitesInUse;
+      }
+
+      // Update HDOP if element exists
+      const hdopElement = document.getElementById("gps-hdop");
+      if (hdopElement && data.hdop !== undefined) {
+        hdopElement.textContent = data.hdop.toFixed(1);
+      }
     }
   }
 

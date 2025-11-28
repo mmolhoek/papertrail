@@ -168,6 +168,7 @@ export class GPSService implements IGPSService {
 
     if (this.currentStatus) {
       this.currentStatus.isTracking = true;
+      this.updateStatus(this.currentStatus);
     }
 
     return success(undefined);
@@ -187,6 +188,7 @@ export class GPSService implements IGPSService {
 
     if (this.currentStatus) {
       this.currentStatus.isTracking = false;
+      this.updateStatus(this.currentStatus);
     }
 
     return success(undefined);
@@ -295,23 +297,53 @@ export class GPSService implements IGPSService {
   private processNMEASentence(sentence: string): void {
     if (!sentence.startsWith("$")) return;
 
-    // For now, just basic structure
-    // Will implement full NMEA parsing later
-
     // Example: $GPGGA sentence contains position data
+    // Format: $GPGGA,time,lat,N/S,lon,E/W,quality,satellites,hdop,altitude,M,geoid,M,age,station*checksum
     if (sentence.startsWith("$GPGGA") || sentence.startsWith("$GNGGA")) {
-      // TODO: Parse GGA sentence
-      // For now, create a mock position for testing
-      this.updatePosition({
-        latitude: 0,
-        longitude: 0,
-        timestamp: new Date(),
-      });
+      const parts = sentence.split(",");
+      if (parts.length < 15) return;
+
+      // Parse fix quality (index 6)
+      const fixQuality = parseInt(parts[6]) || 0;
+
+      // Parse number of satellites (index 7)
+      const satellitesInUse = parseInt(parts[7]) || 0;
+
+      // Parse HDOP (index 8)
+      const hdop = parseFloat(parts[8]) || 99.9;
+
+      // Check if status has changed
+      const statusChanged =
+        !this.currentStatus ||
+        this.currentStatus.fixQuality !== fixQuality ||
+        this.currentStatus.satellitesInUse !== satellitesInUse ||
+        Math.abs(this.currentStatus.hdop - hdop) > 0.1;
+
+      if (statusChanged) {
+        const newStatus: GPSStatus = {
+          fixQuality: fixQuality as GPSFixQuality,
+          satellitesInUse,
+          hdop,
+          isTracking: this.tracking,
+        };
+        this.updateStatus(newStatus);
+      }
+
+      // If we have a valid fix, parse position
+      if (fixQuality > 0 && parts[2] && parts[4]) {
+        // TODO: Parse full position data from GGA sentence
+        // For now, create a mock position for testing
+        this.updatePosition({
+          latitude: 0,
+          longitude: 0,
+          timestamp: new Date(),
+        });
+      }
     }
 
     // Example: $GPGSA sentence contains satellite status
     if (sentence.startsWith("$GPGSA") || sentence.startsWith("$GNGSA")) {
-      // TODO: Parse GSA sentence
+      // TODO: Parse GSA sentence for PDOP, VDOP
     }
   }
 
@@ -327,6 +359,22 @@ export class GPSService implements IGPSService {
         callback(position);
       } catch (error) {
         console.error("Error in position callback:", error);
+      }
+    });
+  }
+
+  /**
+   * Update current status and notify callbacks
+   */
+  private updateStatus(status: GPSStatus): void {
+    this.currentStatus = status;
+
+    // Notify all status callbacks
+    this.statusCallbacks.forEach((callback) => {
+      try {
+        callback(status);
+      } catch (error) {
+        console.error("Error in status callback:", error);
       }
     });
   }

@@ -26,6 +26,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private running: boolean = false;
   private controller: WebController;
   private gpsUpdateUnsubscribe: (() => void) | null = null;
+  private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
 
@@ -402,6 +403,24 @@ export class IntegratedWebService implements IWebInterfaceService {
       });
     });
 
+    // Subscribe to GPS status changes
+    // When GPS fix quality, satellites, or HDOP changes, broadcast to clients
+    this.gpsStatusUnsubscribe = this.orchestrator.onGPSStatusChange((status) => {
+      console.log(
+        `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
+      );
+
+      // Broadcast to ALL connected WebSocket clients
+      this.broadcast("gps:status", {
+        fixQuality: status.fixQuality,
+        satellitesInUse: status.satellitesInUse,
+        hdop: status.hdop,
+        vdop: status.vdop,
+        pdop: status.pdop,
+        isTracking: status.isTracking,
+      });
+    });
+
     // Subscribe to display updates
     this.displayUpdateUnsubscribe = this.orchestrator.onDisplayUpdate(
       (success) => {
@@ -425,6 +444,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.gpsUpdateUnsubscribe) {
       this.gpsUpdateUnsubscribe();
       this.gpsUpdateUnsubscribe = null;
+    }
+
+    if (this.gpsStatusUnsubscribe) {
+      this.gpsStatusUnsubscribe();
+      this.gpsStatusUnsubscribe = null;
     }
 
     if (this.displayUpdateUnsubscribe) {
