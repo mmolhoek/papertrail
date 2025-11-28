@@ -136,6 +136,9 @@ export type EpaperConfig = {
 
   /** Whether display is rotated */
   rotation: 0 | 90 | 180 | 270;
+
+  /** Optional model name */
+  model?: string;
 };
 
 /**
@@ -183,4 +186,3 @@ export enum DisplayUpdateMode {
   /** Auto-select based on content changes */
   AUTO = "auto",
 }
-

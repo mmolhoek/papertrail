@@ -299,29 +299,19 @@ export class EpaperService implements IEpaperService {
   }
 
   /**
-   * Get the display model name based on dimensions
+   * Get the display model name
+   * Uses config.model if provided, otherwise detects based on dimensions
    */
   private getDisplayModel(): string {
+    // If model is explicitly set in config, use that
+    if (this.config.model) {
+      return this.config.model;
+    }
+
+    // Otherwise, detect based on dimensions
     const { width, height } = this.config;
 
-    // Common Waveshare e-paper display models
-    if (width === 800 && height === 480) {
-      return "Waveshare 7.5\" (800×480)";
-    } else if (width === 640 && height === 384) {
-      return "Waveshare 7.5\" v2 (640×384)";
-    } else if (width === 648 && height === 480) {
-      return "Waveshare 5.83\" (648×480)";
-    } else if (width === 600 && height === 448) {
-      return "Waveshare 5.65\" (600×448)";
-    } else if (width === 400 && height === 300) {
-      return "Waveshare 4.2\" (400×300)";
-    } else if (width === 296 && height === 128) {
-      return "Waveshare 2.9\" (296×128)";
-    } else if (width === 250 && height === 122) {
-      return "Waveshare 2.13\" (250×122)";
-    } else {
-      return `E-Paper ${width}×${height}`;
-    }
+    return `${width}×${height}`;
   }
 
   /**
