@@ -31,6 +31,10 @@ class PapertrailClient {
       const isHidden = trackSelectionPanel.style.display === "none";
       trackSelectionPanel.style.display = isHidden ? "block" : "none";
       menuContent.classList.add("hidden");
+
+      // Toggle indicator icon
+      const trackIndicator = document.getElementById("track-selection-indicator");
+      trackIndicator.classList.toggle("hidden", !isHidden);
     });
 
     // Show the Display Controls panel
@@ -44,6 +48,10 @@ class PapertrailClient {
       const isHidden = displayControlsPanel.style.display === "none";
       displayControlsPanel.style.display = isHidden ? "block" : "none";
       menuContent.classList.add("hidden");
+
+      // Toggle indicator icon
+      const displayIndicator = document.getElementById("display-controls-indicator");
+      displayIndicator.classList.toggle("hidden", !isHidden);
     });
   }
 
