@@ -301,7 +301,9 @@ export class GPSService implements IGPSService {
     // Format: $GPGGA,time,lat,N/S,lon,E/W,quality,satellites,hdop,altitude,M,geoid,M,age,station*checksum
     if (sentence.startsWith("$GPGGA") || sentence.startsWith("$GNGGA")) {
       const parts = sentence.split(",");
-      if (parts.length < 15) return;
+
+      // Need at least fix quality and satellites (index 7)
+      if (parts.length < 8) return;
 
       // Parse fix quality (index 6)
       const fixQuality = parseInt(parts[6]) || 0;
@@ -309,8 +311,8 @@ export class GPSService implements IGPSService {
       // Parse number of satellites (index 7)
       const satellitesInUse = parseInt(parts[7]) || 0;
 
-      // Parse HDOP (index 8)
-      const hdop = parseFloat(parts[8]) || 99.9;
+      // Parse HDOP (index 8) if available
+      const hdop = parts[8] ? parseFloat(parts[8]) || 99.9 : 99.9;
 
       // Check if status has changed
       const statusChanged =
@@ -329,16 +331,14 @@ export class GPSService implements IGPSService {
         this.updateStatus(newStatus);
       }
 
-      // If we have a valid fix, parse position
-      if (fixQuality > 0 && parts[2] && parts[4]) {
-        // TODO: Parse full position data from GGA sentence
-        // For now, create a mock position for testing
-        this.updatePosition({
-          latitude: 0,
-          longitude: 0,
-          timestamp: new Date(),
-        });
-      }
+      // Always update position when we get GGA data (regardless of fix quality)
+      // TODO: Parse full position data from GGA sentence
+      // For now, create a mock position for testing
+      this.updatePosition({
+        latitude: 0,
+        longitude: 0,
+        timestamp: new Date(),
+      });
     }
 
     // Example: $GPGSA sentence contains satellite status
