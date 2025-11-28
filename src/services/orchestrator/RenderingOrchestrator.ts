@@ -24,8 +24,10 @@ import { OrchestratorError, OrchestratorErrorCode } from "../../core/errors";
 export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isInitialized: boolean = false;
   private autoUpdateInterval: NodeJS.Timeout | null = null;
+  private gpsUpdateCallbacks: Array<(position: GPSCoordinate) => void> = [];
   private displayUpdateCallbacks: Array<(success: boolean) => void> = [];
   private errorCallbacks: Array<(error: Error) => void> = [];
+  private gpsUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly gpsService: IGPSService,
@@ -71,6 +73,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       // Start GPS tracking
       await this.gpsService.startTracking();
 
+      // Subscribe to GPS position updates from the GPS service
+      this.subscribeToGPSUpdates();
+
       this.isInitialized = true;
       return success(undefined);
     } catch (error) {
@@ -84,6 +89,32 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         ),
       );
     }
+  }
+
+  /**
+   * Subscribe to GPS position updates from the GPS service
+   * and forward them to all registered callbacks
+   */
+  private subscribeToGPSUpdates(): void {
+    if (this.gpsUnsubscribe) {
+      this.gpsUnsubscribe();
+    }
+
+    this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
+      // Notify all GPS update callbacks
+      this.gpsUpdateCallbacks.forEach((callback) => {
+        try {
+          callback(position);
+        } catch (error) {
+          console.error("Error in GPS update callback:", error);
+          this.notifyError(
+            error instanceof Error
+              ? error
+              : new Error("Unknown error in GPS update callback"),
+          );
+        }
+      });
+    });
   }
 
   /**
@@ -157,17 +188,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         );
       }
 
-      // Notify success
+      // Notify display update callbacks
       this.notifyDisplayUpdate(true);
+
       return success(undefined);
     } catch (error) {
-      if (error instanceof Error) {
-        this.notifyError(error);
-        return failure(OrchestratorError.updateFailed("unknown", error));
-      }
-      return failure(
-        OrchestratorError.updateFailed("unknown", new Error("Unknown error")),
-      );
+      const err = error instanceof Error ? error : new Error("Unknown error");
+      this.notifyError(err);
+      return failure(OrchestratorError.updateFailed("Display update", err));
     }
   }
 
@@ -180,30 +208,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     try {
-      // Validate that the GPX file can be loaded
-      const trackResult = await this.mapService.getTrack(filePath);
-      if (!trackResult.success) {
-        return trackResult;
+      // Validate the GPX file
+      const validationResult = await this.mapService.validateGPXFile(filePath);
+      if (!validationResult.success) {
+        return failure(validationResult.error);
       }
 
       // Set as active
       this.configService.setActiveGPXPath(filePath);
-
-      // Save config
       await this.configService.save();
 
       // Update display
       return await this.updateDisplay();
     } catch (error) {
-      if (error instanceof Error) {
-        return failure(OrchestratorError.updateFailed("set active GPX", error));
-      }
-      return failure(
-        OrchestratorError.updateFailed(
-          "set active GPX",
-          new Error("Unknown error"),
-        ),
-      );
+      const err = error instanceof Error ? error : new Error("Unknown error");
+      return failure(OrchestratorError.updateFailed("Set active GPX", err));
     }
   }
 
@@ -361,36 +380,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             ? epaperStatus.data.lastUpdate
             : undefined,
           refreshCount: epaperStatus.success
-            ? epaperStatus.data.fullRefreshCount +
-              epaperStatus.data.partialRefreshCount
+            ? epaperStatus.data.fullRefreshCount || 0
             : 0,
         },
         activeTrack,
         system: {
-          cpuUsage: 0, // TODO: Implement actual CPU monitoring
-          memoryUsage: process.memoryUsage().heapUsed / 1024 / 1024, // MB
-          temperature: undefined,
+          cpuUsage: process.cpuUsage().user / 1000000,
+          memoryUsage:
+            (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) *
+            100,
         },
       };
 
       return success(status);
     } catch (error) {
-      if (error instanceof Error) {
-        return failure(
-          new OrchestratorError(
-            `Failed to get system status: ${error.message}`,
-            OrchestratorErrorCode.UNKNOWN,
-            true,
-          ),
-        );
-      }
-      return failure(
-        new OrchestratorError(
-          "Failed to get system status",
-          OrchestratorErrorCode.UNKNOWN,
-          true,
-        ),
-      );
+      const err = error instanceof Error ? error : new Error("Unknown error");
+      return failure(OrchestratorError.updateFailed("Get system status", err));
     }
   }
 
@@ -442,6 +447,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Register a callback for GPS position updates
+   */
+  onGPSUpdate(callback: (position: GPSCoordinate) => void): () => void {
+    this.gpsUpdateCallbacks.push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.gpsUpdateCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.gpsUpdateCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
    * Register a callback for display updates
    */
   onDisplayUpdate(callback: (success: boolean) => void): () => void {
@@ -475,12 +495,32 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {
+    // Unsubscribe from GPS updates
+    if (this.gpsUnsubscribe) {
+      this.gpsUnsubscribe();
+      this.gpsUnsubscribe = null;
+    }
+
+    // Stop auto-update if running
     this.stopAutoUpdate();
+
+    // Clear all callbacks
+    this.gpsUpdateCallbacks = [];
     this.displayUpdateCallbacks = [];
     this.errorCallbacks = [];
 
-    await this.gpsService.dispose();
-    await this.epaperService.dispose();
+    // Dispose all services
+    try {
+      await this.gpsService.dispose();
+    } catch (error) {
+      console.error("Error disposing GPS service:", error);
+    }
+
+    try {
+      await this.epaperService.dispose();
+    } catch (error) {
+      console.error("Error disposing epaper service:", error);
+    }
 
     this.isInitialized = false;
   }

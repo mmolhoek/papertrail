@@ -309,6 +309,7 @@ describe("RenderingOrchestrator", () => {
     });
 
     it("should set active GPX and update display", async () => {
+      mockMap.validateGPXFile.mockResolvedValue(success(true));
       mockMap.getTrack.mockResolvedValue(success(mockTrack));
       mockGPS.getCurrentPosition.mockResolvedValue(success(mockCoordinate));
       mockSVG.renderViewport.mockResolvedValue(success(mockBitmap));
@@ -322,7 +323,7 @@ describe("RenderingOrchestrator", () => {
     });
 
     it("should fail if GPX file is invalid", async () => {
-      mockMap.getTrack.mockResolvedValue(
+      mockMap.validateGPXFile.mockResolvedValue(
         failure(MapError.fileNotFound("/invalid/path.gpx")),
       );
 
@@ -544,7 +545,7 @@ describe("RenderingOrchestrator", () => {
         expect(result.data).toHaveProperty("display");
         expect(result.data).toHaveProperty("system");
         expect(result.data.gps.satellitesInUse).toBe(8);
-        expect(result.data.display.refreshCount).toBe(15);
+        expect(result.data.display.refreshCount).toBe(5);
       }
     });
   });

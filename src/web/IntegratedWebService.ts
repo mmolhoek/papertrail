@@ -12,6 +12,12 @@ import { WebController } from "./controllers/WebController";
  *
  * Combines WebInterfaceService with WebController to provide
  * a fully integrated web interface connected to the orchestrator.
+ *
+ * This service:
+ * 1. Serves static files (HTML, CSS, JS)
+ * 2. Handles HTTP API requests via WebController
+ * 3. Manages WebSocket connections for real-time updates
+ * 4. Subscribes to orchestrator events and broadcasts them to clients
  */
 export class IntegratedWebService implements IWebInterfaceService {
   private app: Express;
@@ -21,6 +27,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private controller: WebController;
   private gpsUpdateUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
+  private errorUnsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
@@ -369,8 +376,32 @@ export class IntegratedWebService implements IWebInterfaceService {
 
   /**
    * Subscribe to orchestrator events and broadcast to clients
+   *
+   * This is the critical link that connects:
+   * 1. GPS hardware → GPS Service → RenderingOrchestrator
+   * 2. → IntegratedWebService (via onGPSUpdate callback)
+   * 3. → WebSocket broadcast to all connected clients
    */
   private subscribeToOrchestratorEvents(): void {
+    // Subscribe to GPS position updates
+    // When the GPS service gets new position data, it triggers this callback
+    this.gpsUpdateUnsubscribe = this.orchestrator.onGPSUpdate((position) => {
+      console.log(
+        `Broadcasting GPS update: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+      );
+
+      // Broadcast to ALL connected WebSocket clients
+      this.broadcast("gps:update", {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        altitude: position.altitude,
+        timestamp: position.timestamp,
+        accuracy: position.accuracy,
+        speed: position.speed,
+        bearing: position.bearing,
+      });
+    });
+
     // Subscribe to display updates
     this.displayUpdateUnsubscribe = this.orchestrator.onDisplayUpdate(
       (success) => {
@@ -379,7 +410,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     // Subscribe to errors
-    this.orchestrator.onError((error) => {
+    this.errorUnsubscribe = this.orchestrator.onError((error) => {
       this.broadcast("error", {
         code: error.name,
         message: error.message,
@@ -399,6 +430,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.displayUpdateUnsubscribe) {
       this.displayUpdateUnsubscribe();
       this.displayUpdateUnsubscribe = null;
+    }
+
+    if (this.errorUnsubscribe) {
+      this.errorUnsubscribe();
+      this.errorUnsubscribe = null;
     }
   }
 }
