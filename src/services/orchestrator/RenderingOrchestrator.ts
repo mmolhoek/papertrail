@@ -408,6 +408,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         display: {
           initialized: epaperStatus.success,
           busy: epaperStatus.success ? epaperStatus.data.busy : false,
+          model: epaperStatus.success ? epaperStatus.data.model : undefined,
+          width: epaperStatus.success ? epaperStatus.data.width : undefined,
+          height: epaperStatus.success ? epaperStatus.data.height : undefined,
           lastUpdate: epaperStatus.success
             ? epaperStatus.data.lastUpdate
             : undefined,

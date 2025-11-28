@@ -105,12 +105,16 @@ class PapertrailClient {
       this.populateTrackList(tracks);
 
       // Load system status
-      const status = await this.fetchJSON(`${this.apiBase}/system/status`);
-      this.updateSystemStatus(status);
+      const statusResponse = await this.fetchJSON(`${this.apiBase}/system/status`);
+      if (statusResponse && statusResponse.data) {
+        this.updateSystemStatus(statusResponse.data);
+      }
 
       // Load GPS position
-      const position = await this.fetchJSON(`${this.apiBase}/gps/position`);
-      this.updateGPSPosition(position);
+      const positionResponse = await this.fetchJSON(`${this.apiBase}/gps/position`);
+      if (positionResponse && positionResponse.data) {
+        this.updateGPSPosition(positionResponse.data);
+      }
     } catch (error) {
       console.error("Error loading initial data:", error);
     }
@@ -332,10 +336,21 @@ class PapertrailClient {
       }
 
       if (data.display) {
-        const displayStatus = data.display.initialized
-          ? "✓ Ready"
-          : "✗ Not Ready";
-        document.getElementById("display-status").textContent = displayStatus;
+        const displayElement = document.getElementById("display-status");
+        if (data.display.initialized) {
+          // Show display model if available, otherwise just "Ready"
+          const displayInfo = data.display.model || "Ready";
+          displayElement.textContent = "✓ " + displayInfo;
+          displayElement.className = "value status-good";
+        } else {
+          displayElement.textContent = "✗ Not Ready";
+          displayElement.className = "value status-bad";
+        }
+      } else {
+        // No display data available
+        const displayElement = document.getElementById("display-status");
+        displayElement.textContent = "Unknown";
+        displayElement.className = "value status-unknown";
       }
 
       if (data.activeTrack) {

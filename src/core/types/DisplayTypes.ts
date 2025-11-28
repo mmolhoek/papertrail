@@ -151,6 +151,15 @@ export type EpaperStatus = {
   /** Whether display is in sleep mode */
   sleeping: boolean;
 
+  /** Display model/name */
+  model?: string;
+
+  /** Display width in pixels */
+  width?: number;
+
+  /** Display height in pixels */
+  height?: number;
+
   /** Last update timestamp */
   lastUpdate?: Date;
 

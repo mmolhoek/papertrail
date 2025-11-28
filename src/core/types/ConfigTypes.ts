@@ -176,6 +176,9 @@ export type SystemStatus = {
   display: {
     initialized: boolean;
     busy: boolean;
+    model?: string;
+    width?: number;
+    height?: number;
     lastUpdate?: Date;
     refreshCount: number;
   };
