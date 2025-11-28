@@ -9,17 +9,379 @@ import {
   failure,
 } from "../../core/types";
 import { DisplayError, DisplayErrorCode } from "../../core/errors";
+import * as lgpio from "lgpio";
+import sharp from "sharp";
+import * as bmp from "bmp-js";
+
+/**
+ * Pin configuration for the waveshare 4.26 ePaper display (800x480) 1-bit black and white
+ */
+interface EPDConfig {
+  width?: number;
+  height?: number;
+  spiDevice?: string;
+  rstGPIO?: number;
+  dcGPIO?: number;
+  busyGPIO?: number;
+  powerGPIO?: number;
+  debug?: boolean;
+}
+
+/**
+ * Internal EPD hardware control class
+ */
+class EPD {
+  private readonly WIDTH: number;
+  private readonly HEIGHT: number;
+  private rstGPIO: number;
+  private dcGPIO: number;
+  private busyGPIO: number;
+  private powerGPIO: number;
+  private debug: boolean;
+  private chip: number;
+  private spiHandle: number;
+  private buffer: Buffer;
+
+  constructor(config: EPDConfig = {}) {
+    const {
+      width = 800,
+      height = 480,
+      rstGPIO = 17,
+      dcGPIO = 25,
+      busyGPIO = 24,
+      powerGPIO = 18,
+      debug = false,
+    } = config;
+    this.WIDTH = width || 800;
+    this.HEIGHT = height || 480;
+    this.rstGPIO = rstGPIO;
+    this.dcGPIO = dcGPIO;
+    this.busyGPIO = busyGPIO;
+    this.powerGPIO = powerGPIO;
+
+    this.debug = debug;
+    this.chip = lgpio.gpiochipOpen(0);
+    this.spiHandle = lgpio.spiOpen(0, 0, 256000);
+
+    lgpio.gpioClaimOutput(this.chip, this.rstGPIO, undefined, false);
+    lgpio.gpioClaimOutput(this.chip, this.dcGPIO, undefined, false);
+    lgpio.gpioClaimInput(this.chip, this.busyGPIO);
+    lgpio.gpioClaimOutput(this.chip, this.powerGPIO, undefined, true);
+
+    if (this.debug)
+      console.log(
+        `epaper: Display (${this.WIDTH}, ${this.HEIGHT}), buffer size: ${(this.WIDTH / 8) * this.HEIGHT} bytes`,
+      );
+    this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
+  }
+
+  public get width(): number {
+    return this.WIDTH;
+  }
+
+  public get height(): number {
+    return this.HEIGHT;
+  }
+
+  private async reset(): Promise<void> {
+    if (this.debug) console.time("epaper: reset");
+    lgpio.gpioWrite(this.chip, this.rstGPIO, true);
+    await this.delay(20);
+    lgpio.gpioWrite(this.chip, this.rstGPIO, false);
+    await this.delay(2);
+    lgpio.gpioWrite(this.chip, this.rstGPIO, true);
+    await this.delay(20);
+    if (this.debug) console.timeEnd("epaper: reset");
+  }
+
+  private sendCommand(command: number): void {
+    lgpio.gpioWrite(this.chip, this.dcGPIO, false);
+    const txBuffer = Buffer.from([command]);
+    lgpio.spiWrite(this.spiHandle, new Uint8Array(txBuffer));
+  }
+
+  private sendData(data: number | Buffer): void {
+    if (this.debug && typeof data !== "number") console.time("sendData");
+    lgpio.gpioWrite(this.chip, this.dcGPIO, true);
+
+    if (typeof data === "number") {
+      const txBuffer = new Uint8Array([data]);
+      lgpio.spiWrite(this.spiHandle, txBuffer);
+    } else {
+      const txBuffer = new Uint8Array(data);
+      lgpio.spiWrite(this.spiHandle, txBuffer);
+    }
+    if (this.debug && typeof data !== "number") console.timeEnd("sendData");
+  }
+
+  private async epaperReady(): Promise<void> {
+    let count = 0;
+    if (this.debug) console.time("epaper: epaperReady");
+    while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
+      await this.delay(5);
+      count++;
+      if (count > 1000) {
+        break;
+      }
+    }
+    if (this.debug) console.timeEnd("epaper: epaperReady");
+  }
+
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async init(): Promise<void> {
+    if (this.debug) console.time("epaper: init");
+    await this.reset();
+    await this.epaperReady();
+
+    this.sendCommand(0x12); // SWRESET
+    await this.epaperReady();
+
+    this.sendCommand(0x18); // Use the internal temperature sensor
+    this.sendData(0x80);
+
+    this.sendCommand(0x0c); // Set soft start
+    this.sendData(0xae);
+    this.sendData(0xc7);
+    this.sendData(0xc3);
+    this.sendData(0xc0);
+    this.sendData(0x80);
+
+    this.sendCommand(0x01); // Driver output control
+    this.sendData((this.HEIGHT - 1) & 0xff); // Y (low byte)
+    this.sendData((this.HEIGHT - 1) >> 8); // Y (high byte)
+    this.sendData(0x02);
+
+    this.sendCommand(0x3c); // Border setting
+    this.sendData(0x01);
+
+    this.sendCommand(0x11); // Data entry mode
+    this.sendData(0x01); // X-mode x+ y-
+
+    this.setWindow(0, this.HEIGHT - 1, this.WIDTH - 1, 0);
+
+    this.setCursor(0, 0);
+    await this.epaperReady();
+    if (this.debug) console.timeEnd("epaper: init");
+  }
+
+  async clear(fast: boolean = true): Promise<void> {
+    if (this.debug) console.time("epaper: clear");
+    if (this.debug) console.time("epaper: clear: Buffer fill");
+    this.buffer.fill(0xff);
+    if (this.debug) console.timeEnd("epaper: clear: Buffer fill");
+
+    if (this.debug) console.time("epaper: clear: Sending data");
+    this.sendCommand(0x24);
+    this.sendData(this.buffer);
+    if (this.debug) console.timeEnd("epaper: clear: Sending data");
+
+    await this.turnOnDisplay(fast);
+    if (this.debug) console.timeEnd("epaper: clear");
+  }
+
+  async display(imageBuffer?: Buffer): Promise<void> {
+    if (this.debug) console.time("epaper: display");
+    const buf = imageBuffer || this.buffer;
+
+    this.sendCommand(0x24);
+    this.sendData(buf);
+    await this.turnOnDisplay();
+    if (this.debug) console.timeEnd("epaper: display");
+  }
+
+  private async turnOnDisplay(fast: boolean = true): Promise<void> {
+    if (this.debug) console.time("epaper: turnOnDisplay");
+    this.sendCommand(0x22); // Display update control
+    this.sendData(fast ? 0xff : 0xf7); // Fast or slow refresh
+    this.sendCommand(0x20); // Activate display update sequence
+    await this.epaperReady();
+    if (this.debug) console.timeEnd("epaper: turnOnDisplay");
+  }
+
+  async sleep(): Promise<void> {
+    if (this.debug) console.time("epaper: sleep");
+    this.sendCommand(0x10); // Enter deep sleep mode
+    this.sendData(0x01); // Deep sleep command
+    await this.delay(100); // Wait for the command to take effect
+    if (this.debug) console.timeEnd("epaper: sleep");
+  }
+
+  getBuffer(): Buffer {
+    return this.buffer;
+  }
+
+  setPixel(x: number, y: number, color: number): void {
+    if (x < 0 || x >= this.WIDTH || y < 0 || y >= this.HEIGHT) {
+      return;
+    }
+
+    const byteIndex = (x + y * this.WIDTH) >> 3;
+    const bitIndex = 7 - (x & 7);
+
+    if (color === 0) {
+      this.buffer[byteIndex] |= 1 << bitIndex;
+    } else {
+      this.buffer[byteIndex] &= ~(1 << bitIndex);
+    }
+  }
+
+  drawHLine(x: number, y: number, width: number, color: number): void {
+    for (let i = 0; i < width; i++) {
+      this.setPixel(x + i, y, color);
+    }
+  }
+
+  drawVLine(x: number, y: number, height: number, color: number): void {
+    for (let i = 0; i < height; i++) {
+      this.setPixel(x, y + i, color);
+    }
+  }
+
+  drawRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: number,
+  ): void {
+    this.drawHLine(x, y, width, color);
+    this.drawHLine(x, y + height - 1, width, color);
+    this.drawVLine(x, y, height, color);
+    this.drawVLine(x + width - 1, y, height, color);
+  }
+
+  fillRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: number,
+  ): void {
+    for (let i = 0; i < height; i++) {
+      this.drawHLine(x, y + i, width, color);
+    }
+  }
+
+  async loadImage(imagePath: string): Promise<Buffer> {
+    const bmpBuffer = await sharp(imagePath)
+      .resize(this.WIDTH, this.HEIGHT, { fit: "contain", background: { r: 255, g: 255, b: 255 } })
+      .raw()
+      .toBuffer();
+
+    let bitmap: any;
+    if (this.debug) console.log("epaper: Image loaded, converting using sharp...");
+
+    try {
+      await sharp(bmpBuffer)
+        .raw()
+        .toBuffer()
+        .then((data: Buffer) => {
+          console.log("epaper: Image loaded, converting to BMP format...");
+          bitmap = bmp.encode({
+            data: data,
+            width: this.WIDTH,
+            height: this.HEIGHT,
+          });
+          bitmap = bmp.decode(bitmap.data);
+          console.log("epaper: Image converted to BMP!");
+        })
+        .catch((err: Error) => {
+          console.error("epaper: Error:", err);
+        });
+    } catch (err) {
+      console.error("epaper: Failed to convert image to BMP format:", err);
+    }
+
+    if (!bitmap) {
+      throw new Error("Failed to load image");
+    }
+
+    const scaleFactor = Math.min(
+      this.WIDTH / bitmap.width,
+      this.HEIGHT / bitmap.height,
+      1,
+    );
+
+    const targetWidth = Math.floor(bitmap.width * scaleFactor);
+    const targetHeight = Math.floor(bitmap.height * scaleFactor);
+
+    const packedBytesBuffer = await sharp(bitmap.data, {
+      raw: {
+        width: bitmap.width,
+        height: bitmap.height,
+        channels: 4,
+      },
+    })
+      .resize(targetWidth, targetHeight)
+      .greyscale()
+      .threshold(128)
+      .toColourspace("b-w")
+      .raw()
+      .toBuffer();
+
+    const buf = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT, 0xff);
+
+    const xOffset = Math.max(0, Math.floor((this.WIDTH - targetWidth) / 2));
+    const yOffset = Math.max(0, Math.floor((this.HEIGHT - targetHeight) / 2));
+
+    for (let y = 0; y < targetHeight; y++) {
+      for (let x = 0; x < targetWidth; x++) {
+        const pixelIndex = y * targetWidth + x;
+        const byteIndex = Math.floor(
+          (x + xOffset + (y + yOffset) * this.WIDTH) / 8,
+        );
+        const bitIndex = 7 - ((x + xOffset) % 8);
+
+        if (packedBytesBuffer[pixelIndex] === 0) {
+          buf[byteIndex] &= ~(1 << bitIndex);
+        }
+      }
+    }
+
+    return buf;
+  }
+
+  cleanup(): void {
+    lgpio.gpioWrite(this.chip, this.powerGPIO, false);
+    lgpio.gpiochipClose(this.chip);
+    lgpio.spiClose(this.spiHandle);
+  }
+
+  setWindow(xStart: number, yStart: number, xEnd: number, yEnd: number): void {
+    this.sendCommand(0x44);
+    this.sendData(xStart & 0xff);
+    this.sendData((xStart >> 8) & 0x03);
+    this.sendData(xEnd & 0xff);
+    this.sendData((xEnd >> 8) & 0x03);
+
+    this.sendCommand(0x45);
+    this.sendData(yStart & 0xff);
+    this.sendData((yStart >> 8) & 0xff);
+    this.sendData(yEnd & 0xff);
+    this.sendData((yEnd >> 8) & 0xff);
+  }
+
+  setCursor(x: number, y: number): void {
+    this.sendCommand(0x4e);
+    this.sendData(x & 0xff);
+    this.sendData((x >> 8) & 0x03);
+
+    this.sendCommand(0x4f);
+    this.sendData(y & 0xff);
+    this.sendData((y >> 8) & 0xff);
+  }
+}
 
 /**
  * E-Paper Service Implementation
  *
- * Manages the e-paper display hardware.
- * Handles initialization, display updates, and power management.
- *
- * NOTE: Actual hardware communication will be implemented later.
- * This version provides the structure and basic logic.
+ * Manages the e-paper display hardware using the EPD class.
  */
 export class EpaperService implements IEpaperService {
+  private epd: EPD | null = null;
   private isInitialized: boolean = false;
   private isSleeping: boolean = false;
   private busy: boolean = false;
@@ -41,12 +403,15 @@ export class EpaperService implements IEpaperService {
     }
 
     try {
-      // TODO: Initialize SPI communication
-      // TODO: Initialize GPIO pins
-      // TODO: Send display initialization commands
+      // Create EPD instance with config
+      this.epd = new EPD({
+        width: this.config.width,
+        height: this.config.height,
+        debug: process.env.NODE_ENV === "development",
+      });
 
-      // For now, just simulate initialization
-      await this.sleep();
+      // Initialize the display
+      await this.epd.init();
 
       this.isInitialized = true;
       this.isSleeping = false;
@@ -68,7 +433,7 @@ export class EpaperService implements IEpaperService {
     bitmap: Bitmap1Bit,
     mode: DisplayUpdateMode = DisplayUpdateMode.AUTO,
   ): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
@@ -108,8 +473,11 @@ export class EpaperService implements IEpaperService {
       const updateMode =
         mode === DisplayUpdateMode.AUTO ? this.determineUpdateMode() : mode;
 
-      // TODO: Send bitmap data to display via SPI
-      // TODO: Trigger display update with appropriate mode
+      // Convert Uint8Array to Buffer
+      const buffer = Buffer.from(bitmap.data);
+
+      // Send bitmap to display
+      await this.epd.display(buffer);
 
       // Update statistics
       if (updateMode === DisplayUpdateMode.FULL) {
@@ -126,7 +494,7 @@ export class EpaperService implements IEpaperService {
       }
       return failure(DisplayError.updateFailed(new Error("Unknown error")));
     } finally {
-      this.busy = false; // Reset busy state in all cases
+      this.busy = false;
     }
   }
 
@@ -134,44 +502,45 @@ export class EpaperService implements IEpaperService {
    * Clear the display (set to white)
    */
   async clear(): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
-    const blankBitmap: Bitmap1Bit = {
-      width: this.config.width,
-      height: this.config.height,
-      data: new Uint8Array(
-        Math.ceil((this.config.width * this.config.height) / 8),
-      ).fill(0xff),
-    };
-
-    return await this.displayBitmap(blankBitmap, DisplayUpdateMode.FULL);
+    try {
+      this.busy = true;
+      await this.epd.clear(true);
+      this.fullRefreshCount++;
+      this.lastUpdate = new Date();
+      return success(undefined);
+    } catch (error) {
+      if (error instanceof Error) {
+        return failure(DisplayError.updateFailed(error));
+      }
+      return failure(DisplayError.updateFailed(new Error("Unknown error")));
+    } finally {
+      this.busy = false;
+    }
   }
 
   /**
    * Perform a full refresh to clear ghosting
    */
   async fullRefresh(): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
     try {
       this.busy = true;
 
-      // TODO: Send full refresh commands to display
-
-      // Simulate full refresh time
-      await this.sleep();
+      // Full refresh using slow mode
+      await this.epd.clear(false);
 
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
-      this.busy = false;
 
       return success(undefined);
     } catch (error) {
-      this.busy = false;
       if (error instanceof Error) {
         return failure(
           new DisplayError(
@@ -188,6 +557,8 @@ export class EpaperService implements IEpaperService {
           true,
         ),
       );
+    } finally {
+      this.busy = false;
     }
   }
 
@@ -195,20 +566,16 @@ export class EpaperService implements IEpaperService {
    * Put the display into sleep mode
    */
   async sleep(): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
     if (this.isSleeping) {
-      return success(undefined); // Already sleeping
+      return success(undefined);
     }
 
     try {
-      // TODO: Send sleep command to display
-
-      // Simulate sleep command time
-      await this.sleepDelay(100);
-
+      await this.epd.sleep();
       this.isSleeping = true;
       this.busy = false;
 
@@ -237,21 +604,17 @@ export class EpaperService implements IEpaperService {
    * Wake the display from sleep mode
    */
   async wake(): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
     if (!this.isSleeping) {
-      return success(undefined); // Already awake
+      return success(undefined);
     }
 
     try {
-      // TODO: Send wake command to display
-      // TODO: May need to reinitialize display
-
-      // Simulate wake command time
-      await this.sleepDelay(100);
-
+      // Reinitialize the display to wake it up
+      await this.epd.init();
       this.isSleeping = false;
 
       return success(undefined);
@@ -371,17 +734,13 @@ export class EpaperService implements IEpaperService {
    * Reset the display hardware
    */
   async reset(): Promise<Result<void>> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return failure(DisplayError.notInitialized());
     }
 
     try {
-      // TODO: Toggle reset pin
-      // TODO: Wait for reset time
-      // TODO: Reinitialize display
-
-      // Simulate reset time
-      await this.sleepDelay(200);
+      // Reinitialize the display
+      await this.epd.init();
 
       this.busy = false;
       this.isSleeping = false;
@@ -411,7 +770,7 @@ export class EpaperService implements IEpaperService {
    * Clean up resources and close hardware connections
    */
   async dispose(): Promise<void> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.epd) {
       return;
     }
 
@@ -421,11 +780,12 @@ export class EpaperService implements IEpaperService {
         await this.sleep();
       }
 
-      // TODO: Close SPI connection
-      // TODO: Release GPIO pins
+      // Cleanup hardware resources
+      this.epd.cleanup();
 
       this.isInitialized = false;
       this.busy = false;
+      this.epd = null;
     } catch (error) {
       console.error("Error disposing e-paper service:", error);
     }

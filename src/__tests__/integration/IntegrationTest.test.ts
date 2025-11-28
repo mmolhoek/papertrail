@@ -1,3 +1,37 @@
+// Mock hardware dependencies before importing the service container
+jest.mock("lgpio", () => ({
+  gpiochipOpen: jest.fn(() => 0),
+  gpiochipClose: jest.fn(),
+  spiOpen: jest.fn(() => 0),
+  spiClose: jest.fn(),
+  spiWrite: jest.fn(),
+  gpioClaimOutput: jest.fn(),
+  gpioClaimInput: jest.fn(),
+  gpioWrite: jest.fn(),
+  gpioRead: jest.fn(() => false),
+}));
+
+jest.mock("sharp", () => {
+  const mockSharp = jest.fn(() => ({
+    resize: jest.fn().mockReturnThis(),
+    raw: jest.fn().mockReturnThis(),
+    toBuffer: jest.fn().mockResolvedValue(Buffer.alloc(1000)),
+    greyscale: jest.fn().mockReturnThis(),
+    threshold: jest.fn().mockReturnThis(),
+    toColourspace: jest.fn().mockReturnThis(),
+  }));
+  return mockSharp;
+});
+
+jest.mock("bmp-js", () => ({
+  encode: jest.fn((data) => ({ data: Buffer.alloc(1000) })),
+  decode: jest.fn((data) => ({
+    width: 800,
+    height: 480,
+    data: Buffer.alloc(800 * 480 * 4),
+  })),
+}));
+
 import { ServiceContainer } from "../../../src/di/ServiceContainer";
 import { IntegratedWebService } from "../../../src/web/IntegratedWebService";
 import {
