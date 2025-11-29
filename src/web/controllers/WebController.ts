@@ -2,6 +2,9 @@ import { Request, Response } from "express";
 import { IRenderingOrchestrator } from "@core/interfaces";
 import { isSuccess } from "../../core/types";
 import { WebError } from "core/errors";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("WebController");
 
 /**
  * Web Controller
@@ -16,6 +19,7 @@ export class WebController {
    * Health check endpoint
    */
   async getHealth(_req: Request, res: Response): Promise<void> {
+    logger.debug("Health check requested");
     res.json({
       status: "ok",
       timestamp: new Date().toISOString(),
@@ -26,9 +30,11 @@ export class WebController {
    * Get current GPS position
    */
   async getGPSPosition(_req: Request, res: Response): Promise<void> {
+    logger.debug("GPS position requested");
     const result = await this.orchestrator.getCurrentPosition();
 
     if (isSuccess(result)) {
+      logger.debug(`GPS position retrieved: ${result.data.latitude}, ${result.data.longitude}`);
       res.json({
         success: true,
         data: {
@@ -42,6 +48,7 @@ export class WebController {
         },
       });
     } else {
+      logger.error("Failed to get GPS position:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -56,9 +63,11 @@ export class WebController {
    * Get GPS status
    */
   async getGPSStatus(_req: Request, res: Response): Promise<void> {
+    logger.debug("GPS status requested");
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
+      logger.debug(`GPS status retrieved: connected=${result.data.gps.connected}, satellites=${result.data.gps.satellitesInUse}`);
       res.json({
         success: true,
         data: {
@@ -69,6 +78,7 @@ export class WebController {
         },
       });
     } else {
+      logger.error("Failed to get GPS status:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -83,6 +93,7 @@ export class WebController {
    * Get list of available GPX files
    */
   async getGPXFiles(_req: Request, res: Response): Promise<void> {
+    logger.debug("GPX files list requested");
     // This will be implemented when MapService is available
     // For now, return placeholder
     res.json({
@@ -97,9 +108,11 @@ export class WebController {
    * Get active GPX file
    */
   async getActiveGPX(_req: Request, res: Response): Promise<void> {
+    logger.debug("Active GPX file requested");
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
+      logger.debug(`Active GPX: ${result.data.activeTrack || "none"}`);
       res.json({
         success: true,
         data: {
@@ -107,6 +120,7 @@ export class WebController {
         },
       });
     } else {
+      logger.error("Failed to get active GPX:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -124,6 +138,7 @@ export class WebController {
     const { path } = req.body;
 
     if (!path) {
+      logger.warn("Set active GPX called without path");
       res.status(400).json({
         success: false,
         error: {
@@ -134,14 +149,17 @@ export class WebController {
       return;
     }
 
+    logger.info(`Setting active GPX to: ${path}`);
     const result = await this.orchestrator.setActiveGPX(path);
 
     if (isSuccess(result)) {
+      logger.info(`GPX file loaded successfully: ${path}`);
       res.json({
         success: true,
         message: "GPX file loaded successfully",
       });
     } else {
+      logger.error(`Failed to set active GPX (${path}):`, result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -156,14 +174,17 @@ export class WebController {
    * Update display
    */
   async updateDisplay(_req: Request, res: Response): Promise<void> {
+    logger.info("Display update requested");
     const result = await this.orchestrator.updateDisplay();
 
     if (isSuccess(result)) {
+      logger.info("Display updated successfully");
       res.json({
         success: true,
         message: "Display updated successfully",
       });
     } else {
+      logger.error("Failed to update display:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -178,15 +199,18 @@ export class WebController {
    * Clear display
    */
   async clearDisplay(_req: Request, res: Response): Promise<void> {
+    logger.info("Display clear requested");
     try {
       const result = await this.orchestrator.clearDisplay();
 
       if (isSuccess(result)) {
+        logger.info("Display cleared successfully");
         res.json({
           success: true,
           message: "Display cleared successfully",
         });
       } else {
+        logger.error("Failed to clear display:", result.error);
         res.status(500).json({
           success: false,
           error: {
@@ -196,6 +220,7 @@ export class WebController {
         });
       }
     } catch (error) {
+      logger.error("Unexpected error while clearing display:", error);
       res.status(500).json({
         success: false,
         error: {
@@ -210,14 +235,17 @@ export class WebController {
    * Get system status
    */
   async getSystemStatus(_req: Request, res: Response): Promise<void> {
+    logger.debug("System status requested");
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
+      logger.debug("System status retrieved successfully");
       res.json({
         success: true,
         data: result.data,
       });
     } else {
+      logger.error("Failed to get system status:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -236,10 +264,13 @@ export class WebController {
 
     let result;
     if (zoom !== undefined) {
+      logger.info(`Setting zoom to: ${zoom}`);
       result = await this.orchestrator.setZoom(zoom);
     } else if (delta !== undefined) {
+      logger.info(`Changing zoom by delta: ${delta}`);
       result = await this.orchestrator.changeZoom(delta);
     } else {
+      logger.warn("Set zoom called without zoom or delta parameter");
       res.status(400).json({
         success: false,
         error: {
@@ -251,11 +282,13 @@ export class WebController {
     }
 
     if (isSuccess(result)) {
+      logger.info("Zoom level updated successfully");
       res.json({
         success: true,
         message: "Zoom level updated",
       });
     } else {
+      logger.error("Failed to update zoom level:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -270,14 +303,17 @@ export class WebController {
    * Start auto-update
    */
   async startAutoUpdate(_req: Request, res: Response): Promise<void> {
+    logger.info("Starting auto-update");
     const result = await this.orchestrator.startAutoUpdate();
 
     if (isSuccess(result)) {
+      logger.info("Auto-update started successfully");
       res.json({
         success: true,
         message: "Auto-update started",
       });
     } else {
+      logger.error("Failed to start auto-update:", result.error);
       res.status(500).json({
         success: false,
         error: {
@@ -292,7 +328,9 @@ export class WebController {
    * Stop auto-update
    */
   async stopAutoUpdate(_req: Request, res: Response): Promise<void> {
+    logger.info("Stopping auto-update");
     this.orchestrator.stopAutoUpdate();
+    logger.info("Auto-update stopped successfully");
     res.json({
       success: true,
       message: "Auto-update stopped",
@@ -306,6 +344,7 @@ export class WebController {
     const { enabled } = req.body;
 
     if (typeof enabled !== "boolean") {
+      logger.warn("Set auto-center called with invalid enabled parameter");
       res.status(400).json({
         success: false,
         error: {
@@ -316,7 +355,9 @@ export class WebController {
       return;
     }
 
+    logger.info(`Setting auto-center to: ${enabled}`);
     this.orchestrator.setAutoCenter(enabled);
+    logger.info(`Auto-center ${enabled ? "enabled" : "disabled"}`);
     res.json({
       success: true,
       message: `Auto-center ${enabled ? "enabled" : "disabled"}`,
@@ -330,6 +371,7 @@ export class WebController {
     const { enabled } = req.body;
 
     if (typeof enabled !== "boolean") {
+      logger.warn("Set rotate-with-bearing called with invalid enabled parameter");
       res.status(400).json({
         success: false,
         error: {
@@ -340,7 +382,9 @@ export class WebController {
       return;
     }
 
+    logger.info(`Setting rotate-with-bearing to: ${enabled}`);
     this.orchestrator.setRotateWithBearing(enabled);
+    logger.info(`Rotate with bearing ${enabled ? "enabled" : "disabled"}`);
     res.json({
       success: true,
       message: `Rotate with bearing ${enabled ? "enabled" : "disabled"}`,
