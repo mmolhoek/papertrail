@@ -8,6 +8,8 @@ import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 import { getLogger } from "../utils/logger";
 
+const logger = getLogger("IntegratedWebService");
+
 /**
  * Integrated Web Interface Service
  *
@@ -26,10 +28,6 @@ export class IntegratedWebService implements IWebInterfaceService {
   private io: SocketIOServer | null = null;
   private running: boolean = false;
   private controller: WebController;
-  private logger: ReturnType<typeof getLogger> = getLogger(
-    "IntegratedWebService",
-  );
-  private log: (message: string) => void;
   private gpsUpdateUnsubscribe: (() => void) | null = null;
   private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
@@ -53,7 +51,6 @@ export class IntegratedWebService implements IWebInterfaceService {
       },
     },
   ) {
-    this.log = (message: string) => this.logger.log("info", message);
     this.app = express();
     this.controller = new WebController(orchestrator);
     this.setupMiddleware();
@@ -102,7 +99,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       });
 
       this.running = true;
-      this.log(
+      logger.info(
         `✓ Web interface started on http://${this.config.host}:${this.config.port}`,
       );
 
@@ -151,7 +148,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
       this.server = null;
       this.running = false;
-      this.log("✓ Web interface stopped");
+      logger.info("✓ Web interface stopped");
 
       return success(undefined);
     } catch (error) {
@@ -250,7 +247,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Logging middleware
     this.app.use((req, _res, next) => {
-      this.log(`${req.method} ${req.path}`);
+      logger.info(`${req.method} ${req.path}`);
       next();
     });
   }
@@ -294,7 +291,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     this.app.post(`${api}/display/clear`, (req, res) => {
-      this.log("Clearing display via API");
+      logger.info("Clearing display via API");
       this.controller.clearDisplay(req, res);
     });
 
@@ -339,7 +336,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Error handler
     this.app.use((err: Error, _req: any, res: any, _next: any) => {
-      this.logger.error("Express error:", err);
+      logger.error("Express error:", err);
       res.status(500).json({
         success: false,
         error: {
@@ -357,11 +354,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (!this.io) return;
 
     this.io.on("connection", (socket: Socket) => {
-      this.logger.debug("Client connected:", socket.id);
+      logger.debug("Client connected:", socket.id);
 
       // Handle disconnection
       socket.on("disconnect", () => {
-        this.logger.debug("Client disconnected:", socket.id);
+        logger.debug("Client disconnected:", socket.id);
       });
 
       // Ping/pong for connection health
@@ -371,17 +368,17 @@ export class IntegratedWebService implements IWebInterfaceService {
 
       // GPS subscription
       socket.on("gps:subscribe", () => {
-        this.logger.debug("Client subscribed to GPS updates:", socket.id);
+        logger.debug("Client subscribed to GPS updates:", socket.id);
         // Client will receive broadcasts
       });
 
       socket.on("gps:unsubscribe", () => {
-        this.logger.debug("Client unsubscribed from GPS updates:", socket.id);
+        logger.debug("Client unsubscribed from GPS updates:", socket.id);
       });
 
       // Display refresh request
       socket.on("display:refresh", async () => {
-        this.logger.debug("Client requested display refresh:", socket.id);
+        logger.debug("Client requested display refresh:", socket.id);
         await this.orchestrator.updateDisplay();
       });
     });
@@ -424,7 +421,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     // When GPS fix quality, satellites, or HDOP changes, broadcast to clients
     this.gpsStatusUnsubscribe = this.orchestrator.onGPSStatusChange(
       (status) => {
-        this.logger.debug(
+        logger.debug(
           `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
         );
 
