@@ -10,6 +10,9 @@ import {
   failure,
 } from "../../core/types";
 import { DisplayError } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("SVGService");
 
 /**
  * SVG Service Implementation
@@ -28,6 +31,7 @@ export class SVGService implements ISVGService {
     viewport: ViewportConfig,
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
+    logger.debug(`Rendering viewport: ${viewport.width}x${viewport.height}, zoom=${viewport.zoomLevel}`);
     try {
       const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
 
@@ -43,8 +47,12 @@ export class SVGService implements ISVGService {
         track.segments.length === 0 ||
         track.segments[0].points.length === 0
       ) {
+        logger.debug("Track has no points, returning blank bitmap");
         return success(bitmap); // Return blank bitmap
       }
+
+      const totalPoints = track.segments[0].points.length;
+      logger.debug(`Rendering track with ${totalPoints} points`);
 
       // Project all track points to pixel coordinates
       const projectedPoints = track.segments[0].points.map((point) =>
@@ -86,8 +94,10 @@ export class SVGService implements ISVGService {
         this.drawFilledCircle(bitmap, centerPoint, radius - 2);
       }
 
+      logger.info(`Viewport rendered successfully: ${totalPoints} points`);
       return success(bitmap);
     } catch (error) {
+      logger.error("Failed to render viewport:", error);
       if (error instanceof Error) {
         return failure(DisplayError.renderFailed(error.message, error));
       }
@@ -103,6 +113,7 @@ export class SVGService implements ISVGService {
     viewport: ViewportConfig,
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
+    logger.debug(`Rendering ${tracks.length} tracks in viewport`);
     try {
       const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
 
@@ -113,6 +124,9 @@ export class SVGService implements ISVGService {
         false,
       );
 
+      let renderedTracks = 0;
+      let totalPoints = 0;
+
       // Render each track
       for (const track of tracks) {
         if (
@@ -121,6 +135,10 @@ export class SVGService implements ISVGService {
         ) {
           continue;
         }
+
+        const trackPoints = track.segments[0].points.length;
+        totalPoints += trackPoints;
+        renderedTracks++;
 
         const projectedPoints = track.segments[0].points.map((point) =>
           this.projectToPixels(point.latitude, point.longitude, viewport),
@@ -159,8 +177,10 @@ export class SVGService implements ISVGService {
         this.drawFilledCircle(bitmap, centerPoint, radius - 2);
       }
 
+      logger.info(`Multiple tracks rendered: ${renderedTracks} tracks, ${totalPoints} total points`);
       return success(bitmap);
     } catch (error) {
+      logger.error("Failed to render multiple tracks:", error);
       if (error instanceof Error) {
         return failure(DisplayError.renderFailed(error.message, error));
       }
@@ -176,6 +196,7 @@ export class SVGService implements ISVGService {
     height: number,
     fill: boolean = false,
   ): Bitmap1Bit {
+    logger.debug(`Creating blank bitmap: ${width}x${height}, fill=${fill}`);
     // Calculate bytes needed (1 bit per pixel, packed into bytes)
     const bytesPerRow = Math.ceil(width / 8);
     const totalBytes = bytesPerRow * height;
@@ -204,8 +225,10 @@ export class SVGService implements ISVGService {
     y: number,
     fontSize: number = 12,
   ): Result<Bitmap1Bit> {
+    logger.debug(`Adding text: "${text}" at (${x}, ${y}), size=${fontSize}`);
     // TODO: Implement text rendering
     // For now, just return the bitmap unchanged
+    logger.warn("Text rendering not yet implemented");
     return success(bitmap);
   }
 
@@ -219,9 +242,11 @@ export class SVGService implements ISVGService {
     radius: number,
     heading: number,
   ): Result<Bitmap1Bit> {
+    logger.debug(`Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`);
     // TODO: Implement compass rendering
     // For now, just draw a circle
     this.drawCircle(bitmap, { x, y }, radius);
+    logger.warn("Compass rendering not fully implemented (showing circle only)");
     return success(bitmap);
   }
 
@@ -235,7 +260,9 @@ export class SVGService implements ISVGService {
     width: number,
     metersPerPixel: number,
   ): Result<Bitmap1Bit> {
+    logger.debug(`Adding scale bar at (${x}, ${y}), width=${width}, metersPerPixel=${metersPerPixel}`);
     // TODO: Implement scale bar rendering
+    logger.warn("Scale bar rendering not yet implemented");
     return success(bitmap);
   }
 
@@ -256,7 +283,9 @@ export class SVGService implements ISVGService {
       | "bottom-left"
       | "bottom-right" = "top-left",
   ): Result<Bitmap1Bit> {
+    logger.debug(`Adding info panel at ${position}:`, info);
     // TODO: Implement info panel rendering
+    logger.warn("Info panel rendering not yet implemented");
     return success(bitmap);
   }
 
