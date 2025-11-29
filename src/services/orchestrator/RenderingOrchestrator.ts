@@ -15,6 +15,9 @@ import {
   failure,
 } from "../../core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("RenderingOrchestrator");
 
 /**
  * Rendering Orchestrator Implementation
@@ -112,7 +115,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         try {
           callback(position);
         } catch (error) {
-          console.error("Error in GPS update callback:", error);
+          logger.error("Error in GPS update callback:", error);
           this.notifyError(
             error instanceof Error
               ? error
@@ -138,7 +141,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         try {
           callback(status);
         } catch (error) {
-          console.error("Error in GPS status callback:", error);
+          logger.error("Error in GPS status callback:", error);
           this.notifyError(
             error instanceof Error
               ? error
@@ -330,7 +333,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     this.autoUpdateInterval = setInterval(() => {
       this.updateDisplay().catch((error) => {
-        console.error("Auto-update failed:", error);
+        logger.error("Auto-update failed:", error);
       });
     }, intervalSeconds * 1000);
 
@@ -576,13 +579,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     try {
       await this.gpsService.dispose();
     } catch (error) {
-      console.error("Error disposing GPS service:", error);
+      logger.error("Error disposing GPS service:", error);
     }
 
     try {
       await this.epaperService.dispose();
     } catch (error) {
-      console.error("Error disposing epaper service:", error);
+      logger.error("Error disposing epaper service:", error);
     }
 
     this.isInitialized = false;
@@ -596,7 +599,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       try {
         callback(success);
       } catch (error) {
-        console.error("Error in display update callback:", error);
+        logger.error("Error in display update callback:", error);
       }
     });
   }
@@ -609,7 +612,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       try {
         callback(error);
       } catch (err) {
-        console.error("Error in error callback:", err);
+        logger.error("Error in error callback:", err);
       }
     });
   }

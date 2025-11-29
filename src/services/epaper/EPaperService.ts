@@ -12,6 +12,9 @@ import { DisplayError, DisplayErrorCode } from "../../core/errors";
 import * as lgpio from "lgpio";
 import sharp from "sharp";
 import * as bmp from "bmp-js";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("EPaperService");
 
 /**
  * Pin configuration for the waveshare 4.26 ePaper display (800x480) 1-bit black and white
@@ -69,7 +72,7 @@ class EPD {
     lgpio.gpioClaimOutput(this.chip, this.powerGPIO, undefined, true);
 
     if (this.debug)
-      console.log(
+      logger.debug(
         `epaper: Display (${this.WIDTH}, ${this.HEIGHT}), buffer size: ${(this.WIDTH / 8) * this.HEIGHT} bytes`,
       );
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
@@ -272,27 +275,27 @@ class EPD {
       .toBuffer();
 
     let bitmap: any;
-    if (this.debug) console.log("epaper: Image loaded, converting using sharp...");
+    if (this.debug) logger.debug("epaper: Image loaded, converting using sharp...");
 
     try {
       await sharp(bmpBuffer)
         .raw()
         .toBuffer()
         .then((data: Buffer) => {
-          console.log("epaper: Image loaded, converting to BMP format...");
+          logger.debug("epaper: Image loaded, converting to BMP format...");
           bitmap = bmp.encode({
             data: data,
             width: this.WIDTH,
             height: this.HEIGHT,
           });
           bitmap = bmp.decode(bitmap.data);
-          console.log("epaper: Image converted to BMP!");
+          logger.debug("epaper: Image converted to BMP!");
         })
         .catch((err: Error) => {
-          console.error("epaper: Error:", err);
+          logger.error("epaper: Error:", err);
         });
     } catch (err) {
-      console.error("epaper: Failed to convert image to BMP format:", err);
+      logger.error("epaper: Failed to convert image to BMP format:", err);
     }
 
     if (!bitmap) {
@@ -787,7 +790,7 @@ export class EpaperService implements IEpaperService {
       this.busy = false;
       this.epd = null;
     } catch (error) {
-      console.error("Error disposing e-paper service:", error);
+      logger.error("Error disposing e-paper service:", error);
     }
   }
 

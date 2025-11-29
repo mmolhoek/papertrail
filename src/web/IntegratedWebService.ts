@@ -339,7 +339,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Error handler
     this.app.use((err: Error, _req: any, res: any, _next: any) => {
-      console.error("Express error:", err);
+      this.logger.error("Express error:", err);
       res.status(500).json({
         success: false,
         error: {
@@ -357,11 +357,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (!this.io) return;
 
     this.io.on("connection", (socket: Socket) => {
-      console.log("Client connected:", socket.id);
+      this.logger.debug("Client connected:", socket.id);
 
       // Handle disconnection
       socket.on("disconnect", () => {
-        console.log("Client disconnected:", socket.id);
+        this.logger.debug("Client disconnected:", socket.id);
       });
 
       // Ping/pong for connection health
@@ -371,17 +371,17 @@ export class IntegratedWebService implements IWebInterfaceService {
 
       // GPS subscription
       socket.on("gps:subscribe", () => {
-        console.log("Client subscribed to GPS updates:", socket.id);
+        this.logger.debug("Client subscribed to GPS updates:", socket.id);
         // Client will receive broadcasts
       });
 
       socket.on("gps:unsubscribe", () => {
-        console.log("Client unsubscribed from GPS updates:", socket.id);
+        this.logger.debug("Client unsubscribed from GPS updates:", socket.id);
       });
 
       // Display refresh request
       socket.on("display:refresh", async () => {
-        console.log("Client requested display refresh:", socket.id);
+        this.logger.debug("Client requested display refresh:", socket.id);
         await this.orchestrator.updateDisplay();
       });
     });
@@ -424,7 +424,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     // When GPS fix quality, satellites, or HDOP changes, broadcast to clients
     this.gpsStatusUnsubscribe = this.orchestrator.onGPSStatusChange(
       (status) => {
-        console.log(
+        this.logger.debug(
           `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
         );
 

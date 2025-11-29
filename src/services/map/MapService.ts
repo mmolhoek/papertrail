@@ -14,6 +14,9 @@ import {
   MapConfig,
 } from "../../core/types";
 import { MapError, MapErrorCode } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("MapService");
 
 /**
  * Map Service Implementation
@@ -212,7 +215,7 @@ export class MapService implements IMapService {
           }
         } catch (error) {
           // Skip files that can't be read
-          console.warn(`Failed to get info for ${filePath}:`, error);
+          logger.warn(`Failed to get info for ${filePath}:`, error);
         }
       }
 

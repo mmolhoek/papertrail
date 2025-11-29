@@ -11,6 +11,9 @@ import {
   failure,
 } from "../../core/types";
 import { GPSError, GPSErrorCode } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("GPSService");
 
 /**
  * GPS Service Implementation
@@ -71,7 +74,7 @@ export class GPSService implements IGPSService {
 
       // Setup error handler
       this.port.on("error", (err) => {
-        console.error("GPS serial port error:", err);
+        logger.error("GPS serial port error:", err);
       });
 
       this.isInitialized = true;
@@ -268,7 +271,7 @@ export class GPSService implements IGPSService {
     if (this.port && this.port.isOpen) {
       await new Promise<void>((resolve) => {
         this.port!.close((err) => {
-          if (err) console.error("Error closing GPS port:", err);
+          if (err) logger.error("Error closing GPS port:", err);
           resolve();
         });
       });
@@ -358,7 +361,7 @@ export class GPSService implements IGPSService {
       try {
         callback(position);
       } catch (error) {
-        console.error("Error in position callback:", error);
+        logger.error("Error in position callback:", error);
       }
     });
   }
@@ -374,7 +377,7 @@ export class GPSService implements IGPSService {
       try {
         callback(status);
       } catch (error) {
-        console.error("Error in status callback:", error);
+        logger.error("Error in status callback:", error);
       }
     });
   }

@@ -5,6 +5,9 @@ import { Server as SocketIOServer } from "socket.io";
 import { Result, success, failure, WebConfig } from "@core/types";
 import { WebError, WebErrorCode } from "@core/errors";
 import { IWebInterfaceService } from "core/interfaces";
+import { getLogger } from "../../utils/logger";
+
+const logger = getLogger("WebInterfaceService");
 
 /**
  * Web Interface Service Implementation
@@ -73,7 +76,7 @@ export class WebInterfaceService implements IWebInterfaceService {
       });
 
       this.running = true;
-      console.log(
+      logger.info(
         `Web server started on http://${this.config.host}:${this.config.port}`,
       );
 
@@ -119,7 +122,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
       this.server = null;
       this.running = false;
-      console.log("Web server stopped");
+      logger.info("Web server stopped");
 
       return success(undefined);
     } catch (error) {
@@ -218,7 +221,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
     // Logging middleware
     this.app.use((req, res, next) => {
-      console.log(`${req.method} ${req.path}`);
+      logger.debug(`${req.method} ${req.path}`);
       next();
     });
   }
@@ -301,7 +304,7 @@ export class WebInterfaceService implements IWebInterfaceService {
     // Error handler
     this.app.use(
       (err: Error, req: Request, res: Response, _next: NextFunction) => {
-        console.error("Express error:", err);
+        logger.error("Express error:", err);
         res.status(500).json({
           error: "Internal Server Error",
           message: err.message,
@@ -317,11 +320,11 @@ export class WebInterfaceService implements IWebInterfaceService {
     if (!this.io) return;
 
     this.io.on("connection", (socket) => {
-      console.log("Client connected:", socket.id);
+      logger.debug("Client connected:", socket.id);
 
       // Handle disconnection
       socket.on("disconnect", () => {
-        console.log("Client disconnected:", socket.id);
+        logger.debug("Client disconnected:", socket.id);
       });
 
       // Ping/pong for connection health
@@ -331,17 +334,17 @@ export class WebInterfaceService implements IWebInterfaceService {
 
       // Placeholder event handlers - will be connected to orchestrator later
       socket.on("gps:subscribe", () => {
-        console.log("Client subscribed to GPS updates");
+        logger.debug("Client subscribed to GPS updates");
 
         // Will emit GPS updates when connected to orchestrator
       });
 
       socket.on("gps:unsubscribe", () => {
-        console.log("Client unsubscribed from GPS updates");
+        logger.debug("Client unsubscribed from GPS updates");
       });
 
       socket.on("display:refresh", () => {
-        console.log("Client requested display refresh");
+        logger.debug("Client requested display refresh");
         // Will trigger display update when connected to orchestrator
       });
     });
