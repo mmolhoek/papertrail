@@ -2,6 +2,7 @@ import * as lgpio from "lgpio";
 import sharp from "sharp";
 import * as bmp from "bmp-js";
 import { getLogger } from "../../utils/logger";
+import fs from "fs";
 
 const epdLogger = getLogger("EPD");
 
@@ -113,6 +114,90 @@ export class EPD {
     }
     epdLogger.timeEnd("epaperReady");
   }
+  async loadImageInBuffer(path: string): Promise<Buffer> {
+    // Load the BMP file using sharp
+    const bmpBuffer = fs.readFileSync(path);
+    let bitmap;
+    try {
+      bitmap = bmp.decode(bmpBuffer);
+    } catch (error) {
+      console.log(
+        "epaper: Image is not in BMP format, converting using sharp...",
+      );
+      try {
+        await sharp(bmpBuffer)
+          .raw()
+          .toBuffer()
+          .then((data) => {
+            console.log("epaper: Image loaded, converting to BMP format...");
+            bitmap = bmp.encode({
+              data: data,
+              width: this.WIDTH,
+              height: this.HEIGHT,
+            });
+            bitmap = bmp.decode(bitmap.data);
+            console.log("epaper: Image converted to BMP!");
+          })
+          .catch((err) => {
+            console.error("epaper: Error:", err);
+          });
+      } catch (err) {
+        console.error("epaper: Failed to convert image to BMP format:", err);
+      }
+    }
+    if (!bitmap) {
+      throw new Error("Failed to load image");
+    }
+
+    // Determine the scaling factor if the image is larger than the display
+    const scaleFactor = Math.min(
+      this.WIDTH / bitmap.width,
+      this.HEIGHT / bitmap.height,
+      1, // Ensure we don't upscale smaller images
+    );
+
+    const targetWidth = Math.floor(bitmap.width * scaleFactor);
+    const targetHeight = Math.floor(bitmap.height * scaleFactor);
+
+    // Resize and process the image using sharp
+    const packedBytesBuffer = await sharp(bitmap.data, {
+      raw: {
+        width: bitmap.width,
+        height: bitmap.height,
+        channels: 4, // Assuming bmp-js output is RGBA
+      },
+    })
+      .resize(targetWidth, targetHeight) // Resize the image if necessary
+      .greyscale() // Convert to 8-bit grayscale
+      .threshold(128) // Apply a threshold to make it purely black and white
+      .toColourspace("b-w") // Explicitly set the 1-bit colorspace
+      .raw() // Request raw output bytes
+      .toBuffer(); // Get the final buffer
+
+    const buf = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT, 0xff); // Start with all white pixels
+
+    // Calculate offsets for centering the image
+    const xOffset = Math.max(0, Math.floor((this.WIDTH - targetWidth) / 2));
+    const yOffset = Math.max(0, Math.floor((this.HEIGHT - targetHeight) / 2));
+
+    // Process the raw pixel data and copy it into the display buffer
+    for (let y = 0; y < targetHeight; y++) {
+      for (let x = 0; x < targetWidth; x++) {
+        const pixelIndex = y * targetWidth + x; // Index in the raw pixel data
+        const byteIndex = Math.floor(
+          (x + xOffset + (y + yOffset) * this.WIDTH) / 8,
+        ); // Byte index in the buffer
+        const bitIndex = 7 - ((x + xOffset) % 8); // Bit index within the byte
+
+        // Check if the pixel is black (value 0)
+        if (packedBytesBuffer[pixelIndex] === 0) {
+          buf[byteIndex] &= ~(1 << bitIndex); // Set the bit to 0 for black
+        }
+      }
+    }
+
+    return buf;
+  }
 
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -169,13 +254,13 @@ export class EPD {
     epdLogger.timeEnd("clear");
   }
 
-  async display(imageBuffer?: Buffer): Promise<void> {
+  async display(imageBuffer?: Buffer, fast: boolean = true): Promise<void> {
     epdLogger.time("display");
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
     this.sendData(buf);
-    await this.turnOnDisplay();
+    await this.turnOnDisplay(fast);
     epdLogger.timeEnd("display");
   }
 
