@@ -25,11 +25,13 @@
   "license": "MIT",
   "dependencies": {
     "bmp-js": "^0.1.0",
+    "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "lgpio": "^1.0.6",
     "serialport": "^12.0.0",
     "sharp": "^0.34.5",
     "socket.io": "^4.6.1",
+    "winston": "^3.18.3",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

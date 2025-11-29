@@ -6,6 +6,7 @@ import { Result, success, failure, WebConfig } from "../core/types";
 import { IRenderingOrchestrator, IWebInterfaceService } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
+import { getLogger } from "../utils/logger";
 
 /**
  * Integrated Web Interface Service
@@ -25,11 +26,19 @@ export class IntegratedWebService implements IWebInterfaceService {
   private io: SocketIOServer | null = null;
   private running: boolean = false;
   private controller: WebController;
+  private logger: ReturnType<typeof getLogger> = getLogger(
+    "IntegratedWebService",
+  );
+  private log: (message: string) => void;
   private gpsUpdateUnsubscribe: (() => void) | null = null;
   private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
-  private latestGPSStatus: { fixQuality: number; satellitesInUse: number; hdop: number } | null = null;
+  private latestGPSStatus: {
+    fixQuality: number;
+    satellitesInUse: number;
+    hdop: number;
+  } | null = null;
 
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
@@ -44,6 +53,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       },
     },
   ) {
+    this.log = (message: string) => this.logger.log("info", message);
     this.app = express();
     this.controller = new WebController(orchestrator);
     this.setupMiddleware();
@@ -92,7 +102,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       });
 
       this.running = true;
-      console.log(
+      this.log(
         `✓ Web interface started on http://${this.config.host}:${this.config.port}`,
       );
 
@@ -141,7 +151,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
       this.server = null;
       this.running = false;
-      console.log("✓ Web interface stopped");
+      this.log("✓ Web interface stopped");
 
       return success(undefined);
     } catch (error) {
@@ -240,7 +250,7 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Logging middleware
     this.app.use((req, _res, next) => {
-      console.log(`${req.method} ${req.path}`);
+      this.log(`${req.method} ${req.path}`);
       next();
     });
   }
@@ -283,9 +293,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.updateDisplay(req, res),
     );
 
-    this.app.post(`${api}/display/clear`, (req, res) =>
-      this.controller.clearDisplay(req, res),
-    );
+    this.app.post(`${api}/display/clear`, (req, res) => {
+      this.log("Clearing display via API");
+      this.controller.clearDisplay(req, res);
+    });
 
     // System endpoints
     this.app.get(`${api}/system/status`, (req, res) =>
@@ -388,9 +399,9 @@ export class IntegratedWebService implements IWebInterfaceService {
     // Subscribe to GPS position updates
     // When the GPS service gets new position data, it triggers this callback
     this.gpsUpdateUnsubscribe = this.orchestrator.onGPSUpdate((position) => {
-      console.log(
-        `Broadcasting GPS update: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-      );
+      // console.log(
+      //   `Broadcasting GPS update: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+      // );
 
       // Broadcast to ALL connected WebSocket clients
       // Include the latest GPS status (fix quality, satellites, hdop) with the position
@@ -411,28 +422,30 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Subscribe to GPS status changes
     // When GPS fix quality, satellites, or HDOP changes, broadcast to clients
-    this.gpsStatusUnsubscribe = this.orchestrator.onGPSStatusChange((status) => {
-      console.log(
-        `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
-      );
+    this.gpsStatusUnsubscribe = this.orchestrator.onGPSStatusChange(
+      (status) => {
+        console.log(
+          `Broadcasting GPS status: fix=${status.fixQuality}, satellites=${status.satellitesInUse}`,
+        );
 
-      // Store the latest status so we can include it in position updates
-      this.latestGPSStatus = {
-        fixQuality: status.fixQuality,
-        satellitesInUse: status.satellitesInUse,
-        hdop: status.hdop,
-      };
+        // Store the latest status so we can include it in position updates
+        this.latestGPSStatus = {
+          fixQuality: status.fixQuality,
+          satellitesInUse: status.satellitesInUse,
+          hdop: status.hdop,
+        };
 
-      // Broadcast to ALL connected WebSocket clients
-      this.broadcast("gps:status", {
-        fixQuality: status.fixQuality,
-        satellitesInUse: status.satellitesInUse,
-        hdop: status.hdop,
-        vdop: status.vdop,
-        pdop: status.pdop,
-        isTracking: status.isTracking,
-      });
-    });
+        // Broadcast to ALL connected WebSocket clients
+        this.broadcast("gps:status", {
+          fixQuality: status.fixQuality,
+          satellitesInUse: status.satellitesInUse,
+          hdop: status.hdop,
+          vdop: status.vdop,
+          pdop: status.pdop,
+          isTracking: status.isTracking,
+        });
+      },
+    );
 
     // Subscribe to display updates
     this.displayUpdateUnsubscribe = this.orchestrator.onDisplayUpdate(
