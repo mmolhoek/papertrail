@@ -15,6 +15,7 @@ import * as bmp from "bmp-js";
 import { getLogger } from "../../utils/logger";
 
 const logger = getLogger("EPaperService");
+const epdLogger = getLogger("EPaperService");
 
 /**
  * Pin configuration for the waveshare 4.26 ePaper display (800x480) 1-bit black and white
@@ -27,7 +28,6 @@ interface EPDConfig {
   dcGPIO?: number;
   busyGPIO?: number;
   powerGPIO?: number;
-  debug?: boolean;
 }
 
 /**
@@ -40,7 +40,6 @@ class EPD {
   private dcGPIO: number;
   private busyGPIO: number;
   private powerGPIO: number;
-  private debug: boolean;
   private chip: number;
   private spiHandle: number;
   private buffer: Buffer;
@@ -53,7 +52,6 @@ class EPD {
       dcGPIO = 25,
       busyGPIO = 24,
       powerGPIO = 18,
-      debug = false,
     } = config;
     this.WIDTH = width || 800;
     this.HEIGHT = height || 480;
@@ -62,7 +60,6 @@ class EPD {
     this.busyGPIO = busyGPIO;
     this.powerGPIO = powerGPIO;
 
-    this.debug = debug;
     this.chip = lgpio.gpiochipOpen(0);
     this.spiHandle = lgpio.spiOpen(0, 0, 256000);
 
@@ -71,10 +68,9 @@ class EPD {
     lgpio.gpioClaimInput(this.chip, this.busyGPIO);
     lgpio.gpioClaimOutput(this.chip, this.powerGPIO, undefined, true);
 
-    if (this.debug)
-      logger.debug(
-        `epaper: Display (${this.WIDTH}, ${this.HEIGHT}), buffer size: ${(this.WIDTH / 8) * this.HEIGHT} bytes`,
-      );
+    epdLogger.info(
+      `Display (${this.WIDTH}, ${this.HEIGHT}), buffer size: ${(this.WIDTH / 8) * this.HEIGHT} bytes`,
+    );
     this.buffer = Buffer.alloc((this.WIDTH / 8) * this.HEIGHT);
   }
 
@@ -87,14 +83,14 @@ class EPD {
   }
 
   private async reset(): Promise<void> {
-    if (this.debug) console.time("epaper: reset");
+    console.time("epaper: reset");
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
     lgpio.gpioWrite(this.chip, this.rstGPIO, false);
     await this.delay(2);
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
-    if (this.debug) console.timeEnd("epaper: reset");
+    console.timeEnd("epaper: reset");
   }
 
   private sendCommand(command: number): void {
@@ -104,7 +100,7 @@ class EPD {
   }
 
   private sendData(data: number | Buffer): void {
-    if (this.debug && typeof data !== "number") console.time("sendData");
+    if (typeof data !== "number") console.time("sendData");
     lgpio.gpioWrite(this.chip, this.dcGPIO, true);
 
     if (typeof data === "number") {
@@ -114,12 +110,12 @@ class EPD {
       const txBuffer = new Uint8Array(data);
       lgpio.spiWrite(this.spiHandle, txBuffer);
     }
-    if (this.debug && typeof data !== "number") console.timeEnd("sendData");
+    if (typeof data !== "number") console.timeEnd("sendData");
   }
 
   private async epaperReady(): Promise<void> {
     let count = 0;
-    if (this.debug) console.time("epaper: epaperReady");
+    console.time("epaperReady");
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
       await this.delay(5);
       count++;
@@ -127,7 +123,7 @@ class EPD {
         break;
       }
     }
-    if (this.debug) console.timeEnd("epaper: epaperReady");
+    console.timeEnd("epaperReady");
   }
 
   private delay(ms: number): Promise<void> {
@@ -135,7 +131,7 @@ class EPD {
   }
 
   async init(): Promise<void> {
-    if (this.debug) console.time("epaper: init");
+    console.time("init");
     await this.reset();
     await this.epaperReady();
 
@@ -167,49 +163,49 @@ class EPD {
 
     this.setCursor(0, 0);
     await this.epaperReady();
-    if (this.debug) console.timeEnd("epaper: init");
+    console.timeEnd("init");
   }
 
   async clear(fast: boolean = true): Promise<void> {
-    if (this.debug) console.time("epaper: clear");
-    if (this.debug) console.time("epaper: clear: Buffer fill");
+    console.time("clear");
+    console.time("clear: Buffer fill");
     this.buffer.fill(0xff);
-    if (this.debug) console.timeEnd("epaper: clear: Buffer fill");
+    console.timeEnd("clear: Buffer fill");
 
-    if (this.debug) console.time("epaper: clear: Sending data");
+    console.time("clear: Sending data");
     this.sendCommand(0x24);
     this.sendData(this.buffer);
-    if (this.debug) console.timeEnd("epaper: clear: Sending data");
+    console.timeEnd("clear: Sending data");
 
     await this.turnOnDisplay(fast);
-    if (this.debug) console.timeEnd("epaper: clear");
+    console.timeEnd("clear");
   }
 
   async display(imageBuffer?: Buffer): Promise<void> {
-    if (this.debug) console.time("epaper: display");
+    console.time("display");
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
     this.sendData(buf);
     await this.turnOnDisplay();
-    if (this.debug) console.timeEnd("epaper: display");
+    console.timeEnd("display");
   }
 
   private async turnOnDisplay(fast: boolean = true): Promise<void> {
-    if (this.debug) console.time("epaper: turnOnDisplay");
+    console.time("turnOnDisplay");
     this.sendCommand(0x22); // Display update control
     this.sendData(fast ? 0xff : 0xf7); // Fast or slow refresh
     this.sendCommand(0x20); // Activate display update sequence
     await this.epaperReady();
-    if (this.debug) console.timeEnd("epaper: turnOnDisplay");
+    console.timeEnd("turnOnDisplay");
   }
 
   async sleep(): Promise<void> {
-    if (this.debug) console.time("epaper: sleep");
+    console.time("sleep");
     this.sendCommand(0x10); // Enter deep sleep mode
     this.sendData(0x01); // Deep sleep command
     await this.delay(100); // Wait for the command to take effect
-    if (this.debug) console.timeEnd("epaper: sleep");
+    console.timeEnd("sleep");
   }
 
   getBuffer(): Buffer {
@@ -270,32 +266,36 @@ class EPD {
 
   async loadImage(imagePath: string): Promise<Buffer> {
     const bmpBuffer = await sharp(imagePath)
-      .resize(this.WIDTH, this.HEIGHT, { fit: "contain", background: { r: 255, g: 255, b: 255 } })
+      .resize(this.WIDTH, this.HEIGHT, {
+        fit: "contain",
+        background: { r: 255, g: 255, b: 255 },
+      })
       .raw()
       .toBuffer();
 
     let bitmap: any;
-    if (this.debug) logger.debug("epaper: Image loaded, converting using sharp...");
+
+    epdLogger.info("Image loaded, converting using sharp...");
 
     try {
       await sharp(bmpBuffer)
         .raw()
         .toBuffer()
         .then((data: Buffer) => {
-          logger.debug("epaper: Image loaded, converting to BMP format...");
+          epdLogger.info("Image loaded, converting to BMP format...");
           bitmap = bmp.encode({
             data: data,
             width: this.WIDTH,
             height: this.HEIGHT,
           });
           bitmap = bmp.decode(bitmap.data);
-          logger.debug("epaper: Image converted to BMP!");
+          epdLogger.info("Image converted to BMP!");
         })
         .catch((err: Error) => {
-          logger.error("epaper: Error:", err);
+          epdLogger.error("Error:", err);
         });
     } catch (err) {
-      logger.error("epaper: Failed to convert image to BMP format:", err);
+      epdLogger.error("Failed to convert image to BMP format:", err);
     }
 
     if (!bitmap) {
@@ -410,7 +410,6 @@ export class EpaperService implements IEpaperService {
       this.epd = new EPD({
         width: this.config.width,
         height: this.config.height,
-        debug: process.env.NODE_ENV === "development",
       });
 
       // Initialize the display
@@ -790,7 +789,7 @@ export class EpaperService implements IEpaperService {
       this.busy = false;
       this.epd = null;
     } catch (error) {
-      logger.error("Error disposing e-paper service:", error);
+      epdLogger.error("Error disposing e-paper service:", error);
     }
   }
 
