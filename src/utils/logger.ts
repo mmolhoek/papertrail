@@ -33,8 +33,8 @@ export const getLogger = (
     format: winston.format.combine(
       winston.format.label({ label: prefix }),
       winston.format.timestamp(),
-      winston.format.printf(({ message }) => {
-        return String(message);
+      winston.format.printf(({ label, message }) => {
+        return `[${label}] ${message}`;
       }),
     ),
 
