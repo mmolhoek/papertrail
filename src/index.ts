@@ -3,7 +3,7 @@ import { IntegratedWebService } from "./web/IntegratedWebService";
 import { isSuccess } from "./core/types";
 import { getLogger } from "./utils/logger";
 
-const logger = getLogger("Main");
+const logger = getLogger("Papertrail");
 
 /**
  * Main Entry Point for Papertrail GPS Tracker
