@@ -11,6 +11,8 @@ import {
 import { DisplayError, DisplayErrorCode } from "../../core/errors";
 import { getLogger } from "../../utils/logger";
 import { EPD } from "./EPD";
+import path from "path";
+import fs from "fs";
 
 const logger = getLogger("EPaperService");
 
@@ -56,6 +58,12 @@ export class EpaperService implements IEpaperService {
       this.isSleeping = false;
       this.busy = false;
 
+      // Wait a moment for hardware to stabilize after init
+      await this.sleepDelay(100);
+
+      // Display startup logo
+      await this.sendLogoToDisplay();
+
       logger.info("Initializing e-paper display finished");
       return success(undefined);
     } catch (error) {
@@ -64,6 +72,54 @@ export class EpaperService implements IEpaperService {
         return failure(DisplayError.initFailed(error.message, error));
       }
       return failure(DisplayError.initFailed("Unknown error"));
+    }
+  }
+
+  /**
+   * Display startup logo on the e-paper screen
+   */
+  private async sendLogoToDisplay(): Promise<void> {
+    try {
+      logger.info("Loading startup logo");
+
+      // Construct path to logo file (works in both dev and production)
+      const logoPath = path.join(process.cwd(), "logos", "logo_800x480.bmp");
+
+      if (!fs.existsSync(logoPath)) {
+        logger.warn(`Logo file not found at ${logoPath}, skipping logo display`);
+        return;
+      }
+
+      if (!this.epd) {
+        logger.error("EPD not initialized");
+        return;
+      }
+
+      // Use EPD's loadImageInBuffer method which handles conversion properly
+      logger.info(`Loading image from ${logoPath}`);
+      const imageBuffer = await this.epd.loadImageInBuffer(logoPath);
+      logger.info(`Image loaded successfully, buffer size: ${imageBuffer.length} bytes`);
+
+      const logoBitmap: Bitmap1Bit = {
+        width: this.config.width,
+        height: this.config.height,
+        data: imageBuffer,
+      };
+
+      // Display the logo using full update mode
+      const result = await this.displayBitmap(
+        logoBitmap,
+        DisplayUpdateMode.FULL,
+      );
+
+      if (!result.success) {
+        logger.error("Failed to display startup logo:", result.error);
+      } else {
+        logger.info("Startup logo displayed successfully");
+      }
+    } catch (error) {
+      logger.error("Error loading or displaying startup logo:", error);
+      // Don't throw - logo display failure shouldn't prevent initialization
     }
   }
 
@@ -122,8 +178,11 @@ export class EpaperService implements IEpaperService {
       // Convert Uint8Array to Buffer
       const buffer = Buffer.from(bitmap.data);
 
+      // Determine if we should use fast or slow mode
+      const useFastMode = updateMode !== DisplayUpdateMode.FULL;
+
       // Send bitmap to display
-      await this.epd.display(buffer);
+      await this.epd.display(buffer, useFastMode);
       logger.info(`Bitmap displayed using ${updateMode} update`);
       // Update statistics
       if (updateMode === DisplayUpdateMode.FULL) {
