@@ -157,7 +157,7 @@ export class EpaperService implements IEpaperService {
 
     try {
       this.busy = true;
-      await this.epd.clear(true);
+      await this.epd.clear(false);
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
       logger.info("E-paper display cleared");
