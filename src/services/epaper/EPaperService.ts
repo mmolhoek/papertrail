@@ -37,6 +37,7 @@ export class EpaperService implements IEpaperService {
    * Initialize the e-paper display hardware
    */
   async initialize(): Promise<Result<void>> {
+    logger.info(`Initializing e-paper display: ${this.getDisplayModel()}`);
     if (this.isInitialized) {
       return success(undefined);
     }
@@ -55,8 +56,10 @@ export class EpaperService implements IEpaperService {
       this.isSleeping = false;
       this.busy = false;
 
+      logger.info("Initializing e-paper display finished");
       return success(undefined);
     } catch (error) {
+      logger.error("Initializing e-paper display failed");
       if (error instanceof Error) {
         return failure(DisplayError.initFailed(error.message, error));
       }
@@ -71,11 +74,14 @@ export class EpaperService implements IEpaperService {
     bitmap: Bitmap1Bit,
     mode: DisplayUpdateMode = DisplayUpdateMode.AUTO,
   ): Promise<Result<void>> {
+    logger.info(`Displaying bitmap on e-paper: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     if (this.isSleeping) {
+      logger.error("Display is sleeping");
       return failure(
         new DisplayError(
           "Display is sleeping. Call wake() first.",
@@ -86,6 +92,7 @@ export class EpaperService implements IEpaperService {
     }
 
     if (this.busy) {
+      logger.error("Display is busy");
       return failure(DisplayError.displayBusy());
     }
 
@@ -94,6 +101,7 @@ export class EpaperService implements IEpaperService {
       bitmap.width !== this.config.width ||
       bitmap.height !== this.config.height
     ) {
+      logger.error("Bitmap size mismatch");
       return failure(
         DisplayError.sizeMismatch(
           bitmap.width,
@@ -116,7 +124,7 @@ export class EpaperService implements IEpaperService {
 
       // Send bitmap to display
       await this.epd.display(buffer);
-
+      logger.info(`Bitmap displayed using ${updateMode} update`);
       // Update statistics
       if (updateMode === DisplayUpdateMode.FULL) {
         this.fullRefreshCount++;
@@ -127,6 +135,7 @@ export class EpaperService implements IEpaperService {
       this.lastUpdate = new Date();
       return success(undefined);
     } catch (error) {
+      logger.error("Displaying bitmap failed", error);
       if (error instanceof Error) {
         return failure(DisplayError.updateFailed(error));
       }
@@ -140,7 +149,9 @@ export class EpaperService implements IEpaperService {
    * Clear the display (set to white)
    */
   async clear(): Promise<Result<void>> {
+    logger.info(`Clearing e-paper display: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
@@ -149,8 +160,10 @@ export class EpaperService implements IEpaperService {
       await this.epd.clear(true);
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
+      logger.info("E-paper display cleared");
       return success(undefined);
     } catch (error) {
+      logger.error("Clearing e-paper display failed", error);
       if (error instanceof Error) {
         return failure(DisplayError.updateFailed(error));
       }
@@ -164,7 +177,11 @@ export class EpaperService implements IEpaperService {
    * Perform a full refresh to clear ghosting
    */
   async fullRefresh(): Promise<Result<void>> {
+    logger.info(
+      `Performing full refresh on e-paper: ${this.getDisplayModel()}`,
+    );
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
@@ -176,9 +193,10 @@ export class EpaperService implements IEpaperService {
 
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
-
+      logger.info("Full refresh completed");
       return success(undefined);
     } catch (error) {
+      logger.error("Full refresh failed", error);
       if (error instanceof Error) {
         return failure(
           new DisplayError(
@@ -204,11 +222,14 @@ export class EpaperService implements IEpaperService {
    * Put the display into sleep mode
    */
   async sleep(): Promise<Result<void>> {
+    logger.info(`Putting e-paper display to sleep: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     if (this.isSleeping) {
+      logger.info("Display already sleeping");
       return success(undefined);
     }
 
@@ -217,8 +238,10 @@ export class EpaperService implements IEpaperService {
       this.isSleeping = true;
       this.busy = false;
 
+      logger.info("E-paper display is now sleeping");
       return success(undefined);
     } catch (error) {
+      logger.error("Putting display to sleep failed", error);
       if (error instanceof Error) {
         return failure(
           new DisplayError(
@@ -242,11 +265,14 @@ export class EpaperService implements IEpaperService {
    * Wake the display from sleep mode
    */
   async wake(): Promise<Result<void>> {
+    logger.info(`Waking e-paper display: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     if (!this.isSleeping) {
+      logger.info("Display is not sleeping");
       return success(undefined);
     }
 
@@ -254,9 +280,10 @@ export class EpaperService implements IEpaperService {
       // Reinitialize the display to wake it up
       await this.epd.init();
       this.isSleeping = false;
-
+      logger.info("E-paper display is now awake");
       return success(undefined);
     } catch (error) {
+      logger.error("Waking display failed", error);
       if (error instanceof Error) {
         return failure(
           new DisplayError(
@@ -280,7 +307,9 @@ export class EpaperService implements IEpaperService {
    * Get the current status of the display
    */
   async getStatus(): Promise<Result<EpaperStatus>> {
+    logger.info(`Getting e-paper display status: ${this.getDisplayModel()}`);
     if (!this.isInitialized) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
@@ -295,7 +324,7 @@ export class EpaperService implements IEpaperService {
       fullRefreshCount: this.fullRefreshCount,
       partialRefreshCount: this.partialRefreshCount,
     };
-
+    logger.info("E-paper display status retrieved", status);
     return success(status);
   }
 
@@ -319,6 +348,7 @@ export class EpaperService implements IEpaperService {
    * Check if the display is currently busy
    */
   isBusy(): boolean {
+    if (this.busy) logger.info("E-paper display is busy");
     return this.busy;
   }
 
@@ -326,20 +356,25 @@ export class EpaperService implements IEpaperService {
    * Wait for the display to become ready
    */
   async waitUntilReady(timeoutMs: number = 5000): Promise<Result<void>> {
+    logger.info(
+      `Waiting for e-paper display to become ready: ${this.getDisplayModel()}`,
+    );
     if (!this.isInitialized) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     const startTime = Date.now();
 
-    while (this.busy && Date.now() - startTime < timeoutMs) {
+    while (this.isBusy() && Date.now() - startTime < timeoutMs) {
       await this.sleepDelay(100);
     }
 
     if (this.busy) {
+      logger.error("Timeout waiting for display to become ready");
       return failure(DisplayError.timeout("waitUntilReady", timeoutMs));
     }
-
+    logger.info("E-paper display is now ready");
     return success(undefined);
   }
 
@@ -347,6 +382,9 @@ export class EpaperService implements IEpaperService {
    * Set the display rotation
    */
   setRotation(rotation: 0 | 90 | 180 | 270): Result<void> {
+    logger.info(
+      `Setting e-paper display rotation to ${rotation}: ${this.getDisplayModel()}`,
+    );
     this.rotation = rotation;
     return success(undefined);
   }
@@ -355,13 +393,24 @@ export class EpaperService implements IEpaperService {
    * Get display dimensions
    */
   getDimensions(): { width: number; height: number } {
+    logger.info("Getting e-paper display dimensions");
     // Account for rotation
     if (this.rotation === 90 || this.rotation === 270) {
+      logger.info(
+        "Display is rotated, swapping width and height",
+        this.config.width,
+        this.config.height,
+      );
       return {
         width: this.config.height,
         height: this.config.width,
       };
     }
+    logger.info(
+      "Display is not rotated, returning original dimensions",
+      this.config.width,
+      this.config.height,
+    );
     return {
       width: this.config.width,
       height: this.config.height,
@@ -372,7 +421,9 @@ export class EpaperService implements IEpaperService {
    * Reset the display hardware
    */
   async reset(): Promise<Result<void>> {
+    logger.info(`Resetting e-paper display: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
@@ -382,9 +433,10 @@ export class EpaperService implements IEpaperService {
 
       this.busy = false;
       this.isSleeping = false;
-
+      logger.info("E-paper display reset completed");
       return success(undefined);
     } catch (error) {
+      logger.error("Display reset failed", error);
       if (error instanceof Error) {
         return failure(
           new DisplayError(
@@ -408,13 +460,16 @@ export class EpaperService implements IEpaperService {
    * Clean up resources and close hardware connections
    */
   async dispose(): Promise<void> {
+    logger.info(`Disposing e-paper service: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
+      logger.info("E-paper service already disposed");
       return;
     }
 
     try {
       // Put display to sleep before disposing
       if (!this.isSleeping) {
+        logger.info("Putting display to sleep before disposing");
         await this.sleep();
       }
 
@@ -424,6 +479,7 @@ export class EpaperService implements IEpaperService {
       this.isInitialized = false;
       this.busy = false;
       this.epd = null;
+      logger.info("E-paper service disposed successfully");
     } catch (error) {
       logger.error("Error disposing e-paper service:", error);
     }
@@ -434,13 +490,15 @@ export class EpaperService implements IEpaperService {
    * Full refresh every 10 updates to prevent ghosting
    */
   private determineUpdateMode(): DisplayUpdateMode {
+    logger.info("Determining display update mode");
     const totalUpdates = this.fullRefreshCount + this.partialRefreshCount;
 
     // Do a full refresh every 10 updates, but default to PARTIAL for the first update
     if (totalUpdates > 0 && totalUpdates % 10 === 0) {
+      logger.info("Choosing FULL update mode to prevent ghosting");
       return DisplayUpdateMode.FULL;
     }
-
+    logger.info("Choosing PARTIAL update mode");
     return DisplayUpdateMode.PARTIAL;
   }
 
