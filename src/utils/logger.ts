@@ -33,7 +33,9 @@ export const getLogger = (
     format: winston.format.combine(
       winston.format.label({ label: prefix }),
       winston.format.timestamp(),
-      winston.format.json(),
+      winston.format.printf(({ message }) => {
+        return String(message);
+      }),
     ),
 
     transports: [

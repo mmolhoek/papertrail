@@ -8,7 +8,10 @@ class TestTransport extends winston.transports.Stream {
   logs: winston.Logform.TransformableInfo[] = [];
 
   constructor() {
-    super({ stream: process.stdout as unknown as NodeJS.WritableStream });
+    super({
+      stream: process.stdout as unknown as NodeJS.WritableStream,
+      format: winston.format.json(),
+    });
   }
 
   log(info: winston.Logform.TransformableInfo, cb: () => void): void {
