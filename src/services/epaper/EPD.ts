@@ -71,14 +71,14 @@ export class EPD {
   }
 
   private async reset(): Promise<void> {
-    console.time("epaper: reset");
+    epdLogger.time("epaper: reset");
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
     lgpio.gpioWrite(this.chip, this.rstGPIO, false);
     await this.delay(2);
     lgpio.gpioWrite(this.chip, this.rstGPIO, true);
     await this.delay(20);
-    console.timeEnd("epaper: reset");
+    epdLogger.timeEnd("epaper: reset");
   }
 
   private sendCommand(command: number): void {
@@ -88,7 +88,7 @@ export class EPD {
   }
 
   private sendData(data: number | Buffer): void {
-    if (typeof data !== "number") console.time("sendData");
+    if (typeof data !== "number") epdLogger.time("sendData");
     lgpio.gpioWrite(this.chip, this.dcGPIO, true);
 
     if (typeof data === "number") {
@@ -98,12 +98,12 @@ export class EPD {
       const txBuffer = new Uint8Array(data);
       lgpio.spiWrite(this.spiHandle, txBuffer);
     }
-    if (typeof data !== "number") console.timeEnd("sendData");
+    if (typeof data !== "number") epdLogger.timeEnd("sendData");
   }
 
   private async epaperReady(): Promise<void> {
     let count = 0;
-    console.time("epaperReady");
+    epdLogger.time("epaperReady");
     while (lgpio.gpioRead(this.chip, this.busyGPIO) === true) {
       await this.delay(5);
       count++;
@@ -111,7 +111,7 @@ export class EPD {
         break;
       }
     }
-    console.timeEnd("epaperReady");
+    epdLogger.timeEnd("epaperReady");
   }
 
   private delay(ms: number): Promise<void> {
@@ -119,7 +119,7 @@ export class EPD {
   }
 
   async init(): Promise<void> {
-    console.time("init");
+    epdLogger.time("init");
     await this.reset();
     await this.epaperReady();
 
@@ -151,49 +151,49 @@ export class EPD {
 
     this.setCursor(0, 0);
     await this.epaperReady();
-    console.timeEnd("init");
+    epdLogger.timeEnd("init");
   }
 
   async clear(fast: boolean = true): Promise<void> {
-    console.time("clear");
-    console.time("clear: Buffer fill");
+    epdLogger.time("clear");
+    epdLogger.time("clear: Buffer fill");
     this.buffer.fill(0xff);
-    console.timeEnd("clear: Buffer fill");
+    epdLogger.timeEnd("clear: Buffer fill");
 
-    console.time("clear: Sending data");
+    epdLogger.time("clear: Sending data");
     this.sendCommand(0x24);
     this.sendData(this.buffer);
-    console.timeEnd("clear: Sending data");
+    epdLogger.timeEnd("clear: Sending data");
 
     await this.turnOnDisplay(fast);
-    console.timeEnd("clear");
+    epdLogger.timeEnd("clear");
   }
 
   async display(imageBuffer?: Buffer): Promise<void> {
-    console.time("display");
+    epdLogger.time("display");
     const buf = imageBuffer || this.buffer;
 
     this.sendCommand(0x24);
     this.sendData(buf);
     await this.turnOnDisplay();
-    console.timeEnd("display");
+    epdLogger.timeEnd("display");
   }
 
   private async turnOnDisplay(fast: boolean = true): Promise<void> {
-    console.time("turnOnDisplay");
+    epdLogger.time("turnOnDisplay");
     this.sendCommand(0x22); // Display update control
     this.sendData(fast ? 0xff : 0xf7); // Fast or slow refresh
     this.sendCommand(0x20); // Activate display update sequence
     await this.epaperReady();
-    console.timeEnd("turnOnDisplay");
+    epdLogger.timeEnd("turnOnDisplay");
   }
 
   async sleep(): Promise<void> {
-    console.time("sleep");
+    epdLogger.time("sleep");
     this.sendCommand(0x10); // Enter deep sleep mode
     this.sendData(0x01); // Deep sleep command
     await this.delay(100); // Wait for the command to take effect
-    console.timeEnd("sleep");
+    epdLogger.timeEnd("sleep");
   }
 
   getBuffer(): Buffer {
