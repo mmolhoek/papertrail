@@ -136,7 +136,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        expect(status.data.fullRefreshCount).toBe(1);
+        // Expect 2: 1 from initialization logo + 1 from this call
+        expect(status.data.fullRefreshCount).toBe(2);
         expect(status.data.partialRefreshCount).toBe(0);
       }
     });
@@ -150,7 +151,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        expect(status.data.fullRefreshCount).toBe(0);
+        // Expect 1: initialization logo did a full refresh
+        expect(status.data.fullRefreshCount).toBe(1);
         expect(status.data.partialRefreshCount).toBe(1);
       }
     });
@@ -223,7 +225,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        expect(status.data.fullRefreshCount).toBe(1);
+        // Expect 2: 1 from initialization logo + 1 from clear
+        expect(status.data.fullRefreshCount).toBe(2);
       }
     });
 
@@ -255,7 +258,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        expect(status.data.fullRefreshCount).toBe(1);
+        // Expect 2: 1 from initialization logo + 1 from fullRefresh
+        expect(status.data.fullRefreshCount).toBe(2);
       }
     });
 
@@ -346,7 +350,8 @@ describe("EpaperService", () => {
         expect(result.data.initialized).toBe(true);
         expect(result.data.busy).toBe(false);
         expect(result.data.sleeping).toBe(false);
-        expect(result.data.fullRefreshCount).toBe(0);
+        // Expect 1: initialization displays the startup logo
+        expect(result.data.fullRefreshCount).toBe(1);
         expect(result.data.partialRefreshCount).toBe(0);
       }
     });
