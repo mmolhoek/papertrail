@@ -1,7 +1,7 @@
 import { OnboardingService } from '../OnboardingService';
 import { IConfigService, IWiFiService, IEpaperService } from '@core/interfaces';
 import { success, failure } from '@core/types';
-import { OnboardingError, WiFiError, DisplayError } from '@core/errors';
+import { OnboardingError, WiFiError, DisplayError, DisplayErrorCode } from '@core/errors';
 import { DisplayUpdateMode } from '@core/types';
 
 // Mock the EPD class
@@ -51,6 +51,7 @@ describe('OnboardingService', () => {
       initialize: jest.fn().mockResolvedValue(success(undefined)),
       dispose: jest.fn().mockResolvedValue(undefined),
       displayBitmap: jest.fn().mockResolvedValue(success(undefined)),
+      displayBitmapFromFile: jest.fn().mockResolvedValue(success(undefined)),
       clear: jest.fn().mockResolvedValue(success(undefined)),
       fullRefresh: jest.fn().mockResolvedValue(success(undefined)),
       sleep: jest.fn().mockResolvedValue(success(undefined)),
@@ -138,7 +139,7 @@ describe('OnboardingService', () => {
       });
 
       // Verify e-paper display was called for all screens
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(3);
+      expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(3);
     });
 
     it('should handle WiFi connection timeout gracefully', async () => {
@@ -154,7 +155,7 @@ describe('OnboardingService', () => {
       expect(result.success).toBe(true);
 
       // Should have displayed welcome and instructions (but not connected screen)
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(2);
+      expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(2);
     });
 
     it('should continue if WiFi config save fails', async () => {
@@ -245,17 +246,16 @@ describe('OnboardingService', () => {
       const result = await onboardingService.displayInstructions();
 
       expect(result.success).toBe(true);
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalled();
+      expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalled();
 
-      // Verify the bitmap passed to displayBitmap has correct dimensions
-      const call = mockEpaperService.displayBitmap.mock.calls[0];
-      expect(call[0].width).toBe(800);
-      expect(call[0].height).toBe(480);
+      // Verify the correct file path and mode were passed
+      const call = mockEpaperService.displayBitmapFromFile.mock.calls[0];
+      expect(call[0]).toContain('wifi-instructions.bmp');
       expect(call[1]).toBe(DisplayUpdateMode.FULL);
     });
 
     it('should handle display errors', async () => {
-      mockEpaperService.displayBitmap.mockResolvedValue(
+      mockEpaperService.displayBitmapFromFile.mockResolvedValue(
         failure(DisplayError.updateFailed(new Error('Display error'))),
       );
 
@@ -268,21 +268,18 @@ describe('OnboardingService', () => {
     });
 
     it('should handle file not found errors', async () => {
-      // Mock EPD to throw ENOENT error
-      const { EPD } = require('../../epaper/EPD');
-      EPD.mockImplementation(() => ({
-        loadImageInBuffer: jest.fn().mockRejectedValue({
-          message: 'ENOENT: no such file or directory',
-        }),
-      }));
-
-      const service = new OnboardingService(
-        mockConfigService,
-        mockWiFiService,
-        mockEpaperService,
+      // Mock displayBitmapFromFile to return file not found error
+      mockEpaperService.displayBitmapFromFile.mockResolvedValue(
+        failure(
+          new DisplayError(
+            'Image file not found',
+            DisplayErrorCode.RENDER_FAILED,
+            true,
+          ),
+        ),
       );
 
-      const result = await service.displayInstructions();
+      const result = await onboardingService.displayInstructions();
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -303,7 +300,7 @@ describe('OnboardingService', () => {
 
       expect(result.success).toBe(true);
       // Should have displayed all three screens
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(3);
+      expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(3);
     });
 
     it('should poll for WiFi connection periodically', async () => {
@@ -324,7 +321,7 @@ describe('OnboardingService', () => {
       expect(mockWiFiService.isConnected).toHaveBeenCalled();
       expect(callCount).toBeGreaterThanOrEqual(2);
       // Should have displayed all three screens
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(3);
+      expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(3);
     }, 15000); // Increase timeout to 15 seconds to allow for polling
   });
 

@@ -213,6 +213,57 @@ export class EpaperService implements IEpaperService {
   }
 
   /**
+   * Load and display a BMP image file on the e-paper screen
+   */
+  async displayBitmapFromFile(
+    filePath: string,
+    mode: DisplayUpdateMode = DisplayUpdateMode.FULL,
+  ): Promise<Result<void>> {
+    logger.info(`Loading and displaying image from: ${filePath}`);
+
+    if (!this.isInitialized || !this.epd) {
+      logger.error("Display not initialized");
+      return failure(DisplayError.notInitialized());
+    }
+
+    try {
+      // Check if file exists
+      if (!fs.existsSync(filePath)) {
+        logger.error(`Image file not found: ${filePath}`);
+        return failure(
+          new DisplayError(
+            `Image file not found: ${filePath}`,
+            DisplayErrorCode.RENDER_FAILED,
+            true,
+          ),
+        );
+      }
+
+      // Use EPD's loadImageInBuffer method which handles BMP conversion
+      const imageBuffer = await this.epd.loadImageInBuffer(filePath);
+      logger.info(
+        `Image loaded successfully, buffer size: ${imageBuffer.length} bytes`,
+      );
+
+      // Create bitmap object
+      const bitmap: Bitmap1Bit = {
+        width: this.config.width,
+        height: this.config.height,
+        data: imageBuffer,
+      };
+
+      // Display the bitmap
+      return await this.displayBitmap(bitmap, mode);
+    } catch (error) {
+      logger.error(`Failed to load and display image from ${filePath}:`, error);
+      if (error instanceof Error) {
+        return failure(DisplayError.updateFailed(error));
+      }
+      return failure(DisplayError.updateFailed(new Error("Unknown error")));
+    }
+  }
+
+  /**
    * Clear the display (set to white)
    */
   async clear(): Promise<Result<void>> {

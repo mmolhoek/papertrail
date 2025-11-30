@@ -5,11 +5,10 @@ import {
   IWiFiService,
   IEpaperService,
 } from "../../core/interfaces";
-import { Result, Bitmap1Bit, DisplayUpdateMode } from "../../core/types";
+import { Result, DisplayUpdateMode } from "../../core/types";
 import { success, failure } from "../../core/types";
 import { OnboardingError } from "../../core/errors";
 import { getLogger } from "../../utils/logger";
-import { EPD } from "../epaper/EPD";
 
 const logger = getLogger("OnboardingService");
 
@@ -18,15 +17,11 @@ const logger = getLogger("OnboardingService");
  * Manages the first-boot onboarding flow with WiFi setup and display instructions
  */
 export class OnboardingService implements IOnboardingService {
-  private epd: EPD;
-
   constructor(
     private configService: IConfigService,
     private wifiService: IWiFiService,
     private epaperService: IEpaperService,
-  ) {
-    this.epd = new EPD();
-  }
+  ) {}
 
   async isOnboardingRequired(): Promise<Result<boolean>> {
     try {
@@ -155,51 +150,34 @@ export class OnboardingService implements IOnboardingService {
   // Private helper methods
 
   private async displayScreen(screenPath: string): Promise<Result<void>> {
-    try {
-      const fullPath = path.join(process.cwd(), screenPath);
+    const fullPath = path.join(process.cwd(), screenPath);
 
-      logger.debug(`Loading image from: ${fullPath}`);
+    logger.debug(`Displaying image from: ${fullPath}`);
 
-      // Use EPD's loadImageInBuffer to load and convert the BMP image
-      const imageBuffer = await this.epd.loadImageInBuffer(fullPath);
+    // Use EpaperService to load and display the BMP image
+    const displayResult = await this.epaperService.displayBitmapFromFile(
+      fullPath,
+      DisplayUpdateMode.FULL,
+    );
 
-      const bitmap: Bitmap1Bit = {
-        width: 800,
-        height: 480,
-        data: imageBuffer,
-        metadata: {
-          createdAt: new Date(),
-          description: `Onboarding screen: ${screenPath}`,
-        },
-      };
-
-      // Display on e-paper
-      const displayResult = await this.epaperService.displayBitmap(
-        bitmap,
-        DisplayUpdateMode.FULL,
-      );
-
-      if (!displayResult.success) {
-        return failure(
-          OnboardingError.displayFailed(
-            new Error(displayResult.error.message),
-            screenPath,
-          ),
-        );
-      }
-
-      logger.info(`Successfully displayed: ${screenPath}`);
-      return success(undefined);
-    } catch (error) {
-      logger.error(`Failed to display screen ${screenPath}:`, error);
+    if (!displayResult.success) {
+      logger.error(`Failed to display screen ${screenPath}:`, displayResult.error);
 
       // Check if image file not found
-      if ((error as Error).message.includes("ENOENT")) {
+      if (displayResult.error.message.includes("not found")) {
         return failure(OnboardingError.imageNotFound(screenPath));
       }
 
-      return failure(OnboardingError.displayFailed(error as Error, screenPath));
+      return failure(
+        OnboardingError.displayFailed(
+          new Error(displayResult.error.message),
+          screenPath,
+        ),
+      );
     }
+
+    logger.info(`Successfully displayed: ${screenPath}`);
+    return success(undefined);
   }
 
   private async waitForWiFiConnection(timeoutMs: number): Promise<boolean> {

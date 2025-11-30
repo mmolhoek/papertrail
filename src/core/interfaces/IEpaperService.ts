@@ -24,7 +24,18 @@ export interface IEpaperService {
     bitmap: Bitmap1Bit,
     mode?: DisplayUpdateMode
   ): Promise<Result<void>>;
-  
+
+  /**
+   * Load and display a BMP image file on the e-paper screen
+   * @param filePath Absolute path to the BMP file
+   * @param mode Update mode (full, partial, or auto)
+   * @returns Result indicating success or failure
+   */
+  displayBitmapFromFile(
+    filePath: string,
+    mode?: DisplayUpdateMode
+  ): Promise<Result<void>>;
+
   /**
    * Clear the display (set to white)
    * @returns Result indicating success or failure

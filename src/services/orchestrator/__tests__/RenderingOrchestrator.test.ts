@@ -97,6 +97,7 @@ describe("RenderingOrchestrator", () => {
     mockEpaper = {
       initialize: jest.fn(),
       displayBitmap: jest.fn(),
+      displayBitmapFromFile: jest.fn(),
       clear: jest.fn(),
       fullRefresh: jest.fn(),
       sleep: jest.fn(),
