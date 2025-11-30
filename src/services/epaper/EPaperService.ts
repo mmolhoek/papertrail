@@ -83,10 +83,16 @@ export class EpaperService implements IEpaperService {
       logger.info("Loading startup logo");
 
       // Construct path to logo file (works in both dev and production)
-      const logoPath = path.join(process.cwd(), "logos", "logo_800x480.bmp");
+      const logoPath = path.join(
+        process.cwd(),
+        "onboarding-screens",
+        "welcome.bmp",
+      );
 
       if (!fs.existsSync(logoPath)) {
-        logger.warn(`Logo file not found at ${logoPath}, skipping logo display`);
+        logger.warn(
+          `Logo file not found at ${logoPath}, skipping logo display`,
+        );
         return;
       }
 
@@ -98,7 +104,9 @@ export class EpaperService implements IEpaperService {
       // Use EPD's loadImageInBuffer method which handles conversion properly
       logger.info(`Loading image from ${logoPath}`);
       const imageBuffer = await this.epd.loadImageInBuffer(logoPath);
-      logger.info(`Image loaded successfully, buffer size: ${imageBuffer.length} bytes`);
+      logger.info(
+        `Image loaded successfully, buffer size: ${imageBuffer.length} bytes`,
+      );
 
       const logoBitmap: Bitmap1Bit = {
         width: this.config.width,
