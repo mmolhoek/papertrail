@@ -18,7 +18,8 @@ echo ""
 # Check if /etc/sudoers.d/papertrail exists, if not copy from example
 if [ ! -f /etc/sudoers.d/papertrail ]; then
   echo -e "${BLUE}Creating /etc/sudoers.d/papertrail...${NC}"
-  sudo cp config/papertrail-sudoers /etc/sudoers.d/papertrail
+  CURRENT_USER=$(whoami)
+  sudo sed "s/USER/${CURRENT_USER}/g" config/papertrail-sudoers | sudo tee /etc/sudoers.d/papertrail >/dev/null
   sudo chmod 0440 /etc/sudoers.d/papertrail
   sudo visudo -c
   echo -e "${GREEN}✓ /etc/sudoers.d/papertrail created, sudo can be used to call nmcli...${NC}"

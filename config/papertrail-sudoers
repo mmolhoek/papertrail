@@ -1,16 +1,6 @@
-# Sudoers configuration for Papertrail WiFi management
-# This allows the papertrail service to manage WiFi without password prompts
-#
-# Installation:
-# sudo cp config/papertrail-sudoers /etc/sudoers.d/papertrail
-# sudo chmod 0440 /etc/sudoers.d/papertrail
-#
-# Replace 'pi' with your actual username if different
-
-# Allow nmcli commands for WiFi management
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli device wifi connect *
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli device wifi rescan
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli device disconnect wlan0
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection add *
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection delete *
-mischa ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection modify *
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli device wifi connect *
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli device wifi rescan
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli device disconnect wlan0
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection add *
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection delete *
+USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection modify *
