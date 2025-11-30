@@ -44,6 +44,18 @@ async function main() {
     if (needsOnboarding) {
       logger.info("📱 First boot detected - starting onboarding...");
 
+      // Initialize WiFi service for onboarding
+      const wifiService = container.getWiFiService();
+      const wifiInitResult = await wifiService.initialize();
+
+      if (!isSuccess(wifiInitResult)) {
+        logger.error(
+          "Failed to initialize WiFi service:",
+          wifiInitResult.error.message,
+        );
+        logger.warn("Onboarding will continue without WiFi setup");
+      }
+
       const onboardingService = container.getOnboardingService();
 
       // Start onboarding flow (non-blocking)
