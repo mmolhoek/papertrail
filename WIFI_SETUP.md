@@ -8,7 +8,7 @@ Run these commands on your Raspberry Pi:
 
 ```bash
 # Copy the sudoers configuration file
-sudo cp config/papertrail-sudoers /etc/sudoers.d/papertraiL
+sudo cp config/papertrail-sudoers /etc/sudoers.d/papertrail
 
 # Set correct permissions (required for sudoers files)
 sudo chmod 0440 /etc/sudoers.d/papertrail
