@@ -448,7 +448,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     const result = await this.epaperService.clear();
     if (!result.success) {
       return failure(
-        OrchestratorError.updateFailed("Clear display", result.error)
+        OrchestratorError.updateFailed("Clear display", result.error),
       );
     }
     return success(undefined);

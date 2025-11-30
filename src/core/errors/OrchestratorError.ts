@@ -1,26 +1,26 @@
-import { BaseError } from './BaseError';
+import { BaseError } from "./BaseError";
 
 /**
  * Orchestrator-related error codes
  */
 export enum OrchestratorErrorCode {
   // Initialization errors
-  INIT_FAILED = 'ORCHESTRATOR_INIT_FAILED',
-  SERVICE_INIT_FAILED = 'ORCHESTRATOR_SERVICE_INIT_FAILED',
-  NOT_INITIALIZED = 'ORCHESTRATOR_NOT_INITIALIZED',
-  
+  INIT_FAILED = "ORCHESTRATOR_INIT_FAILED",
+  SERVICE_INIT_FAILED = "ORCHESTRATOR_SERVICE_INIT_FAILED",
+  NOT_INITIALIZED = "ORCHESTRATOR_NOT_INITIALIZED",
+
   // State errors
-  NO_ACTIVE_GPX = 'ORCHESTRATOR_NO_ACTIVE_GPX',
-  INVALID_STATE = 'ORCHESTRATOR_INVALID_STATE',
-  ALREADY_RUNNING = 'ORCHESTRATOR_ALREADY_RUNNING',
-  NOT_RUNNING = 'ORCHESTRATOR_NOT_RUNNING',
-  
+  NO_ACTIVE_GPX = "ORCHESTRATOR_NO_ACTIVE_GPX",
+  INVALID_STATE = "ORCHESTRATOR_INVALID_STATE",
+  ALREADY_RUNNING = "ORCHESTRATOR_ALREADY_RUNNING",
+  NOT_RUNNING = "ORCHESTRATOR_NOT_RUNNING",
+
   // Operation errors
-  UPDATE_FAILED = 'ORCHESTRATOR_UPDATE_FAILED',
-  MULTIPLE_ERRORS = 'ORCHESTRATOR_MULTIPLE_ERRORS',
-  
+  UPDATE_FAILED = "ORCHESTRATOR_UPDATE_FAILED",
+  MULTIPLE_ERRORS = "ORCHESTRATOR_MULTIPLE_ERRORS",
+
   // Generic
-  UNKNOWN = 'ORCHESTRATOR_UNKNOWN_ERROR',
+  UNKNOWN = "ORCHESTRATOR_UNKNOWN_ERROR",
 }
 
 /**
@@ -37,7 +37,7 @@ export class OrchestratorError extends BaseError {
     code: OrchestratorErrorCode = OrchestratorErrorCode.UNKNOWN,
     recoverable: boolean = false,
     context?: Record<string, any>,
-    errors?: Error[]
+    errors?: Error[],
   ) {
     super(message, code, recoverable, context);
     this.errors = errors;
@@ -52,7 +52,7 @@ export class OrchestratorError extends BaseError {
       OrchestratorErrorCode.SERVICE_INIT_FAILED,
       false,
       { serviceName, originalError: error.message },
-      [error]
+      [error],
     );
   }
 
@@ -61,9 +61,9 @@ export class OrchestratorError extends BaseError {
    */
   static notInitialized(): OrchestratorError {
     return new OrchestratorError(
-      'Orchestrator not initialized. Call initialize() first.',
+      "Orchestrator not initialized. Call initialize() first.",
       OrchestratorErrorCode.NOT_INITIALIZED,
-      false
+      false,
     );
   }
 
@@ -72,9 +72,9 @@ export class OrchestratorError extends BaseError {
    */
   static noActiveGPX(): OrchestratorError {
     return new OrchestratorError(
-      'No active GPX file selected. Please select a track first.',
+      "No active GPX file selected. Please select a track first.",
       OrchestratorErrorCode.NO_ACTIVE_GPX,
-      false
+      false,
     );
   }
 
@@ -87,7 +87,7 @@ export class OrchestratorError extends BaseError {
       OrchestratorErrorCode.UPDATE_FAILED,
       true,
       { stage, originalError: error.message },
-      [error]
+      [error],
     );
   }
 
@@ -95,13 +95,13 @@ export class OrchestratorError extends BaseError {
    * Create error for multiple failures
    */
   static multipleErrors(errors: Error[]): OrchestratorError {
-    const messages = errors.map(e => e.message).join('; ');
+    const messages = errors.map((e) => e.message).join("; ");
     return new OrchestratorError(
       `Multiple errors occurred: ${messages}`,
       OrchestratorErrorCode.MULTIPLE_ERRORS,
       true,
       { errorCount: errors.length },
-      errors
+      errors,
     );
   }
 
@@ -110,9 +110,9 @@ export class OrchestratorError extends BaseError {
    */
   static alreadyRunning(): OrchestratorError {
     return new OrchestratorError(
-      'Auto-update is already running',
+      "Auto-update is already running",
       OrchestratorErrorCode.ALREADY_RUNNING,
-      false
+      false,
     );
   }
 
@@ -121,16 +121,16 @@ export class OrchestratorError extends BaseError {
    */
   static notRunning(): OrchestratorError {
     return new OrchestratorError(
-      'Auto-update is not running',
+      "Auto-update is not running",
       OrchestratorErrorCode.NOT_RUNNING,
-      false
+      false,
     );
   }
 
   toJSON(): Record<string, any> {
     return {
       ...super.toJSON(),
-      errors: this.errors?.map(e => ({
+      errors: this.errors?.map((e) => ({
         name: e.name,
         message: e.message,
         stack: e.stack,
@@ -141,19 +141,19 @@ export class OrchestratorError extends BaseError {
   getUserMessage(): string {
     switch (this.code) {
       case OrchestratorErrorCode.SERVICE_INIT_FAILED:
-        return 'Failed to start application services. Please restart.';
+        return "Failed to start application services. Please restart.";
       case OrchestratorErrorCode.NO_ACTIVE_GPX:
-        return 'No track selected. Please select a GPX file.';
+        return "No track selected. Please select a GPX file.";
       case OrchestratorErrorCode.UPDATE_FAILED:
-        return 'Failed to update display. Please try again.';
+        return "Failed to update display. Please try again.";
       case OrchestratorErrorCode.MULTIPLE_ERRORS:
-        return 'Multiple errors occurred. Please check system status.';
+        return "Multiple errors occurred. Please check system status.";
       case OrchestratorErrorCode.ALREADY_RUNNING:
-        return 'Auto-update is already active.';
+        return "Auto-update is already active.";
       case OrchestratorErrorCode.NOT_RUNNING:
-        return 'Auto-update is not active.';
+        return "Auto-update is not active.";
       default:
-        return 'System error occurred. Please try again.';
+        return "System error occurred. Please try again.";
     }
   }
 }

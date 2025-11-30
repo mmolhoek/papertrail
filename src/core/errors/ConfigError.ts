@@ -1,30 +1,30 @@
-import { BaseError } from './BaseError';
+import { BaseError } from "./BaseError";
 
 /**
  * Config-related error codes
  */
 export enum ConfigErrorCode {
   // File errors
-  FILE_NOT_FOUND = 'CONFIG_FILE_NOT_FOUND',
-  FILE_READ_ERROR = 'CONFIG_FILE_READ_ERROR',
-  FILE_WRITE_ERROR = 'CONFIG_FILE_WRITE_ERROR',
-  
+  FILE_NOT_FOUND = "CONFIG_FILE_NOT_FOUND",
+  FILE_READ_ERROR = "CONFIG_FILE_READ_ERROR",
+  FILE_WRITE_ERROR = "CONFIG_FILE_WRITE_ERROR",
+
   // Parsing errors
-  PARSE_ERROR = 'CONFIG_PARSE_ERROR',
-  INVALID_JSON = 'CONFIG_INVALID_JSON',
-  
+  PARSE_ERROR = "CONFIG_PARSE_ERROR",
+  INVALID_JSON = "CONFIG_INVALID_JSON",
+
   // Validation errors
-  INVALID_CONFIG = 'CONFIG_INVALID_CONFIG',
-  MISSING_REQUIRED_FIELD = 'CONFIG_MISSING_REQUIRED_FIELD',
-  INVALID_VALUE = 'CONFIG_INVALID_VALUE',
-  OUT_OF_RANGE = 'CONFIG_OUT_OF_RANGE',
-  
+  INVALID_CONFIG = "CONFIG_INVALID_CONFIG",
+  MISSING_REQUIRED_FIELD = "CONFIG_MISSING_REQUIRED_FIELD",
+  INVALID_VALUE = "CONFIG_INVALID_VALUE",
+  OUT_OF_RANGE = "CONFIG_OUT_OF_RANGE",
+
   // State errors
-  NOT_INITIALIZED = 'CONFIG_NOT_INITIALIZED',
-  ALREADY_INITIALIZED = 'CONFIG_ALREADY_INITIALIZED',
-  
+  NOT_INITIALIZED = "CONFIG_NOT_INITIALIZED",
+  ALREADY_INITIALIZED = "CONFIG_ALREADY_INITIALIZED",
+
   // Generic
-  UNKNOWN = 'CONFIG_UNKNOWN_ERROR',
+  UNKNOWN = "CONFIG_UNKNOWN_ERROR",
 }
 
 /**
@@ -35,7 +35,7 @@ export class ConfigError extends BaseError {
     message: string,
     code: ConfigErrorCode = ConfigErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) {
     super(message, code, recoverable, context);
   }
@@ -48,7 +48,7 @@ export class ConfigError extends BaseError {
       `Configuration file not found: ${filePath}`,
       ConfigErrorCode.FILE_NOT_FOUND,
       false,
-      { filePath }
+      { filePath },
     );
   }
 
@@ -60,7 +60,7 @@ export class ConfigError extends BaseError {
       `Failed to read configuration file: ${error.message}`,
       ConfigErrorCode.FILE_READ_ERROR,
       false,
-      { filePath, originalError: error.message }
+      { filePath, originalError: error.message },
     );
   }
 
@@ -72,7 +72,7 @@ export class ConfigError extends BaseError {
       `Failed to write configuration file: ${error.message}`,
       ConfigErrorCode.FILE_WRITE_ERROR,
       true,
-      { filePath, originalError: error.message }
+      { filePath, originalError: error.message },
     );
   }
 
@@ -84,7 +84,7 @@ export class ConfigError extends BaseError {
       `Invalid JSON in configuration file: ${error.message}`,
       ConfigErrorCode.INVALID_JSON,
       false,
-      { filePath, originalError: error.message }
+      { filePath, originalError: error.message },
     );
   }
 
@@ -96,19 +96,23 @@ export class ConfigError extends BaseError {
       `Missing required configuration field: ${field}`,
       ConfigErrorCode.MISSING_REQUIRED_FIELD,
       false,
-      { field }
+      { field },
     );
   }
 
   /**
    * Create error for invalid value
    */
-  static invalidValue(field: string, value: any, expected: string): ConfigError {
+  static invalidValue(
+    field: string,
+    value: any,
+    expected: string,
+  ): ConfigError {
     return new ConfigError(
       `Invalid value for ${field}: ${value} (expected: ${expected})`,
       ConfigErrorCode.INVALID_VALUE,
       false,
-      { field, value, expected }
+      { field, value, expected },
     );
   }
 
@@ -119,13 +123,13 @@ export class ConfigError extends BaseError {
     field: string,
     value: number,
     min: number,
-    max: number
+    max: number,
   ): ConfigError {
     return new ConfigError(
       `Value for ${field} (${value}) is out of range (${min}-${max})`,
       ConfigErrorCode.OUT_OF_RANGE,
       false,
-      { field, value, min, max }
+      { field, value, min, max },
     );
   }
 
@@ -134,9 +138,9 @@ export class ConfigError extends BaseError {
    */
   static notInitialized(): ConfigError {
     return new ConfigError(
-      'Configuration service not initialized. Call initialize() first.',
+      "Configuration service not initialized. Call initialize() first.",
       ConfigErrorCode.NOT_INITIALIZED,
-      false
+      false,
     );
   }
 
@@ -148,28 +152,28 @@ export class ConfigError extends BaseError {
       `Failed to parse configuration: ${error.message}`,
       ConfigErrorCode.PARSE_ERROR,
       false,
-      { originalError: error.message }
+      { originalError: error.message },
     );
   }
 
   getUserMessage(): string {
     switch (this.code) {
       case ConfigErrorCode.FILE_NOT_FOUND:
-        return 'Configuration file not found. Using default settings.';
+        return "Configuration file not found. Using default settings.";
       case ConfigErrorCode.FILE_READ_ERROR:
-        return 'Failed to read configuration. Using default settings.';
+        return "Failed to read configuration. Using default settings.";
       case ConfigErrorCode.FILE_WRITE_ERROR:
-        return 'Failed to save configuration. Changes may not persist.';
+        return "Failed to save configuration. Changes may not persist.";
       case ConfigErrorCode.INVALID_JSON:
-        return 'Configuration file is corrupted. Using default settings.';
+        return "Configuration file is corrupted. Using default settings.";
       case ConfigErrorCode.MISSING_REQUIRED_FIELD:
-        return 'Configuration is incomplete. Using default settings.';
+        return "Configuration is incomplete. Using default settings.";
       case ConfigErrorCode.INVALID_VALUE:
-        return 'Configuration contains invalid values. Using defaults.';
+        return "Configuration contains invalid values. Using defaults.";
       case ConfigErrorCode.OUT_OF_RANGE:
-        return 'Configuration values are out of acceptable range.';
+        return "Configuration values are out of acceptable range.";
       default:
-        return 'Configuration error occurred. Using default settings.';
+        return "Configuration error occurred. Using default settings.";
     }
   }
 }

@@ -105,4 +105,3 @@ export class EquirectangularProjection implements IProjection {
     return "Equirectangular";
   }
 }
-

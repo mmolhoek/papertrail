@@ -4,7 +4,7 @@
 export type WiFiNetwork = {
   ssid: string;
   signalStrength: number; // 0-100
-  security: 'WPA2' | 'WPA3' | 'WEP' | 'Open' | 'WPA' | 'Unknown';
+  security: "WPA2" | "WPA3" | "WEP" | "Open" | "WPA" | "Unknown";
   frequency: number; // MHz (2400, 5000, etc.)
 };
 

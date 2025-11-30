@@ -8,7 +8,13 @@ import {
   IWiFiService,
   IOnboardingService,
 } from "@core/interfaces";
-import { WebConfig, GPSConfig, EpaperConfig, MapConfig, WiFiConfig } from "@core/types";
+import {
+  WebConfig,
+  GPSConfig,
+  EpaperConfig,
+  MapConfig,
+  WiFiConfig,
+} from "@core/types";
 import { GPSService } from "../services/gps/GPSService";
 // Import other services when they're implemented
 import { MapService } from "../services/map/MapService";
@@ -140,7 +146,7 @@ export class ServiceContainer {
     if (!this.services.wifi) {
       const config = this.getWiFiConfig();
       // Use mock service on non-Linux systems
-      if (process.platform !== 'linux') {
+      if (process.platform !== "linux") {
         this.services.wifi = new MockWiFiService(config);
       } else {
         this.services.wifi = new WiFiService(config);
@@ -248,11 +254,13 @@ export class ServiceContainer {
    */
   getWiFiConfig(): WiFiConfig {
     return {
-      enabled: process.env.WIFI_ENABLED !== 'false',
-      primarySSID: process.env.WIFI_PRIMARY_SSID || 'Papertrail-Setup',
-      primaryPassword: process.env.WIFI_PRIMARY_PASSWORD || 'papertrail123',
-      scanIntervalMs: parseInt(process.env.WIFI_SCAN_INTERVAL_MS || '30000'),
-      connectionTimeoutMs: parseInt(process.env.WIFI_CONNECTION_TIMEOUT_MS || '60000'),
+      enabled: process.env.WIFI_ENABLED !== "false",
+      primarySSID: process.env.WIFI_PRIMARY_SSID || "Papertrail-Setup",
+      primaryPassword: process.env.WIFI_PRIMARY_PASSWORD || "papertrail123",
+      scanIntervalMs: parseInt(process.env.WIFI_SCAN_INTERVAL_MS || "30000"),
+      connectionTimeoutMs: parseInt(
+        process.env.WIFI_CONNECTION_TIMEOUT_MS || "60000",
+      ),
     };
   }
 

@@ -166,4 +166,3 @@ export type Bounds = {
   /** Maximum longitude */
   maxLon: number;
 };
-

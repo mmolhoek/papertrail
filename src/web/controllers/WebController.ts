@@ -34,7 +34,9 @@ export class WebController {
     const result = await this.orchestrator.getCurrentPosition();
 
     if (isSuccess(result)) {
-      logger.debug(`GPS position retrieved: ${result.data.latitude}, ${result.data.longitude}`);
+      logger.debug(
+        `GPS position retrieved: ${result.data.latitude}, ${result.data.longitude}`,
+      );
       res.json({
         success: true,
         data: {
@@ -67,7 +69,9 @@ export class WebController {
     const result = await this.orchestrator.getSystemStatus();
 
     if (isSuccess(result)) {
-      logger.debug(`GPS status retrieved: connected=${result.data.gps.connected}, satellites=${result.data.gps.satellitesInUse}`);
+      logger.debug(
+        `GPS status retrieved: connected=${result.data.gps.connected}, satellites=${result.data.gps.satellitesInUse}`,
+      );
       res.json({
         success: true,
         data: {
@@ -371,7 +375,9 @@ export class WebController {
     const { enabled } = req.body;
 
     if (typeof enabled !== "boolean") {
-      logger.warn("Set rotate-with-bearing called with invalid enabled parameter");
+      logger.warn(
+        "Set rotate-with-bearing called with invalid enabled parameter",
+      );
       res.status(400).json({
         success: false,
         error: {

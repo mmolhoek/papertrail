@@ -1,8 +1,14 @@
-import { Result, GPXTrack, ViewportConfig, Bitmap1Bit, RenderOptions } from '@core/types';
+import {
+  Result,
+  GPXTrack,
+  ViewportConfig,
+  Bitmap1Bit,
+  RenderOptions,
+} from "@core/types";
 
 /**
  * SVG Service Interface
- * 
+ *
  * Responsible for rendering GPX tracks to 1-bit bitmaps for e-paper display.
  * Stateless - all rendering parameters passed in.
  */
@@ -17,9 +23,9 @@ export interface ISVGService {
   renderViewport(
     track: GPXTrack,
     viewport: ViewportConfig,
-    options?: Partial<RenderOptions>
+    options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>>;
-  
+
   /**
    * Render multiple tracks in the same viewport
    * @param tracks Array of GPX tracks to render
@@ -30,9 +36,9 @@ export interface ISVGService {
   renderMultipleTracks(
     tracks: GPXTrack[],
     viewport: ViewportConfig,
-    options?: Partial<RenderOptions>
+    options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>>;
-  
+
   /**
    * Create a blank bitmap of specified dimensions
    * @param width Width in pixels
@@ -41,7 +47,7 @@ export interface ISVGService {
    * @returns 1-bit bitmap
    */
   createBlankBitmap(width: number, height: number, fill?: boolean): Bitmap1Bit;
-  
+
   /**
    * Add text to a bitmap
    * @param bitmap The bitmap to modify
@@ -56,9 +62,9 @@ export interface ISVGService {
     text: string,
     x: number,
     y: number,
-    fontSize?: number
+    fontSize?: number,
   ): Result<Bitmap1Bit>;
-  
+
   /**
    * Add a compass rose to indicate direction
    * @param bitmap The bitmap to modify
@@ -73,9 +79,9 @@ export interface ISVGService {
     x: number,
     y: number,
     radius: number,
-    heading: number
+    heading: number,
   ): Result<Bitmap1Bit>;
-  
+
   /**
    * Add a scale bar to the bitmap
    * @param bitmap The bitmap to modify
@@ -90,9 +96,9 @@ export interface ISVGService {
     x: number,
     y: number,
     width: number,
-    metersPerPixel: number
+    metersPerPixel: number,
   ): Result<Bitmap1Bit>;
-  
+
   /**
    * Overlay information panel on the bitmap
    * @param bitmap The bitmap to modify
@@ -108,9 +114,9 @@ export interface ISVGService {
       elevation?: string;
       time?: string;
     },
-    position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    position?: "top-left" | "top-right" | "bottom-left" | "bottom-right",
   ): Result<Bitmap1Bit>;
-  
+
   /**
    * Get the default render options
    * @returns Default RenderOptions

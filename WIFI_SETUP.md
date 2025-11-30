@@ -8,7 +8,7 @@ Run these commands on your Raspberry Pi:
 
 ```bash
 # Copy the sudoers configuration file
-sudo cp config/papertrail-sudoers /etc/sudoers.d/papertrail
+sudo cp config/papertrail-sudoers /etc/sudoers.d/papertraiL
 
 # Set correct permissions (required for sudoers files)
 sudo chmod 0440 /etc/sudoers.d/papertrail
@@ -62,17 +62,22 @@ sudo nmcli device wifi rescan
 ## Troubleshooting
 
 ### "sudo: unable to resolve host"
+
 This is usually harmless. To fix, add your hostname to `/etc/hosts`:
+
 ```bash
 echo "127.0.0.1 $(hostname)" | sudo tee -a /etc/hosts
 ```
 
 ### "syntax error in /etc/sudoers.d/papertrail"
+
 Run `sudo visudo -f /etc/sudoers.d/papertrail` to check for errors.
 Make sure there are no extra spaces or tabs.
 
 ### Commands still ask for password
+
 Verify the file exists and has correct permissions:
+
 ```bash
 ls -l /etc/sudoers.d/papertrail
 # Should show: -r--r----- 1 root root ... papertrail

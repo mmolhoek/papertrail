@@ -31,7 +31,9 @@ export class SVGService implements ISVGService {
     viewport: ViewportConfig,
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
-    logger.debug(`Rendering viewport: ${viewport.width}x${viewport.height}, zoom=${viewport.zoomLevel}`);
+    logger.debug(
+      `Rendering viewport: ${viewport.width}x${viewport.height}, zoom=${viewport.zoomLevel}`,
+    );
     try {
       const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
 
@@ -177,7 +179,9 @@ export class SVGService implements ISVGService {
         this.drawFilledCircle(bitmap, centerPoint, radius - 2);
       }
 
-      logger.info(`Multiple tracks rendered: ${renderedTracks} tracks, ${totalPoints} total points`);
+      logger.info(
+        `Multiple tracks rendered: ${renderedTracks} tracks, ${totalPoints} total points`,
+      );
       return success(bitmap);
     } catch (error) {
       logger.error("Failed to render multiple tracks:", error);
@@ -242,11 +246,15 @@ export class SVGService implements ISVGService {
     radius: number,
     heading: number,
   ): Result<Bitmap1Bit> {
-    logger.debug(`Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`);
+    logger.debug(
+      `Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`,
+    );
     // TODO: Implement compass rendering
     // For now, just draw a circle
     this.drawCircle(bitmap, { x, y }, radius);
-    logger.warn("Compass rendering not fully implemented (showing circle only)");
+    logger.warn(
+      "Compass rendering not fully implemented (showing circle only)",
+    );
     return success(bitmap);
   }
 
@@ -260,7 +268,9 @@ export class SVGService implements ISVGService {
     width: number,
     metersPerPixel: number,
   ): Result<Bitmap1Bit> {
-    logger.debug(`Adding scale bar at (${x}, ${y}), width=${width}, metersPerPixel=${metersPerPixel}`);
+    logger.debug(
+      `Adding scale bar at (${x}, ${y}), width=${width}, metersPerPixel=${metersPerPixel}`,
+    );
     // TODO: Implement scale bar rendering
     logger.warn("Scale bar rendering not yet implemented");
     return success(bitmap);

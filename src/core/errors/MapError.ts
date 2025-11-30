@@ -190,4 +190,3 @@ export class MapError extends BaseError {
     }
   }
 }
-

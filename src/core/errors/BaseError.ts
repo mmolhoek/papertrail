@@ -66,4 +66,3 @@ export abstract class BaseError extends Error {
     return this.message;
   }
 }
-

@@ -1,32 +1,32 @@
-import { BaseError } from './BaseError';
+import { BaseError } from "./BaseError";
 
 /**
  * GPS-related error codes
  */
 export enum GPSErrorCode {
   // Hardware errors
-  DEVICE_NOT_FOUND = 'GPS_DEVICE_NOT_FOUND',
-  DEVICE_OPEN_FAILED = 'GPS_DEVICE_OPEN_FAILED',
-  DEVICE_READ_FAILED = 'GPS_DEVICE_READ_FAILED',
-  DEVICE_NOT_INITIALIZED = 'GPS_DEVICE_NOT_INITIALIZED',
-  
+  DEVICE_NOT_FOUND = "GPS_DEVICE_NOT_FOUND",
+  DEVICE_OPEN_FAILED = "GPS_DEVICE_OPEN_FAILED",
+  DEVICE_READ_FAILED = "GPS_DEVICE_READ_FAILED",
+  DEVICE_NOT_INITIALIZED = "GPS_DEVICE_NOT_INITIALIZED",
+
   // Fix/signal errors
-  NO_FIX = 'GPS_NO_FIX',
-  WEAK_SIGNAL = 'GPS_WEAK_SIGNAL',
-  FIX_TIMEOUT = 'GPS_FIX_TIMEOUT',
-  INSUFFICIENT_SATELLITES = 'GPS_INSUFFICIENT_SATELLITES',
-  
+  NO_FIX = "GPS_NO_FIX",
+  WEAK_SIGNAL = "GPS_WEAK_SIGNAL",
+  FIX_TIMEOUT = "GPS_FIX_TIMEOUT",
+  INSUFFICIENT_SATELLITES = "GPS_INSUFFICIENT_SATELLITES",
+
   // Data errors
-  INVALID_DATA = 'GPS_INVALID_DATA',
-  PARSE_ERROR = 'GPS_PARSE_ERROR',
-  CHECKSUM_ERROR = 'GPS_CHECKSUM_ERROR',
-  
+  INVALID_DATA = "GPS_INVALID_DATA",
+  PARSE_ERROR = "GPS_PARSE_ERROR",
+  CHECKSUM_ERROR = "GPS_CHECKSUM_ERROR",
+
   // State errors
-  ALREADY_TRACKING = 'GPS_ALREADY_TRACKING',
-  NOT_TRACKING = 'GPS_NOT_TRACKING',
-  
+  ALREADY_TRACKING = "GPS_ALREADY_TRACKING",
+  NOT_TRACKING = "GPS_NOT_TRACKING",
+
   // Generic
-  UNKNOWN = 'GPS_UNKNOWN_ERROR',
+  UNKNOWN = "GPS_UNKNOWN_ERROR",
 }
 
 /**
@@ -37,7 +37,7 @@ export class GPSError extends BaseError {
     message: string,
     code: GPSErrorCode = GPSErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>
+    context?: Record<string, any>,
   ) {
     super(message, code, recoverable, context);
   }
@@ -50,7 +50,7 @@ export class GPSError extends BaseError {
       `GPS device not found at ${devicePath}`,
       GPSErrorCode.DEVICE_NOT_FOUND,
       false,
-      { devicePath }
+      { devicePath },
     );
   }
 
@@ -62,7 +62,7 @@ export class GPSError extends BaseError {
       `No GPS fix available (satellites: ${satellitesInUse})`,
       GPSErrorCode.NO_FIX,
       true,
-      { satellitesInUse }
+      { satellitesInUse },
     );
   }
 
@@ -74,7 +74,7 @@ export class GPSError extends BaseError {
       `GPS fix timeout after ${timeoutMs}ms`,
       GPSErrorCode.FIX_TIMEOUT,
       true,
-      { timeoutMs }
+      { timeoutMs },
     );
   }
 
@@ -83,10 +83,10 @@ export class GPSError extends BaseError {
    */
   static invalidData(data: string, reason?: string): GPSError {
     return new GPSError(
-      `Invalid GPS data: ${reason || 'unknown reason'}`,
+      `Invalid GPS data: ${reason || "unknown reason"}`,
       GPSErrorCode.INVALID_DATA,
       true,
-      { data: data.substring(0, 100), reason }
+      { data: data.substring(0, 100), reason },
     );
   }
 
@@ -98,7 +98,7 @@ export class GPSError extends BaseError {
       `Failed to parse GPS sentence: ${error.message}`,
       GPSErrorCode.PARSE_ERROR,
       true,
-      { sentence, originalError: error.message }
+      { sentence, originalError: error.message },
     );
   }
 
@@ -110,22 +110,22 @@ export class GPSError extends BaseError {
       `Failed to read from GPS device: ${error.message}`,
       GPSErrorCode.DEVICE_READ_FAILED,
       true,
-      { originalError: error.message }
+      { originalError: error.message },
     );
   }
 
   getUserMessage(): string {
     switch (this.code) {
       case GPSErrorCode.DEVICE_NOT_FOUND:
-        return 'GPS device not found. Please check connections.';
+        return "GPS device not found. Please check connections.";
       case GPSErrorCode.NO_FIX:
-        return 'No GPS signal. Please wait for satellite lock.';
+        return "No GPS signal. Please wait for satellite lock.";
       case GPSErrorCode.FIX_TIMEOUT:
-        return 'GPS is taking longer than expected. Please ensure clear sky view.';
+        return "GPS is taking longer than expected. Please ensure clear sky view.";
       case GPSErrorCode.WEAK_SIGNAL:
-        return 'Weak GPS signal. Position may be inaccurate.';
+        return "Weak GPS signal. Position may be inaccurate.";
       default:
-        return 'GPS error occurred. Please try again.';
+        return "GPS error occurred. Please try again.";
     }
   }
 }

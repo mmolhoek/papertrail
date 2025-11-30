@@ -1,19 +1,19 @@
-import { BaseError } from './BaseError';
+import { BaseError } from "./BaseError";
 
 /**
  * WiFi error codes
  */
 export enum WiFiErrorCode {
-  SCAN_FAILED = 'WIFI_SCAN_FAILED',
-  CONNECTION_FAILED = 'WIFI_CONNECTION_FAILED',
-  AUTH_FAILED = 'WIFI_AUTH_FAILED',
-  TIMEOUT = 'WIFI_TIMEOUT',
-  NMCLI_NOT_AVAILABLE = 'NMCLI_NOT_AVAILABLE',
-  NETWORK_NOT_FOUND = 'WIFI_NETWORK_NOT_FOUND',
-  ALREADY_CONNECTED = 'WIFI_ALREADY_CONNECTED',
-  NOT_CONNECTED = 'WIFI_NOT_CONNECTED',
-  INVALID_PASSWORD = 'WIFI_INVALID_PASSWORD',
-  UNKNOWN = 'WIFI_UNKNOWN',
+  SCAN_FAILED = "WIFI_SCAN_FAILED",
+  CONNECTION_FAILED = "WIFI_CONNECTION_FAILED",
+  AUTH_FAILED = "WIFI_AUTH_FAILED",
+  TIMEOUT = "WIFI_TIMEOUT",
+  NMCLI_NOT_AVAILABLE = "NMCLI_NOT_AVAILABLE",
+  NETWORK_NOT_FOUND = "WIFI_NETWORK_NOT_FOUND",
+  ALREADY_CONNECTED = "WIFI_ALREADY_CONNECTED",
+  NOT_CONNECTED = "WIFI_NOT_CONNECTED",
+  INVALID_PASSWORD = "WIFI_INVALID_PASSWORD",
+  UNKNOWN = "WIFI_UNKNOWN",
 }
 
 /**
@@ -82,7 +82,7 @@ export class WiFiError extends BaseError {
    */
   static nmcliNotAvailable(): WiFiError {
     return new WiFiError(
-      'NetworkManager (nmcli) not found. WiFi management requires NetworkManager.',
+      "NetworkManager (nmcli) not found. WiFi management requires NetworkManager.",
       WiFiErrorCode.NMCLI_NOT_AVAILABLE,
       false,
     );
@@ -117,7 +117,7 @@ export class WiFiError extends BaseError {
    */
   static notConnected(): WiFiError {
     return new WiFiError(
-      'Not connected to any WiFi network',
+      "Not connected to any WiFi network",
       WiFiErrorCode.NOT_CONNECTED,
       true,
     );
@@ -128,7 +128,7 @@ export class WiFiError extends BaseError {
    */
   static invalidPassword(): WiFiError {
     return new WiFiError(
-      'Invalid WiFi password format',
+      "Invalid WiFi password format",
       WiFiErrorCode.INVALID_PASSWORD,
       true,
     );

@@ -203,7 +203,10 @@ export class OnboardingService implements IOnboardingService {
     );
 
     if (!displayResult.success) {
-      logger.error(`Failed to display screen ${screenPath}:`, displayResult.error);
+      logger.error(
+        `Failed to display screen ${screenPath}:`,
+        displayResult.error,
+      );
 
       // Check if image file not found
       if (displayResult.error.message.includes("not found")) {
@@ -241,9 +244,7 @@ export class OnboardingService implements IOnboardingService {
 
         // Check if connected to the target network
         if (currentSSID === targetSSID) {
-          logger.info(
-            `✓ Successfully connected to "${targetSSID}" hotspot!`,
-          );
+          logger.info(`✓ Successfully connected to "${targetSSID}" hotspot!`);
           return true;
         } else {
           logger.warn(

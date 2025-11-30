@@ -1,7 +1,7 @@
 /**
  * Result type for handling success and error cases without exceptions
  */
-export type Result<T, E = Error> = 
+export type Result<T, E = Error> =
   | { success: true; data: T }
   | { success: false; error: E };
 
@@ -22,13 +22,17 @@ export function failure<E = Error>(error: E): Result<never, E> {
 /**
  * Type guard to check if result is successful
  */
-export function isSuccess<T, E>(result: Result<T, E>): result is { success: true; data: T } {
+export function isSuccess<T, E>(
+  result: Result<T, E>,
+): result is { success: true; data: T } {
   return result.success === true;
 }
 
 /**
  * Type guard to check if result is a failure
  */
-export function isFailure<T, E>(result: Result<T, E>): result is { success: false; error: E } {
+export function isFailure<T, E>(
+  result: Result<T, E>,
+): result is { success: false; error: E } {
   return result.success === false;
 }
