@@ -5,8 +5,10 @@ import {
   IEpaperService,
   IConfigService,
   IRenderingOrchestrator,
+  IWiFiService,
+  IOnboardingService,
 } from "@core/interfaces";
-import { WebConfig, GPSConfig, EpaperConfig, MapConfig } from "@core/types";
+import { WebConfig, GPSConfig, EpaperConfig, MapConfig, WiFiConfig } from "@core/types";
 import { GPSService } from "../services/gps/GPSService";
 // Import other services when they're implemented
 import { MapService } from "../services/map/MapService";
@@ -14,6 +16,9 @@ import { SVGService } from "../services/svg/SVGService";
 import { ConfigService } from "../services/config/ConfigService";
 import { RenderingOrchestrator } from "../services/orchestrator/RenderingOrchestrator";
 import { EpaperService } from "../services/epaper/EPaperService";
+import { WiFiService } from "../services/wifi/WiFiService";
+import { MockWiFiService } from "../services/wifi/MockWiFiService";
+import { OnboardingService } from "../services/onboarding/OnboardingService";
 
 /**
  * Service Container (Dependency Injection Container)
@@ -31,6 +36,8 @@ export class ServiceContainer {
     epaper?: IEpaperService;
     config?: IConfigService;
     orchestrator?: IRenderingOrchestrator;
+    wifi?: IWiFiService;
+    onboarding?: IOnboardingService;
   } = {};
 
   private constructor() {}
@@ -125,6 +132,37 @@ export class ServiceContainer {
     return this.services.orchestrator;
   }
 
+  /**
+   * Get WiFi Service
+   * Automatically uses mock service on non-Linux platforms
+   */
+  getWiFiService(): IWiFiService {
+    if (!this.services.wifi) {
+      const config = this.getWiFiConfig();
+      // Use mock service on non-Linux systems
+      if (process.platform !== 'linux') {
+        this.services.wifi = new MockWiFiService(config);
+      } else {
+        this.services.wifi = new WiFiService(config);
+      }
+    }
+    return this.services.wifi;
+  }
+
+  /**
+   * Get Onboarding Service
+   */
+  getOnboardingService(): IOnboardingService {
+    if (!this.services.onboarding) {
+      this.services.onboarding = new OnboardingService(
+        this.getConfigService(),
+        this.getWiFiService(),
+        this.getEpaperService(),
+      );
+    }
+    return this.services.onboarding;
+  }
+
   // Configuration getters
 
   /**
@@ -205,6 +243,19 @@ export class ServiceContainer {
     };
   }
 
+  /**
+   * Get WiFi configuration
+   */
+  getWiFiConfig(): WiFiConfig {
+    return {
+      enabled: process.env.WIFI_ENABLED !== 'false',
+      primarySSID: process.env.WIFI_PRIMARY_SSID || 'Papertrail-Setup',
+      primaryPassword: process.env.WIFI_PRIMARY_PASSWORD || 'papertrail123',
+      scanIntervalMs: parseInt(process.env.WIFI_SCAN_INTERVAL_MS || '30000'),
+      connectionTimeoutMs: parseInt(process.env.WIFI_CONNECTION_TIMEOUT_MS || '60000'),
+    };
+  }
+
   // Test setters (for dependency injection in tests)
 
   /**
@@ -247,5 +298,19 @@ export class ServiceContainer {
    */
   setRenderingOrchestrator(service: IRenderingOrchestrator): void {
     this.services.orchestrator = service;
+  }
+
+  /**
+   * Set WiFi Service (for testing)
+   */
+  setWiFiService(service: IWiFiService): void {
+    this.services.wifi = service;
+  }
+
+  /**
+   * Set Onboarding Service (for testing)
+   */
+  setOnboardingService(service: IOnboardingService): void {
+    this.services.onboarding = service;
   }
 }

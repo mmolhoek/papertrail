@@ -157,7 +157,21 @@ export interface IConfigService {
    * Clear recent files list
    */
   clearRecentFiles(): void;
-  
+
+  // Onboarding management
+
+  /**
+   * Check if onboarding has been completed
+   * @returns true if onboarding is complete
+   */
+  isOnboardingCompleted(): boolean;
+
+  /**
+   * Set onboarding completion status
+   * @param completed Whether onboarding is complete
+   */
+  setOnboardingCompleted(completed: boolean): void;
+
   // Persistence
   
   /**

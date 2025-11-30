@@ -209,6 +209,19 @@ export class ConfigService implements IConfigService {
     this.userState.recentFiles = [];
   }
 
+  // Onboarding management
+
+  isOnboardingCompleted(): boolean {
+    return this.userState.onboardingCompleted === true;
+  }
+
+  setOnboardingCompleted(completed: boolean): void {
+    this.userState.onboardingCompleted = completed;
+    if (completed) {
+      this.userState.onboardingTimestamp = new Date().toISOString();
+    }
+  }
+
   // Persistence
 
   async save(): Promise<Result<void>> {
@@ -397,6 +410,8 @@ export class ConfigService implements IConfigService {
     return {
       activeGPXPath: null,
       zoomLevel: 14,
+      onboardingCompleted: false,
+      onboardingTimestamp: undefined,
       displayPreferences: {
         autoCenter: true,
         rotateWithBearing: false,

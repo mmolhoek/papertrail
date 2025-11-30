@@ -357,6 +357,8 @@ function createMockConfigService(): IConfigService {
     getRecentFiles: jest.fn().mockReturnValue([]),
     addRecentFile: jest.fn(),
     clearRecentFiles: jest.fn(),
+    isOnboardingCompleted: jest.fn().mockReturnValue(true),
+    setOnboardingCompleted: jest.fn(),
     save: jest.fn().mockResolvedValue(success(undefined)),
     reload: jest.fn().mockResolvedValue(success(undefined)),
     resetToDefaults: jest.fn().mockResolvedValue(success(undefined)),

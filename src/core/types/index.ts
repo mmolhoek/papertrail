@@ -8,3 +8,4 @@ export * from "./ConfigTypes";
 export * from "./GPSTypes";
 export * from "./MapTypes";
 export * from "./DisplayTypes";
+export * from "./WiFiTypes";

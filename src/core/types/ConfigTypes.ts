@@ -123,6 +123,12 @@ export type UserState = {
   /** Current zoom level */
   zoomLevel: number;
 
+  /** Onboarding completion status */
+  onboardingCompleted?: boolean;
+
+  /** Onboarding completion timestamp (ISO string) */
+  onboardingTimestamp?: string;
+
   /** Last known GPS position */
   lastKnownPosition?: {
     latitude: number;

@@ -37,6 +37,22 @@ async function main() {
 
     logger.info("✓ Services initialized\n");
 
+    // Check if onboarding is required (first boot)
+    const configService = container.getConfigService();
+    const needsOnboarding = !configService.isOnboardingCompleted();
+
+    if (needsOnboarding) {
+      logger.info("📱 First boot detected - starting onboarding...");
+
+      const onboardingService = container.getOnboardingService();
+
+      // Start onboarding flow (non-blocking)
+      onboardingService.startOnboarding().catch((error) => {
+        logger.error("Onboarding failed:", error);
+        logger.info("User can complete setup manually via web interface");
+      });
+    }
+
     // Create and start web interface
     logger.info("Starting web interface...");
     const webConfig = container.getWebConfig();
