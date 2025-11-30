@@ -3,7 +3,7 @@ import {
   WiFiNetwork,
   WiFiConnection,
   WiFiNetworkConfig,
-} from "@core/types";
+} from "../types";
 
 /**
  * WiFi Service Interface

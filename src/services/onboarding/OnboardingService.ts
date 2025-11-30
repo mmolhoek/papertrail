@@ -4,11 +4,11 @@ import {
   IConfigService,
   IWiFiService,
   IEpaperService,
-} from "@core/interfaces";
-import { Result, Bitmap1Bit, DisplayUpdateMode } from "@core/types";
-import { success, failure } from "@core/types";
-import { OnboardingError } from "@core/errors";
-import { getLogger } from "@utils/logger";
+} from "../../core/interfaces";
+import { Result, Bitmap1Bit, DisplayUpdateMode } from "../../core/types";
+import { success, failure } from "../../core/types";
+import { OnboardingError } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
 import { EPD } from "../epaper/EPD";
 
 const logger = getLogger("OnboardingService");

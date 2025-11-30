@@ -1,16 +1,16 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { IWiFiService } from "@core/interfaces";
+import { IWiFiService } from "../../core/interfaces";
 import {
   Result,
   WiFiNetwork,
   WiFiConnection,
   WiFiNetworkConfig,
   WiFiConfig,
-} from "@core/types";
-import { success, failure } from "@core/types";
-import { WiFiError } from "@core/errors";
-import { getLogger } from "@utils/logger";
+} from "../../core/types";
+import { success, failure } from "../../core/types";
+import { WiFiError } from "../../core/errors";
+import { getLogger } from "../../utils/logger";
 
 const execAsync = promisify(exec);
 const logger = getLogger("WiFiService");

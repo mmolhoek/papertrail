@@ -1,4 +1,4 @@
-import { Result } from "@core/types";
+import { Result } from "../types";
 
 /**
  * Onboarding Service Interface
