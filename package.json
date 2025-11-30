@@ -21,7 +21,7 @@
     "e-paper",
     "gpx"
   ],
-  "author": "Your Name",
+  "author": "Mischa Molhoek",
   "license": "MIT",
   "dependencies": {
     "bmp-js": "^0.1.0",
