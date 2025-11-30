@@ -166,8 +166,8 @@ export class WiFiService implements IWiFiService {
     try {
       logger.info(`Connecting to "${ssid}"...`);
 
-      // Use nmcli to connect with a timeout
-      const command = `nmcli device wifi connect "${ssid}" password "${password}"`;
+      // Use nmcli to connect with a timeout (requires sudo)
+      const command = `sudo nmcli device wifi connect "${ssid}" password "${password}"`;
 
       const { stdout, stderr } = (await Promise.race([
         execAsync(command),
@@ -219,7 +219,8 @@ export class WiFiService implements IWiFiService {
     try {
       logger.info("Disconnecting from WiFi...");
 
-      await execAsync("nmcli device disconnect wlan0");
+      // Requires sudo to disconnect
+      await execAsync("sudo nmcli device disconnect wlan0");
 
       logger.info("Disconnected from WiFi");
       return success(undefined);
@@ -240,14 +241,14 @@ export class WiFiService implements IWiFiService {
       // Check if connection already exists
       const existsResult = await this.connectionExists(config.ssid);
       if (existsResult) {
-        // Delete existing connection first
-        await execAsync(`nmcli connection delete "${config.ssid}"`);
+        // Delete existing connection first (requires sudo)
+        await execAsync(`sudo nmcli connection delete "${config.ssid}"`);
       }
 
-      // Create new connection
+      // Create new connection (requires sudo)
       const autoConnect = config.autoConnect ? "yes" : "no";
       const command = [
-        "nmcli connection add",
+        "sudo nmcli connection add",
         "type wifi",
         "con-name",
         `"${config.ssid}"`,
@@ -326,7 +327,8 @@ export class WiFiService implements IWiFiService {
         return failure(WiFiError.networkNotFound(ssid));
       }
 
-      await execAsync(`nmcli connection delete "${ssid}"`);
+      // Requires sudo to delete network connections
+      await execAsync(`sudo nmcli connection delete "${ssid}"`);
 
       logger.info(`Network config removed for "${ssid}"`);
       return success(undefined);
