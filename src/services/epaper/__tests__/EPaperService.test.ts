@@ -136,8 +136,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 2: 1 from initialization logo + 1 from this call
-        expect(status.data.fullRefreshCount).toBe(2);
+        // Expect 1: 1 from this call (no logo during initialization)
+        expect(status.data.fullRefreshCount).toBe(1);
         expect(status.data.partialRefreshCount).toBe(0);
       }
     });
@@ -151,8 +151,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 1: initialization logo did a full refresh
-        expect(status.data.fullRefreshCount).toBe(1);
+        // Expect 0 full, 1 partial (no logo during initialization)
+        expect(status.data.fullRefreshCount).toBe(0);
         expect(status.data.partialRefreshCount).toBe(1);
       }
     });
@@ -225,8 +225,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 2: 1 from initialization logo + 1 from clear
-        expect(status.data.fullRefreshCount).toBe(2);
+        // Expect 1: 1 from clear (no logo during initialization)
+        expect(status.data.fullRefreshCount).toBe(1);
       }
     });
 
@@ -258,8 +258,8 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 2: 1 from initialization logo + 1 from fullRefresh
-        expect(status.data.fullRefreshCount).toBe(2);
+        // Expect 1: 1 from fullRefresh (no logo during initialization)
+        expect(status.data.fullRefreshCount).toBe(1);
       }
     });
 
@@ -350,8 +350,8 @@ describe("EpaperService", () => {
         expect(result.data.initialized).toBe(true);
         expect(result.data.busy).toBe(false);
         expect(result.data.sleeping).toBe(false);
-        // Expect 1: initialization displays the startup logo
-        expect(result.data.fullRefreshCount).toBe(1);
+        // Expect 0: no logo during initialization
+        expect(result.data.fullRefreshCount).toBe(0);
         expect(result.data.partialRefreshCount).toBe(0);
       }
     });

@@ -118,10 +118,16 @@ describe('OnboardingService', () => {
 
   describe('startOnboarding', () => {
     it('should complete full onboarding flow successfully', async () => {
-      // Mock WiFi connection success
-      mockWiFiService.isConnected
-        .mockResolvedValueOnce(success(false)) // Initial check
-        .mockResolvedValueOnce(success(true)); // Connected after waiting
+      // Mock WiFi connection success - connected to the target network
+      mockWiFiService.getCurrentConnection
+        .mockResolvedValueOnce(success(null)) // Initial check - not connected
+        .mockResolvedValue(success({
+          ssid: 'Papertrail-Setup',
+          ipAddress: '192.168.43.123',
+          macAddress: '00:11:22:33:44:55',
+          signalStrength: 85,
+          connectedAt: new Date(),
+        })); // Connected to target network
 
       const result = await onboardingService.startOnboarding({
         wifiTimeoutMs: 15000,
@@ -143,8 +149,8 @@ describe('OnboardingService', () => {
     });
 
     it('should handle WiFi connection timeout gracefully', async () => {
-      // Mock WiFi never connecting
-      mockWiFiService.isConnected.mockResolvedValue(success(false));
+      // Mock WiFi never connecting - always return null (not connected)
+      mockWiFiService.getCurrentConnection.mockResolvedValue(success(null));
 
       const result = await onboardingService.startOnboarding({
         wifiTimeoutMs: 1000, // Short 1 second timeout for testing
@@ -162,7 +168,13 @@ describe('OnboardingService', () => {
       mockWiFiService.saveNetwork.mockResolvedValue(
         failure(WiFiError.unknown('Save failed')),
       );
-      mockWiFiService.isConnected.mockResolvedValue(success(true));
+      mockWiFiService.getCurrentConnection.mockResolvedValue(success({
+        ssid: 'Papertrail-Setup',
+        ipAddress: '192.168.43.123',
+        macAddress: '00:11:22:33:44:55',
+        signalStrength: 85,
+        connectedAt: new Date(),
+      }));
 
       const result = await onboardingService.startOnboarding({
         wifiTimeoutMs: 10000,
@@ -177,7 +189,13 @@ describe('OnboardingService', () => {
       mockEpaperService.displayBitmap.mockResolvedValue(
         failure(DisplayError.updateFailed(new Error('Display error'))),
       );
-      mockWiFiService.isConnected.mockResolvedValue(success(true));
+      mockWiFiService.getCurrentConnection.mockResolvedValue(success({
+        ssid: 'Papertrail-Setup',
+        ipAddress: '192.168.43.123',
+        macAddress: '00:11:22:33:44:55',
+        signalStrength: 85,
+        connectedAt: new Date(),
+      }));
 
       const result = await onboardingService.startOnboarding({
         wifiTimeoutMs: 10000,
@@ -291,7 +309,13 @@ describe('OnboardingService', () => {
 
   describe('WiFi connection waiting', () => {
     it('should detect WiFi connection immediately if already connected', async () => {
-      mockWiFiService.isConnected.mockResolvedValue(success(true));
+      mockWiFiService.getCurrentConnection.mockResolvedValue(success({
+        ssid: 'Papertrail-Setup',
+        ipAddress: '192.168.43.123',
+        macAddress: '00:11:22:33:44:55',
+        signalStrength: 85,
+        connectedAt: new Date(),
+      }));
 
       const result = await onboardingService.startOnboarding({
         wifiTimeoutMs: 10000,
@@ -305,10 +329,19 @@ describe('OnboardingService', () => {
 
     it('should poll for WiFi connection periodically', async () => {
       let callCount = 0;
-      mockWiFiService.isConnected.mockImplementation(async () => {
+      mockWiFiService.getCurrentConnection.mockImplementation(async () => {
         callCount++;
         // Connect after 2 checks (to keep test fast)
-        return success(callCount >= 2);
+        if (callCount >= 2) {
+          return success({
+            ssid: 'Papertrail-Setup',
+            ipAddress: '192.168.43.123',
+            macAddress: '00:11:22:33:44:55',
+            signalStrength: 85,
+            connectedAt: new Date(),
+          });
+        }
+        return success(null);
       });
 
       const result = await onboardingService.startOnboarding({
@@ -317,8 +350,8 @@ describe('OnboardingService', () => {
       });
 
       expect(result.success).toBe(true);
-      // Should have called isConnected multiple times (at least 2)
-      expect(mockWiFiService.isConnected).toHaveBeenCalled();
+      // Should have called getCurrentConnection multiple times (at least 2)
+      expect(mockWiFiService.getCurrentConnection).toHaveBeenCalled();
       expect(callCount).toBeGreaterThanOrEqual(2);
       // Should have displayed all three screens
       expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(3);
@@ -341,7 +374,13 @@ describe('OnboardingService', () => {
       );
 
       // Should continue despite missing images
-      mockWiFiService.isConnected.mockResolvedValue(success(true));
+      mockWiFiService.getCurrentConnection.mockResolvedValue(success({
+        ssid: 'Papertrail-Setup',
+        ipAddress: '192.168.43.123',
+        macAddress: '00:11:22:33:44:55',
+        signalStrength: 85,
+        connectedAt: new Date(),
+      }));
 
       const result = await service.startOnboarding({
         wifiTimeoutMs: 10000,

@@ -66,9 +66,32 @@ export class OnboardingService implements IOnboardingService {
 
       if (!wifiConfig.success) {
         logger.warn("Failed to save WiFi config:", wifiConfig.error);
+      } else {
+        logger.info("WiFi config saved successfully");
       }
 
-      // Step 3: Display WiFi instructions
+      // Step 3: Scan for available networks
+      logger.info("Scanning for WiFi networks...");
+      const scanResult = await this.wifiService.scanNetworks();
+      if (scanResult.success) {
+        const targetNetwork = scanResult.data.find(
+          (net) => net.ssid === "Papertrail-Setup",
+        );
+        if (targetNetwork) {
+          logger.info(
+            `✓ Found "Papertrail-Setup" hotspot (signal: ${targetNetwork.signalStrength}%, security: ${targetNetwork.security})`,
+          );
+        } else {
+          logger.warn(
+            '⚠ "Papertrail-Setup" hotspot not found in scan. Please ensure your phone\'s hotspot is active.',
+          );
+          logger.info(
+            `Available networks: ${scanResult.data.map((n) => n.ssid).join(", ")}`,
+          );
+        }
+      }
+
+      // Step 4: Display WiFi instructions
       logger.info("Displaying WiFi instructions...");
       const instructionsResult = await this.displayScreen(
         "onboarding-screens/wifi-instructions.bmp",
@@ -77,8 +100,27 @@ export class OnboardingService implements IOnboardingService {
         logger.warn("Failed to display WiFi instructions, continuing anyway");
       }
 
-      // Step 4: Wait for WiFi connection
-      logger.info("Waiting for WiFi connection...");
+      // Step 5: Try to connect to the network
+      logger.info('Attempting to connect to "Papertrail-Setup"...');
+      const connectResult = await this.wifiService.connect(
+        "Papertrail-Setup",
+        "papertrail123",
+      );
+
+      if (!connectResult.success) {
+        logger.warn(
+          "Initial connection attempt failed:",
+          connectResult.error.message,
+        );
+        logger.info(
+          "Will continue waiting for automatic connection (network has autoconnect enabled)",
+        );
+      } else {
+        logger.info('Successfully initiated connection to "Papertrail-Setup"');
+      }
+
+      // Step 6: Wait for WiFi connection to be established
+      logger.info("Waiting for WiFi connection to be established...");
       const connected = await this.waitForWiFiConnection(wifiTimeoutMs);
 
       if (!connected) {
@@ -183,13 +225,33 @@ export class OnboardingService implements IOnboardingService {
   private async waitForWiFiConnection(timeoutMs: number): Promise<boolean> {
     const startTime = Date.now();
     const checkInterval = 5000; // Check every 5 seconds
+    const targetSSID = "Papertrail-Setup";
+
+    logger.info(`Waiting for connection to "${targetSSID}"...`);
 
     while (Date.now() - startTime < timeoutMs) {
-      const connectedResult = await this.wifiService.isConnected();
+      // Check current connection details
+      const connectionResult = await this.wifiService.getCurrentConnection();
 
-      if (connectedResult.success && connectedResult.data) {
-        logger.info("WiFi connection detected!");
-        return true;
+      if (connectionResult.success && connectionResult.data) {
+        const currentSSID = connectionResult.data.ssid;
+        logger.info(
+          `Currently connected to: "${currentSSID}" (IP: ${connectionResult.data.ipAddress})`,
+        );
+
+        // Check if connected to the target network
+        if (currentSSID === targetSSID) {
+          logger.info(
+            `✓ Successfully connected to "${targetSSID}" hotspot!`,
+          );
+          return true;
+        } else {
+          logger.warn(
+            `Connected to "${currentSSID}" but waiting for "${targetSSID}"`,
+          );
+        }
+      } else {
+        logger.debug("Not connected to any WiFi network");
       }
 
       // Wait before next check
@@ -199,12 +261,14 @@ export class OnboardingService implements IOnboardingService {
       if ((Date.now() - startTime) % 30000 < checkInterval) {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         logger.info(
-          `Still waiting for WiFi connection... (${elapsed}s elapsed)`,
+          `Still waiting for "${targetSSID}" connection... (${elapsed}s elapsed)`,
         );
       }
     }
 
-    logger.warn("WiFi connection timeout");
+    logger.warn(
+      `WiFi connection timeout - "${targetSSID}" hotspot not found or connection failed`,
+    );
     return false;
   }
 

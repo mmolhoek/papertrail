@@ -62,7 +62,7 @@ export class EpaperService implements IEpaperService {
       await this.sleepDelay(100);
 
       // Display startup logo
-      await this.sendLogoToDisplay();
+      // await this.sendLogoToDisplay();
 
       logger.info("Initializing e-paper display finished");
       return success(undefined);
