@@ -107,6 +107,40 @@ export class OnboardingService implements IOnboardingService {
         logger.warn("Failed to display WiFi instructions, continuing anyway");
       }
 
+      // Step 4.5: Disconnect from current network if connected to something else
+      logger.info("Checking current WiFi connection...");
+      const currentConnectionResult =
+        await this.wifiService.getCurrentConnection();
+
+      if (currentConnectionResult.success && currentConnectionResult.data) {
+        const currentSSID = currentConnectionResult.data.ssid;
+
+        if (currentSSID !== "Papertrail-Setup") {
+          logger.info(
+            `Currently connected to "${currentSSID}", disconnecting to switch networks...`,
+          );
+
+          const disconnectResult = await this.wifiService.disconnect();
+
+          if (!disconnectResult.success) {
+            logger.warn(
+              `Failed to disconnect from "${currentSSID}":`,
+              disconnectResult.error.message,
+            );
+            logger.info("Will attempt to connect anyway...");
+          } else {
+            logger.info(`✓ Disconnected from "${currentSSID}"`);
+
+            // Wait a moment for NetworkManager to fully disconnect
+            await this.delay(2000);
+          }
+        } else {
+          logger.info('Already connected to "Papertrail-Setup"');
+        }
+      } else {
+        logger.info("Not currently connected to any network");
+      }
+
       // Step 5: Try to connect to the network
       logger.info('Attempting to connect to "Papertrail-Setup"...');
       const connectResult = await this.wifiService.connect(
