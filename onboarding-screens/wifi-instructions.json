@@ -17,20 +17,35 @@
       "fontSize": 40,
       "fontWeight": "bold",
       "alignment": "center",
-      "marginBottom": 50
+      "marginBottom": 50,
+      "marginTop": 50
     },
     {
-      "content": "To connect to its interface, please configure a Wi-Fi access point on your phone with the name (SSID) 'Papertrail-Setup' and password 'papertrail123'.",
-      "fontSize": 22,
+      "content": "To connect to its interface, please configure a Wi-Fi access point on your phone with:",
+      "fontSize": 24,
       "fontWeight": "normal",
-      "alignment": "left",
+      "alignment": "center",
+      "marginBottom": 35
+    },
+    {
+      "content": "name (SSID): 'Papertrail-Setup'",
+      "fontSize": 24,
+      "fontWeight": "bold",
+      "alignment": "center",
+      "marginBottom": 0
+    },
+    {
+      "content": "Password 'papertrail123'.",
+      "fontSize": 24,
+      "fontWeight": "bold",
+      "alignment": "center",
       "marginBottom": 35
     },
     {
       "content": "After you set it up, I will connect to it and come with more instructions.",
-      "fontSize": 22,
+      "fontSize": 24,
       "fontWeight": "normal",
-      "alignment": "left",
+      "alignment": "center",
       "marginBottom": 35
     },
     {
