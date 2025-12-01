@@ -5,6 +5,7 @@ USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection add *
 USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection delete *
 USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection modify *
 USER ALL=(ALL) NOPASSWD: /usr/bin/touch /var/log/papertrail.log
+USER ALL=(ALL) NOPASSWD: /usr/sbin/chown * /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /usr/bin/chown * /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /usr/bin/chmod 0640 /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /usr/bin/tee -a /var/log/papertrail.log
