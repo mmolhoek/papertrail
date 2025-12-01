@@ -72,7 +72,7 @@ async function main() {
 
     const webResult = await webService.start();
     if (!isSuccess(webResult)) {
-      logger.error("Failed to start web interface:", webResult.error.message);
+      logger.error("Failed to start web interface:", webResult.error);
       process.exit(1);
     }
 
