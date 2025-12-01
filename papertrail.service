@@ -9,8 +9,8 @@ WorkingDirectory=/home/pi/papertrail
 ExecStart=/home/pi/papertrail/start.sh
 Restart=on-failure
 RestartSec=10
-StandardOutput=journal
-StandardError=journal
+StandardOutput=append:/var/log/papertrail.log
+StandardError=append:/var/log/papertrail.log
 
 # Environment
 Environment=NODE_ENV=production
