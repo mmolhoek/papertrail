@@ -39,7 +39,7 @@ fi
 if [ ! -f /var/log/papertrail.log ]; then
   echo -e "${BLUE}Creating /var/log/papertrail.log...${NC}"
   sudo touch /var/log/papertrail.log
-  sudo chown root:admin /var/log/papertrail.log
+  sudo chown root:root /var/log/papertrail.log || sudo chown root:admin /var/log/papertrail.log
   sudo chmod 0640 /var/log/papertrail.log
   echo -e "${GREEN}✓ /var/log/papertrail.log created${NC}"
   echo ""
