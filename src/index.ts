@@ -28,10 +28,7 @@ async function main() {
     const initResult = await orchestrator.initialize();
 
     if (!isSuccess(initResult)) {
-      logger.error(
-        "Failed to initialize orchestrator:",
-        initResult.error.message,
-      );
+      logger.error("Failed to initialize orchestrator:", initResult.error);
       process.exit(1);
     }
 
