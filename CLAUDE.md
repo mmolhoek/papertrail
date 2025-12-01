@@ -9,6 +9,7 @@ Papertrail is a GPS tracker with e-paper display for Raspberry Pi 5. It tracks G
 ## Common Commands
 
 ### Build and Run
+
 ```bash
 npm run build          # Compile TypeScript to dist/
 npm start             # Run compiled code from dist/
@@ -16,6 +17,7 @@ npm run dev           # Development mode with auto-reload
 ```
 
 ### Testing
+
 ```bash
 npm test              # Run all tests
 npm run test:watch    # Run tests in watch mode
@@ -25,6 +27,7 @@ npm run test:coverage # Run tests with coverage report
 Coverage threshold: 70% for branches, functions, lines, and statements.
 
 ### Code Quality
+
 ```bash
 npm run lint          # Check code style
 npm run lint:fix      # Fix linting issues
@@ -32,6 +35,7 @@ npm run format        # Format code with Prettier
 ```
 
 ### Cleanup
+
 ```bash
 npm run clean         # Remove dist/ directory
 ```
@@ -45,12 +49,13 @@ The codebase uses a **Result type** pattern instead of throwing exceptions. All 
 ```typescript
 type Result<T, E = Error> =
   | { success: true; data: T }
-  | { success: false; error: E }
+  | { success: false; error: E };
 ```
 
 Helper functions: `success()`, `failure()`, `isSuccess()`, `isFailure()`
 
 **Always check result success before using data:**
+
 ```typescript
 const result = await service.someMethod();
 if (!result.success) {
@@ -62,11 +67,13 @@ if (!result.success) {
 ### Dependency Injection
 
 All services are managed by `ServiceContainer` (singleton in `src/di/ServiceContainer.ts`):
+
 - Provides factory methods for production services
 - Provides setters for test mocking
 - Reads configuration from environment variables
 
 **To add a new service:**
+
 1. Define interface in `src/core/interfaces/`
 2. Implement service in `src/services/`
 3. Add factory method to `ServiceContainer`
@@ -94,6 +101,7 @@ RenderingOrchestrator (src/services/orchestrator/RenderingOrchestrator.ts)
 ```
 
 **Key insight:** `RenderingOrchestrator` is the central coordinator. It:
+
 - Initializes all services
 - Subscribes to GPS updates from GPSService
 - Forwards GPS updates to registered callbacks
@@ -104,12 +112,14 @@ RenderingOrchestrator (src/services/orchestrator/RenderingOrchestrator.ts)
 ### Service Layer
 
 Each service follows this structure:
+
 - **Interface** in `src/core/interfaces/I{Name}Service.ts`
 - **Implementation** in `src/services/{name}/{Name}Service.ts`
 - **Tests** in `src/services/{name}/__tests__/{Name}Service.test.ts`
 - **Errors** in `src/core/errors/{Name}Error.ts`
 
 Services must implement:
+
 - `initialize(): Promise<Result<void>>` - Setup/initialization
 - `dispose(): Promise<void>` - Cleanup resources
 
@@ -126,6 +136,7 @@ import { getLogger } from "@utils/logger";
 ```
 
 Available aliases:
+
 - `@core/*` → `src/core/*`
 - `@errors/*` → `src/core/errors/*`
 - `@services/*` → `src/services/*`
@@ -136,6 +147,7 @@ Available aliases:
 ### Error Handling
 
 Custom error classes extend `BaseError` from `src/core/errors/BaseError.ts`:
+
 - `GPSError` - GPS-related errors
 - `MapError` - GPX/map-related errors
 - `DisplayError` - E-paper display errors
@@ -150,6 +162,7 @@ Each error has typed error codes (enums) and static factory methods.
 Configuration is loaded from environment variables via `.env` file (see `.env.example`).
 
 All config is read in `ServiceContainer` getter methods:
+
 - `getGPSConfig()` - GPS settings
 - `getMapConfig()` - Map/GPX settings
 - `getEpaperConfig()` - E-paper display settings
@@ -162,12 +175,14 @@ All config is read in `ServiceContainer` getter methods:
 Tests are in `__tests__/` directories next to the code they test.
 
 Jest is configured with:
+
 - `ts-jest` preset for TypeScript
 - Path alias mappings (must match tsconfig.json)
 - 10 second timeout
 - Coverage thresholds: 70%
 
 **To test services:**
+
 1. Use `ServiceContainer.reset()` to clear singleton state
 2. Create mock services implementing interfaces
 3. Inject mocks via `ServiceContainer.set{Service}()` methods
@@ -176,16 +191,48 @@ Jest is configured with:
 ## Hardware Interface
 
 This application interfaces with:
+
 - **GPS Module** at `/dev/ttyAMA0` (configurable) via serialport library
 - **E-paper Display** via SPI at `/dev/spidev0.0` with GPIO pins (reset, dc, busy, cs)
 
-**Development on non-Pi hardware:** Services will fail to initialize but can be mocked for testing.
+### Development on Non-Raspberry Pi Hardware
+
+The application **automatically detects non-Linux platforms** (macOS, Windows) and uses mock services for GPS and E-paper display. No configuration needed!
+
+**Mock Services:**
+
+- **MockGPSService** (`src/services/gps/MockGPSService.ts`) - Simulates GPS with realistic coordinates (San Francisco by default), supports position callbacks, and simulates satellite data
+- **MockEpaperService** (`src/services/epaper/MockEpaperService.ts`) - Logs display operations without actual hardware, tracks refresh counts, and validates bitmaps
+- **MockWiFiService** (`src/services/wifi/MockWiFiService.ts`) - Simulates WiFi operations (already existed)
+
+**Environment Variables** (`.env` file):
+
+```bash
+USE_MOCK_GPS=false      # Set to "true" to force mock GPS (auto-enabled on non-Linux)
+USE_MOCK_EPAPER=false   # Set to "true" to force mock E-paper (auto-enabled on non-Linux)
+```
+
+**How it works:**
+
+1. ServiceContainer detects platform via `process.platform`
+2. On non-Linux systems, automatically instantiates mock services
+3. Mock services implement full interfaces with realistic behavior
+4. Can be explicitly enabled on Linux with environment variables (useful for testing without hardware)
+
+**Mock service features:**
+
+- Full callback support for orchestrator integration
+- Realistic delays to simulate hardware timing
+- Proper state management (busy, sleeping, tracking)
+- Comprehensive logging with "Mock:" prefix
+- Return proper Result types with error handling
 
 ## GPX File Management
 
 GPX files are stored in `data/gpx-files/` (configurable via `GPX_DIRECTORY`).
 
 The active track is set via:
+
 1. Web UI → POST `/api/map/active` → `RenderingOrchestrator.setActiveGPX()`
 2. Stored in ConfigService state
 3. Used by `RenderingOrchestrator.updateDisplay()` to render map
@@ -197,6 +244,7 @@ Static files: `src/web/public/` (HTML, CSS, JS)
 API Base: `/api` (configurable via `WEB_API_BASE`)
 
 WebSocket events are defined in `IntegratedWebService.subscribeToOrchestratorEvents()`:
+
 - Client ← `gps:update` - Position updates with fix quality
 - Client ← `gps:status` - GPS status changes
 - Client ← `display:updated` - Display refresh complete

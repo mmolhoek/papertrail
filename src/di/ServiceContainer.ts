@@ -15,16 +15,20 @@ import {
   MapConfig,
   WiFiConfig,
 } from "@core/types";
-import { GPSService } from "../services/gps/GPSService";
-// Import other services when they're implemented
+// Mock services - safe to import (no hardware dependencies)
+import { MockGPSService } from "../services/gps/MockGPSService";
+import { MockEpaperService } from "../services/epaper/MockEpaperService";
+import { MockWiFiService } from "../services/wifi/MockWiFiService";
+
+// Non-hardware services - safe to import
 import { MapService } from "../services/map/MapService";
 import { SVGService } from "../services/svg/SVGService";
 import { ConfigService } from "../services/config/ConfigService";
 import { RenderingOrchestrator } from "../services/orchestrator/RenderingOrchestrator";
-import { EpaperService } from "../services/epaper/EPaperService";
-import { WiFiService } from "../services/wifi/WiFiService";
-import { MockWiFiService } from "../services/wifi/MockWiFiService";
 import { OnboardingService } from "../services/onboarding/OnboardingService";
+
+// Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
+// These are imported dynamically only when needed
 
 /**
  * Service Container (Dependency Injection Container)
@@ -71,11 +75,20 @@ export class ServiceContainer {
 
   /**
    * Get GPS Service
+   * Automatically uses mock service on non-Linux platforms or when USE_MOCK_GPS=true
    */
   getGPSService(): IGPSService {
     if (!this.services.gps) {
       const config = this.getGPSConfig();
-      this.services.gps = new GPSService(config);
+      // Use mock service on non-Linux systems or when explicitly enabled
+      if (process.env.USE_MOCK_GPS === "true" || process.platform !== "linux") {
+        this.services.gps = new MockGPSService(config);
+      } else {
+        // Lazy import to avoid loading serialport on non-Linux platforms
+        const { GPSService } =
+          require("../services/gps/GPSService") as typeof import("../services/gps/GPSService");
+        this.services.gps = new GPSService(config);
+      }
     }
     return this.services.gps;
   }
@@ -103,11 +116,23 @@ export class ServiceContainer {
 
   /**
    * Get E-paper Service
+   * Automatically uses mock service on non-Linux platforms or when USE_MOCK_EPAPER=true
    */
   getEpaperService(): IEpaperService {
     if (!this.services.epaper) {
       const config = this.getEpaperConfig();
-      this.services.epaper = new EpaperService(config);
+      // Use mock service on non-Linux systems or when explicitly enabled
+      if (
+        process.env.USE_MOCK_EPAPER === "true" ||
+        process.platform !== "linux"
+      ) {
+        this.services.epaper = new MockEpaperService(config);
+      } else {
+        // Lazy import to avoid loading lgpio on non-Linux platforms
+        const { EpaperService } =
+          require("../services/epaper/EPaperService") as typeof import("../services/epaper/EPaperService");
+        this.services.epaper = new EpaperService(config);
+      }
     }
     return this.services.epaper;
   }
@@ -149,6 +174,9 @@ export class ServiceContainer {
       if (process.platform !== "linux") {
         this.services.wifi = new MockWiFiService(config);
       } else {
+        // Lazy import to avoid loading nmcli dependencies on non-Linux platforms
+        const { WiFiService } =
+          require("../services/wifi/WiFiService") as typeof import("../services/wifi/WiFiService");
         this.services.wifi = new WiFiService(config);
       }
     }
