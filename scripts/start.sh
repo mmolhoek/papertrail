@@ -89,11 +89,15 @@ mkdir -p data/gpx-files
 mkdir -p data/cache
 mkdir -p logs
 
-# Stop the screen session if already running
+# Stop any existing Papertrail processes using stop.sh
 SCREEN_NAME="papertrail"
-if screen -list | grep -q "\.${SCREEN_NAME}"; then
-  echo -e "${BLUE}Stopping existing screen session...${NC}"
-  screen -S "${SCREEN_NAME}" -X quit
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Check if Papertrail is already running
+if screen -list | grep -q "\.${SCREEN_NAME}" || pgrep -f "node dist/index.js" >/dev/null; then
+  echo -e "${BLUE}Stopping existing Papertrail instance...${NC}"
+  "${SCRIPT_DIR}/stop.sh"
+  echo ""
 fi
 
 # Start a new screen session
@@ -101,7 +105,7 @@ echo -e "${BLUE}Starting Papertrail in a screen session, logging to /var/log/pap
 screen -dmS "${SCREEN_NAME}" bash -c "node dist/index.js 2>&1 | sudo tee -a /var/log/papertrail.log >/dev/null"
 
 # Confirm the screen session was started
-if screen -list | grep -qw "\.${SCREEN_NAME}"; then
+if screen -list | grep -qw "${SCREEN_NAME}"; then
   echo -e "${BLUE}Papertrail has started successfully.${NC}"
 else
   echo -e "${BLUE}Failed to start Papertrail.${NC}"

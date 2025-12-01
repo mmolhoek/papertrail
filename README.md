@@ -58,7 +58,7 @@ npm install
 
 ```bash
 cp .env.example .env
-nano .env  # Edit configuration as needed
+vi/nano .env  # Edit configuration as needed
 ```
 
 ### 4. Build
@@ -77,18 +77,21 @@ npm run dev
 
 ### Production Mode
 
+Use the startup script:
+This will start the code in a screen session
+And writes logs to /var/log/papertrail.log
+Which you can follow with `tail -f /var/log/papertrail.log`
+
 ```bash
-npm start
+chmod +x ./scripts/st*
+# start the service in a background screen session
+# will stop the service first if running
+./scripts/start.sh
+# stop the service manually if running
+./scripts/stop.sh
 ```
 
-Or use the startup script:
-
-```bash
-chmod +x start.sh
-./start.sh
-```
-
-## Running as a System Service
+## Running as a System Service WIP (not used yet)
 
 To run Papertrail automatically on boot:
 
