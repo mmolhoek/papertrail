@@ -98,7 +98,7 @@ fi
 
 # Start a new screen session
 echo -e "${BLUE}Starting Papertrail in a screen session, logging to /var/log/papertrail.log ....${NC}"
-screen -dmS "${SCREEN_NAME}" bash -c "node dist/index.js >> /var/log/papertrail.log 2>&1"
+screen -dmS "${SCREEN_NAME}" bash -c "node dist/index.js 2>&1 | sudo tee -a /var/log/papertrail.log >/dev/null"
 
 # Confirm the screen session was started
 if screen -list | grep -qw "\.${SCREEN_NAME}"; then

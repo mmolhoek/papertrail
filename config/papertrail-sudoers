@@ -7,5 +7,6 @@ USER ALL=(ALL) NOPASSWD: /usr/bin/nmcli connection modify *
 USER ALL=(ALL) NOPASSWD: /usr/bin/touch /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /usr/sbin/chown * /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /usr/bin/chmod 0640 /var/log/papertrail.log
+USER ALL=(ALL) NOPASSWD: /usr/bin/tee -a /var/log/papertrail.log
 USER ALL=(ALL) NOPASSWD: /bin/cp logrotate/papertrail /etc/logrotate.d/papertrail
 USER ALL=(ALL) NOPASSWD: /bin/mkdir -p /etc/logrotate.d
