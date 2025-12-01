@@ -71,7 +71,7 @@ export class WiFiService implements IWiFiService {
       // Request a fresh scan and then get results
       // -t = terse output, -f = fields to display
       const { stdout } = await execAsync(
-        "nmcli device wifi rescan && nmcli -t -f SSID,SIGNAL,SECURITY,FREQ device wifi list",
+        "sudo nmcli device wifi rescan && sudo nmcli -t -f SSID,SIGNAL,SECURITY,FREQ device wifi list",
       );
 
       const networks: WiFiNetwork[] = [];
@@ -109,7 +109,7 @@ export class WiFiService implements IWiFiService {
     try {
       // Get WiFi device info
       const { stdout } = await execAsync(
-        "nmcli -t -f GENERAL.CONNECTION,IP4.ADDRESS,GENERAL.HWADDR device show wlan0",
+        "sudo nmcli device wifi rescan && sudo nmcli -t -f GENERAL.CONNECTION,IP4.ADDRESS,GENERAL.HWADDR device show wlan0",
       );
 
       const lines = stdout.trim().split("\n");
@@ -283,7 +283,7 @@ export class WiFiService implements IWiFiService {
     try {
       // List all WiFi connections
       const { stdout } = await execAsync(
-        "nmcli -t -f NAME,TYPE,AUTOCONNECT,AUTOCONNECT-PRIORITY connection show",
+        "sudo nmcli device wifi rescan &&& sudo nmcli -t -f NAME,TYPE,AUTOCONNECT,AUTOCONNECT-PRIORITY connection show",
       );
 
       const networks: WiFiNetworkConfig[] = [];
@@ -364,7 +364,7 @@ export class WiFiService implements IWiFiService {
   private async getSignalStrength(ssid: string): Promise<Result<number>> {
     try {
       const { stdout } = await execAsync(
-        `nmcli -t -f SSID,SIGNAL device wifi list | grep "^${ssid}:"`,
+        `sudo nmcli device wifi rescan && sudo nmcli -t -f SSID,SIGNAL device wifi list | grep "^${ssid}:"`,
       );
 
       const [, signal] = stdout.trim().split(":");
