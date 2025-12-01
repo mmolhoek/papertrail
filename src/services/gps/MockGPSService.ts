@@ -304,7 +304,8 @@ export class MockGPSService implements IGPSService {
       try {
         callback(position);
       } catch (error) {
-        logger.error("Error in position callback:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`Error in position callback: ${errorMsg}`);
       }
     }
   }
@@ -317,7 +318,8 @@ export class MockGPSService implements IGPSService {
       try {
         callback(status);
       } catch (error) {
-        logger.error("Error in status callback:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`Error in status callback: ${errorMsg}`);
       }
     }
   }

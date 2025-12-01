@@ -105,7 +105,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("✓ RenderingOrchestrator initialization complete");
       return success(undefined);
     } catch (error) {
-      logger.error("Orchestrator initialization failed with exception:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(
+        `Orchestrator initialization failed with exception: ${errorMsg}`,
+      );
       if (error instanceof Error) {
         return failure(OrchestratorError.initFailed("Orchestrator", error));
       }
@@ -138,7 +141,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         try {
           callback(position);
         } catch (error) {
-          logger.error("Error in GPS update callback:", error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          logger.error(`Error in GPS update callback: ${errorMsg}`);
           this.notifyError(
             error instanceof Error
               ? error
@@ -173,7 +178,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         try {
           callback(status);
         } catch (error) {
-          logger.error("Error in GPS status callback:", error);
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          logger.error(`Error in GPS status callback: ${errorMsg}`);
           this.notifyError(
             error instanceof Error
               ? error
@@ -302,7 +309,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
       return success(undefined);
     } catch (error) {
-      logger.error("Display update failed with exception:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Display update failed with exception: ${errorMsg}`);
       const err = error instanceof Error ? error : new Error("Unknown error");
       this.notifyError(err);
       return failure(OrchestratorError.updateFailed("Display update", err));
@@ -340,7 +348,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("Updating display with new GPX...");
       return await this.updateDisplay();
     } catch (error) {
-      logger.error("Failed to set active GPX:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to set active GPX: ${errorMsg}`);
       const err = error instanceof Error ? error : new Error("Unknown error");
       return failure(OrchestratorError.updateFailed("Set active GPX", err));
     }
@@ -435,7 +444,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     this.autoUpdateInterval = setInterval(() => {
       logger.info("Auto-update triggered");
       this.updateDisplay().catch((error) => {
-        logger.error("Auto-update failed:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`Auto-update failed: ${errorMsg}`);
       });
     }, intervalSeconds * 1000);
 
@@ -750,7 +760,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       await this.gpsService.dispose();
       logger.info("✓ GPS service disposed");
     } catch (error) {
-      logger.error("Error disposing GPS service:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Error disposing GPS service: ${errorMsg}`);
     }
 
     logger.info("Disposing epaper service");
@@ -758,7 +769,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       await this.epaperService.dispose();
       logger.info("✓ Epaper service disposed");
     } catch (error) {
-      logger.error("Error disposing epaper service:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Error disposing epaper service: ${errorMsg}`);
     }
 
     this.isInitialized = false;
@@ -773,7 +785,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       try {
         callback(success);
       } catch (error) {
-        logger.error("Error in display update callback:", error);
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`Error in display update callback: ${errorMsg}`);
       }
     });
   }

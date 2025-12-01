@@ -47,11 +47,18 @@ export class GPSService implements IGPSService {
    */
   async initialize(): Promise<Result<void>> {
     if (this.isInitialized) {
+      logger.info("GPS already initialized");
       return success(undefined);
     }
 
+    logger.info("Initializing GPS service...");
+    logger.info(
+      `GPS config: device=${this.config.devicePath}, baudRate=${this.config.baudRate}, updateInterval=${this.config.updateInterval}ms`,
+    );
+
     try {
       // Open serial port
+      logger.info(`Opening GPS serial port: ${this.config.devicePath}`);
       this.port = new SerialPort({
         path: this.config.devicePath,
         baudRate: this.config.baudRate,
@@ -59,22 +66,27 @@ export class GPSService implements IGPSService {
       });
 
       // Setup line parser for NMEA sentences
+      logger.info("Setting up NMEA sentence parser");
       this.parser = this.port.pipe(new ReadlineParser({ delimiter: "\r\n" }));
 
       // Open the port
+      logger.info("Opening serial port connection...");
       await new Promise<void>((resolve, reject) => {
         this.port!.open((err) => {
           if (err) reject(err);
           else resolve();
         });
       });
+      logger.info("✓ Serial port opened successfully");
 
       // Setup data listener
+      logger.info("Setting up GPS data listener");
       this.setupDataListener();
 
       // Setup error handler
       this.port.on("error", (err) => {
-        logger.error("GPS serial port error:", err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        logger.error(`GPS serial port error: ${errorMsg}`);
       });
 
       this.isInitialized = true;
@@ -86,11 +98,16 @@ export class GPSService implements IGPSService {
         hdop: 99.9,
         isTracking: false,
       };
+      logger.info("✓ GPS status initialized: NO_FIX, 0 satellites");
 
+      logger.info("✓ GPS service initialization complete");
       return success(undefined);
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`GPS initialization failed: ${errorMsg}`);
       if (error instanceof Error) {
         if (error.message.includes("No such file")) {
+          logger.error(`GPS device not found at ${this.config.devicePath}`);
           return failure(GPSError.deviceNotFound(this.config.devicePath));
         }
         return failure(GPSError.readFailed(error));
@@ -104,6 +121,7 @@ export class GPSService implements IGPSService {
    */
   async getCurrentPosition(): Promise<Result<GPSCoordinate>> {
     if (!this.isInitialized) {
+      logger.warn("Cannot get position: GPS not initialized");
       return failure(
         new GPSError(
           "GPS not initialized",
@@ -114,9 +132,15 @@ export class GPSService implements IGPSService {
     }
 
     if (!this.currentPosition) {
+      logger.warn(
+        `No GPS fix available (${this.currentStatus?.satellitesInUse || 0} satellites)`,
+      );
       return failure(GPSError.noFix(this.currentStatus?.satellitesInUse || 0));
     }
 
+    logger.info(
+      `GPS position: ${this.currentPosition.latitude.toFixed(6)}, ${this.currentPosition.longitude.toFixed(6)}`,
+    );
     return success(this.currentPosition);
   }
 
@@ -125,6 +149,7 @@ export class GPSService implements IGPSService {
    */
   async getStatus(): Promise<Result<GPSStatus>> {
     if (!this.isInitialized) {
+      logger.warn("Cannot get status: GPS not initialized");
       return failure(
         new GPSError(
           "GPS not initialized",
@@ -135,11 +160,15 @@ export class GPSService implements IGPSService {
     }
 
     if (!this.currentStatus) {
+      logger.warn("GPS status not available");
       return failure(
         new GPSError("GPS status not available", GPSErrorCode.UNKNOWN, true),
       );
     }
 
+    logger.info(
+      `GPS status: ${this.currentStatus.fixQuality}, ${this.currentStatus.satellitesInUse} satellites, HDOP: ${this.currentStatus.hdop}, tracking: ${this.currentStatus.isTracking}`,
+    );
     return success(this.currentStatus);
   }
 
@@ -148,6 +177,7 @@ export class GPSService implements IGPSService {
    */
   async startTracking(): Promise<Result<void>> {
     if (!this.isInitialized) {
+      logger.warn("Cannot start tracking: GPS not initialized");
       return failure(
         new GPSError(
           "GPS not initialized",
@@ -158,6 +188,7 @@ export class GPSService implements IGPSService {
     }
 
     if (this.tracking) {
+      logger.warn("GPS already tracking");
       return failure(
         new GPSError(
           "GPS already tracking",
@@ -167,6 +198,7 @@ export class GPSService implements IGPSService {
       );
     }
 
+    logger.info("Starting GPS tracking");
     this.tracking = true;
 
     if (this.currentStatus) {
@@ -174,6 +206,7 @@ export class GPSService implements IGPSService {
       this.updateStatus(this.currentStatus);
     }
 
+    logger.info("✓ GPS tracking started");
     return success(undefined);
   }
 
@@ -182,11 +215,13 @@ export class GPSService implements IGPSService {
    */
   async stopTracking(): Promise<Result<void>> {
     if (!this.tracking) {
+      logger.warn("GPS not tracking");
       return failure(
         new GPSError("GPS not tracking", GPSErrorCode.NOT_TRACKING, false),
       );
     }
 
+    logger.info("Stopping GPS tracking");
     this.tracking = false;
 
     if (this.currentStatus) {
@@ -194,6 +229,7 @@ export class GPSService implements IGPSService {
       this.updateStatus(this.currentStatus);
     }
 
+    logger.info("✓ GPS tracking stopped");
     return success(undefined);
   }
 
@@ -209,6 +245,7 @@ export class GPSService implements IGPSService {
    */
   async waitForFix(timeoutMs: number = 30000): Promise<Result<GPSCoordinate>> {
     if (!this.isInitialized) {
+      logger.warn("Cannot wait for fix: GPS not initialized");
       return failure(
         new GPSError(
           "GPS not initialized",
@@ -218,15 +255,21 @@ export class GPSService implements IGPSService {
       );
     }
 
+    logger.info(`Waiting for GPS fix (timeout: ${timeoutMs}ms)...`);
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
       if (this.currentPosition) {
+        const elapsed = Date.now() - startTime;
+        logger.info(
+          `✓ GPS fix acquired after ${elapsed}ms: ${this.currentPosition.latitude.toFixed(6)}, ${this.currentPosition.longitude.toFixed(6)}`,
+        );
         return success(this.currentPosition);
       }
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
+    logger.warn(`GPS fix timeout after ${timeoutMs}ms`);
     return failure(GPSError.fixTimeout(timeoutMs));
   }
 
@@ -235,12 +278,18 @@ export class GPSService implements IGPSService {
    */
   onPositionUpdate(callback: (position: GPSCoordinate) => void): () => void {
     this.positionCallbacks.push(callback);
+    logger.info(
+      `Position update callback registered (total: ${this.positionCallbacks.length})`,
+    );
 
     // Return unsubscribe function
     return () => {
       const index = this.positionCallbacks.indexOf(callback);
       if (index > -1) {
         this.positionCallbacks.splice(index, 1);
+        logger.info(
+          `Position update callback unregistered (total: ${this.positionCallbacks.length})`,
+        );
       }
     };
   }
@@ -250,12 +299,18 @@ export class GPSService implements IGPSService {
    */
   onStatusChange(callback: (status: GPSStatus) => void): () => void {
     this.statusCallbacks.push(callback);
+    logger.info(
+      `Status change callback registered (total: ${this.statusCallbacks.length})`,
+    );
 
     // Return unsubscribe function
     return () => {
       const index = this.statusCallbacks.indexOf(callback);
       if (index > -1) {
         this.statusCallbacks.splice(index, 1);
+        logger.info(
+          `Status change callback unregistered (total: ${this.statusCallbacks.length})`,
+        );
       }
     };
   }
@@ -264,14 +319,26 @@ export class GPSService implements IGPSService {
    * Clean up resources and close GPS connection
    */
   async dispose(): Promise<void> {
+    logger.info("Disposing GPS service...");
+
+    logger.info("Stopping GPS tracking");
     this.tracking = false;
+
+    const totalCallbacks =
+      this.positionCallbacks.length + this.statusCallbacks.length;
+    logger.info(`Clearing ${totalCallbacks} registered callbacks`);
     this.positionCallbacks = [];
     this.statusCallbacks = [];
 
     if (this.port && this.port.isOpen) {
+      logger.info("Closing GPS serial port");
       await new Promise<void>((resolve) => {
         this.port!.close((err) => {
-          if (err) logger.error("Error closing GPS port:", err);
+          if (err) {
+            logger.error("Error closing GPS port:", err);
+          } else {
+            logger.info("✓ GPS serial port closed");
+          }
           resolve();
         });
       });
@@ -280,6 +347,7 @@ export class GPSService implements IGPSService {
     this.port = null;
     this.parser = null;
     this.isInitialized = false;
+    logger.info("✓ GPS service disposed successfully");
   }
 
   /**
@@ -288,9 +356,11 @@ export class GPSService implements IGPSService {
   private setupDataListener(): void {
     if (!this.parser) return;
 
+    logger.info("Setting up NMEA data listener for GPS sentences");
     this.parser.on("data", (line: string) => {
       this.processNMEASentence(line.trim());
     });
+    logger.info("✓ NMEA data listener configured");
   }
 
   /**
@@ -303,10 +373,14 @@ export class GPSService implements IGPSService {
     // Example: $GPGGA sentence contains position data
     // Format: $GPGGA,time,lat,N/S,lon,E/W,quality,satellites,hdop,altitude,M,geoid,M,age,station*checksum
     if (sentence.startsWith("$GPGGA") || sentence.startsWith("$GNGGA")) {
+      logger.info(`Processing ${sentence.substring(0, 6)} sentence`);
       const parts = sentence.split(",");
 
       // Need at least fix quality and satellites (index 7)
-      if (parts.length < 8) return;
+      if (parts.length < 8) {
+        logger.warn("Incomplete NMEA sentence, skipping");
+        return;
+      }
 
       // Parse fix quality (index 6)
       const fixQuality = parseInt(parts[6]) || 0;
@@ -317,6 +391,10 @@ export class GPSService implements IGPSService {
       // Parse HDOP (index 8) if available
       const hdop = parts[8] ? parseFloat(parts[8]) || 99.9 : 99.9;
 
+      logger.info(
+        `GPS data: fix=${fixQuality}, satellites=${satellitesInUse}, HDOP=${hdop.toFixed(1)}`,
+      );
+
       // Check if status has changed
       const statusChanged =
         !this.currentStatus ||
@@ -325,6 +403,7 @@ export class GPSService implements IGPSService {
         Math.abs(this.currentStatus.hdop - hdop) > 0.1;
 
       if (statusChanged) {
+        logger.info("GPS status changed, updating...");
         const newStatus: GPSStatus = {
           fixQuality: fixQuality as GPSFixQuality,
           satellitesInUse,
@@ -347,6 +426,9 @@ export class GPSService implements IGPSService {
     // Example: $GPGSA sentence contains satellite status
     if (sentence.startsWith("$GPGSA") || sentence.startsWith("$GNGSA")) {
       // TODO: Parse GSA sentence for PDOP, VDOP
+      logger.info(
+        `Received ${sentence.substring(0, 6)} sentence (not fully parsed yet)`,
+      );
     }
   }
 
@@ -355,15 +437,25 @@ export class GPSService implements IGPSService {
    */
   private updatePosition(position: GPSCoordinate): void {
     this.currentPosition = position;
+    logger.info(
+      `Position updated: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+    );
 
     // Notify all position callbacks
-    this.positionCallbacks.forEach((callback) => {
-      try {
-        callback(position);
-      } catch (error) {
-        logger.error("Error in position callback:", error);
-      }
-    });
+    if (this.positionCallbacks.length > 0) {
+      logger.info(
+        `Broadcasting position update to ${this.positionCallbacks.length} callback(s)`,
+      );
+      this.positionCallbacks.forEach((callback) => {
+        try {
+          callback(position);
+        } catch (error) {
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          logger.error(`Error in position callback: ${errorMsg}`);
+        }
+      });
+    }
   }
 
   /**
@@ -371,14 +463,24 @@ export class GPSService implements IGPSService {
    */
   private updateStatus(status: GPSStatus): void {
     this.currentStatus = status;
+    logger.info(
+      `Status updated: fix=${status.fixQuality}, satellites=${status.satellitesInUse}, HDOP=${status.hdop.toFixed(1)}, tracking=${status.isTracking}`,
+    );
 
     // Notify all status callbacks
-    this.statusCallbacks.forEach((callback) => {
-      try {
-        callback(status);
-      } catch (error) {
-        logger.error("Error in status callback:", error);
-      }
-    });
+    if (this.statusCallbacks.length > 0) {
+      logger.info(
+        `Broadcasting status update to ${this.statusCallbacks.length} callback(s)`,
+      );
+      this.statusCallbacks.forEach((callback) => {
+        try {
+          callback(status);
+        } catch (error) {
+          const errorMsg =
+            error instanceof Error ? error.message : String(error);
+          logger.error(`Error in status callback: ${errorMsg}`);
+        }
+      });
+    }
   }
 }
