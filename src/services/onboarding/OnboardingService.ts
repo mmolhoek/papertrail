@@ -1,14 +1,21 @@
 import * as path from "path";
+import * as fs from "fs";
+import * as os from "os";
 import {
   IOnboardingService,
   IConfigService,
   IWiFiService,
   IEpaperService,
 } from "../../core/interfaces";
-import { Result, DisplayUpdateMode } from "../../core/types";
+import { Result, DisplayUpdateMode, Bitmap1Bit } from "../../core/types";
 import { success, failure } from "../../core/types";
 import { OnboardingError } from "../../core/errors";
 import { getLogger } from "../../utils/logger";
+import {
+  renderTextTemplate,
+  TextTemplate,
+  TemplateVariables,
+} from "../../utils/textRenderer";
 
 const logger = getLogger("OnboardingService");
 
@@ -94,7 +101,7 @@ export class OnboardingService implements IOnboardingService {
       // Step 4: Display WiFi instructions
       logger.info("Displaying WiFi instructions...");
       const instructionsResult = await this.displayScreen(
-        "onboarding-screens/wifi-instructions.bmp",
+        "onboarding-screens/wifi-instructions.json",
       );
       if (!instructionsResult.success) {
         logger.warn("Failed to display WiFi instructions, continuing anyway");
@@ -133,8 +140,10 @@ export class OnboardingService implements IOnboardingService {
 
       // Step 5: Display success screen
       logger.info("WiFi connected! Displaying success screen...");
+      const deviceUrl = await this.getDeviceUrl();
       const successResult = await this.displayScreen(
-        "onboarding-screens/connected.bmp",
+        "onboarding-screens/connected.json",
+        { url: deviceUrl },
       );
       if (!successResult.success) {
         logger.warn("Failed to display success screen");
@@ -178,7 +187,7 @@ export class OnboardingService implements IOnboardingService {
   async displayInstructions(): Promise<Result<void>> {
     try {
       const result = await this.displayScreen(
-        "onboarding-screens/wifi-instructions.bmp",
+        "onboarding-screens/wifi-instructions.json",
       );
       return result;
     } catch (error) {
@@ -191,34 +200,136 @@ export class OnboardingService implements IOnboardingService {
 
   // Private helper methods
 
-  private async displayScreen(screenPath: string): Promise<Result<void>> {
-    const fullPath = path.join(process.cwd(), screenPath);
+  private async renderTextScreen(
+    templatePath: string,
+    variables?: TemplateVariables,
+  ): Promise<Result<Bitmap1Bit>> {
+    try {
+      const fullPath = path.join(process.cwd(), templatePath);
 
-    logger.debug(`Displaying image from: ${fullPath}`);
-
-    // Use EpaperService to load and display the BMP image
-    const displayResult = await this.epaperService.displayBitmapFromFile(
-      fullPath,
-      DisplayUpdateMode.FULL,
-    );
-
-    if (!displayResult.success) {
-      logger.error(
-        `Failed to display screen ${screenPath}:`,
-        displayResult.error,
-      );
-
-      // Check if image file not found
-      if (displayResult.error.message.includes("not found")) {
-        return failure(OnboardingError.imageNotFound(screenPath));
+      if (!fs.existsSync(fullPath)) {
+        return failure(OnboardingError.templateNotFound(templatePath));
       }
 
-      return failure(
-        OnboardingError.displayFailed(
-          new Error(displayResult.error.message),
-          screenPath,
-        ),
+      const templateJson = fs.readFileSync(fullPath, "utf-8");
+      const template = JSON.parse(templateJson) as TextTemplate;
+
+      const dims = this.epaperService.getDimensions();
+
+      const result = await renderTextTemplate(
+        template,
+        variables || {},
+        dims.width,
+        dims.height,
       );
+
+      return result;
+    } catch (error) {
+      logger.error(`Failed to render text screen ${templatePath}:`, error);
+      if (error instanceof SyntaxError) {
+        return failure(
+          OnboardingError.templateInvalid(
+            templatePath,
+            "Invalid JSON format: " + error.message,
+          ),
+        );
+      }
+      return failure(
+        OnboardingError.renderFailed(error as Error, templatePath),
+      );
+    }
+  }
+
+  private async getDeviceUrl(): Promise<string> {
+    try {
+      const connectionResult = await this.wifiService.getCurrentConnection();
+
+      if (connectionResult.success && connectionResult.data) {
+        const ipAddress = connectionResult.data.ipAddress;
+        const port = process.env.WEB_PORT || "3000";
+        return `http://${ipAddress}:${port}`;
+      }
+
+      // Fallback: use os.networkInterfaces()
+      const interfaces = os.networkInterfaces();
+
+      for (const name of Object.keys(interfaces)) {
+        const iface = interfaces[name];
+        if (iface) {
+          for (const addr of iface) {
+            if (addr.family === "IPv4" && !addr.internal) {
+              const port = process.env.WEB_PORT || "3000";
+              return `http://${addr.address}:${port}`;
+            }
+          }
+        }
+      }
+
+      // Ultimate fallback
+      return "http://192.168.1.1:3000";
+    } catch (error) {
+      logger.warn("Failed to detect IP address:", error);
+      return "http://192.168.1.1:3000";
+    }
+  }
+
+  private async displayScreen(
+    screenPath: string,
+    variables?: TemplateVariables,
+  ): Promise<Result<void>> {
+    const fullPath = path.join(process.cwd(), screenPath);
+    logger.debug(`Displaying screen from: ${fullPath}`);
+
+    if (screenPath.endsWith(".json")) {
+      // Render dynamic text screen
+      const bitmapResult = await this.renderTextScreen(screenPath, variables);
+      if (!bitmapResult.success) {
+        return failure(
+          OnboardingError.displayFailed(
+            new Error(bitmapResult.error.message),
+            screenPath,
+          ),
+        );
+      }
+
+      const displayResult = await this.epaperService.displayBitmap(
+        bitmapResult.data,
+        DisplayUpdateMode.FULL,
+      );
+
+      if (!displayResult.success) {
+        return failure(
+          OnboardingError.displayFailed(
+            new Error(displayResult.error.message),
+            screenPath,
+          ),
+        );
+      }
+    } else {
+      // Existing BMP logic
+      const displayResult = await this.epaperService.displayBitmapFromFile(
+        fullPath,
+        DisplayUpdateMode.FULL,
+      );
+
+      if (!displayResult.success) {
+        logger.error(
+          `Failed to display screen ${screenPath}:`,
+          displayResult.error,
+        );
+
+        // Check if image file not found
+        if (displayResult.error.message.includes("not found")) {
+          return failure(OnboardingError.imageNotFound(screenPath));
+        }
+
+        return failure(
+          OnboardingError.displayFailed(
+            new Error(displayResult.error.message),
+            screenPath,
+          ),
+        );
+      }
     }
 
     logger.info(`Successfully displayed: ${screenPath}`);

@@ -10,6 +10,9 @@ export enum OnboardingErrorCode {
   TIMEOUT = "ONBOARDING_TIMEOUT",
   ALREADY_COMPLETED = "ONBOARDING_ALREADY_COMPLETED",
   IMAGE_NOT_FOUND = "ONBOARDING_IMAGE_NOT_FOUND",
+  TEMPLATE_NOT_FOUND = "ONBOARDING_TEMPLATE_NOT_FOUND",
+  TEMPLATE_INVALID = "ONBOARDING_TEMPLATE_INVALID",
+  RENDER_FAILED = "ONBOARDING_RENDER_FAILED",
 }
 
 /**
@@ -92,6 +95,45 @@ export class OnboardingError extends BaseError {
       `Onboarding failed: ${message}`,
       OnboardingErrorCode.ONBOARDING_FAILED,
       true,
+    );
+  }
+
+  /**
+   * Template file not found
+   */
+  static templateNotFound(templatePath: string): OnboardingError {
+    return new OnboardingError(
+      `Template file not found: ${templatePath}`,
+      OnboardingErrorCode.TEMPLATE_NOT_FOUND,
+      true,
+      { templatePath },
+    );
+  }
+
+  /**
+   * Invalid template file
+   */
+  static templateInvalid(
+    templatePath: string,
+    reason: string,
+  ): OnboardingError {
+    return new OnboardingError(
+      `Invalid template file "${templatePath}": ${reason}`,
+      OnboardingErrorCode.TEMPLATE_INVALID,
+      true,
+      { templatePath, reason },
+    );
+  }
+
+  /**
+   * Template rendering failed
+   */
+  static renderFailed(error: Error, templatePath: string): OnboardingError {
+    return new OnboardingError(
+      `Failed to render template "${templatePath}": ${error.message}`,
+      OnboardingErrorCode.RENDER_FAILED,
+      true,
+      { templatePath, originalError: error.message },
     );
   }
 }

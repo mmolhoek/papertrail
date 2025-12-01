@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "title": "Connection Success",
+  "layout": {
+    "backgroundColor": "white",
+    "textColor": "black",
+    "padding": {
+      "top": 70,
+      "right": 60,
+      "bottom": 70,
+      "left": 60
+    }
+  },
+  "textBlocks": [
+    {
+      "content": "Success!",
+      "fontSize": 48,
+      "fontWeight": "bold",
+      "alignment": "center",
+      "marginBottom": 60
+    },
+    {
+      "content": "I found your wifi access point, well done.",
+      "fontSize": 26,
+      "fontWeight": "normal",
+      "alignment": "center",
+      "marginBottom": 50
+    },
+    {
+      "content": "Now you can access the papertrail interface on your mobile by going to:",
+      "fontSize": 22,
+      "fontWeight": "normal",
+      "alignment": "center",
+      "marginBottom": 40
+    },
+    {
+      "content": "{{url}}",
+      "fontSize": 34,
+      "fontWeight": "bold",
+      "alignment": "center",
+      "marginBottom": 0
+    }
+  ]
+}
