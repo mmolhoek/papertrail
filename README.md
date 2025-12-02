@@ -31,100 +31,110 @@ papertrail/
 │   │   ├── public/        # Static web files
 │   │   └── ...
 │   └── index.ts           # Main entry point
+├── scripts/
+│   ├── install.sh         # One-time installation script
+│   ├── start.sh           # Development start script
+│   └── stop.sh            # Stop script (dev and production)
+├── config/
+│   ├── 50-gps.rules                 # Udev rules for GPS serial port
+│   ├── logrotate                    # Logrotate configuration
+│   ├── papertrail-sudoers           # Sudoers for nmcli
+│   └── papertrail.service.example   # Systemd service template
 ├── data/                  # Runtime data
 │   ├── gpx-files/         # GPX tracks
 │   └── cache/             # Cached data
-├── logs/                  # Application logs
-└── config/                # Configuration files
+└── logs/                  # Application logs
 ```
 
 ## Installation
 
-### 1. Clone and Setup
+### First-Time Setup
+
+Deploy to your Raspberry Pi and run the install script:
 
 ```bash
+# On your Pi
 cd ~
 git clone <your-repo> papertrail
 cd papertrail
+./scripts/install.sh
 ```
 
-### 2. Install Dependencies
+The install script automatically:
+- Installs system packages (nodejs, npm, screen, build-essential, gpiod)
+- Sets up GPS udev rules for serial port permissions
+- Disables getty on ttyAMA0 (frees serial port for GPS)
+- Configures SPI buffer size for e-paper display (requires reboot)
+- Adds user to dialout group for serial port access
+- Sets up sudoers for WiFi management (nmcli)
+- Creates log file at `/var/log/papertrail.log`
+- Configures logrotate
+- Creates `.env` from `.env.example`
+- Installs npm dependencies
+- Builds the project
+- Installs the systemd service
+
+**Note:** If the SPI buffer size is configured for the first time, a reboot is required before the e-paper display will work correctly.
+
+### Enable Auto-Start on Boot
 
 ```bash
-npm install
-```
-
-### 3. Configure Environment
-
-```bash
-cp .env.example .env
-vi/nano .env  # Edit configuration as needed
-```
-
-### 4. Build
-
-```bash
-npm run build
+sudo systemctl enable papertrail
 ```
 
 ## Running the Application
 
+### Production Mode (Recommended)
+
+Use systemd to manage the service:
+
+```bash
+sudo systemctl start papertrail     # Start
+sudo systemctl stop papertrail      # Stop
+sudo systemctl restart papertrail   # Restart
+sudo systemctl status papertrail    # Check status
+```
+
+View logs:
+
+```bash
+tail -f /var/log/papertrail.log     # Application logs
+sudo journalctl -u papertrail -f    # Systemd logs
+```
+
 ### Development Mode
+
+For active development with auto-reload:
 
 ```bash
 npm run dev
 ```
 
-### Production Mode
-
-Use the startup script:
-This will start the code in a screen session
-And writes logs to /var/log/papertrail.log
-Which you can follow with `tail -f /var/log/papertrail.log`
+Or use the development script (builds and runs in a screen session):
 
 ```bash
-chmod +x ./scripts/st*
-# start the service in a background screen session
-# will stop the service first if running
 ./scripts/start.sh
-# stop the service manually if running
-./scripts/stop.sh
 ```
 
-## Running as a System Service WIP (not used yet)
-
-To run Papertrail automatically on boot:
-
-### 1. Install Service
+Useful commands for development:
 
 ```bash
-sudo cp papertrail.service /etc/systemd/system/
-sudo systemctl daemon-reload
+screen -r papertrail                # Attach to screen session
+./scripts/stop.sh                   # Stop (works for both screen and systemd)
 ```
 
-### 2. Enable and Start
+### Deploying Updates
+
+After making changes on your development machine:
 
 ```bash
-sudo systemctl enable papertrail
-sudo systemctl start papertrail
-```
+# From your dev machine
+rsync -av --exclude node_modules --exclude dist . pi@your-pi:~/papertrail/
 
-### 3. Check Status
-
-```bash
-sudo systemctl status papertrail
-```
-
-### 4. View Logs
-
-```bash
-sudo journalctl -u papertrail -f
-```
-
-### 5. Stop Service
-
-```bash
-sudo systemctl stop papertrail
+# On the Pi
+cd ~/papertrail
+npm run build
+sudo systemctl restart papertrail
 ```
 
 ## Web Interface
@@ -299,7 +309,8 @@ cp my-track.gpx ~/papertrail/data/gpx-files/
 ### Service Won't Start
 
 - Check logs: `sudo journalctl -u papertrail -n 50`
-- Verify paths in `papertrail.service` match your installation
+- Check app logs: `tail -50 /var/log/papertrail.log`
+- Re-run install script: `./scripts/install.sh`
 - Ensure user has permissions for GPIO/SPI
 
 ## License

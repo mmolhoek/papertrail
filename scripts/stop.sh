@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Papertrail GPS Tracker - Stop Script
+# Stops both screen sessions and systemd service
 
 set -e
 
@@ -17,6 +18,14 @@ echo ""
 
 SCREEN_NAME="papertrail"
 STOPPED=false
+
+# Stop systemd service if running
+if systemctl is-active --quiet papertrail 2>/dev/null; then
+  echo -e "${BLUE}Stopping systemd service...${NC}"
+  sudo systemctl stop papertrail
+  STOPPED=true
+  echo -e "${GREEN}✓ Systemd service stopped${NC}"
+fi
 
 # Stop the screen session if running
 if screen -list | grep -q "\.${SCREEN_NAME}"; then
@@ -44,7 +53,7 @@ if [ "$STOPPED" = true ]; then
     sleep 1
   fi
 
-  echo -e "${GREEN}✓ Papertrail stopped successfully${NC}"
+  echo -e "${GREEN}✓ Papertrail stopped${NC}"
 else
   echo -e "${BLUE}Papertrail is not running${NC}"
 fi

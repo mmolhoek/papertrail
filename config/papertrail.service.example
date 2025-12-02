@@ -1,0 +1,32 @@
+# Papertrail GPS Tracker - Systemd Service Example
+#
+# This is a TEMPLATE. Do not copy this file directly.
+# Instead, run: ./scripts/install.sh
+# It will generate the correct service file with your username and paths.
+#
+# Manual installation (if needed):
+#   1. Replace YOUR_USER with your username
+#   2. Replace YOUR_PROJECT_PATH with your project path
+#   3. Copy to /etc/systemd/system/papertrail.service
+#   4. Run: sudo systemctl daemon-reload
+
+[Unit]
+Description=Papertrail GPS Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=YOUR_USER
+WorkingDirectory=YOUR_PROJECT_PATH
+ExecStart=/usr/bin/node YOUR_PROJECT_PATH/dist/index.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=append:/var/log/papertrail.log
+StandardError=append:/var/log/papertrail.log
+
+# Environment
+Environment=NODE_ENV=production
+EnvironmentFile=YOUR_PROJECT_PATH/.env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+# Ultimate GPS v3 - persistent permissions for Papertrail
+KERNEL=="ttyAMA0", SUBSYSTEM=="tty", ATTRS{port}=="0", MODE="0666", GROUP="dialout", OWNER="root"
+ACTION=="add", KERNEL=="ttyAMA0", MODE="0666", GROUP="dialout", OWNER="root"
+ACTION=="change", KERNEL=="ttyAMA0", MODE="0666", GROUP="dialout", OWNER="root"
