@@ -9,9 +9,9 @@ import {
   GPSFixQuality,
   success,
   failure,
-} from "../../core/types";
-import { GPSError, GPSErrorCode } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/types";
+import { GPSError, GPSErrorCode } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("GPSService");
 

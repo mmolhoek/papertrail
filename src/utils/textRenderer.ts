@@ -1,6 +1,6 @@
 import sharp from "sharp";
-import { Result, Bitmap1Bit, success, failure } from "../core/types";
-import { getLogger } from "./logger";
+import { Result, Bitmap1Bit, success, failure } from "@core/types";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("TextRenderer");
 

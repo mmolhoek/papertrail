@@ -1,8 +1,7 @@
 import { OnboardingService } from "../OnboardingService";
 import { IConfigService, IWiFiService, IEpaperService } from "@core/interfaces";
-import { success, failure } from "../../../core/types";
-import { OnboardingError, WiFiError, DisplayError } from "../../../core/errors";
-import { DisplayUpdateMode } from "../../../core/types";
+import { success, failure, DisplayUpdateMode } from "@core/types";
+import { OnboardingError, WiFiError, DisplayError } from "@core/errors";
 
 // Mock the EPD class
 jest.mock("../../epaper/EPD", () => {

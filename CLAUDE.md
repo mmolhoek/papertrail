@@ -40,6 +40,50 @@ npm run format        # Format code with Prettier
 npm run clean         # Remove dist/ directory
 ```
 
+### Build Process
+
+The build process uses a two-step approach to handle TypeScript path aliases:
+
+```bash
+npm run build         # Runs: tsc && tsc-alias
+```
+
+1. **TypeScript Compilation** (`tsc`): Compiles .ts files to .js files in dist/
+2. **Path Alias Resolution** (`tsc-alias`): Rewrites path aliases to relative paths in compiled JavaScript
+
+This ensures the compiled JavaScript works in production Node.js without runtime path resolution overhead.
+
+#### Path Aliases
+
+The project uses TypeScript path aliases for clean, maintainable imports. **Always use path aliases in source code** instead of relative paths:
+
+```typescript
+// ✓ CORRECT - Use path aliases
+import { IGPSService } from "@core/interfaces";
+import { Result, success, failure } from "@core/types";
+import { GPSError } from "@core/errors";
+import { GPSService } from "@services/gps/GPSService";
+import { ServiceContainer } from "@di/ServiceContainer";
+import { WebController } from "@web/controllers/WebController";
+import { getLogger } from "@utils/logger";
+
+// ✗ WRONG - Don't use relative paths for cross-directory imports
+import { IGPSService } from "../../core/interfaces";
+import { Result } from "../../core/types";
+```
+
+**Available aliases:**
+- `@core/*` → `src/core/*`
+- `@errors/*` → `src/core/errors/*` (prefer `@core/errors` barrel export)
+- `@services/*` → `src/services/*`
+- `@di/*` → `src/di/*`
+- `@web/*` → `src/web/*`
+- `@utils/*` → `src/utils/*`
+
+**Note:** Relative imports are acceptable only for files in the same directory (e.g., `./BaseError` within the errors folder).
+
+**Development mode** (`npm run dev`) uses `ts-node-dev` with `tsconfig-paths/register` to resolve aliases at runtime automatically.
+
 ## Architecture
 
 ### Core Pattern: Result Type

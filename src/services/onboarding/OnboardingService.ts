@@ -6,16 +6,15 @@ import {
   IConfigService,
   IWiFiService,
   IEpaperService,
-} from "../../core/interfaces";
-import { Result, DisplayUpdateMode, Bitmap1Bit } from "../../core/types";
-import { success, failure } from "../../core/types";
-import { OnboardingError } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/interfaces";
+import { Result, DisplayUpdateMode, Bitmap1Bit, success, failure } from "@core/types";
+import { OnboardingError } from "@core/errors";
+import { getLogger } from "@utils/logger";
 import {
   renderTextTemplate,
   TextTemplate,
   TemplateVariables,
-} from "../../utils/textRenderer";
+} from "@utils/textRenderer";
 
 const logger = getLogger("OnboardingService");
 

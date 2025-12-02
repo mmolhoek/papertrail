@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { IRenderingOrchestrator } from "@core/interfaces";
-import { isSuccess } from "../../core/types";
-import { WebError } from "core/errors";
-import { getLogger } from "../../utils/logger";
+import { isSuccess } from "@core/types";
+import { WebError } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("WebController");
 

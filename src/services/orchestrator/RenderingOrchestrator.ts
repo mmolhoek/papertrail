@@ -13,9 +13,9 @@ import {
   SystemStatus,
   success,
   failure,
-} from "../../core/types";
-import { OrchestratorError, OrchestratorErrorCode } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/types";
+import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("RenderingOrchestrator");
 

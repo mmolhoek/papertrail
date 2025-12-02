@@ -1,7 +1,7 @@
-import { ServiceContainer } from "./di/ServiceContainer";
-import { IntegratedWebService } from "./web/IntegratedWebService";
-import { isSuccess } from "./core/types";
-import { getLogger } from "./utils/logger";
+import { ServiceContainer } from "@di/ServiceContainer";
+import { IntegratedWebService } from "@web/IntegratedWebService";
+import { isSuccess } from "@core/types";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("Papertrail");
 

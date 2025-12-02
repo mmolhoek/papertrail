@@ -8,9 +8,9 @@ import {
   Point2D,
   success,
   failure,
-} from "../../core/types";
-import { DisplayError } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/types";
+import { DisplayError } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("SVGService");
 

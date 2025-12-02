@@ -7,9 +7,9 @@ import {
   DisplayUpdateMode,
   success,
   failure,
-} from "../../core/types";
-import { DisplayError, DisplayErrorCode } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/types";
+import { DisplayError, DisplayErrorCode } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("MockEpaperService");
 

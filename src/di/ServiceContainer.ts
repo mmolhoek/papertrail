@@ -16,16 +16,16 @@ import {
   WiFiConfig,
 } from "@core/types";
 // Mock services - safe to import (no hardware dependencies)
-import { MockGPSService } from "../services/gps/MockGPSService";
-import { MockEpaperService } from "../services/epaper/MockEpaperService";
-import { MockWiFiService } from "../services/wifi/MockWiFiService";
+import { MockGPSService } from "@services/gps/MockGPSService";
+import { MockEpaperService } from "@services/epaper/MockEpaperService";
+import { MockWiFiService } from "@services/wifi/MockWiFiService";
 
 // Non-hardware services - safe to import
-import { MapService } from "../services/map/MapService";
-import { SVGService } from "../services/svg/SVGService";
-import { ConfigService } from "../services/config/ConfigService";
-import { RenderingOrchestrator } from "../services/orchestrator/RenderingOrchestrator";
-import { OnboardingService } from "../services/onboarding/OnboardingService";
+import { MapService } from "@services/map/MapService";
+import { SVGService } from "@services/svg/SVGService";
+import { ConfigService } from "@services/config/ConfigService";
+import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
+import { OnboardingService } from "@services/onboarding/OnboardingService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -86,7 +86,7 @@ export class ServiceContainer {
       } else {
         // Lazy import to avoid loading serialport on non-Linux platforms
         const { GPSService } =
-          require("../services/gps/GPSService") as typeof import("../services/gps/GPSService");
+          require("@services/gps/GPSService") as typeof import("@services/gps/GPSService");
         this.services.gps = new GPSService(config);
       }
     }
@@ -130,7 +130,7 @@ export class ServiceContainer {
       } else {
         // Lazy import to avoid loading lgpio on non-Linux platforms
         const { EpaperService } =
-          require("../services/epaper/EPaperService") as typeof import("../services/epaper/EPaperService");
+          require("@services/epaper/EPaperService") as typeof import("@services/epaper/EPaperService");
         this.services.epaper = new EpaperService(config);
       }
     }
@@ -176,7 +176,7 @@ export class ServiceContainer {
       } else {
         // Lazy import to avoid loading nmcli dependencies on non-Linux platforms
         const { WiFiService } =
-          require("../services/wifi/WiFiService") as typeof import("../services/wifi/WiFiService");
+          require("@services/wifi/WiFiService") as typeof import("@services/wifi/WiFiService");
         this.services.wifi = new WiFiService(config);
       }
     }
