@@ -932,8 +932,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Build GPS info strings
     const fixQualityStr = this.getFixQualityString();
     const satellitesStr = this.lastGPSStatus
-      ? `${this.lastGPSStatus.satellitesInUse} satellites`
-      : "-- satellites";
+      ? `${this.lastGPSStatus.satellitesInUse} Satellites`
+      : "0 Satellites";
     const positionStr = this.getPositionString();
     const speedStr = this.getSpeedString();
     const deviceUrl = this.getDeviceUrl();
@@ -954,21 +954,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       },
       {
         content: "Use the web interface to choose a GPX track",
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: "normal",
         alignment: "center",
         marginBottom: 40,
       },
       {
         content: `Fix: ${fixQualityStr}`,
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "normal",
         alignment: "center",
         marginBottom: 10,
       },
       {
         content: satellitesStr,
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: "normal",
         alignment: "center",
         marginBottom: 10,
@@ -979,7 +979,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     if (positionStr) {
       textBlocks.push({
         content: positionStr,
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: "normal",
         alignment: "center",
         marginBottom: 10,
@@ -990,7 +990,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     if (speedStr) {
       textBlocks.push({
         content: speedStr,
-        fontSize: 18,
+        fontSize: 24,
         fontWeight: "normal",
         alignment: "center",
         marginBottom: 10,
@@ -1000,7 +1000,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Add URL at the bottom
     textBlocks.push({
       content: deviceUrl,
-      fontSize: 16,
+      fontSize: 24,
       fontWeight: "normal",
       alignment: "center",
       marginBottom: 0,
@@ -1044,12 +1044,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    */
   private getFixQualityString(): string {
     if (!this.lastGPSStatus) {
-      return "No Data";
+      return "No Fix Yet";
     }
 
     switch (this.lastGPSStatus.fixQuality) {
       case 0: // NO_FIX
-        return "No Fix";
+        return "No Fix Yet";
       case 1: // GPS_FIX
         return "GPS Fix";
       case 2: // DGPS_FIX
@@ -1346,8 +1346,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       },
       textBlocks: [
         {
-          content:
-            "Please create or activate the following hotspot on your mobile phone",
+          content: "Please create or activate the following",
+          fontSize: 26,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 15,
+        },
+        {
+          content: "hotspot on your mobile phone",
           fontSize: 26,
           fontWeight: "normal",
           alignment: "center",
@@ -1355,14 +1361,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: `Network Name: ${ssid}`,
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: "bold",
           alignment: "center",
           marginBottom: 15,
         },
         {
           content: "Password: papertrail123",
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: "bold",
           alignment: "center",
           marginBottom: 40,
@@ -1445,10 +1451,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: deviceUrl,
-          fontSize: 24,
+          fontSize: 32,
           fontWeight: "bold",
           alignment: "center",
-          marginBottom: 40,
+          marginBottom: 45,
         },
         {
           content: "to access the Papertrail interface",
