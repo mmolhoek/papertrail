@@ -49,7 +49,7 @@ fi
 if [ ! -f /etc/logrotate.d/papertrail ]; then
   echo -e "${BLUE}Setting up logrotate for Papertrail...${NC}"
   sudo mkdir -p /etc/logrotate.d
-  sudo cp logrotate/papertrail /etc/logrotate.d/papertrail
+  sudo cp config/logrotate /etc/logrotate.d/papertrail
   echo -e "${GREEN}✓ Logrotate configuration added${NC}"
   echo ""
 fi
