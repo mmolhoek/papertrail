@@ -314,6 +314,10 @@ export class MockWiFiService implements IWiFiService {
     return this.config.primarySSID;
   }
 
+  notifyConnectedScreenDisplayed(): void {
+    logger.info("Mock: Connected screen was displayed");
+  }
+
   // Private helper methods
 
   private setState(newState: WiFiState): void {

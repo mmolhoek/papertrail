@@ -137,4 +137,10 @@ export interface IWiFiService {
    * @returns The SSID configured for the mobile hotspot
    */
   getMobileHotspotSSID(): string;
+
+  /**
+   * Notify that the connected screen was successfully displayed
+   * Stops the WiFi service from sending retry notifications
+   */
+  notifyConnectedScreenDisplayed(): void;
 }

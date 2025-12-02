@@ -46,6 +46,7 @@ export class WiFiService implements IWiFiService {
   private connectionAttemptInProgress = false;
   private connectionAttemptAbortController?: AbortController;
   private connectedStateEnteredAt?: Date; // Track when we entered CONNECTED state for grace period
+  private connectedScreenDisplayed = false; // Track if orchestrator displayed the connected screen
 
   constructor(
     private config: WiFiConfig,
@@ -202,8 +203,11 @@ export class WiFiService implements IWiFiService {
       const data: Record<string, string> = {};
 
       for (const line of lines) {
-        const [key, value] = line.split(":");
-        if (key && value) {
+        // Split only on first colon to handle values with colons (like MAC addresses)
+        const colonIndex = line.indexOf(":");
+        if (colonIndex > 0) {
+          const key = line.substring(0, colonIndex);
+          const value = line.substring(colonIndex + 1);
           data[key] = value;
         }
       }
@@ -222,9 +226,19 @@ export class WiFiService implements IWiFiService {
       const signalResult = await this.getSignalStrength(connectionName);
       const signalStrength = signalResult.success ? signalResult.data : 0;
 
+      // Find IP address - nmcli uses IP4.ADDRESS[1], IP4.ADDRESS[2], etc.
+      let ipAddress = "";
+      for (const key of Object.keys(data)) {
+        if (key.startsWith("IP4.ADDRESS")) {
+          // Value is like "192.168.1.100/24" - extract just the IP
+          ipAddress = data[key].split("/")[0];
+          break;
+        }
+      }
+
       const connection: WiFiConnection = {
         ssid: connectionName,
-        ipAddress: data["IP4.ADDRESS"]?.split("/")[0] || "",
+        ipAddress,
         macAddress: data["GENERAL.HWADDR"] || "",
         signalStrength,
         connectedAt: new Date(), // nmcli doesn't provide connection time
@@ -798,6 +812,11 @@ export class WiFiService implements IWiFiService {
     return this.config.primarySSID;
   }
 
+  notifyConnectedScreenDisplayed(): void {
+    logger.info("notifyConnectedScreenDisplayed() - connected screen was displayed");
+    this.connectedScreenDisplayed = true;
+  }
+
   // Private helper methods
 
   private parseSecurity(security: string): WiFiNetwork["security"] {
@@ -902,9 +921,10 @@ export class WiFiService implements IWiFiService {
     const previousState = this.currentState;
     this.currentState = newState;
 
-    // Track when we enter CONNECTED state for grace period
+    // Track when we enter CONNECTED state for grace period and reset screen flag
     if (newState === WiFiState.CONNECTED) {
       this.connectedStateEnteredAt = new Date();
+      this.connectedScreenDisplayed = false; // Reset - need to display connected screen
       logger.info(`Entered CONNECTED state at ${this.connectedStateEnteredAt.toISOString()}`);
     } else {
       this.connectedStateEnteredAt = undefined;
@@ -967,12 +987,14 @@ export class WiFiService implements IWiFiService {
       if (this.currentState !== WiFiState.CONNECTED) {
         logger.info("Updating state to CONNECTED");
         this.setState(WiFiState.CONNECTED);
-      } else {
-        // State is already CONNECTED, but notify callbacks anyway to allow
-        // the orchestrator to retry displaying the connected screen
-        // (in case it failed on the first attempt due to IP not being ready)
-        logger.info("State already CONNECTED - notifying callbacks to allow display retry");
+      } else if (this.webSocketClientCount === 0 && !this.connectedScreenDisplayed) {
+        // State is already CONNECTED, no WebSocket clients yet, and screen not displayed.
+        // Notify callbacks to retry displaying the connected screen.
+        logger.info("State already CONNECTED, screen not displayed yet - notifying for display retry");
         this.notifyStateChange(WiFiState.CONNECTED, WiFiState.CONNECTED);
+      } else {
+        // State is CONNECTED and either clients are connected or screen was displayed - no action needed
+        logger.info("State already CONNECTED, no notification needed");
       }
       logger.info("handleHotspotPollingTick() complete");
       return;

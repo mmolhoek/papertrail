@@ -1256,6 +1256,15 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
+    // Skip WiFi screen updates when WebSocket clients are connected
+    // The "select track" screen takes priority
+    if (this.webSocketClientCount > 0) {
+      logger.info(
+        `Skipping WiFi screen update (${this.webSocketClientCount} WebSocket clients connected, showing select track screen)`,
+      );
+      return;
+    }
+
     // Debounce screen updates to prevent flickering
     const now = Date.now();
     const timeSinceLastUpdate = now - this.lastWifiScreenUpdate;
@@ -1429,10 +1438,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       textBlocks: [
         {
           content: "Open your browser and go to:",
-          fontSize: 24,
+          fontSize: 32,
           fontWeight: "normal",
           alignment: "center",
-          marginBottom: 20,
+          marginBottom: 40,
         },
         {
           content: deviceUrl,
@@ -1443,7 +1452,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: "to access the Papertrail interface",
-          fontSize: 24,
+          fontSize: 32,
           fontWeight: "normal",
           alignment: "center",
           marginBottom: 0,
@@ -1468,6 +1477,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info(`Displayed connected screen with URL: ${deviceUrl}`);
       // Mark that we successfully displayed the connected screen
       this.connectedScreenDisplayed = true;
+      // Notify WiFi service to stop retry notifications
+      if (this.wifiService) {
+        this.wifiService.notifyConnectedScreenDisplayed();
+      }
     } else {
       logger.error("Failed to render connected template");
     }
