@@ -58,7 +58,6 @@ export class OnboardingService implements IOnboardingService {
       if (!welcomeResult.success) {
         logger.warn("Failed to display welcome screen, continuing anyway");
       }
-
       // Give user time to read welcome message
       await this.delay(welcomeDelayMs);
 
@@ -102,6 +101,7 @@ export class OnboardingService implements IOnboardingService {
       logger.info("Displaying WiFi instructions...");
       const instructionsResult = await this.displayScreen(
         "onboarding-screens/wifi-instructions.json",
+        { status: "Searching" },
       );
       if (!instructionsResult.success) {
         logger.warn("Failed to display WiFi instructions, continuing anyway");
@@ -119,16 +119,34 @@ export class OnboardingService implements IOnboardingService {
           logger.info(
             `Currently connected to "${currentSSID}", disconnecting to switch networks...`,
           );
+          await this.displayScreen(
+            "onboarding-screens/wifi-instructions.json",
+            {
+              status: `Disconnecting from "${currentSSID}"...`,
+            },
+          );
 
           const disconnectResult = await this.wifiService.disconnect();
 
           if (!disconnectResult.success) {
+            await this.displayScreen(
+              "onboarding-screens/wifi-instructions.json",
+              {
+                status: `Disconnecting from "${currentSSID}" failed...`,
+              },
+            );
             logger.warn(
               `Failed to disconnect from "${currentSSID}":`,
               disconnectResult.error.message,
             );
             logger.info("Will attempt to connect anyway...");
           } else {
+            await this.displayScreen(
+              "onboarding-screens/wifi-instructions.json",
+              {
+                status: `Disconnected from "${currentSSID}"`,
+              },
+            );
             logger.info(`✓ Disconnected from "${currentSSID}"`);
 
             // Wait a moment for NetworkManager to fully disconnect
@@ -143,12 +161,18 @@ export class OnboardingService implements IOnboardingService {
 
       // Step 5: Try to connect to the network
       logger.info('Attempting to connect to "Papertrail-Setup"...');
+      await this.displayScreen("onboarding-screens/wifi-instructions.json", {
+        status: `Connecting to "Papertrail-Setup"...`,
+      });
       const connectResult = await this.wifiService.connect(
         "Papertrail-Setup",
         "papertrail123",
       );
 
       if (!connectResult.success) {
+        await this.displayScreen("onboarding-screens/wifi-instructions.json", {
+          status: `Connecting to "Papertrail-Setup" failed...: ${connectResult.error.message}`,
+        });
         logger.warn(
           "Initial connection attempt failed:",
           connectResult.error.message,
@@ -157,11 +181,17 @@ export class OnboardingService implements IOnboardingService {
           "Will continue waiting for automatic connection (network has autoconnect enabled)",
         );
       } else {
+        await this.displayScreen("onboarding-screens/wifi-instructions.json", {
+          status: `Connected to "Papertrail-Setup"...`,
+        });
         logger.info('Successfully initiated connection to "Papertrail-Setup"');
       }
 
       // Step 6: Wait for WiFi connection to be established
       logger.info("Waiting for WiFi connection to be established...");
+      // await this.displayScreen("onboarding-screens/wifi-instructions.json", {
+      //   status: `Waiting for wifi connection to be established...`,
+      // });
       const connected = await this.waitForWiFiConnection(wifiTimeoutMs);
 
       if (!connected) {
@@ -248,13 +278,13 @@ export class OnboardingService implements IOnboardingService {
       const templateJson = fs.readFileSync(fullPath, "utf-8");
       const template = JSON.parse(templateJson) as TextTemplate;
 
-      const dims = this.epaperService.getDimensions();
+      const { width, height } = this.epaperService.getDimensions();
 
       const result = await renderTextTemplate(
         template,
         variables || {},
-        dims.width,
-        dims.height,
+        width,
+        height,
       );
 
       return result;
@@ -300,6 +330,7 @@ export class OnboardingService implements IOnboardingService {
       }
 
       // Ultimate fallback
+      logger.warn("Could not detect IP address, using default");
       return "http://192.168.1.1:3000";
     } catch (error) {
       logger.warn("Failed to detect IP address:", error);
@@ -374,10 +405,11 @@ export class OnboardingService implements IOnboardingService {
     const startTime = Date.now();
     const checkInterval = 5000; // Check every 5 seconds
     const targetSSID = "Papertrail-Setup";
-
+    let counter = 0;
     logger.info(`Waiting for connection to "${targetSSID}"...`);
 
     while (Date.now() - startTime < timeoutMs) {
+      counter++;
       // Check current connection details
       const connectionResult = await this.wifiService.getCurrentConnection();
 
@@ -389,9 +421,21 @@ export class OnboardingService implements IOnboardingService {
 
         // Check if connected to the target network
         if (currentSSID === targetSSID) {
+          // await this.displayScreen(
+          //   "onboarding-screens/wifi-instructions.json",
+          //   {
+          //     status: `Connected to "${targetSSID}"`,
+          //   },
+          // );
           logger.info(`✓ Successfully connected to "${targetSSID}" hotspot!`);
           return true;
         } else {
+          // await this.displayScreen(
+          //   "onboarding-screens/wifi-instructions.json",
+          //   {
+          //     status: `Still waiting for "${targetSSID}" (attempt ${counter})`,
+          //   },
+          // );
           logger.warn(
             `Connected to "${currentSSID}" but waiting for "${targetSSID}"`,
           );
