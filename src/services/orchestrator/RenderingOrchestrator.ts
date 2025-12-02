@@ -161,9 +161,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
-      logger.info(
-        `GPS position update received: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-      );
+      // logger.info(
+      //   `GPS position update received: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+      // );
 
       // Notify all GPS update callbacks
       this.gpsUpdateCallbacks.forEach((callback) => {

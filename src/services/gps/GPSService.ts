@@ -373,12 +373,12 @@ export class GPSService implements IGPSService {
     // Example: $GPGGA sentence contains position data
     // Format: $GPGGA,time,lat,N/S,lon,E/W,quality,satellites,hdop,altitude,M,geoid,M,age,station*checksum
     if (sentence.startsWith("$GPGGA") || sentence.startsWith("$GNGGA")) {
-      logger.info(`Processing ${sentence.substring(0, 6)} sentence`);
+      // logger.info(`Processing ${sentence.substring(0, 6)} sentence`);
       const parts = sentence.split(",");
 
       // Need at least fix quality and satellites (index 7)
       if (parts.length < 8) {
-        logger.warn("Incomplete NMEA sentence, skipping");
+        // logger.warn("Incomplete NMEA sentence, skipping");
         return;
       }
 
@@ -391,9 +391,9 @@ export class GPSService implements IGPSService {
       // Parse HDOP (index 8) if available
       const hdop = parts[8] ? parseFloat(parts[8]) || 99.9 : 99.9;
 
-      logger.info(
-        `GPS data: fix=${fixQuality}, satellites=${satellitesInUse}, HDOP=${hdop.toFixed(1)}`,
-      );
+      // logger.info(
+      //   `GPS data: fix=${fixQuality}, satellites=${satellitesInUse}, HDOP=${hdop.toFixed(1)}`,
+      // );
 
       // Check if status has changed
       const statusChanged =
@@ -403,7 +403,7 @@ export class GPSService implements IGPSService {
         Math.abs(this.currentStatus.hdop - hdop) > 0.1;
 
       if (statusChanged) {
-        logger.info("GPS status changed, updating...");
+        // logger.info("GPS status changed, updating...");
         const newStatus: GPSStatus = {
           fixQuality: fixQuality as GPSFixQuality,
           satellitesInUse,
@@ -426,9 +426,9 @@ export class GPSService implements IGPSService {
     // Example: $GPGSA sentence contains satellite status
     if (sentence.startsWith("$GPGSA") || sentence.startsWith("$GNGSA")) {
       // TODO: Parse GSA sentence for PDOP, VDOP
-      logger.info(
-        `Received ${sentence.substring(0, 6)} sentence (not fully parsed yet)`,
-      );
+      // logger.info(
+      //   `Received ${sentence.substring(0, 6)} sentence (not fully parsed yet)`,
+      // );
     }
   }
 
@@ -437,15 +437,15 @@ export class GPSService implements IGPSService {
    */
   private updatePosition(position: GPSCoordinate): void {
     this.currentPosition = position;
-    logger.info(
-      `Position updated: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-    );
+    // logger.info(
+    //   `Position updated: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+    // );
 
     // Notify all position callbacks
     if (this.positionCallbacks.length > 0) {
-      logger.info(
-        `Broadcasting position update to ${this.positionCallbacks.length} callback(s)`,
-      );
+      // logger.info(
+      //   `Broadcasting position update to ${this.positionCallbacks.length} callback(s)`,
+      // );
       this.positionCallbacks.forEach((callback) => {
         try {
           callback(position);
