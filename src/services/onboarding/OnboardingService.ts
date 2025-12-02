@@ -6,15 +6,19 @@ import {
   IConfigService,
   IWiFiService,
   IEpaperService,
-} from "@core/interfaces";
-import { Result, DisplayUpdateMode, Bitmap1Bit, success, failure } from "@core/types";
-import { OnboardingError } from "@core/errors";
-import { getLogger } from "@utils/logger";
-import {
-  renderTextTemplate,
+  ITextRendererService,
   TextTemplate,
   TemplateVariables,
-} from "@utils/textRenderer";
+} from "@core/interfaces";
+import {
+  Result,
+  DisplayUpdateMode,
+  Bitmap1Bit,
+  success,
+  failure,
+} from "@core/types";
+import { OnboardingError } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("OnboardingService");
 
@@ -27,6 +31,7 @@ export class OnboardingService implements IOnboardingService {
     private configService: IConfigService,
     private wifiService: IWiFiService,
     private epaperService: IEpaperService,
+    private textRendererService: ITextRendererService,
   ) {}
 
   async isOnboardingRequired(): Promise<Result<boolean>> {
@@ -279,7 +284,7 @@ export class OnboardingService implements IOnboardingService {
 
       const { width, height } = this.epaperService.getDimensions();
 
-      const result = await renderTextTemplate(
+      const result = await this.textRendererService.renderTemplate(
         template,
         variables || {},
         width,

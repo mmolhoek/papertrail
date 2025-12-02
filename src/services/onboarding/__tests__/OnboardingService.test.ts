@@ -1,5 +1,10 @@
 import { OnboardingService } from "../OnboardingService";
-import { IConfigService, IWiFiService, IEpaperService } from "@core/interfaces";
+import {
+  IConfigService,
+  IWiFiService,
+  IEpaperService,
+  ITextRendererService,
+} from "@core/interfaces";
 import { success, failure, DisplayUpdateMode } from "@core/types";
 import { OnboardingError, WiFiError, DisplayError } from "@core/errors";
 
@@ -17,6 +22,7 @@ describe("OnboardingService", () => {
   let mockConfigService: jest.Mocked<IConfigService>;
   let mockWiFiService: jest.Mocked<IWiFiService>;
   let mockEpaperService: jest.Mocked<IEpaperService>;
+  let mockTextRendererService: jest.Mocked<ITextRendererService>;
 
   beforeEach(() => {
     // Reset the EPD mock to default state
@@ -75,10 +81,27 @@ describe("OnboardingService", () => {
       reset: jest.fn().mockResolvedValue(success(undefined)),
     } as any;
 
+    mockTextRendererService = {
+      initialize: jest.fn().mockResolvedValue(success(undefined)),
+      dispose: jest.fn().mockResolvedValue(undefined),
+      renderTemplate: jest.fn().mockResolvedValue(
+        success({
+          width: 800,
+          height: 480,
+          data: new Uint8Array(48000),
+          metadata: {
+            createdAt: new Date(),
+            description: "Rendered text template",
+          },
+        }),
+      ),
+    } as any;
+
     onboardingService = new OnboardingService(
       mockConfigService,
       mockWiFiService,
       mockEpaperService,
+      mockTextRendererService,
     );
   });
 
@@ -152,9 +175,9 @@ describe("OnboardingService", () => {
 
       // Verify e-paper display was called for all screens
       // welcome.bmp uses displayBitmapFromFile (1 call)
-      // wifi-instructions.json and connected.json use displayBitmap (2 calls)
+      // wifi-instructions.json (initial + status updates) and connected.json use displayBitmap (4 calls)
       expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(1);
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(2);
+      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(4);
     });
 
     it("should handle WiFi connection timeout gracefully", async () => {
@@ -171,9 +194,9 @@ describe("OnboardingService", () => {
 
       // Should have displayed welcome and instructions (but not connected screen)
       // welcome.bmp uses displayBitmapFromFile (1 call)
-      // wifi-instructions.json uses displayBitmap (1 call)
+      // wifi-instructions.json with status updates uses displayBitmap (3 calls)
       expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(1);
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(1);
+      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(3);
     });
 
     it("should continue if WiFi config save fails", async () => {
@@ -350,9 +373,9 @@ describe("OnboardingService", () => {
       expect(result.success).toBe(true);
       // Should have displayed all three screens
       // welcome.bmp uses displayBitmapFromFile (1 call)
-      // wifi-instructions.json and connected.json use displayBitmap (2 calls)
+      // wifi-instructions.json (initial + status updates) and connected.json use displayBitmap (4 calls)
       expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(1);
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(2);
+      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(4);
     });
 
     it("should poll for WiFi connection periodically", async () => {
@@ -383,9 +406,9 @@ describe("OnboardingService", () => {
       expect(callCount).toBeGreaterThanOrEqual(2);
       // Should have displayed all three screens
       // welcome.bmp uses displayBitmapFromFile (1 call)
-      // wifi-instructions.json and connected.json use displayBitmap (2 calls)
+      // wifi-instructions.json (initial + status updates) and connected.json use displayBitmap (4 calls)
       expect(mockEpaperService.displayBitmapFromFile).toHaveBeenCalledTimes(1);
-      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(2);
+      expect(mockEpaperService.displayBitmap).toHaveBeenCalledTimes(4);
     }, 15000); // Increase timeout to 15 seconds to allow for polling
   });
 
@@ -402,6 +425,7 @@ describe("OnboardingService", () => {
         mockConfigService,
         mockWiFiService,
         mockEpaperService,
+        mockTextRendererService,
       );
 
       // Should continue despite missing images

@@ -7,6 +7,7 @@ import {
   IRenderingOrchestrator,
   IWiFiService,
   IOnboardingService,
+  ITextRendererService,
 } from "@core/interfaces";
 import {
   WebConfig,
@@ -26,6 +27,7 @@ import { SVGService } from "@services/svg/SVGService";
 import { ConfigService } from "@services/config/ConfigService";
 import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
 import { OnboardingService } from "@services/onboarding/OnboardingService";
+import { TextRendererService } from "@services/textRenderer/TextRendererService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -48,6 +50,7 @@ export class ServiceContainer {
     orchestrator?: IRenderingOrchestrator;
     wifi?: IWiFiService;
     onboarding?: IOnboardingService;
+    textRenderer?: ITextRendererService;
   } = {};
 
   private constructor() {}
@@ -192,9 +195,20 @@ export class ServiceContainer {
         this.getConfigService(),
         this.getWiFiService(),
         this.getEpaperService(),
+        this.getTextRendererService(),
       );
     }
     return this.services.onboarding;
+  }
+
+  /**
+   * Get Text Renderer Service
+   */
+  getTextRendererService(): ITextRendererService {
+    if (!this.services.textRenderer) {
+      this.services.textRenderer = new TextRendererService();
+    }
+    return this.services.textRenderer;
   }
 
   // Configuration getters
@@ -348,5 +362,12 @@ export class ServiceContainer {
    */
   setOnboardingService(service: IOnboardingService): void {
     this.services.onboarding = service;
+  }
+
+  /**
+   * Set Text Renderer Service (for testing)
+   */
+  setTextRendererService(service: ITextRendererService): void {
+    this.services.textRenderer = service;
   }
 }

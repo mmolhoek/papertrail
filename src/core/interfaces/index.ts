@@ -14,3 +14,4 @@ export * from "./IRenderingOrchestrator";
 export * from "./IWebInterfaceService";
 export * from "./IWiFiService";
 export * from "./IOnboardingService";
+export * from "./ITextRendererService";
