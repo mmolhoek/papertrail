@@ -6,7 +6,6 @@ import {
   IConfigService,
   IRenderingOrchestrator,
   IWiFiService,
-  IOnboardingService,
   ITextRendererService,
 } from "@core/interfaces";
 import {
@@ -26,7 +25,6 @@ import { MapService } from "@services/map/MapService";
 import { SVGService } from "@services/svg/SVGService";
 import { ConfigService } from "@services/config/ConfigService";
 import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
-import { OnboardingService } from "@services/onboarding/OnboardingService";
 import { TextRendererService } from "@services/textRenderer/TextRendererService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
@@ -49,7 +47,6 @@ export class ServiceContainer {
     config?: IConfigService;
     orchestrator?: IRenderingOrchestrator;
     wifi?: IWiFiService;
-    onboarding?: IOnboardingService;
     textRenderer?: ITextRendererService;
   } = {};
 
@@ -161,6 +158,8 @@ export class ServiceContainer {
         this.getSVGService(),
         this.getEpaperService(),
         this.getConfigService(),
+        this.getWiFiService(),
+        this.getTextRendererService(),
       );
     }
     return this.services.orchestrator;
@@ -173,32 +172,18 @@ export class ServiceContainer {
   getWiFiService(): IWiFiService {
     if (!this.services.wifi) {
       const config = this.getWiFiConfig();
+      const configService = this.getConfigService();
       // Use mock service on non-Linux systems
       if (process.platform !== "linux") {
-        this.services.wifi = new MockWiFiService(config);
+        this.services.wifi = new MockWiFiService(config, configService);
       } else {
         // Lazy import to avoid loading nmcli dependencies on non-Linux platforms
         const { WiFiService } =
           require("@services/wifi/WiFiService") as typeof import("@services/wifi/WiFiService");
-        this.services.wifi = new WiFiService(config);
+        this.services.wifi = new WiFiService(config, configService);
       }
     }
     return this.services.wifi;
-  }
-
-  /**
-   * Get Onboarding Service
-   */
-  getOnboardingService(): IOnboardingService {
-    if (!this.services.onboarding) {
-      this.services.onboarding = new OnboardingService(
-        this.getConfigService(),
-        this.getWiFiService(),
-        this.getEpaperService(),
-        this.getTextRendererService(),
-      );
-    }
-    return this.services.onboarding;
   }
 
   /**
@@ -355,13 +340,6 @@ export class ServiceContainer {
    */
   setWiFiService(service: IWiFiService): void {
     this.services.wifi = service;
-  }
-
-  /**
-   * Set Onboarding Service (for testing)
-   */
-  setOnboardingService(service: IOnboardingService): void {
-    this.services.onboarding = service;
   }
 
   /**

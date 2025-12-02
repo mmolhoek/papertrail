@@ -5,17 +5,22 @@ import {
   ISVGService,
   IEpaperService,
   IConfigService,
+  IWiFiService,
+  ITextRendererService,
+  TextTemplate,
 } from "@core/interfaces";
 import {
   Result,
   GPSCoordinate,
   GPSStatus,
   SystemStatus,
+  WiFiState,
   success,
   failure,
 } from "@core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import * as os from "os";
 
 const logger = getLogger("RenderingOrchestrator");
 
@@ -35,12 +40,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private gpsUnsubscribe: (() => void) | null = null;
   private gpsStatusUnsubscribe: (() => void) | null = null;
 
+  // WiFi state management
+  private wifiStateCallbacks: Array<
+    (state: WiFiState, previousState: WiFiState) => void
+  > = [];
+  private wifiStateUnsubscribe: (() => void) | null = null;
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
     private readonly svgService: ISVGService,
     private readonly epaperService: IEpaperService,
     private readonly configService: IConfigService,
+    private readonly wifiService?: IWiFiService,
+    private readonly textRendererService?: ITextRendererService,
   ) {}
 
   /**
@@ -87,6 +100,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         );
       }
       logger.info("✓ EpaperService initialized");
+      // show the logo on the e-paper display
+      logger.info("Displaying startup logo...");
+      const logoResult = await this.epaperService.displayLogo();
+      if (!logoResult.success) {
+        logger.error("Failed to display startup logo:", logoResult.error);
+        return failure(
+          OrchestratorError.initFailed("StartupLogo", logoResult.error),
+        );
+      }
+      logger.info("✓ Startup logo displayed");
 
       // Start GPS tracking
       logger.info("Starting GPS tracking...");
@@ -100,6 +123,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       // Subscribe to GPS status changes from the GPS service
       logger.info("Subscribing to GPS status changes...");
       this.subscribeToGPSStatusChanges();
+
+      // Subscribe to WiFi state changes (if WiFi service provided)
+      if (this.wifiService) {
+        logger.info("Subscribing to WiFi state changes...");
+        this.subscribeToWiFiStateChanges();
+      }
 
       this.isInitialized = true;
       logger.info("✓ RenderingOrchestrator initialization complete");
@@ -719,6 +748,29 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Register a callback for WiFi state changes
+   */
+  onWiFiStateChange(
+    callback: (state: WiFiState, previousState: WiFiState) => void,
+  ): () => void {
+    this.wifiStateCallbacks.push(callback);
+    logger.info(
+      `WiFi state callback registered (total: ${this.wifiStateCallbacks.length})`,
+    );
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.wifiStateCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.wifiStateCallbacks.splice(index, 1);
+        logger.info(
+          `WiFi state callback unregistered (total: ${this.wifiStateCallbacks.length})`,
+        );
+      }
+    };
+  }
+
+  /**
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {
@@ -738,6 +790,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.gpsStatusUnsubscribe = null;
     }
 
+    // Unsubscribe from WiFi state changes
+    if (this.wifiStateUnsubscribe) {
+      logger.info("Unsubscribing from WiFi state changes");
+      this.wifiStateUnsubscribe();
+      this.wifiStateUnsubscribe = null;
+    }
+
     // Stop auto-update if running
     logger.info("Stopping auto-update if running");
     this.stopAutoUpdate();
@@ -747,12 +806,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.gpsUpdateCallbacks.length +
       this.gpsStatusCallbacks.length +
       this.displayUpdateCallbacks.length +
-      this.errorCallbacks.length;
+      this.errorCallbacks.length +
+      this.wifiStateCallbacks.length;
     logger.info(`Clearing ${totalCallbacks} registered callbacks`);
     this.gpsUpdateCallbacks = [];
     this.gpsStatusCallbacks = [];
     this.displayUpdateCallbacks = [];
     this.errorCallbacks = [];
+    this.wifiStateCallbacks = [];
 
     // Dispose all services
     logger.info("Disposing GPS service");
@@ -802,5 +863,313 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         logger.error("Error in error callback:", err);
       }
     });
+  }
+
+  /**
+   * Subscribe to WiFi state changes from the WiFi service
+   * and forward them to all registered callbacks
+   */
+  private subscribeToWiFiStateChanges(): void {
+    if (!this.wifiService) {
+      return;
+    }
+
+    if (this.wifiStateUnsubscribe) {
+      logger.info("Unsubscribing from existing WiFi state changes");
+      this.wifiStateUnsubscribe();
+    }
+
+    this.wifiStateUnsubscribe = this.wifiService.onStateChange(
+      (state, previousState) => {
+        logger.info(`WiFi state changed: ${previousState} -> ${state}`);
+
+        // Handle display updates based on WiFi state
+        void this.handleWiFiStateChange(state, previousState);
+
+        // Notify all WiFi state callbacks
+        this.wifiStateCallbacks.forEach((callback) => {
+          try {
+            callback(state, previousState);
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : String(error);
+            logger.error(`Error in WiFi state callback: ${errorMsg}`);
+            this.notifyError(
+              error instanceof Error
+                ? error
+                : new Error("Unknown error in WiFi state callback"),
+            );
+          }
+        });
+      },
+    );
+
+    logger.info(
+      `Subscribed to WiFi state changes (${this.wifiStateCallbacks.length} callbacks registered)`,
+    );
+  }
+
+  /**
+   * Handle WiFi state changes by displaying appropriate screens
+   */
+  private async handleWiFiStateChange(
+    state: WiFiState,
+    previousState: WiFiState,
+  ): Promise<void> {
+    if (!this.textRendererService || !this.epaperService) {
+      logger.warn(
+        "TextRendererService or EpaperService not available for WiFi screens",
+      );
+      return;
+    }
+
+    try {
+      switch (state) {
+        case WiFiState.WAITING_FOR_HOTSPOT:
+          await this.displayWiFiInstructionsScreen();
+          break;
+
+        case WiFiState.CONNECTED:
+          if (previousState !== WiFiState.CONNECTED) {
+            await this.displayConnectedScreen();
+          }
+          break;
+
+        case WiFiState.RECONNECTING_FALLBACK:
+          await this.displayReconnectingScreen();
+          break;
+
+        case WiFiState.ERROR:
+          logger.warn("WiFi entered error state");
+          break;
+
+        default:
+          // No display action needed for other states
+          break;
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to display WiFi state screen: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Display WiFi instructions screen on e-paper
+   */
+  private async displayWiFiInstructionsScreen(): Promise<void> {
+    if (!this.textRendererService || !this.wifiService) {
+      return;
+    }
+
+    const ssid = this.wifiService.getMobileHotspotSSID();
+
+    const template: TextTemplate = {
+      version: "1.0",
+      title: "WiFi Setup",
+      layout: {
+        backgroundColor: "white",
+        textColor: "black",
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      },
+      textBlocks: [
+        {
+          content: "Please create a mobile hotspot",
+          fontSize: 28,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 30,
+        },
+        {
+          content: `Network Name: ${ssid}`,
+          fontSize: 22,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 15,
+        },
+        {
+          content: "Password: papertrail123",
+          fontSize: 22,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 40,
+        },
+        {
+          content: "Connecting...",
+          fontSize: 18,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 0,
+        },
+      ],
+    };
+
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const renderResult = await this.textRendererService.renderTemplate(
+      template,
+      { ssid },
+      width,
+      height,
+    );
+
+    if (renderResult.success) {
+      await this.epaperService.displayBitmap(renderResult.data);
+      logger.info("Displayed WiFi instructions screen");
+    } else {
+      logger.error("Failed to render WiFi instructions template");
+    }
+  }
+
+  /**
+   * Display connected screen with device URL on e-paper
+   */
+  private async displayConnectedScreen(): Promise<void> {
+    if (!this.textRendererService) {
+      return;
+    }
+
+    const deviceUrl = this.getDeviceUrl();
+
+    const template: TextTemplate = {
+      version: "1.0",
+      title: "Connected",
+      layout: {
+        backgroundColor: "white",
+        textColor: "black",
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      },
+      textBlocks: [
+        {
+          content: "Connected!",
+          fontSize: 32,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 40,
+        },
+        {
+          content: "Open your browser and go to:",
+          fontSize: 20,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 20,
+        },
+        {
+          content: deviceUrl,
+          fontSize: 24,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 40,
+        },
+        {
+          content: "to access the Papertrail interface",
+          fontSize: 18,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 0,
+        },
+      ],
+    };
+
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const renderResult = await this.textRendererService.renderTemplate(
+      template,
+      { url: deviceUrl },
+      width,
+      height,
+    );
+
+    if (renderResult.success) {
+      await this.epaperService.displayBitmap(renderResult.data);
+      logger.info(`Displayed connected screen with URL: ${deviceUrl}`);
+    } else {
+      logger.error("Failed to render connected template");
+    }
+  }
+
+  /**
+   * Display reconnecting screen on e-paper
+   */
+  private async displayReconnectingScreen(): Promise<void> {
+    if (!this.textRendererService) {
+      return;
+    }
+
+    const fallback = this.configService.getWiFiFallbackNetwork();
+    const ssid = fallback?.ssid || "previous network";
+
+    const template: TextTemplate = {
+      version: "1.0",
+      title: "Reconnecting",
+      layout: {
+        backgroundColor: "white",
+        textColor: "black",
+        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+      },
+      textBlocks: [
+        {
+          content: "Connection timed out",
+          fontSize: 28,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 30,
+        },
+        {
+          content: `Reconnecting to: ${ssid}`,
+          fontSize: 20,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 20,
+        },
+        {
+          content: "Please wait...",
+          fontSize: 18,
+          fontWeight: "normal",
+          alignment: "center",
+          marginBottom: 0,
+        },
+      ],
+    };
+
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const renderResult = await this.textRendererService.renderTemplate(
+      template,
+      { ssid },
+      width,
+      height,
+    );
+
+    if (renderResult.success) {
+      await this.epaperService.displayBitmap(renderResult.data);
+      logger.info("Displayed reconnecting screen");
+    } else {
+      logger.error("Failed to render reconnecting template");
+    }
+  }
+
+  /**
+   * Get the device URL for web interface access
+   */
+  private getDeviceUrl(): string {
+    const config = this.configService.getConfig();
+    const port = config.web.port;
+
+    // Try to get IP address from network interfaces
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      const iface = interfaces[name];
+      if (!iface) continue;
+
+      for (const info of iface) {
+        // Skip IPv6 and internal (loopback) addresses
+        if (info.family === "IPv4" && !info.internal) {
+          return `http://${info.address}:${port}`;
+        }
+      }
+    }
+
+    // Fallback to localhost
+    return `http://192.168.4.1:${port}`;
   }
 }

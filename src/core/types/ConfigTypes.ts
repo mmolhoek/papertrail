@@ -1,6 +1,7 @@
 import { GPSConfig } from "./GPSTypes";
 import { EpaperConfig } from "./DisplayTypes";
 import { RenderOptions } from "./DisplayTypes";
+import { FallbackNetworkConfig } from "./WiFiTypes";
 
 /**
  * Application-wide configuration
@@ -161,6 +162,9 @@ export type UserState = {
     longitude: number;
     createdAt: string;
   }>;
+
+  /** WiFi fallback network configuration (persisted) */
+  wifiFallbackNetwork?: FallbackNetworkConfig;
 };
 
 /**

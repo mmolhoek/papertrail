@@ -1,4 +1,10 @@
-import { Result, AppConfig, UserState, RenderOptions } from "@core/types";
+import {
+  Result,
+  AppConfig,
+  UserState,
+  RenderOptions,
+  FallbackNetworkConfig,
+} from "@core/types";
 
 /**
  * Config Service Interface
@@ -171,6 +177,20 @@ export interface IConfigService {
    * @param completed Whether onboarding is complete
    */
   setOnboardingCompleted(completed: boolean): void;
+
+  // WiFi fallback network management
+
+  /**
+   * Get the stored WiFi fallback network configuration
+   * @returns FallbackNetworkConfig or undefined if not set
+   */
+  getWiFiFallbackNetwork(): FallbackNetworkConfig | undefined;
+
+  /**
+   * Set the WiFi fallback network configuration
+   * @param config FallbackNetworkConfig to store, or null to clear
+   */
+  setWiFiFallbackNetwork(config: FallbackNetworkConfig | null): void;
 
   // Persistence
 

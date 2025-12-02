@@ -6,6 +6,7 @@ import {
   AppConfig,
   UserState,
   RenderOptions,
+  FallbackNetworkConfig,
   success,
   failure,
 } from "../../core/types";
@@ -222,6 +223,20 @@ export class ConfigService implements IConfigService {
     }
   }
 
+  // WiFi fallback network management
+
+  getWiFiFallbackNetwork(): FallbackNetworkConfig | undefined {
+    return this.userState.wifiFallbackNetwork;
+  }
+
+  setWiFiFallbackNetwork(config: FallbackNetworkConfig | null): void {
+    if (config === null) {
+      this.userState.wifiFallbackNetwork = undefined;
+    } else {
+      this.userState.wifiFallbackNetwork = config;
+    }
+  }
+
   // Persistence
 
   async save(): Promise<Result<void>> {
@@ -420,6 +435,7 @@ export class ConfigService implements IConfigService {
       },
       recentFiles: [],
       customWaypoints: [],
+      wifiFallbackNetwork: undefined,
     };
   }
 }

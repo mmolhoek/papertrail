@@ -56,6 +56,42 @@ export class MockEpaperService implements IEpaperService {
     logger.info("Mock E-Paper Service initialized");
     return success(undefined);
   }
+  async displayLogo(
+    mode: DisplayUpdateMode = DisplayUpdateMode.FULL,
+  ): Promise<Result<void>> {
+    if (!this.initialized) {
+      return failure(DisplayError.notInitialized());
+    }
+
+    logger.info("Mock E-Paper: Displaying logo...");
+
+    try {
+      this.busy = true;
+
+      // Simulate logo display delay
+      const updateDelay = mode === DisplayUpdateMode.FULL ? 2000 : 500;
+      await this.delay(updateDelay);
+
+      // Update statistics
+      if (mode === DisplayUpdateMode.FULL) {
+        this.fullRefreshCount++;
+      } else if (mode === DisplayUpdateMode.PARTIAL) {
+        this.partialRefreshCount++;
+      }
+
+      this.lastUpdate = new Date();
+      logger.info("Mock E-Paper: Logo displayed successfully");
+      return success(undefined);
+    } catch (error) {
+      logger.error("Mock E-Paper: Display logo failed:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.updateFailed(error));
+      }
+      return failure(DisplayError.updateFailed(new Error("Unknown error")));
+    } finally {
+      this.busy = false;
+    }
+  }
 
   async dispose(): Promise<void> {
     logger.info("Disposing Mock E-Paper Service...");

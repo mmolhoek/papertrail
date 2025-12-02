@@ -78,7 +78,7 @@ export class EpaperService implements IEpaperService {
   /**
    * Display startup logo on the e-paper screen
    */
-  private async sendLogoToDisplay(): Promise<void> {
+  async displayLogo(): Promise<Result<void>> {
     try {
       logger.info("Loading startup logo");
 
@@ -93,12 +93,12 @@ export class EpaperService implements IEpaperService {
         logger.warn(
           `Logo file not found at ${logoPath}, skipping logo display`,
         );
-        return;
+        return success(undefined);
       }
 
       if (!this.epd) {
         logger.error("EPD not initialized");
-        return;
+        return failure(DisplayError.notInitialized());
       }
 
       // Use EPD's loadImageInBuffer method which handles conversion properly
@@ -129,6 +129,7 @@ export class EpaperService implements IEpaperService {
       logger.error("Error loading or displaying startup logo:", error);
       // Don't throw - logo display failure shouldn't prevent initialization
     }
+    return success(undefined);
   }
 
   /**

@@ -364,6 +364,8 @@ function createMockConfigService(): IConfigService {
     resetToDefaults: jest.fn().mockResolvedValue(success(undefined)),
     exportConfig: jest.fn().mockReturnValue("{}"),
     importConfig: jest.fn().mockReturnValue(success(undefined)),
+    getWiFiFallbackNetwork: jest.fn().mockReturnValue(undefined),
+    setWiFiFallbackNetwork: jest.fn(),
   } as IConfigService;
 }
 

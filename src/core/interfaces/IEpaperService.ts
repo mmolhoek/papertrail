@@ -20,6 +20,13 @@ export interface IEpaperService {
   initialize(): Promise<Result<void>>;
 
   /**
+   * Send logo or splash screen to the display
+   * @param mode Update mode (full, partial, or auto)
+   * @returns Result indicating success or failure
+   */
+  displayLogo(mode?: DisplayUpdateMode): Promise<Result<void>>;
+
+  /**
    * Display a bitmap on the e-paper screen
    * @param bitmap The 1-bit bitmap to display
    * @param mode Update mode (full, partial, or auto)

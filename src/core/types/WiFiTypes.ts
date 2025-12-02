@@ -39,3 +39,48 @@ export type WiFiConfig = {
   scanIntervalMs: number;
   connectionTimeoutMs: number;
 };
+
+/**
+ * WiFi service states for state machine
+ */
+export enum WiFiState {
+  /** Initialized, not actively managing connection */
+  IDLE = "IDLE",
+  /** Scanning for networks */
+  SCANNING = "SCANNING",
+  /** Attempting to connect to mobile hotspot */
+  CONNECTING = "CONNECTING",
+  /** Connected to mobile hotspot */
+  CONNECTED = "CONNECTED",
+  /** Not connected to any network */
+  DISCONNECTED = "DISCONNECTED",
+  /** Prompting user to enable mobile hotspot */
+  WAITING_FOR_HOTSPOT = "WAITING_FOR_HOTSPOT",
+  /** Reconnecting to fallback network after timeout */
+  RECONNECTING_FALLBACK = "RECONNECTING_FALLBACK",
+  /** Error state */
+  ERROR = "ERROR",
+}
+
+/**
+ * WiFi state change event data
+ */
+export type WiFiStateChangeEvent = {
+  state: WiFiState;
+  previousState: WiFiState;
+  timestamp: Date;
+  details?: {
+    ssid?: string;
+    error?: string;
+    remainingTimeMs?: number;
+    ipAddress?: string;
+  };
+};
+
+/**
+ * Fallback network configuration (persisted to config)
+ */
+export type FallbackNetworkConfig = {
+  ssid: string;
+  savedAt: string; // ISO timestamp
+};

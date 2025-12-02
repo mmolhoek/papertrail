@@ -34,38 +34,29 @@ async function main() {
 
     logger.info("✓ Services initialized\n");
 
-    // Check if onboarding is required (first boot)
-    const configService = container.getConfigService();
-    const needsOnboarding = !configService.isOnboardingCompleted();
+    // Initialize WiFi service (state machine handles connection management)
+    logger.info("Initializing WiFi service...");
+    const wifiService = container.getWiFiService();
+    const wifiInitResult = await wifiService.initialize();
 
-    if (needsOnboarding) {
-      logger.info("📱 First boot detected - starting onboarding...");
-
-      // Initialize WiFi service for onboarding
-      const wifiService = container.getWiFiService();
-      const wifiInitResult = await wifiService.initialize();
-
-      if (!isSuccess(wifiInitResult)) {
-        logger.error(
-          "Failed to initialize WiFi service:",
-          wifiInitResult.error.message,
-        );
-        logger.warn("Onboarding will continue without WiFi setup");
-      }
-
-      const onboardingService = container.getOnboardingService();
-
-      // Start onboarding flow (non-blocking)
-      onboardingService.startOnboarding().catch((error) => {
-        logger.error("Onboarding failed:", error);
-        logger.info("User can complete setup manually via web interface");
-      });
+    if (!isSuccess(wifiInitResult)) {
+      logger.error(
+        "Failed to initialize WiFi service:",
+        wifiInitResult.error.message,
+      );
+      logger.warn("WiFi connection management will not be available");
+    } else {
+      logger.info("✓ WiFi service initialized\n");
     }
 
     // Create and start web interface
     logger.info("Starting web interface...");
     const webConfig = container.getWebConfig();
-    const webService = new IntegratedWebService(orchestrator, webConfig);
+    const webService = new IntegratedWebService(
+      orchestrator,
+      webConfig,
+      wifiService,
+    );
 
     const webResult = await webService.start();
     if (!isSuccess(webResult)) {

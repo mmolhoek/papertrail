@@ -96,6 +96,7 @@ describe("RenderingOrchestrator", () => {
 
     mockEpaper = {
       initialize: jest.fn(),
+      displayLogo: jest.fn(),
       displayBitmap: jest.fn(),
       displayBitmapFromFile: jest.fn(),
       clear: jest.fn(),
@@ -151,6 +152,8 @@ describe("RenderingOrchestrator", () => {
       resetToDefaults: jest.fn(),
       exportConfig: jest.fn(),
       importConfig: jest.fn(),
+      getWiFiFallbackNetwork: jest.fn().mockReturnValue(undefined),
+      setWiFiFallbackNetwork: jest.fn(),
     };
 
     orchestrator = new RenderingOrchestrator(
@@ -171,6 +174,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
 
       const result = await orchestrator.initialize();
@@ -217,6 +221,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
 
       await orchestrator.initialize();
@@ -232,6 +237,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -307,6 +313,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -341,6 +348,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -359,6 +367,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
 
@@ -391,6 +400,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -435,6 +445,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -514,6 +525,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
       await orchestrator.initialize();
     });
@@ -558,6 +570,7 @@ describe("RenderingOrchestrator", () => {
       mockConfig.initialize.mockResolvedValue(success(undefined));
       mockGPS.initialize.mockResolvedValue(success(undefined));
       mockEpaper.initialize.mockResolvedValue(success(undefined));
+      mockEpaper.displayLogo.mockResolvedValue(success(undefined));
       mockGPS.startTracking.mockResolvedValue(success(undefined));
 
       await orchestrator.initialize();

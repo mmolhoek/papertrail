@@ -3,7 +3,11 @@ import http from "http";
 import path from "path";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Result, success, failure, WebConfig } from "../core/types";
-import { IRenderingOrchestrator, IWebInterfaceService } from "@core/interfaces";
+import {
+  IRenderingOrchestrator,
+  IWebInterfaceService,
+  IWiFiService,
+} from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 import { getLogger } from "../utils/logger";
@@ -32,11 +36,15 @@ export class IntegratedWebService implements IWebInterfaceService {
   private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
+  private wifiStateUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
     hdop: number;
   } | null = null;
+
+  // Client count tracking for WiFi mode awareness
+  private connectedClientCount = 0;
 
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
@@ -50,6 +58,7 @@ export class IntegratedWebService implements IWebInterfaceService {
         enabled: true,
       },
     },
+    private readonly wifiService?: IWiFiService,
   ) {
     this.app = express();
     this.controller = new WebController(orchestrator);
@@ -356,9 +365,23 @@ export class IntegratedWebService implements IWebInterfaceService {
     this.io.on("connection", (socket: Socket) => {
       logger.debug("Client connected:", socket.id);
 
+      // Track client count for WiFi mode awareness
+      this.connectedClientCount++;
+      this.notifyWiFiServiceClientCount();
+      logger.info(
+        `WebSocket client connected. Total clients: ${this.connectedClientCount}`,
+      );
+
       // Handle disconnection
       socket.on("disconnect", () => {
         logger.debug("Client disconnected:", socket.id);
+
+        // Update client count
+        this.connectedClientCount = Math.max(0, this.connectedClientCount - 1);
+        this.notifyWiFiServiceClientCount();
+        logger.info(
+          `WebSocket client disconnected. Total clients: ${this.connectedClientCount}`,
+        );
       });
 
       // Ping/pong for connection health
@@ -382,6 +405,15 @@ export class IntegratedWebService implements IWebInterfaceService {
         await this.orchestrator.updateDisplay();
       });
     });
+  }
+
+  /**
+   * Notify WiFi service of current client count
+   */
+  private notifyWiFiServiceClientCount(): void {
+    if (this.wifiService) {
+      this.wifiService.setWebSocketClientCount(this.connectedClientCount);
+    }
   }
 
   /**
@@ -458,6 +490,21 @@ export class IntegratedWebService implements IWebInterfaceService {
         message: error.message,
       });
     });
+
+    // Subscribe to WiFi state changes (if WiFi service provided)
+    if (this.wifiService) {
+      this.wifiStateUnsubscribe = this.wifiService.onStateChange(
+        (state, previousState) => {
+          logger.debug(`Broadcasting WiFi state: ${previousState} -> ${state}`);
+          this.broadcast("wifi:state", {
+            state,
+            previousState,
+            mode: this.wifiService?.getMode(),
+            ssid: this.wifiService?.getMobileHotspotSSID(),
+          });
+        },
+      );
+    }
   }
 
   /**
@@ -482,6 +529,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.errorUnsubscribe) {
       this.errorUnsubscribe();
       this.errorUnsubscribe = null;
+    }
+
+    if (this.wifiStateUnsubscribe) {
+      this.wifiStateUnsubscribe();
+      this.wifiStateUnsubscribe = null;
     }
   }
 }

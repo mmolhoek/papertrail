@@ -13,6 +13,8 @@ export enum WiFiErrorCode {
   ALREADY_CONNECTED = "WIFI_ALREADY_CONNECTED",
   NOT_CONNECTED = "WIFI_NOT_CONNECTED",
   INVALID_PASSWORD = "WIFI_INVALID_PASSWORD",
+  HOTSPOT_CONNECTION_TIMEOUT = "WIFI_HOTSPOT_CONNECTION_TIMEOUT",
+  FALLBACK_RECONNECT_FAILED = "WIFI_FALLBACK_RECONNECT_FAILED",
   UNKNOWN = "WIFI_UNKNOWN",
 }
 
@@ -131,6 +133,30 @@ export class WiFiError extends BaseError {
       "Invalid WiFi password format",
       WiFiErrorCode.INVALID_PASSWORD,
       true,
+    );
+  }
+
+  /**
+   * Mobile hotspot connection timed out
+   */
+  static hotspotConnectionTimeout(ssid: string, timeoutMs: number): WiFiError {
+    return new WiFiError(
+      `Failed to connect to mobile hotspot "${ssid}" after ${timeoutMs}ms`,
+      WiFiErrorCode.HOTSPOT_CONNECTION_TIMEOUT,
+      true,
+      { ssid, timeoutMs },
+    );
+  }
+
+  /**
+   * Failed to reconnect to fallback network
+   */
+  static fallbackReconnectFailed(ssid: string, error: Error): WiFiError {
+    return new WiFiError(
+      `Failed to reconnect to fallback network "${ssid}": ${error.message}`,
+      WiFiErrorCode.FALLBACK_RECONNECT_FAILED,
+      true,
+      { ssid, originalError: error.message },
     );
   }
 

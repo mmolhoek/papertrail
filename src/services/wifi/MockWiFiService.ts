@@ -1,10 +1,11 @@
-import { IWiFiService } from "../../core/interfaces";
+import { IWiFiService, WiFiMode, IConfigService } from "../../core/interfaces";
 import {
   Result,
   WiFiNetwork,
   WiFiConnection,
   WiFiNetworkConfig,
   WiFiConfig,
+  WiFiState,
 } from "../../core/types";
 import { success, failure } from "../../core/types";
 import { WiFiError } from "../../core/errors";
@@ -14,7 +15,8 @@ const logger = getLogger("MockWiFiService");
 
 /**
  * Mock WiFi Service for development and testing
- * Simulates WiFi operations without requiring actual WiFi hardware or nmcli
+ * Simulates WiFi operations without requiring actual WiFi hardware or nmcli.
+ * Includes state machine for mobile hotspot connection management.
  */
 export class MockWiFiService implements IWiFiService {
   private initialized = false;
@@ -23,7 +25,17 @@ export class MockWiFiService implements IWiFiService {
   private savedNetworks: Map<string, WiFiNetworkConfig> = new Map();
   private connectionChangeCallbacks: Array<(connected: boolean) => void> = [];
 
-  constructor(private config: WiFiConfig) {
+  // State machine fields
+  private currentState: WiFiState = WiFiState.IDLE;
+  private webSocketClientCount = 0;
+  private stateChangeCallbacks: Array<
+    (state: WiFiState, previousState: WiFiState) => void
+  > = [];
+
+  constructor(
+    private config: WiFiConfig,
+    private configService?: IConfigService,
+  ) {
     logger.info("Mock WiFi Service created (for development/testing)");
   }
 
@@ -43,6 +55,9 @@ export class MockWiFiService implements IWiFiService {
     this.connected = false;
     this.currentConnection = null;
     this.connectionChangeCallbacks = [];
+    this.stateChangeCallbacks = [];
+    this.currentState = WiFiState.IDLE;
+    this.webSocketClientCount = 0;
   }
 
   async scanNetworks(): Promise<Result<WiFiNetwork[]>> {
@@ -204,6 +219,123 @@ export class MockWiFiService implements IWiFiService {
         this.connectionChangeCallbacks.splice(index, 1);
       }
     };
+  }
+
+  // State machine methods
+
+  getState(): WiFiState {
+    return this.currentState;
+  }
+
+  async isConnectedToMobileHotspot(): Promise<Result<boolean>> {
+    if (!this.initialized) {
+      return failure(WiFiError.unknown("WiFi service not initialized"));
+    }
+
+    const isHotspot = this.currentConnection?.ssid === this.config.primarySSID;
+    return success(isHotspot);
+  }
+
+  onStateChange(
+    callback: (state: WiFiState, previousState: WiFiState) => void,
+  ): () => void {
+    this.stateChangeCallbacks.push(callback);
+
+    // Return unsubscribe function
+    return () => {
+      const index = this.stateChangeCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.stateChangeCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  // Mode awareness methods
+
+  setWebSocketClientCount(count: number): void {
+    const previousCount = this.webSocketClientCount;
+    this.webSocketClientCount = count;
+
+    logger.debug(
+      `Mock: WebSocket client count changed: ${previousCount} -> ${count}`,
+    );
+
+    // Simulate mode change behavior
+    if (previousCount === 0 && count > 0) {
+      logger.info("Mock: Entered stopped mode (WebSocket clients connected)");
+      // In mock, we can simulate being connected to hotspot already
+      if (!this.connected) {
+        this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+      }
+    }
+
+    if (previousCount > 0 && count === 0) {
+      logger.info("Mock: Entered driving mode (no WebSocket clients)");
+      if (
+        this.currentState === WiFiState.WAITING_FOR_HOTSPOT ||
+        this.currentState === WiFiState.CONNECTING
+      ) {
+        this.setState(WiFiState.IDLE);
+      }
+    }
+  }
+
+  getMode(): WiFiMode {
+    return this.webSocketClientCount > 0 ? "stopped" : "driving";
+  }
+
+  async attemptMobileHotspotConnection(): Promise<Result<void>> {
+    logger.info(
+      `Mock: Attempting to connect to mobile hotspot "${this.config.primarySSID}"...`,
+    );
+
+    this.setState(WiFiState.CONNECTING);
+    await this.delay(1000);
+
+    // Simulate successful connection
+    this.connected = true;
+    this.currentConnection = {
+      ssid: this.config.primarySSID,
+      ipAddress: "192.168.4.2",
+      macAddress: "AA:BB:CC:DD:EE:FF",
+      signalStrength: 85,
+      connectedAt: new Date(),
+    };
+
+    this.setState(WiFiState.CONNECTED);
+    logger.info(
+      `Mock: Successfully connected to mobile hotspot "${this.config.primarySSID}"`,
+    );
+
+    return success(undefined);
+  }
+
+  getMobileHotspotSSID(): string {
+    return this.config.primarySSID;
+  }
+
+  // Private helper methods
+
+  private setState(newState: WiFiState): void {
+    if (newState === this.currentState) {
+      return;
+    }
+
+    const previousState = this.currentState;
+    this.currentState = newState;
+
+    logger.info(`Mock: WiFi state changed: ${previousState} -> ${newState}`);
+    this.notifyStateChange(newState, previousState);
+  }
+
+  private notifyStateChange(state: WiFiState, previousState: WiFiState): void {
+    for (const callback of this.stateChangeCallbacks) {
+      try {
+        callback(state, previousState);
+      } catch (error) {
+        logger.error("Error in state change callback:", error);
+      }
+    }
   }
 
   private notifyConnectionChange(connected: boolean): void {
