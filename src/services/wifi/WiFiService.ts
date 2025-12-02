@@ -45,6 +45,7 @@ export class WiFiService implements IWiFiService {
   private hotspotCheckInterval?: NodeJS.Timeout;
   private connectionAttemptInProgress = false;
   private connectionAttemptAbortController?: AbortController;
+  private connectedStateEnteredAt?: Date; // Track when we entered CONNECTED state for grace period
 
   constructor(
     private config: WiFiConfig,
@@ -693,13 +694,43 @@ export class WiFiService implements IWiFiService {
       ])) as Result<void>;
 
       if (result.success) {
-        logger.info(`Successfully connected to mobile hotspot "${this.config.primarySSID}"!`);
-        logger.info("Setting state to CONNECTED");
-        this.setState(WiFiState.CONNECTED);
-        // Clear fallback network on successful connection
-        logger.info("Clearing fallback network from config...");
-        await this.clearFallbackNetwork();
-        return success(undefined);
+        logger.info(`nmcli reports successful connection to "${this.config.primarySSID}"`);
+
+        // Wait a moment for the connection to stabilize, then verify
+        logger.info("Waiting 2 seconds for connection to stabilize...");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+
+        // Verify we're actually connected to the hotspot
+        logger.info("Verifying connection to hotspot...");
+        const verifyResult = await this.isConnectedToMobileHotspot();
+
+        if (verifyResult.success && verifyResult.data) {
+          logger.info(`Verified: Successfully connected to mobile hotspot "${this.config.primarySSID}"!`);
+          logger.info("Setting state to CONNECTED");
+          this.setState(WiFiState.CONNECTED);
+          // Clear fallback network on successful connection
+          logger.info("Clearing fallback network from config...");
+          await this.clearFallbackNetwork();
+          return success(undefined);
+        } else {
+          logger.warn(`Connection verification failed - not actually connected to "${this.config.primarySSID}"`);
+          // Try one more time with a longer wait
+          logger.info("Waiting 3 more seconds and retrying verification...");
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          const retryVerify = await this.isConnectedToMobileHotspot();
+          if (retryVerify.success && retryVerify.data) {
+            logger.info(`Retry verified: Successfully connected to mobile hotspot "${this.config.primarySSID}"!`);
+            logger.info("Setting state to CONNECTED");
+            this.setState(WiFiState.CONNECTED);
+            logger.info("Clearing fallback network from config...");
+            await this.clearFallbackNetwork();
+            return success(undefined);
+          } else {
+            logger.error(`Connection verification failed after retry - connection may have failed`);
+            throw new Error("CONNECTION_VERIFY_FAILED");
+          }
+        }
       } else {
         logger.info("Connection failed - throwing error");
         throw result.error;
@@ -735,6 +766,16 @@ export class WiFiService implements IWiFiService {
               this.config.primarySSID,
               HOTSPOT_CONNECTION_TIMEOUT_MS,
             ),
+          );
+        }
+
+        if (error.message === "CONNECTION_VERIFY_FAILED") {
+          logger.warn("Connection verification failed - nmcli reported success but we couldn't verify the connection");
+          // Go back to WAITING_FOR_HOTSPOT to try again on next poll
+          logger.info("Setting state to WAITING_FOR_HOTSPOT to retry");
+          this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+          return failure(
+            WiFiError.connectionFailed(this.config.primarySSID, error),
           );
         }
       }
@@ -861,6 +902,14 @@ export class WiFiService implements IWiFiService {
     const previousState = this.currentState;
     this.currentState = newState;
 
+    // Track when we enter CONNECTED state for grace period
+    if (newState === WiFiState.CONNECTED) {
+      this.connectedStateEnteredAt = new Date();
+      logger.info(`Entered CONNECTED state at ${this.connectedStateEnteredAt.toISOString()}`);
+    } else {
+      this.connectedStateEnteredAt = undefined;
+    }
+
     logger.info(`WiFi state transition: ${previousState} -> ${newState}`);
     logger.info(`Notifying ${this.stateChangeCallbacks.length} state change callbacks...`);
     this.notifyStateChange(newState, previousState);
@@ -919,7 +968,11 @@ export class WiFiService implements IWiFiService {
         logger.info("Updating state to CONNECTED");
         this.setState(WiFiState.CONNECTED);
       } else {
-        logger.info("State already CONNECTED, no change needed");
+        // State is already CONNECTED, but notify callbacks anyway to allow
+        // the orchestrator to retry displaying the connected screen
+        // (in case it failed on the first attempt due to IP not being ready)
+        logger.info("State already CONNECTED - notifying callbacks to allow display retry");
+        this.notifyStateChange(WiFiState.CONNECTED, WiFiState.CONNECTED);
       }
       logger.info("handleHotspotPollingTick() complete");
       return;
@@ -928,9 +981,21 @@ export class WiFiService implements IWiFiService {
     logger.info("Not connected to mobile hotspot");
 
     // If we were previously connected to the hotspot but now aren't, we lost connection
-    // Transition to WAITING_FOR_HOTSPOT to show the instruction screen
+    // Use a grace period to avoid false disconnection detection due to timing issues
     if (this.currentState === WiFiState.CONNECTED) {
-      logger.info("Was CONNECTED to hotspot but now disconnected - transitioning to WAITING_FOR_HOTSPOT");
+      const gracePeriodMs = 5000; // 5 seconds grace period after entering CONNECTED
+      const now = new Date();
+      const connectedDuration = this.connectedStateEnteredAt
+        ? now.getTime() - this.connectedStateEnteredAt.getTime()
+        : Infinity;
+
+      if (connectedDuration < gracePeriodMs) {
+        logger.info(`In CONNECTED state for ${connectedDuration}ms (grace period: ${gracePeriodMs}ms) - skipping disconnection check`);
+        logger.info("handleHotspotPollingTick() complete (within grace period)");
+        return;
+      }
+
+      logger.info(`Was CONNECTED for ${connectedDuration}ms (past grace period) but now disconnected - transitioning to WAITING_FOR_HOTSPOT`);
       this.setState(WiFiState.WAITING_FOR_HOTSPOT);
       // Don't return - continue to check if we should attempt reconnection
     }

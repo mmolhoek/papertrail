@@ -51,6 +51,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private lastWifiScreenUpdate: number = 0;
   private static readonly WIFI_SCREEN_DEBOUNCE_MS = 5000; // 5 seconds minimum between updates
 
+  // Track if connected screen was successfully displayed (for retry logic)
+  private connectedScreenDisplayed: boolean = false;
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -1021,7 +1024,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           break;
 
         case WiFiState.CONNECTED:
+          // Display connected screen on first transition to CONNECTED,
+          // or retry if previous display attempt failed (e.g., IP wasn't ready)
           if (previousState !== WiFiState.CONNECTED) {
+            // First transition to CONNECTED - reset flag and display
+            this.connectedScreenDisplayed = false;
+            await this.displayConnectedScreen();
+            this.lastWifiScreenUpdate = now;
+          } else if (!this.connectedScreenDisplayed) {
+            // Retry: state was already CONNECTED but screen wasn't displayed yet
+            logger.info("Retrying connected screen display (previous attempt may have failed)");
             await this.displayConnectedScreen();
             this.lastWifiScreenUpdate = now;
           }
@@ -1202,6 +1214,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         DisplayUpdateMode.FULL,
       );
       logger.info(`Displayed connected screen with URL: ${deviceUrl}`);
+      // Mark that we successfully displayed the connected screen
+      this.connectedScreenDisplayed = true;
     } else {
       logger.error("Failed to render connected template");
     }
