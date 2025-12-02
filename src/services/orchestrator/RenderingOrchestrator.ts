@@ -1063,16 +1063,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       layout: {
         backgroundColor: "white",
         textColor: "black",
-        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+        padding: { top: 150, right: 20, bottom: 20, left: 20 },
       },
       textBlocks: [
-        {
-          content: "",
-          fontSize: 28,
-          fontWeight: "bold",
-          alignment: "center",
-          marginBottom: 100,
-        },
         {
           content: "Please create a mobile hotspot",
           fontSize: 28,
@@ -1160,16 +1153,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       layout: {
         backgroundColor: "white",
         textColor: "black",
-        padding: { top: 20, right: 20, bottom: 20, left: 20 },
+        padding: { top: 150, right: 20, bottom: 20, left: 20 },
       },
       textBlocks: [
-        {
-          content: "",
-          fontSize: 28,
-          fontWeight: "bold",
-          alignment: "center",
-          marginBottom: 100,
-        },
         {
           content: "Connected!",
           fontSize: 32,

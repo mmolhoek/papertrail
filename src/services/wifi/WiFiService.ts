@@ -597,6 +597,34 @@ export class WiFiService implements IWiFiService {
     return mode;
   }
 
+  /**
+   * Check if a specific network is visible (without disconnecting from current network)
+   */
+  async isNetworkVisible(ssid: string): Promise<Result<boolean>> {
+    logger.info(`isNetworkVisible() checking for SSID: "${ssid}"`);
+
+    try {
+      // Trigger a scan and get results (this doesn't disconnect)
+      const { stdout } = await execAsync(
+        "sudo nmcli device wifi rescan && sudo nmcli -t -f SSID device wifi list",
+      );
+
+      const lines = stdout.trim().split("\n");
+      const foundNetworks = lines.filter((line) => line.trim() === ssid);
+
+      if (foundNetworks.length > 0) {
+        logger.info(`Network "${ssid}" is visible`);
+        return success(true);
+      } else {
+        logger.info(`Network "${ssid}" is NOT visible`);
+        return success(false);
+      }
+    } catch (error) {
+      logger.error(`Failed to scan for network "${ssid}":`, error);
+      return success(false); // Assume not visible on error
+    }
+  }
+
   async attemptMobileHotspotConnection(): Promise<Result<void>> {
     logger.info("attemptMobileHotspotConnection() called");
 
@@ -612,7 +640,21 @@ export class WiFiService implements IWiFiService {
     logger.info("Connection attempt started, abort controller created");
 
     try {
-      logger.info(`Attempting to connect to mobile hotspot "${this.config.primarySSID}"...`);
+      logger.info(`Checking if mobile hotspot "${this.config.primarySSID}" is visible...`);
+
+      // First check if the hotspot is visible WITHOUT disconnecting
+      const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+      if (!visibleResult.success || !visibleResult.data) {
+        logger.info(`Mobile hotspot "${this.config.primarySSID}" is not visible - skipping connection attempt`);
+        this.connectionAttemptInProgress = false;
+        this.connectionAttemptAbortController = undefined;
+        // Stay in current state - don't change anything
+        return failure(
+          WiFiError.networkNotFound(this.config.primarySSID),
+        );
+      }
+
+      logger.info(`Mobile hotspot "${this.config.primarySSID}" is visible - proceeding with connection`);
       logger.info(`Timeout set to ${HOTSPOT_CONNECTION_TIMEOUT_MS}ms`);
 
       logger.info("Setting state to CONNECTING");
@@ -885,6 +927,14 @@ export class WiFiService implements IWiFiService {
 
     logger.info("Not connected to mobile hotspot");
 
+    // If we were previously connected to the hotspot but now aren't, we lost connection
+    // Transition to WAITING_FOR_HOTSPOT to show the instruction screen
+    if (this.currentState === WiFiState.CONNECTED) {
+      logger.info("Was CONNECTED to hotspot but now disconnected - transitioning to WAITING_FOR_HOTSPOT");
+      this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+      // Don't return - continue to check if we should attempt reconnection
+    }
+
     // Check if we're in stopped mode (WebSocket clients connected)
     if (this.webSocketClientCount > 0) {
       logger.info("In STOPPED mode (WebSocket clients connected)");
@@ -895,38 +945,52 @@ export class WiFiService implements IWiFiService {
         this.setState(WiFiState.IDLE);
       }
 
-      // We're in stopped mode but not connected to hotspot
+      // If we're actively connecting or reconnecting, don't interfere
       if (
-        this.currentState !== WiFiState.WAITING_FOR_HOTSPOT &&
-        this.currentState !== WiFiState.CONNECTING &&
-        this.currentState !== WiFiState.RECONNECTING_FALLBACK
+        this.currentState === WiFiState.CONNECTING ||
+        this.currentState === WiFiState.RECONNECTING_FALLBACK
       ) {
-        logger.info("Not in a transitional state - initiating hotspot connection sequence");
-        // Save current connection as fallback before trying to connect to hotspot
-        logger.info("Saving current connection as fallback...");
-        await this.saveFallbackNetwork();
-
-        // Enter waiting state
-        logger.info("Entering WAITING_FOR_HOTSPOT state");
-        this.setState(WiFiState.WAITING_FOR_HOTSPOT);
-
-        // Wait a few seconds then attempt connection
-        logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
-        setTimeout(() => {
-          logger.info("Hotspot connection delay elapsed - checking conditions...");
-          // Only attempt if still in stopped mode and waiting state
-          if (
-            this.webSocketClientCount > 0 &&
-            this.currentState === WiFiState.WAITING_FOR_HOTSPOT
-          ) {
-            logger.info("Conditions met - initiating hotspot connection attempt");
-            void this.attemptMobileHotspotConnection();
-          } else {
-            logger.info(`Conditions not met (clients: ${this.webSocketClientCount}, state: ${this.currentState}) - skipping connection attempt`);
-          }
-        }, HOTSPOT_CONNECTION_DELAY_MS);
-      } else {
         logger.info(`Already in transitional state (${this.currentState}) - not initiating new connection`);
+      } else {
+        // We're in IDLE, DISCONNECTED, or WAITING_FOR_HOTSPOT - check if hotspot is visible
+        logger.info("Checking if hotspot is visible...");
+        const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+
+        if (!visibleResult.success || !visibleResult.data) {
+          logger.info(`Hotspot "${this.config.primarySSID}" not visible - staying connected to current network`);
+          // Make sure we're in WAITING_FOR_HOTSPOT state to show the instruction screen
+          if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
+            logger.info("Setting state to WAITING_FOR_HOTSPOT to show instruction screen");
+            this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+          }
+          // Wait for next poll
+        } else {
+          logger.info("Hotspot is visible - initiating connection sequence");
+          // Save current connection as fallback before trying to connect to hotspot
+          logger.info("Saving current connection as fallback...");
+          await this.saveFallbackNetwork();
+
+          // Enter waiting state if not already
+          if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
+            logger.info("Entering WAITING_FOR_HOTSPOT state");
+            this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+          }
+
+          // Short delay then attempt connection
+          logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
+          setTimeout(() => {
+            logger.info("Hotspot connection delay elapsed - checking conditions...");
+            if (
+              this.webSocketClientCount > 0 &&
+              this.currentState === WiFiState.WAITING_FOR_HOTSPOT
+            ) {
+              logger.info("Conditions met - initiating hotspot connection attempt");
+              void this.attemptMobileHotspotConnection();
+            } else {
+              logger.info(`Conditions not met (clients: ${this.webSocketClientCount}, state: ${this.currentState}) - skipping connection attempt`);
+            }
+          }, HOTSPOT_CONNECTION_DELAY_MS);
+        }
       }
     } else {
       logger.info("In DRIVING mode (no WebSocket clients)");
@@ -945,31 +1009,48 @@ export class WiFiService implements IWiFiService {
           this.setState(WiFiState.IDLE);
         }
 
+        // If we're actively connecting or reconnecting, don't interfere
         if (
-          this.currentState !== WiFiState.WAITING_FOR_HOTSPOT &&
-          this.currentState !== WiFiState.CONNECTING &&
-          this.currentState !== WiFiState.RECONNECTING_FALLBACK
+          this.currentState === WiFiState.CONNECTING ||
+          this.currentState === WiFiState.RECONNECTING_FALLBACK
         ) {
-          logger.info("Initiating hotspot connection for onboarding...");
-          // Save current connection as fallback
-          await this.saveFallbackNetwork();
-
-          // Enter waiting state
-          this.setState(WiFiState.WAITING_FOR_HOTSPOT);
-
-          // Wait a few seconds then attempt connection
-          logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
-          setTimeout(() => {
-            logger.info("Hotspot connection delay elapsed (onboarding) - checking conditions...");
-            if (this.currentState === WiFiState.WAITING_FOR_HOTSPOT) {
-              logger.info("Conditions met - initiating hotspot connection attempt for onboarding");
-              void this.attemptMobileHotspotConnection();
-            } else {
-              logger.info(`State changed to ${this.currentState} - skipping connection attempt`);
-            }
-          }, HOTSPOT_CONNECTION_DELAY_MS);
-        } else {
           logger.info(`Already in transitional state (${this.currentState}) - not initiating new connection`);
+        } else {
+          // We're in IDLE, DISCONNECTED, or WAITING_FOR_HOTSPOT - check if hotspot is visible
+          logger.info("Checking if hotspot is visible (onboarding)...");
+          const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+
+          if (!visibleResult.success || !visibleResult.data) {
+            logger.info(`Hotspot "${this.config.primarySSID}" not visible - staying connected to current network (onboarding)`);
+            // Make sure we're in WAITING_FOR_HOTSPOT state to show the instruction screen
+            if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
+              logger.info("Setting state to WAITING_FOR_HOTSPOT to show instruction screen (onboarding)");
+              this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+            }
+            // Wait for next poll
+          } else {
+            logger.info("Hotspot is visible - initiating connection sequence for onboarding...");
+            // Save current connection as fallback
+            await this.saveFallbackNetwork();
+
+            // Enter waiting state if not already
+            if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
+              logger.info("Entering WAITING_FOR_HOTSPOT state (onboarding)");
+              this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+            }
+
+            // Wait a few seconds then attempt connection
+            logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
+            setTimeout(() => {
+              logger.info("Hotspot connection delay elapsed (onboarding) - checking conditions...");
+              if (this.currentState === WiFiState.WAITING_FOR_HOTSPOT) {
+                logger.info("Conditions met - initiating hotspot connection attempt for onboarding");
+                void this.attemptMobileHotspotConnection();
+              } else {
+                logger.info(`State changed to ${this.currentState} - skipping connection attempt`);
+              }
+            }, HOTSPOT_CONNECTION_DELAY_MS);
+          }
         }
       } else {
         // Normal driving mode - just monitor, don't try to connect
