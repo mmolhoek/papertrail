@@ -892,13 +892,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Stop any existing interval
     this.stopGPSInfoRefresh();
 
-    // Display immediately
-    void this.displaySelectTrackScreen();
+    // Display immediately with full update
+    void this.displaySelectTrackScreen(true);
 
-    // Set up refresh interval
+    // Set up refresh interval with auto update
     this.gpsInfoRefreshInterval = setInterval(() => {
       logger.info("GPS info refresh tick - updating select track screen");
-      void this.displaySelectTrackScreen();
+      void this.displaySelectTrackScreen(false);
     }, RenderingOrchestrator.GPS_INFO_REFRESH_INTERVAL_MS);
 
     logger.info(
@@ -919,8 +919,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
   /**
    * Display the "select track" screen with GPS info
+   * @param fullUpdate Whether to do a full display update (true for first display, false for refresh)
    */
-  private async displaySelectTrackScreen(): Promise<void> {
+  private async displaySelectTrackScreen(fullUpdate: boolean): Promise<void> {
     if (!this.textRendererService || !this.epaperService) {
       logger.warn(
         "TextRendererService or EpaperService not available for select track screen",
@@ -1026,11 +1027,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(
-        renderResult.data,
-        DisplayUpdateMode.FULL,
+      const updateMode = fullUpdate
+        ? DisplayUpdateMode.FULL
+        : DisplayUpdateMode.AUTO;
+      await this.epaperService.displayBitmap(renderResult.data, updateMode);
+      logger.info(
+        `Displayed select track screen with GPS info (${fullUpdate ? "full" : "auto"} update)`,
       );
-      logger.info("Displayed select track screen with GPS info");
     } else {
       logger.error("Failed to render select track template");
     }
@@ -1343,20 +1346,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         {
           content: `Network Name: ${ssid}`,
           fontSize: 22,
-          fontWeight: "normal",
+          fontWeight: "bold",
           alignment: "center",
           marginBottom: 15,
         },
         {
           content: "Password: papertrail123",
           fontSize: 22,
-          fontWeight: "normal",
+          fontWeight: "bold",
           alignment: "center",
           marginBottom: 40,
         },
         {
-          content: "Connecting...",
-          fontSize: 18,
+          content: `...Searching for ${ssid}...`,
+          fontSize: 22,
           fontWeight: "normal",
           alignment: "center",
           marginBottom: 0,
@@ -1432,7 +1435,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: "Open your browser and go to:",
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: "normal",
           alignment: "center",
           marginBottom: 20,
@@ -1446,7 +1449,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: "to access the Papertrail interface",
-          fontSize: 18,
+          fontSize: 24,
           fontWeight: "normal",
           alignment: "center",
           marginBottom: 0,
