@@ -47,6 +47,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   > = [];
   private wifiStateUnsubscribe: (() => void) | null = null;
 
+  // Debouncing for WiFi screen updates (prevent flickering)
+  private lastWifiScreenUpdate: number = 0;
+  private static readonly WIFI_SCREEN_DEBOUNCE_MS = 5000; // 5 seconds minimum between updates
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -993,24 +997,44 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
+    // Debounce screen updates to prevent flickering
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this.lastWifiScreenUpdate;
+
+    // Allow immediate update for CONNECTED state (important to show URL)
+    // But debounce other states to prevent flickering
+    if (
+      state !== WiFiState.CONNECTED &&
+      timeSinceLastUpdate < RenderingOrchestrator.WIFI_SCREEN_DEBOUNCE_MS
+    ) {
+      logger.info(
+        `WiFi screen update debounced (${timeSinceLastUpdate}ms since last update)`,
+      );
+      return;
+    }
+
     try {
       switch (state) {
         case WiFiState.WAITING_FOR_HOTSPOT:
           await this.displayWiFiInstructionsScreen();
+          this.lastWifiScreenUpdate = now;
           break;
 
         case WiFiState.CONNECTED:
           if (previousState !== WiFiState.CONNECTED) {
             await this.displayConnectedScreen();
+            this.lastWifiScreenUpdate = now;
           }
           break;
 
         case WiFiState.RECONNECTING_FALLBACK:
           await this.displayReconnectingScreen();
+          this.lastWifiScreenUpdate = now;
           break;
 
         case WiFiState.ERROR:
           logger.warn("WiFi entered error state");
+          // Don't update timestamp for ERROR - let other screens show
           break;
 
         default:
@@ -1108,7 +1132,27 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
+    // Verify we're actually connected to the hotspot before showing
+    if (this.wifiService) {
+      const connectedResult =
+        await this.wifiService.isConnectedToMobileHotspot();
+      if (!connectedResult.success || !connectedResult.data) {
+        logger.warn(
+          "displayConnectedScreen called but not connected to hotspot - skipping",
+        );
+        return;
+      }
+    }
+
     const deviceUrl = this.getDeviceUrl();
+
+    // Don't show connected screen if we don't have a valid IP
+    if (deviceUrl.includes("localhost")) {
+      logger.warn(
+        "displayConnectedScreen called but no valid IP address - skipping",
+      );
+      return;
+    }
 
     const template: TextTemplate = {
       version: "1.0",
