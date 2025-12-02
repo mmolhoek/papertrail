@@ -408,12 +408,16 @@ export class IntegratedWebService implements IWebInterfaceService {
   }
 
   /**
-   * Notify WiFi service of current client count
+   * Notify services of current client count
+   * - WiFi service: for mode awareness (stopped/driving)
+   * - Orchestrator: for "select track" screen display
    */
   private notifyWiFiServiceClientCount(): void {
     if (this.wifiService) {
       this.wifiService.setWebSocketClientCount(this.connectedClientCount);
     }
+    // Notify orchestrator to show/hide the "select track" screen
+    this.orchestrator.setWebSocketClientCount(this.connectedClientCount);
   }
 
   /**

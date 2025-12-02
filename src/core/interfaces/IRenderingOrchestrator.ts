@@ -152,6 +152,14 @@ export interface IRenderingOrchestrator {
   checkAndShowOnboardingScreen(): Promise<Result<void>>;
 
   /**
+   * Set the number of connected WebSocket clients
+   * When clients connect, shows the "select track" screen with GPS info
+   * When all clients disconnect, returns to the connected screen
+   * @param count Number of connected WebSocket clients
+   */
+  setWebSocketClientCount(count: number): void;
+
+  /**
    * Clean up resources and shut down all services
    */
   dispose(): Promise<void>;

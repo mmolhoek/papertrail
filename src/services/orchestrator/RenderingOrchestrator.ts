@@ -54,6 +54,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // Track if connected screen was successfully displayed (for retry logic)
   private connectedScreenDisplayed: boolean = false;
 
+  // WebSocket client tracking for "select track" screen
+  private webSocketClientCount: number = 0;
+  private gpsInfoRefreshInterval: NodeJS.Timeout | null = null;
+  private lastGPSPosition: GPSCoordinate | null = null;
+  private lastGPSStatus: GPSStatus | null = null;
+  private static readonly GPS_INFO_REFRESH_INTERVAL_MS = 15000; // 15 seconds
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -169,9 +176,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
-      // logger.info(
-      //   `GPS position update received: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-      // );
+      // Store latest position for GPS info screen
+      this.lastGPSPosition = position;
 
       // Notify all GPS update callbacks
       this.gpsUpdateCallbacks.forEach((callback) => {
@@ -206,6 +212,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     this.gpsStatusUnsubscribe = this.gpsService.onStatusChange((status) => {
+      // Store latest status for GPS info screen
+      this.lastGPSStatus = status;
+
       logger.info(
         `GPS status changed: ${status.fixQuality} (${status.satellitesInUse} satellites)`,
       );
@@ -848,10 +857,254 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Set the number of connected WebSocket clients
+   * Shows "select track" screen when clients connect, returns to connected screen when all disconnect
+   */
+  setWebSocketClientCount(count: number): void {
+    const previousCount = this.webSocketClientCount;
+    this.webSocketClientCount = count;
+
+    logger.info(`WebSocket client count changed: ${previousCount} -> ${count}`);
+
+    // Transition: 0 -> 1+ clients (first client connected)
+    if (previousCount === 0 && count > 0) {
+      logger.info(
+        "First WebSocket client connected - showing select track screen",
+      );
+      this.startGPSInfoRefresh();
+    }
+
+    // Transition: 1+ -> 0 clients (last client disconnected)
+    if (previousCount > 0 && count === 0) {
+      logger.info(
+        "Last WebSocket client disconnected - returning to connected screen",
+      );
+      this.stopGPSInfoRefresh();
+      // Show the connected screen again
+      void this.displayConnectedScreen();
+    }
+  }
+
+  /**
+   * Start the GPS info refresh interval
+   */
+  private startGPSInfoRefresh(): void {
+    // Stop any existing interval
+    this.stopGPSInfoRefresh();
+
+    // Display immediately
+    void this.displaySelectTrackScreen();
+
+    // Set up refresh interval
+    this.gpsInfoRefreshInterval = setInterval(() => {
+      logger.info("GPS info refresh tick - updating select track screen");
+      void this.displaySelectTrackScreen();
+    }, RenderingOrchestrator.GPS_INFO_REFRESH_INTERVAL_MS);
+
+    logger.info(
+      `Started GPS info refresh (every ${RenderingOrchestrator.GPS_INFO_REFRESH_INTERVAL_MS}ms)`,
+    );
+  }
+
+  /**
+   * Stop the GPS info refresh interval
+   */
+  private stopGPSInfoRefresh(): void {
+    if (this.gpsInfoRefreshInterval) {
+      clearInterval(this.gpsInfoRefreshInterval);
+      this.gpsInfoRefreshInterval = null;
+      logger.info("Stopped GPS info refresh");
+    }
+  }
+
+  /**
+   * Display the "select track" screen with GPS info
+   */
+  private async displaySelectTrackScreen(): Promise<void> {
+    if (!this.textRendererService || !this.epaperService) {
+      logger.warn(
+        "TextRendererService or EpaperService not available for select track screen",
+      );
+      return;
+    }
+
+    // Build GPS info strings
+    const fixQualityStr = this.getFixQualityString();
+    const satellitesStr = this.lastGPSStatus
+      ? `${this.lastGPSStatus.satellitesInUse} satellites`
+      : "-- satellites";
+    const positionStr = this.getPositionString();
+    const speedStr = this.getSpeedString();
+    const deviceUrl = this.getDeviceUrl();
+
+    const textBlocks: Array<{
+      content: string;
+      fontSize: number;
+      fontWeight: "normal" | "bold";
+      alignment: "left" | "center" | "right";
+      marginBottom: number;
+    }> = [
+      {
+        content: "Select a Track",
+        fontSize: 32,
+        fontWeight: "bold",
+        alignment: "center",
+        marginBottom: 20,
+      },
+      {
+        content: "Use the web interface to choose a GPX track",
+        fontSize: 18,
+        fontWeight: "normal",
+        alignment: "center",
+        marginBottom: 40,
+      },
+      {
+        content: `Fix: ${fixQualityStr}`,
+        fontSize: 20,
+        fontWeight: "normal",
+        alignment: "center",
+        marginBottom: 10,
+      },
+      {
+        content: satellitesStr,
+        fontSize: 20,
+        fontWeight: "normal",
+        alignment: "center",
+        marginBottom: 10,
+      },
+    ];
+
+    // Add position if available
+    if (positionStr) {
+      textBlocks.push({
+        content: positionStr,
+        fontSize: 18,
+        fontWeight: "normal",
+        alignment: "center",
+        marginBottom: 10,
+      });
+    }
+
+    // Add speed if available and moving
+    if (speedStr) {
+      textBlocks.push({
+        content: speedStr,
+        fontSize: 18,
+        fontWeight: "normal",
+        alignment: "center",
+        marginBottom: 10,
+      });
+    }
+
+    // Add URL at the bottom
+    textBlocks.push({
+      content: deviceUrl,
+      fontSize: 16,
+      fontWeight: "normal",
+      alignment: "center",
+      marginBottom: 0,
+    });
+
+    const template: TextTemplate = {
+      version: "1.0",
+      title: "Select Track",
+      layout: {
+        backgroundColor: "white",
+        textColor: "black",
+        padding: { top: 150, right: 20, bottom: 20, left: 20 },
+      },
+      textBlocks,
+    };
+
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const renderResult = await this.textRendererService.renderTemplate(
+      template,
+      {},
+      width,
+      height,
+    );
+
+    if (renderResult.success) {
+      await this.epaperService.displayBitmap(
+        renderResult.data,
+        DisplayUpdateMode.FULL,
+      );
+      logger.info("Displayed select track screen with GPS info");
+    } else {
+      logger.error("Failed to render select track template");
+    }
+  }
+
+  /**
+   * Get human-readable fix quality string
+   */
+  private getFixQualityString(): string {
+    if (!this.lastGPSStatus) {
+      return "No Data";
+    }
+
+    switch (this.lastGPSStatus.fixQuality) {
+      case 0: // NO_FIX
+        return "No Fix";
+      case 1: // GPS_FIX
+        return "GPS Fix";
+      case 2: // DGPS_FIX
+        return "DGPS Fix";
+      case 3: // PPS_FIX
+        return "PPS Fix";
+      case 4: // RTK_FIX
+        return "RTK Fix";
+      case 5: // FLOAT_RTK
+        return "Float RTK";
+      default:
+        return "Fix Available";
+    }
+  }
+
+  /**
+   * Get formatted position string
+   */
+  private getPositionString(): string | null {
+    if (!this.lastGPSPosition) {
+      return null;
+    }
+
+    const lat = this.lastGPSPosition.latitude;
+    const lon = this.lastGPSPosition.longitude;
+    const latDir = lat >= 0 ? "N" : "S";
+    const lonDir = lon >= 0 ? "E" : "W";
+
+    return `${Math.abs(lat).toFixed(5)}°${latDir}, ${Math.abs(lon).toFixed(5)}°${lonDir}`;
+  }
+
+  /**
+   * Get formatted speed string (only if moving)
+   */
+  private getSpeedString(): string | null {
+    if (!this.lastGPSPosition?.speed) {
+      return null;
+    }
+
+    // Speed is in m/s, convert to km/h
+    const speedKmh = this.lastGPSPosition.speed * 3.6;
+
+    // Only show if moving (> 1 km/h)
+    if (speedKmh < 1) {
+      return null;
+    }
+
+    return `Speed: ${speedKmh.toFixed(1)} km/h`;
+  }
+
+  /**
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {
     logger.info("Disposing RenderingOrchestrator...");
+
+    // Stop GPS info refresh
+    this.stopGPSInfoRefresh();
 
     // Unsubscribe from GPS updates
     if (this.gpsUnsubscribe) {
@@ -1033,7 +1286,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             this.lastWifiScreenUpdate = now;
           } else if (!this.connectedScreenDisplayed) {
             // Retry: state was already CONNECTED but screen wasn't displayed yet
-            logger.info("Retrying connected screen display (previous attempt may have failed)");
+            logger.info(
+              "Retrying connected screen display (previous attempt may have failed)",
+            );
             await this.displayConnectedScreen();
             this.lastWifiScreenUpdate = now;
           }

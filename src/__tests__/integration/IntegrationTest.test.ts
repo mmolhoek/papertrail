@@ -307,6 +307,7 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     onDisplayUpdate: jest.fn().mockReturnValue(() => {}),
     onError: jest.fn().mockReturnValue(() => {}),
     checkAndShowOnboardingScreen: jest.fn().mockResolvedValue(success(undefined)),
+    setWebSocketClientCount: jest.fn(),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
 }
