@@ -1337,9 +1337,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       },
       textBlocks: [
         {
-          content: "Please create a mobile hotspot",
-          fontSize: 28,
-          fontWeight: "bold",
+          content:
+            "Please create or activate the following hotspot on your mobile phone",
+          fontSize: 26,
+          fontWeight: "normal",
           alignment: "center",
           marginBottom: 30,
         },
@@ -1359,7 +1360,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         },
         {
           content: `...Searching for ${ssid}...`,
-          fontSize: 22,
+          fontSize: 26,
           fontWeight: "normal",
           alignment: "center",
           marginBottom: 0,
@@ -1426,13 +1427,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         padding: { top: 150, right: 20, bottom: 20, left: 20 },
       },
       textBlocks: [
-        {
-          content: "Connected!",
-          fontSize: 32,
-          fontWeight: "bold",
-          alignment: "center",
-          marginBottom: 40,
-        },
         {
           content: "Open your browser and go to:",
           fontSize: 24,
