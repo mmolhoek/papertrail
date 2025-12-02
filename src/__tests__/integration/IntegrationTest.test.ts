@@ -306,6 +306,7 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     onGPSStatusChange: jest.fn().mockReturnValue(() => {}),
     onDisplayUpdate: jest.fn().mockReturnValue(() => {}),
     onError: jest.fn().mockReturnValue(() => {}),
+    checkAndShowOnboardingScreen: jest.fn().mockResolvedValue(success(undefined)),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
 }

@@ -17,6 +17,7 @@ import {
   WiFiState,
   success,
   failure,
+  DisplayUpdateMode,
 } from "@core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
@@ -771,6 +772,75 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Check if onboarding is needed and show appropriate screen
+   * Call this after all services are initialized (including WiFi)
+   */
+  async checkAndShowOnboardingScreen(): Promise<Result<void>> {
+    logger.info("checkAndShowOnboardingScreen() called");
+
+    if (!this.isInitialized) {
+      logger.warn(
+        "Orchestrator not initialized - cannot show onboarding screen",
+      );
+      return failure(OrchestratorError.notInitialized());
+    }
+
+    // Check if onboarding is already complete
+    const onboardingComplete = this.configService.isOnboardingCompleted();
+    logger.info(`Onboarding complete: ${onboardingComplete}`);
+
+    if (onboardingComplete) {
+      logger.info("Onboarding already complete - no screen to show");
+      return success(undefined);
+    }
+
+    // Check if WiFi service is available
+    if (!this.wifiService) {
+      logger.warn(
+        "WiFi service not available - cannot show WiFi onboarding screen",
+      );
+      return success(undefined);
+    }
+
+    // Check if already connected to mobile hotspot
+    const connectedToHotspotResult =
+      await this.wifiService.isConnectedToMobileHotspot();
+    if (connectedToHotspotResult.success && connectedToHotspotResult.data) {
+      logger.info(
+        "Already connected to mobile hotspot - showing connected screen",
+      );
+      await this.displayConnectedScreen();
+      return success(undefined);
+    }
+
+    // Not connected to hotspot - show WiFi instructions
+    logger.info(
+      "Not connected to mobile hotspot - showing WiFi instructions screen",
+    );
+    await this.displayWiFiInstructionsScreen();
+
+    // Start attempting to connect to the mobile hotspot
+    // This runs in the background while the instructions are displayed
+    logger.info("Starting mobile hotspot connection attempt for onboarding...");
+    void this.wifiService.attemptMobileHotspotConnection().then((result) => {
+      if (result.success) {
+        logger.info(
+          "Successfully connected to mobile hotspot during onboarding!",
+        );
+        // The WiFi state change callback will handle displaying the connected screen
+      } else {
+        logger.warn(
+          "Failed to connect to mobile hotspot during onboarding:",
+          result.error.message,
+        );
+        // Will retry on next polling tick if still in onboarding
+      }
+    });
+
+    return success(undefined);
+  }
+
+  /**
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {
@@ -973,6 +1043,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       },
       textBlocks: [
         {
+          content: "",
+          fontSize: 28,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 100,
+        },
+        {
           content: "Please create a mobile hotspot",
           fontSize: 28,
           fontWeight: "bold",
@@ -1013,7 +1090,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(renderResult.data);
+      await this.epaperService.displayBitmap(
+        renderResult.data,
+        DisplayUpdateMode.FULL,
+      );
       logger.info("Displayed WiFi instructions screen");
     } else {
       logger.error("Failed to render WiFi instructions template");
@@ -1039,6 +1119,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         padding: { top: 20, right: 20, bottom: 20, left: 20 },
       },
       textBlocks: [
+        {
+          content: "",
+          fontSize: 28,
+          fontWeight: "bold",
+          alignment: "center",
+          marginBottom: 100,
+        },
         {
           content: "Connected!",
           fontSize: 32,
@@ -1080,7 +1167,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(renderResult.data);
+      await this.epaperService.displayBitmap(
+        renderResult.data,
+        DisplayUpdateMode.FULL,
+      );
       logger.info(`Displayed connected screen with URL: ${deviceUrl}`);
     } else {
       logger.error("Failed to render connected template");
@@ -1157,19 +1247,26 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     // Try to get IP address from network interfaces
     const interfaces = os.networkInterfaces();
+    logger.info("Getting device URL - scanning network interfaces...");
+
     for (const name of Object.keys(interfaces)) {
       const iface = interfaces[name];
       if (!iface) continue;
 
       for (const info of iface) {
         // Skip IPv6 and internal (loopback) addresses
-        if (info.family === "IPv4" && !info.internal) {
+        // Note: family can be "IPv4" (string) or 4 (number) depending on Node.js version
+        const family = info.family as string | number;
+        const isIPv4 = family === "IPv4" || family === 4;
+        if (isIPv4 && !info.internal) {
+          logger.info(`Found IPv4 address on ${name}: ${info.address}`);
           return `http://${info.address}:${port}`;
         }
       }
     }
 
     // Fallback to localhost
-    return `http://192.168.4.1:${port}`;
+    logger.warn("No IPv4 address found, using fallback");
+    return `http://localhost:${port}`;
   }
 }

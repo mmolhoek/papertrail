@@ -49,6 +49,15 @@ async function main() {
       logger.info("✓ WiFi service initialized\n");
     }
 
+    // Check for onboarding and show appropriate screen on e-paper
+    logger.info("Checking onboarding status...");
+    const onboardingResult = await orchestrator.checkAndShowOnboardingScreen();
+    if (!isSuccess(onboardingResult)) {
+      logger.warn("Failed to show onboarding screen:", onboardingResult.error.message);
+    } else {
+      logger.info("✓ Onboarding screen check complete\n");
+    }
+
     // Create and start web interface
     logger.info("Starting web interface...");
     const webConfig = container.getWebConfig();

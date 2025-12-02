@@ -263,12 +263,39 @@ export class WiFiService implements IWiFiService {
       logger.info(`Attempting to connect to "${ssid}" via nmcli...`);
       logger.info(`Connection timeout set to ${this.config.connectionTimeoutMs}ms`);
 
-      // Use nmcli to connect with a timeout (requires sudo)
-      const command = `sudo nmcli device wifi connect "${ssid}" password "${password}"`;
+      // First, check if a connection profile already exists and delete it
+      logger.info(`Checking if connection profile "${ssid}" already exists...`);
+      const exists = await this.connectionExists(ssid);
+      if (exists) {
+        logger.info(`Deleting existing connection profile "${ssid}"...`);
+        try {
+          await execAsync(`sudo nmcli connection delete "${ssid}"`);
+        } catch {
+          // Ignore errors deleting - might not exist
+        }
+      }
 
-      logger.info("Executing nmcli connect command...");
+      // Create connection profile with explicit WPA-PSK settings
+      logger.info(`Creating connection profile for "${ssid}"...`);
+      const createCommand = [
+        "sudo nmcli connection add",
+        "type wifi",
+        `con-name "${ssid}"`,
+        "ifname wlan0",
+        `ssid "${ssid}"`,
+        "wifi-sec.key-mgmt wpa-psk",
+        `wifi-sec.psk "${password}"`,
+      ].join(" ");
+
+      await execAsync(createCommand);
+      logger.info(`Connection profile created for "${ssid}"`);
+
+      // Activate the connection
+      logger.info(`Activating connection "${ssid}"...`);
+      const activateCommand = `sudo nmcli connection up "${ssid}"`;
+
       const { stdout, stderr } = (await Promise.race([
-        execAsync(command),
+        execAsync(activateCommand),
         this.timeout(this.config.connectionTimeoutMs),
       ])) as { stdout: string; stderr: string };
 
@@ -861,12 +888,18 @@ export class WiFiService implements IWiFiService {
     // Check if we're in stopped mode (WebSocket clients connected)
     if (this.webSocketClientCount > 0) {
       logger.info("In STOPPED mode (WebSocket clients connected)");
+
+      // Allow retry from ERROR state - reset it first
+      if (this.currentState === WiFiState.ERROR) {
+        logger.info("Resetting from ERROR state to allow retry");
+        this.setState(WiFiState.IDLE);
+      }
+
       // We're in stopped mode but not connected to hotspot
       if (
         this.currentState !== WiFiState.WAITING_FOR_HOTSPOT &&
         this.currentState !== WiFiState.CONNECTING &&
-        this.currentState !== WiFiState.RECONNECTING_FALLBACK &&
-        this.currentState !== WiFiState.ERROR
+        this.currentState !== WiFiState.RECONNECTING_FALLBACK
       ) {
         logger.info("Not in a transitional state - initiating hotspot connection sequence");
         // Save current connection as fallback before trying to connect to hotspot
@@ -897,29 +930,72 @@ export class WiFiService implements IWiFiService {
       }
     } else {
       logger.info("In DRIVING mode (no WebSocket clients)");
-      // We're in driving mode - just monitor, don't try to connect
-      // Set state based on current connection
-      logger.info("Checking general connection status...");
-      const connected = await this.isConnected();
-      if (connected.success) {
-        logger.info(`Connected: ${connected.data}`);
-        if (this.currentState === WiFiState.CONNECTED) {
-          // We were connected to hotspot but now not
-          logger.info("Was connected to hotspot but now disconnected - setting state to DISCONNECTED");
-          this.setState(WiFiState.DISCONNECTED);
-        } else if (
-          this.currentState !== WiFiState.IDLE &&
-          this.currentState !== WiFiState.DISCONNECTED
+
+      // Check if onboarding is not complete - if so, we should still try to connect to hotspot
+      const onboardingComplete = this.configService?.isOnboardingCompleted() ?? true;
+      logger.info(`Onboarding complete: ${onboardingComplete}`);
+
+      if (!onboardingComplete) {
+        // During onboarding, we should attempt connection even without WebSocket clients
+        logger.info("Onboarding not complete - should attempt hotspot connection");
+
+        // Allow retry from ERROR state - reset it first
+        if (this.currentState === WiFiState.ERROR) {
+          logger.info("Resetting from ERROR state to allow retry");
+          this.setState(WiFiState.IDLE);
+        }
+
+        if (
+          this.currentState !== WiFiState.WAITING_FOR_HOTSPOT &&
+          this.currentState !== WiFiState.CONNECTING &&
+          this.currentState !== WiFiState.RECONNECTING_FALLBACK
         ) {
-          // Reset to idle/disconnected in driving mode
-          const newState = connected.data ? WiFiState.IDLE : WiFiState.DISCONNECTED;
-          logger.info(`Resetting state in driving mode: ${this.currentState} -> ${newState}`);
-          this.setState(newState);
+          logger.info("Initiating hotspot connection for onboarding...");
+          // Save current connection as fallback
+          await this.saveFallbackNetwork();
+
+          // Enter waiting state
+          this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+
+          // Wait a few seconds then attempt connection
+          logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
+          setTimeout(() => {
+            logger.info("Hotspot connection delay elapsed (onboarding) - checking conditions...");
+            if (this.currentState === WiFiState.WAITING_FOR_HOTSPOT) {
+              logger.info("Conditions met - initiating hotspot connection attempt for onboarding");
+              void this.attemptMobileHotspotConnection();
+            } else {
+              logger.info(`State changed to ${this.currentState} - skipping connection attempt`);
+            }
+          }, HOTSPOT_CONNECTION_DELAY_MS);
         } else {
-          logger.info(`State already appropriate (${this.currentState}) for driving mode`);
+          logger.info(`Already in transitional state (${this.currentState}) - not initiating new connection`);
         }
       } else {
-        logger.info("Failed to check connection status in driving mode");
+        // Normal driving mode - just monitor, don't try to connect
+        // Set state based on current connection
+        logger.info("Checking general connection status...");
+        const connected = await this.isConnected();
+        if (connected.success) {
+          logger.info(`Connected: ${connected.data}`);
+          if (this.currentState === WiFiState.CONNECTED) {
+            // We were connected to hotspot but now not
+            logger.info("Was connected to hotspot but now disconnected - setting state to DISCONNECTED");
+            this.setState(WiFiState.DISCONNECTED);
+          } else if (
+            this.currentState !== WiFiState.IDLE &&
+            this.currentState !== WiFiState.DISCONNECTED
+          ) {
+            // Reset to idle/disconnected in driving mode
+            const newState = connected.data ? WiFiState.IDLE : WiFiState.DISCONNECTED;
+            logger.info(`Resetting state in driving mode: ${this.currentState} -> ${newState}`);
+            this.setState(newState);
+          } else {
+            logger.info(`State already appropriate (${this.currentState}) for driving mode`);
+          }
+        } else {
+          logger.info("Failed to check connection status in driving mode");
+        }
       }
     }
     logger.info("handleHotspotPollingTick() complete");

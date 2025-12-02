@@ -145,6 +145,13 @@ export interface IRenderingOrchestrator {
   onError(callback: (error: Error) => void): () => void;
 
   /**
+   * Check if onboarding is needed and show appropriate screen
+   * Call this after all services are initialized (including WiFi)
+   * @returns Result indicating success or failure
+   */
+  checkAndShowOnboardingScreen(): Promise<Result<void>>;
+
+  /**
    * Clean up resources and shut down all services
    */
   dispose(): Promise<void>;

@@ -79,8 +79,11 @@ export class EpaperService implements IEpaperService {
    * Display startup logo on the e-paper screen
    */
   async displayLogo(): Promise<Result<void>> {
+    logger.info("displayLogo() called");
+    logger.info(`  Working directory: ${process.cwd()}`);
+
     try {
-      logger.info("Loading startup logo");
+      logger.info("Loading startup logo...");
 
       // Construct path to logo file (works in both dev and production)
       const logoPath = path.join(
@@ -88,6 +91,7 @@ export class EpaperService implements IEpaperService {
         "onboarding-screens",
         "welcome.bmp",
       );
+      logger.info(`  Logo path: ${logoPath}`);
 
       if (!fs.existsSync(logoPath)) {
         logger.warn(
@@ -95,14 +99,16 @@ export class EpaperService implements IEpaperService {
         );
         return success(undefined);
       }
+      logger.info("  Logo file exists");
 
       if (!this.epd) {
-        logger.error("EPD not initialized");
+        logger.error("EPD not initialized - cannot display logo");
         return failure(DisplayError.notInitialized());
       }
+      logger.info("  EPD is initialized");
 
       // Use EPD's loadImageInBuffer method which handles conversion properly
-      logger.info(`Loading image from ${logoPath}`);
+      logger.info(`Loading image from ${logoPath}...`);
       const imageBuffer = await this.epd.loadImageInBuffer(logoPath);
       logger.info(
         `Image loaded successfully, buffer size: ${imageBuffer.length} bytes`,
@@ -113,8 +119,10 @@ export class EpaperService implements IEpaperService {
         height: this.config.height,
         data: imageBuffer,
       };
+      logger.info(`  Bitmap dimensions: ${logoBitmap.width}x${logoBitmap.height}`);
 
       // Display the logo using full update mode
+      logger.info("Sending logo bitmap to display (FULL update mode)...");
       const result = await this.displayBitmap(
         logoBitmap,
         DisplayUpdateMode.FULL,
@@ -123,13 +131,15 @@ export class EpaperService implements IEpaperService {
       if (!result.success) {
         logger.error("Failed to display startup logo:", result.error);
       } else {
-        logger.info("Startup logo displayed successfully");
+        logger.info("Startup logo displayed successfully on e-paper!");
       }
+
+      return result;
     } catch (error) {
       logger.error("Error loading or displaying startup logo:", error);
       // Don't throw - logo display failure shouldn't prevent initialization
+      return success(undefined);
     }
-    return success(undefined);
   }
 
   /**
