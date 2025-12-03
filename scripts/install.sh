@@ -26,12 +26,29 @@ echo -e "${BLUE}Project directory: ${PROJECT_DIR}${NC}"
 
 # Detect platform
 IS_PI=false
+IS_CHROOT=false
+
+# Check for chroot environment
+if [ -r /proc/1/root ] && [ -r /proc/1/cwd ]; then
+  if [ "$(stat -c %d:%i /)" != "$(stat -c %d:%i /proc/1/root/.)" ]; then
+    IS_CHROOT=true
+  fi
+fi
+
+# Check for PRoot/Android chroot environment indicators
+if [ -n "$PROOT_TMP_DIR" ] || [ -n "$PREFIX" ] || grep -q "PRoot" /proc/version 2>/dev/null; then
+  IS_CHROOT=true
+fi
 
 if [[ "$(uname -s)" == "Linux" ]] && [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
   IS_PI=true
   echo -e "${BLUE}Platform: Raspberry Pi${NC}"
 else
   echo -e "${BLUE}Platform: $(uname -s) (development mode)${NC}"
+fi
+
+if [ "$IS_CHROOT" = true ]; then
+  echo -e "${YELLOW}Detected chroot environment (native compilation may fail)${NC}"
 fi
 echo ""
 
@@ -214,8 +231,35 @@ fi
 # ALL PLATFORMS: Install npm dependencies
 # =============================================================================
 step "Installing npm dependencies..."
-npm install --production=false
-echo -e "${GREEN}  ✓ Dependencies installed${NC}"
+
+# In chroot environments, skip native dependencies that require compilation
+if [ "$IS_CHROOT" = true ] || [ "$SKIP_NATIVE_DEPS" = "true" ]; then
+  echo -e "${YELLOW}  Chroot environment detected - using special installation${NC}"
+  echo -e "${BLUE}  - Skipping serialport (native GPS module)${NC}"
+  echo -e "${BLUE}  - Installing sharp with WASM support${NC}"
+
+  # Create a temporary package.json without serialport and sharp
+  TEMP_PKG="/tmp/package.json.$$"
+  cat package.json | grep -v '"serialport"' | grep -v '"@serialport/parser-readline"' | grep -v '"sharp"' > "$TEMP_PKG"
+  mv package.json package.json.backup
+  mv "$TEMP_PKG" package.json
+
+  # Install dependencies without native modules
+  npm install --production=false
+
+  # Install sharp with WASM support (works in chroot/Android)
+  echo -e "${BLUE}  Installing sharp with WebAssembly support...${NC}"
+  npm install --cpu=wasm32 sharp
+
+  # Restore original package.json
+  mv package.json.backup package.json
+
+  echo -e "${GREEN}  ✓ Dependencies installed for chroot environment${NC}"
+  echo -e "${BLUE}  Note: MockGPSService will be used automatically${NC}"
+else
+  npm install --production=false
+  echo -e "${GREEN}  ✓ Dependencies installed${NC}"
+fi
 
 # =============================================================================
 # ALL PLATFORMS: Build the project

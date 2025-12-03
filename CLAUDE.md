@@ -271,6 +271,58 @@ USE_MOCK_EPAPER=false   # Set to "true" to force mock E-paper (auto-enabled on n
 - Comprehensive logging with "Mock:" prefix
 - Return proper Result types with error handling
 
+### Chroot/Android Environment Support
+
+The application supports running in chroot environments (e.g., Android with Termux/PRoot) where native compilation may fail.
+
+**Installation in Chroot Environments:**
+
+The `scripts/install.sh` script **automatically detects chroot environments** and skips native dependencies (serialport) that require gyp compilation:
+
+- Detects standard chroot via `/proc/1/root` comparison
+- Detects PRoot environments via `$PROOT_TMP_DIR` or `$PREFIX` env vars
+- Detects PRoot in kernel version string
+
+**Manual Override:**
+
+You can manually skip native dependencies by setting an environment variable before running the install script:
+
+```bash
+SKIP_NATIVE_DEPS=true ./scripts/install.sh
+```
+
+Or add to your `.env` file:
+
+```bash
+SKIP_NATIVE_DEPS=true
+```
+
+**What happens in chroot mode:**
+
+1. Install script creates temporary `package.json` without serialport and sharp
+2. Runs `npm install` with the modified package
+3. Installs sharp separately with `--cpu=wasm32` flag (WebAssembly version, no native compilation)
+4. Restores original `package.json`
+5. MockGPSService is automatically used at runtime (no hardware access possible in chroot)
+
+**Manual installation (if not using install script):**
+
+If installing manually in a chroot environment:
+
+```bash
+# Remove serialport from package.json, then:
+npm install --production=false
+
+# Install sharp with WebAssembly support:
+npm install --cpu=wasm32 sharp
+```
+
+**Current package.json on your system:**
+
+If you've already removed serialport from `package.json`, you can either:
+- Keep it removed and manually install sharp with `--cpu=wasm32` flag
+- Restore serialport to `package.json` and use the install script's auto-detection (recommended for portability)
+
 ## GPX File Management
 
 GPX files are stored in `data/gpx-files/` (configurable via `GPX_DIRECTORY`).
