@@ -8,6 +8,7 @@ import {
   WiFiNetworkConfig,
   WiFiConfig,
   WiFiState,
+  HotspotConfig,
   success,
   failure,
 } from "@core/types";
@@ -86,7 +87,9 @@ export class WiFiService implements IWiFiService {
     logger.info("Determining initial WiFi state...");
     const connectedToHotspot = await this.isConnectedToMobileHotspot();
     if (connectedToHotspot.success && connectedToHotspot.data) {
-      logger.info("Already connected to mobile hotspot - setting state to CONNECTED");
+      logger.info(
+        "Already connected to mobile hotspot - setting state to CONNECTED",
+      );
       this.setState(WiFiState.CONNECTED);
     } else {
       const connected = await this.isConnected();
@@ -94,12 +97,16 @@ export class WiFiService implements IWiFiService {
         logger.info("Connected to non-hotspot network - setting state to IDLE");
         this.setState(WiFiState.IDLE);
       } else {
-        logger.info("Not connected to any network - setting state to DISCONNECTED");
+        logger.info(
+          "Not connected to any network - setting state to DISCONNECTED",
+        );
         this.setState(WiFiState.DISCONNECTED);
       }
     }
 
-    logger.info(`WiFi Service initialization complete. Current state: ${this.currentState}`);
+    logger.info(
+      `WiFi Service initialization complete. Current state: ${this.currentState}`,
+    );
     return success(undefined);
   }
 
@@ -124,7 +131,8 @@ export class WiFiService implements IWiFiService {
       this.connectionAttemptAbortController = undefined;
     }
 
-    const callbackCount = this.connectionChangeCallbacks.length + this.stateChangeCallbacks.length;
+    const callbackCount =
+      this.connectionChangeCallbacks.length + this.stateChangeCallbacks.length;
     logger.info(`Clearing ${callbackCount} registered callbacks`);
 
     this.initialized = false;
@@ -175,7 +183,9 @@ export class WiFiService implements IWiFiService {
 
       logger.info(`Found ${networks.length} WiFi networks:`);
       for (const network of networks) {
-        logger.info(`  - "${network.ssid}" (${network.signalStrength}%, ${network.security}, ${network.frequency}MHz)`);
+        logger.info(
+          `  - "${network.ssid}" (${network.signalStrength}%, ${network.security}, ${network.frequency}MHz)`,
+        );
       }
       return success(networks);
     } catch (error) {
@@ -244,7 +254,9 @@ export class WiFiService implements IWiFiService {
         connectedAt: new Date(), // nmcli doesn't provide connection time
       };
 
-      logger.info(`Current connection: "${connection.ssid}" (IP: ${connection.ipAddress}, Signal: ${connection.signalStrength}%)`);
+      logger.info(
+        `Current connection: "${connection.ssid}" (IP: ${connection.ipAddress}, Signal: ${connection.signalStrength}%)`,
+      );
       return success(connection);
     } catch (error) {
       logger.warn("Failed to get current connection:", error);
@@ -276,7 +288,9 @@ export class WiFiService implements IWiFiService {
 
     try {
       logger.info(`Attempting to connect to "${ssid}" via nmcli...`);
-      logger.info(`Connection timeout set to ${this.config.connectionTimeoutMs}ms`);
+      logger.info(
+        `Connection timeout set to ${this.config.connectionTimeoutMs}ms`,
+      );
 
       // First, check if a connection profile already exists and delete it
       logger.info(`Checking if connection profile "${ssid}" already exists...`);
@@ -323,7 +337,9 @@ export class WiFiService implements IWiFiService {
           stderr.includes("Secrets were required") ||
           stderr.includes("802-11-wireless-security")
         ) {
-          logger.error(`Authentication failed for "${ssid}" - invalid password`);
+          logger.error(
+            `Authentication failed for "${ssid}" - invalid password`,
+          );
           return failure(WiFiError.authFailed(ssid));
         }
 
@@ -335,7 +351,9 @@ export class WiFiService implements IWiFiService {
       return success(undefined);
     } catch (error) {
       if (error instanceof Error && error.message === "Timeout") {
-        logger.error(`Connection to "${ssid}" timed out after ${this.config.connectionTimeoutMs}ms`);
+        logger.error(
+          `Connection to "${ssid}" timed out after ${this.config.connectionTimeoutMs}ms`,
+        );
         return failure(
           WiFiError.timeout("connect", this.config.connectionTimeoutMs),
         );
@@ -362,7 +380,9 @@ export class WiFiService implements IWiFiService {
     }
 
     if (!connectionResult.data) {
-      logger.info("disconnect() failed - not currently connected to any network");
+      logger.info(
+        "disconnect() failed - not currently connected to any network",
+      );
       return failure(WiFiError.notConnected());
     }
 
@@ -383,7 +403,9 @@ export class WiFiService implements IWiFiService {
 
   async saveNetwork(config: WiFiNetworkConfig): Promise<Result<void>> {
     logger.info(`saveNetwork() called for SSID: "${config.ssid}"`);
-    logger.info(`  Auto-connect: ${config.autoConnect}, Priority: ${config.priority}`);
+    logger.info(
+      `  Auto-connect: ${config.autoConnect}, Priority: ${config.priority}`,
+    );
 
     if (!this.initialized) {
       logger.info("saveNetwork() failed - service not initialized");
@@ -391,12 +413,16 @@ export class WiFiService implements IWiFiService {
     }
 
     try {
-      logger.info(`Checking if connection for "${config.ssid}" already exists...`);
+      logger.info(
+        `Checking if connection for "${config.ssid}" already exists...`,
+      );
 
       // Check if connection already exists
       const existsResult = await this.connectionExists(config.ssid);
       if (existsResult) {
-        logger.info(`Connection "${config.ssid}" already exists - deleting it first`);
+        logger.info(
+          `Connection "${config.ssid}" already exists - deleting it first`,
+        );
         // Delete existing connection first (requires sudo)
         await execAsync(`sudo nmcli connection delete "${config.ssid}"`);
         logger.info(`Deleted existing connection "${config.ssid}"`);
@@ -473,7 +499,9 @@ export class WiFiService implements IWiFiService {
 
       logger.info(`Found ${networks.length} saved WiFi networks:`);
       for (const network of networks) {
-        logger.info(`  - "${network.ssid}" (auto-connect: ${network.autoConnect}, priority: ${network.priority})`);
+        logger.info(
+          `  - "${network.ssid}" (auto-connect: ${network.autoConnect}, priority: ${network.priority})`,
+        );
       }
       return success(networks);
     } catch (error) {
@@ -512,7 +540,9 @@ export class WiFiService implements IWiFiService {
   }
 
   onConnectionChange(callback: (connected: boolean) => void): () => void {
-    logger.info(`onConnectionChange() - registering new callback (total: ${this.connectionChangeCallbacks.length + 1})`);
+    logger.info(
+      `onConnectionChange() - registering new callback (total: ${this.connectionChangeCallbacks.length + 1})`,
+    );
     this.connectionChangeCallbacks.push(callback);
 
     // Return unsubscribe function
@@ -520,7 +550,9 @@ export class WiFiService implements IWiFiService {
       const index = this.connectionChangeCallbacks.indexOf(callback);
       if (index > -1) {
         this.connectionChangeCallbacks.splice(index, 1);
-        logger.info(`onConnectionChange() - unsubscribed callback (remaining: ${this.connectionChangeCallbacks.length})`);
+        logger.info(
+          `onConnectionChange() - unsubscribed callback (remaining: ${this.connectionChangeCallbacks.length})`,
+        );
       }
     };
   }
@@ -537,24 +569,33 @@ export class WiFiService implements IWiFiService {
     const connectionResult = await this.getCurrentConnection();
 
     if (!connectionResult.success) {
-      logger.info("isConnectedToMobileHotspot() - failed to get current connection");
+      logger.info(
+        "isConnectedToMobileHotspot() - failed to get current connection",
+      );
       return failure(connectionResult.error);
     }
 
     if (!connectionResult.data) {
-      logger.info("isConnectedToMobileHotspot() - not connected to any network");
+      logger.info(
+        "isConnectedToMobileHotspot() - not connected to any network",
+      );
       return success(false);
     }
 
-    const isHotspot = connectionResult.data.ssid === this.config.primarySSID;
-    logger.info(`isConnectedToMobileHotspot() - connected to "${connectionResult.data.ssid}", is hotspot: ${isHotspot}`);
+    const effectiveSSID = this.getEffectiveHotspotSSID();
+    const isHotspot = connectionResult.data.ssid === effectiveSSID;
+    logger.info(
+      `isConnectedToMobileHotspot() - connected to "${connectionResult.data.ssid}", is hotspot: ${isHotspot}`,
+    );
     return success(isHotspot);
   }
 
   onStateChange(
     callback: (state: WiFiState, previousState: WiFiState) => void,
   ): () => void {
-    logger.info(`onStateChange() - registering new callback (total: ${this.stateChangeCallbacks.length + 1})`);
+    logger.info(
+      `onStateChange() - registering new callback (total: ${this.stateChangeCallbacks.length + 1})`,
+    );
     this.stateChangeCallbacks.push(callback);
 
     // Return unsubscribe function
@@ -562,7 +603,9 @@ export class WiFiService implements IWiFiService {
       const index = this.stateChangeCallbacks.indexOf(callback);
       if (index > -1) {
         this.stateChangeCallbacks.splice(index, 1);
-        logger.info(`onStateChange() - unsubscribed callback (remaining: ${this.stateChangeCallbacks.length})`);
+        logger.info(
+          `onStateChange() - unsubscribed callback (remaining: ${this.stateChangeCallbacks.length})`,
+        );
       }
     };
   }
@@ -573,12 +616,16 @@ export class WiFiService implements IWiFiService {
     const previousCount = this.webSocketClientCount;
     this.webSocketClientCount = count;
 
-    logger.info(`setWebSocketClientCount() - count changed: ${previousCount} -> ${count}`);
+    logger.info(
+      `setWebSocketClientCount() - count changed: ${previousCount} -> ${count}`,
+    );
 
     // If we just entered stopped mode (clients connected) and not connected to hotspot,
     // trigger the state machine check
     if (previousCount === 0 && count > 0) {
-      logger.info("Mode transition: DRIVING -> STOPPED (WebSocket clients connected)");
+      logger.info(
+        "Mode transition: DRIVING -> STOPPED (WebSocket clients connected)",
+      );
       logger.info("Triggering immediate hotspot check...");
       // Run a hotspot check immediately
       void this.handleHotspotPollingTick();
@@ -608,7 +655,9 @@ export class WiFiService implements IWiFiService {
 
   getMode(): WiFiMode {
     const mode = this.webSocketClientCount > 0 ? "stopped" : "driving";
-    logger.info(`getMode() called - current mode: ${mode} (${this.webSocketClientCount} WebSocket clients)`);
+    logger.info(
+      `getMode() called - current mode: ${mode} (${this.webSocketClientCount} WebSocket clients)`,
+    );
     return mode;
   }
 
@@ -644,7 +693,9 @@ export class WiFiService implements IWiFiService {
     logger.info("attemptMobileHotspotConnection() called");
 
     if (this.connectionAttemptInProgress) {
-      logger.warn("Connection attempt already in progress - rejecting duplicate request");
+      logger.warn(
+        "Connection attempt already in progress - rejecting duplicate request",
+      );
       return failure(
         WiFiError.unknown("Connection attempt already in progress"),
       );
@@ -654,22 +705,29 @@ export class WiFiService implements IWiFiService {
     this.connectionAttemptAbortController = new AbortController();
     logger.info("Connection attempt started, abort controller created");
 
+    const effectiveSSID = this.getEffectiveHotspotSSID();
+    const effectivePassword = this.getEffectiveHotspotPassword();
+
     try {
-      logger.info(`Checking if mobile hotspot "${this.config.primarySSID}" is visible...`);
+      logger.info(
+        `Checking if mobile hotspot "${effectiveSSID}" is visible...`,
+      );
 
       // First check if the hotspot is visible WITHOUT disconnecting
-      const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+      const visibleResult = await this.isNetworkVisible(effectiveSSID);
       if (!visibleResult.success || !visibleResult.data) {
-        logger.info(`Mobile hotspot "${this.config.primarySSID}" is not visible - skipping connection attempt`);
+        logger.info(
+          `Mobile hotspot "${effectiveSSID}" is not visible - skipping connection attempt`,
+        );
         this.connectionAttemptInProgress = false;
         this.connectionAttemptAbortController = undefined;
         // Stay in current state - don't change anything
-        return failure(
-          WiFiError.networkNotFound(this.config.primarySSID),
-        );
+        return failure(WiFiError.networkNotFound(effectiveSSID));
       }
 
-      logger.info(`Mobile hotspot "${this.config.primarySSID}" is visible - proceeding with connection`);
+      logger.info(
+        `Mobile hotspot "${effectiveSSID}" is visible - proceeding with connection`,
+      );
       logger.info(`Timeout set to ${HOTSPOT_CONNECTION_TIMEOUT_MS}ms`);
 
       logger.info("Setting state to CONNECTING");
@@ -696,10 +754,7 @@ export class WiFiService implements IWiFiService {
 
       // Try to connect
       logger.info("Initiating connection to mobile hotspot...");
-      const connectPromise = this.connect(
-        this.config.primarySSID,
-        this.config.primaryPassword,
-      );
+      const connectPromise = this.connect(effectiveSSID, effectivePassword);
 
       logger.info("Waiting for connection result or timeout...");
       const result = (await Promise.race([
@@ -708,7 +763,9 @@ export class WiFiService implements IWiFiService {
       ])) as Result<void>;
 
       if (result.success) {
-        logger.info(`nmcli reports successful connection to "${this.config.primarySSID}"`);
+        logger.info(
+          `nmcli reports successful connection to "${effectiveSSID}"`,
+        );
 
         // Wait a moment for the connection to stabilize, then verify
         logger.info("Waiting 2 seconds for connection to stabilize...");
@@ -719,7 +776,9 @@ export class WiFiService implements IWiFiService {
         const verifyResult = await this.isConnectedToMobileHotspot();
 
         if (verifyResult.success && verifyResult.data) {
-          logger.info(`Verified: Successfully connected to mobile hotspot "${this.config.primarySSID}"!`);
+          logger.info(
+            `Verified: Successfully connected to mobile hotspot "${effectiveSSID}"!`,
+          );
           logger.info("Setting state to CONNECTED");
           this.setState(WiFiState.CONNECTED);
           // Clear fallback network on successful connection
@@ -727,21 +786,27 @@ export class WiFiService implements IWiFiService {
           await this.clearFallbackNetwork();
           return success(undefined);
         } else {
-          logger.warn(`Connection verification failed - not actually connected to "${this.config.primarySSID}"`);
+          logger.warn(
+            `Connection verification failed - not actually connected to "${effectiveSSID}"`,
+          );
           // Try one more time with a longer wait
           logger.info("Waiting 3 more seconds and retrying verification...");
           await new Promise((resolve) => setTimeout(resolve, 3000));
 
           const retryVerify = await this.isConnectedToMobileHotspot();
           if (retryVerify.success && retryVerify.data) {
-            logger.info(`Retry verified: Successfully connected to mobile hotspot "${this.config.primarySSID}"!`);
+            logger.info(
+              `Retry verified: Successfully connected to mobile hotspot "${effectiveSSID}"!`,
+            );
             logger.info("Setting state to CONNECTED");
             this.setState(WiFiState.CONNECTED);
             logger.info("Clearing fallback network from config...");
             await this.clearFallbackNetwork();
             return success(undefined);
           } else {
-            logger.error(`Connection verification failed after retry - connection may have failed`);
+            logger.error(
+              `Connection verification failed after retry - connection may have failed`,
+            );
             throw new Error("CONNECTION_VERIFY_FAILED");
           }
         }
@@ -757,7 +822,9 @@ export class WiFiService implements IWiFiService {
         }
 
         if (error.message === "HOTSPOT_TIMEOUT") {
-          logger.warn(`Mobile hotspot connection timed out after ${HOTSPOT_CONNECTION_TIMEOUT_MS}ms`);
+          logger.warn(
+            `Mobile hotspot connection timed out after ${HOTSPOT_CONNECTION_TIMEOUT_MS}ms`,
+          );
 
           // Attempt to reconnect to fallback network
           logger.info("Setting state to RECONNECTING_FALLBACK");
@@ -777,29 +844,27 @@ export class WiFiService implements IWiFiService {
 
           return failure(
             WiFiError.hotspotConnectionTimeout(
-              this.config.primarySSID,
+              effectiveSSID,
               HOTSPOT_CONNECTION_TIMEOUT_MS,
             ),
           );
         }
 
         if (error.message === "CONNECTION_VERIFY_FAILED") {
-          logger.warn("Connection verification failed - nmcli reported success but we couldn't verify the connection");
+          logger.warn(
+            "Connection verification failed - nmcli reported success but we couldn't verify the connection",
+          );
           // Go back to WAITING_FOR_HOTSPOT to try again on next poll
           logger.info("Setting state to WAITING_FOR_HOTSPOT to retry");
           this.setState(WiFiState.WAITING_FOR_HOTSPOT);
-          return failure(
-            WiFiError.connectionFailed(this.config.primarySSID, error),
-          );
+          return failure(WiFiError.connectionFailed(effectiveSSID, error));
         }
       }
 
       logger.error("Failed to connect to mobile hotspot:", error);
       logger.info("Setting state to ERROR");
       this.setState(WiFiState.ERROR);
-      return failure(
-        WiFiError.connectionFailed(this.config.primarySSID, error as Error),
-      );
+      return failure(WiFiError.connectionFailed(effectiveSSID, error as Error));
     } finally {
       logger.info("Connection attempt finished - cleaning up");
       this.connectionAttemptInProgress = false;
@@ -808,12 +873,101 @@ export class WiFiService implements IWiFiService {
   }
 
   getMobileHotspotSSID(): string {
-    logger.info(`getMobileHotspotSSID() called - returning "${this.config.primarySSID}"`);
-    return this.config.primarySSID;
+    const effectiveSSID = this.getEffectiveHotspotSSID();
+    logger.info(`getMobileHotspotSSID() called - returning "${effectiveSSID}"`);
+    return effectiveSSID;
+  }
+
+  // Hotspot configuration methods
+
+  getHotspotConfig(): HotspotConfig {
+    const savedConfig = this.configService?.getHotspotConfig();
+    if (savedConfig) {
+      logger.info(
+        `getHotspotConfig() - returning saved config: SSID="${savedConfig.ssid}"`,
+      );
+      return savedConfig;
+    }
+
+    // Return default config from environment
+    const defaultConfig: HotspotConfig = {
+      ssid: this.config.primarySSID,
+      password: this.config.primaryPassword,
+      updatedAt: new Date().toISOString(),
+    };
+    logger.info(
+      `getHotspotConfig() - returning default config: SSID="${defaultConfig.ssid}"`,
+    );
+    return defaultConfig;
+  }
+
+  async setHotspotConfig(
+    ssid: string,
+    password: string,
+  ): Promise<Result<void>> {
+    logger.info(`setHotspotConfig() called - SSID="${ssid}"`);
+
+    if (!ssid || ssid.trim().length === 0) {
+      logger.error("setHotspotConfig() - SSID cannot be empty");
+      return failure(WiFiError.unknown("SSID cannot be empty"));
+    }
+
+    if (!password || password.length < 8) {
+      logger.error(
+        "setHotspotConfig() - Password must be at least 8 characters",
+      );
+      return failure(
+        WiFiError.unknown("Password must be at least 8 characters for WPA2"),
+      );
+    }
+
+    if (!this.configService) {
+      logger.error("setHotspotConfig() - No config service available");
+      return failure(WiFiError.unknown("Config service not available"));
+    }
+
+    try {
+      const config: HotspotConfig = {
+        ssid: ssid.trim(),
+        password,
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Save to ConfigService
+      this.configService.setHotspotConfig(config);
+      await this.configService.save();
+
+      logger.info(
+        `setHotspotConfig() - Saved new hotspot config: SSID="${ssid}"`,
+      );
+
+      // Save current network as fallback before disconnecting
+      await this.saveFallbackNetwork();
+
+      // Disconnect from current network to trigger reconnection flow
+      logger.info(
+        "setHotspotConfig() - Disconnecting to trigger reconnection to new hotspot",
+      );
+      await this.disconnect();
+
+      // Transition to WAITING_FOR_HOTSPOT state to show instruction screen
+      logger.info("setHotspotConfig() - Setting state to WAITING_FOR_HOTSPOT");
+      this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+
+      // Reset the connected screen flag so the instruction screen shows again
+      this.connectedScreenDisplayed = false;
+
+      return success(undefined);
+    } catch (error) {
+      logger.error("setHotspotConfig() - Failed to save config:", error);
+      return failure(WiFiError.unknown((error as Error).message));
+    }
   }
 
   notifyConnectedScreenDisplayed(): void {
-    logger.info("notifyConnectedScreenDisplayed() - connected screen was displayed");
+    logger.info(
+      "notifyConnectedScreenDisplayed() - connected screen was displayed",
+    );
     this.connectedScreenDisplayed = true;
   }
 
@@ -844,7 +998,9 @@ export class WiFiService implements IWiFiService {
       logger.info(`Signal strength for "${ssid}": ${signalStrength}%`);
       return success(signalStrength);
     } catch (error) {
-      logger.info(`Could not get signal strength for "${ssid}" - defaulting to 0`);
+      logger.info(
+        `Could not get signal strength for "${ssid}" - defaulting to 0`,
+      );
       return success(0); // Default to 0 if can't get signal
     }
   }
@@ -862,7 +1018,9 @@ export class WiFiService implements IWiFiService {
   }
 
   private startConnectionMonitoring(): void {
-    logger.info("startConnectionMonitoring() - starting connection monitoring (5-second interval)");
+    logger.info(
+      "startConnectionMonitoring() - starting connection monitoring (5-second interval)",
+    );
     let lastConnected = false;
 
     this.connectionCheckInterval = setInterval(async () => {
@@ -873,12 +1031,18 @@ export class WiFiService implements IWiFiService {
         const connected = connectedResult.data;
 
         if (connected !== lastConnected) {
-          logger.info(`WiFi connection state changed: ${lastConnected ? "connected" : "disconnected"} -> ${connected ? "connected" : "disconnected"}`);
-          logger.info(`Notifying ${this.connectionChangeCallbacks.length} connection change callbacks...`);
+          logger.info(
+            `WiFi connection state changed: ${lastConnected ? "connected" : "disconnected"} -> ${connected ? "connected" : "disconnected"}`,
+          );
+          logger.info(
+            `Notifying ${this.connectionChangeCallbacks.length} connection change callbacks...`,
+          );
           this.notifyConnectionChange(connected);
           lastConnected = connected;
         } else {
-          logger.info(`Connection status unchanged: ${connected ? "connected" : "disconnected"}`);
+          logger.info(
+            `Connection status unchanged: ${connected ? "connected" : "disconnected"}`,
+          );
         }
       } else {
         logger.info("Failed to check connection status");
@@ -887,10 +1051,14 @@ export class WiFiService implements IWiFiService {
   }
 
   private notifyConnectionChange(connected: boolean): void {
-    logger.info(`notifyConnectionChange(${connected}) - notifying ${this.connectionChangeCallbacks.length} callbacks`);
+    logger.info(
+      `notifyConnectionChange(${connected}) - notifying ${this.connectionChangeCallbacks.length} callbacks`,
+    );
     for (let i = 0; i < this.connectionChangeCallbacks.length; i++) {
       try {
-        logger.info(`  Calling connection change callback ${i + 1}/${this.connectionChangeCallbacks.length}`);
+        logger.info(
+          `  Calling connection change callback ${i + 1}/${this.connectionChangeCallbacks.length}`,
+        );
         this.connectionChangeCallbacks[i](connected);
       } catch (error) {
         logger.error(`Error in connection change callback ${i + 1}:`, error);
@@ -909,6 +1077,22 @@ export class WiFiService implements IWiFiService {
     });
   }
 
+  /**
+   * Get the effective hotspot SSID (from ConfigService if saved, otherwise from initial config)
+   */
+  private getEffectiveHotspotSSID(): string {
+    const savedConfig = this.configService?.getHotspotConfig();
+    return savedConfig?.ssid ?? this.config.primarySSID;
+  }
+
+  /**
+   * Get the effective hotspot password (from ConfigService if saved, otherwise from initial config)
+   */
+  private getEffectiveHotspotPassword(): string {
+    const savedConfig = this.configService?.getHotspotConfig();
+    return savedConfig?.password ?? this.config.primaryPassword;
+  }
+
   // State machine private methods
 
   private setState(newState: WiFiState): void {
@@ -925,21 +1109,29 @@ export class WiFiService implements IWiFiService {
     if (newState === WiFiState.CONNECTED) {
       this.connectedStateEnteredAt = new Date();
       this.connectedScreenDisplayed = false; // Reset - need to display connected screen
-      logger.info(`Entered CONNECTED state at ${this.connectedStateEnteredAt.toISOString()}`);
+      logger.info(
+        `Entered CONNECTED state at ${this.connectedStateEnteredAt.toISOString()}`,
+      );
     } else {
       this.connectedStateEnteredAt = undefined;
     }
 
     logger.info(`WiFi state transition: ${previousState} -> ${newState}`);
-    logger.info(`Notifying ${this.stateChangeCallbacks.length} state change callbacks...`);
+    logger.info(
+      `Notifying ${this.stateChangeCallbacks.length} state change callbacks...`,
+    );
     this.notifyStateChange(newState, previousState);
   }
 
   private notifyStateChange(state: WiFiState, previousState: WiFiState): void {
-    logger.info(`notifyStateChange(${state}, ${previousState}) - notifying ${this.stateChangeCallbacks.length} callbacks`);
+    logger.info(
+      `notifyStateChange(${state}, ${previousState}) - notifying ${this.stateChangeCallbacks.length} callbacks`,
+    );
     for (let i = 0; i < this.stateChangeCallbacks.length; i++) {
       try {
-        logger.info(`  Calling state change callback ${i + 1}/${this.stateChangeCallbacks.length}`);
+        logger.info(
+          `  Calling state change callback ${i + 1}/${this.stateChangeCallbacks.length}`,
+        );
         this.stateChangeCallbacks[i](state, previousState);
       } catch (error) {
         logger.error(`Error in state change callback ${i + 1}:`, error);
@@ -949,7 +1141,9 @@ export class WiFiService implements IWiFiService {
   }
 
   private startHotspotPolling(): void {
-    logger.info(`startHotspotPolling() - starting hotspot polling (${HOTSPOT_CHECK_INTERVAL_MS}ms interval)`);
+    logger.info(
+      `startHotspotPolling() - starting hotspot polling (${HOTSPOT_CHECK_INTERVAL_MS}ms interval)`,
+    );
 
     this.hotspotCheckInterval = setInterval(() => {
       logger.info("Hotspot polling tick triggered");
@@ -987,10 +1181,15 @@ export class WiFiService implements IWiFiService {
       if (this.currentState !== WiFiState.CONNECTED) {
         logger.info("Updating state to CONNECTED");
         this.setState(WiFiState.CONNECTED);
-      } else if (this.webSocketClientCount === 0 && !this.connectedScreenDisplayed) {
+      } else if (
+        this.webSocketClientCount === 0 &&
+        !this.connectedScreenDisplayed
+      ) {
         // State is already CONNECTED, no WebSocket clients yet, and screen not displayed.
         // Notify callbacks to retry displaying the connected screen.
-        logger.info("State already CONNECTED, screen not displayed yet - notifying for display retry");
+        logger.info(
+          "State already CONNECTED, screen not displayed yet - notifying for display retry",
+        );
         this.notifyStateChange(WiFiState.CONNECTED, WiFiState.CONNECTED);
       } else {
         // State is CONNECTED and either clients are connected or screen was displayed - no action needed
@@ -1012,12 +1211,18 @@ export class WiFiService implements IWiFiService {
         : Infinity;
 
       if (connectedDuration < gracePeriodMs) {
-        logger.info(`In CONNECTED state for ${connectedDuration}ms (grace period: ${gracePeriodMs}ms) - skipping disconnection check`);
-        logger.info("handleHotspotPollingTick() complete (within grace period)");
+        logger.info(
+          `In CONNECTED state for ${connectedDuration}ms (grace period: ${gracePeriodMs}ms) - skipping disconnection check`,
+        );
+        logger.info(
+          "handleHotspotPollingTick() complete (within grace period)",
+        );
         return;
       }
 
-      logger.info(`Was CONNECTED for ${connectedDuration}ms (past grace period) but now disconnected - transitioning to WAITING_FOR_HOTSPOT`);
+      logger.info(
+        `Was CONNECTED for ${connectedDuration}ms (past grace period) but now disconnected - transitioning to WAITING_FOR_HOTSPOT`,
+      );
       this.setState(WiFiState.WAITING_FOR_HOTSPOT);
       // Don't return - continue to check if we should attempt reconnection
     }
@@ -1037,17 +1242,24 @@ export class WiFiService implements IWiFiService {
         this.currentState === WiFiState.CONNECTING ||
         this.currentState === WiFiState.RECONNECTING_FALLBACK
       ) {
-        logger.info(`Already in transitional state (${this.currentState}) - not initiating new connection`);
+        logger.info(
+          `Already in transitional state (${this.currentState}) - not initiating new connection`,
+        );
       } else {
         // We're in IDLE, DISCONNECTED, or WAITING_FOR_HOTSPOT - check if hotspot is visible
+        const effectiveSSID = this.getEffectiveHotspotSSID();
         logger.info("Checking if hotspot is visible...");
-        const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+        const visibleResult = await this.isNetworkVisible(effectiveSSID);
 
         if (!visibleResult.success || !visibleResult.data) {
-          logger.info(`Hotspot "${this.config.primarySSID}" not visible - staying connected to current network`);
+          logger.info(
+            `Hotspot "${effectiveSSID}" not visible - staying connected to current network`,
+          );
           // Make sure we're in WAITING_FOR_HOTSPOT state to show the instruction screen
           if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
-            logger.info("Setting state to WAITING_FOR_HOTSPOT to show instruction screen");
+            logger.info(
+              "Setting state to WAITING_FOR_HOTSPOT to show instruction screen",
+            );
             this.setState(WiFiState.WAITING_FOR_HOTSPOT);
           }
           // Wait for next poll
@@ -1064,17 +1276,25 @@ export class WiFiService implements IWiFiService {
           }
 
           // Short delay then attempt connection
-          logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
+          logger.info(
+            `Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`,
+          );
           setTimeout(() => {
-            logger.info("Hotspot connection delay elapsed - checking conditions...");
+            logger.info(
+              "Hotspot connection delay elapsed - checking conditions...",
+            );
             if (
               this.webSocketClientCount > 0 &&
               this.currentState === WiFiState.WAITING_FOR_HOTSPOT
             ) {
-              logger.info("Conditions met - initiating hotspot connection attempt");
+              logger.info(
+                "Conditions met - initiating hotspot connection attempt",
+              );
               void this.attemptMobileHotspotConnection();
             } else {
-              logger.info(`Conditions not met (clients: ${this.webSocketClientCount}, state: ${this.currentState}) - skipping connection attempt`);
+              logger.info(
+                `Conditions not met (clients: ${this.webSocketClientCount}, state: ${this.currentState}) - skipping connection attempt`,
+              );
             }
           }, HOTSPOT_CONNECTION_DELAY_MS);
         }
@@ -1083,12 +1303,15 @@ export class WiFiService implements IWiFiService {
       logger.info("In DRIVING mode (no WebSocket clients)");
 
       // Check if onboarding is not complete - if so, we should still try to connect to hotspot
-      const onboardingComplete = this.configService?.isOnboardingCompleted() ?? true;
+      const onboardingComplete =
+        this.configService?.isOnboardingCompleted() ?? true;
       logger.info(`Onboarding complete: ${onboardingComplete}`);
 
       if (!onboardingComplete) {
         // During onboarding, we should attempt connection even without WebSocket clients
-        logger.info("Onboarding not complete - should attempt hotspot connection");
+        logger.info(
+          "Onboarding not complete - should attempt hotspot connection",
+        );
 
         // Allow retry from ERROR state - reset it first
         if (this.currentState === WiFiState.ERROR) {
@@ -1101,22 +1324,31 @@ export class WiFiService implements IWiFiService {
           this.currentState === WiFiState.CONNECTING ||
           this.currentState === WiFiState.RECONNECTING_FALLBACK
         ) {
-          logger.info(`Already in transitional state (${this.currentState}) - not initiating new connection`);
+          logger.info(
+            `Already in transitional state (${this.currentState}) - not initiating new connection`,
+          );
         } else {
           // We're in IDLE, DISCONNECTED, or WAITING_FOR_HOTSPOT - check if hotspot is visible
+          const effectiveSSID = this.getEffectiveHotspotSSID();
           logger.info("Checking if hotspot is visible (onboarding)...");
-          const visibleResult = await this.isNetworkVisible(this.config.primarySSID);
+          const visibleResult = await this.isNetworkVisible(effectiveSSID);
 
           if (!visibleResult.success || !visibleResult.data) {
-            logger.info(`Hotspot "${this.config.primarySSID}" not visible - staying connected to current network (onboarding)`);
+            logger.info(
+              `Hotspot "${effectiveSSID}" not visible - staying connected to current network (onboarding)`,
+            );
             // Make sure we're in WAITING_FOR_HOTSPOT state to show the instruction screen
             if (this.currentState !== WiFiState.WAITING_FOR_HOTSPOT) {
-              logger.info("Setting state to WAITING_FOR_HOTSPOT to show instruction screen (onboarding)");
+              logger.info(
+                "Setting state to WAITING_FOR_HOTSPOT to show instruction screen (onboarding)",
+              );
               this.setState(WiFiState.WAITING_FOR_HOTSPOT);
             }
             // Wait for next poll
           } else {
-            logger.info("Hotspot is visible - initiating connection sequence for onboarding...");
+            logger.info(
+              "Hotspot is visible - initiating connection sequence for onboarding...",
+            );
             // Save current connection as fallback
             await this.saveFallbackNetwork();
 
@@ -1127,14 +1359,22 @@ export class WiFiService implements IWiFiService {
             }
 
             // Wait a few seconds then attempt connection
-            logger.info(`Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`);
+            logger.info(
+              `Scheduling hotspot connection attempt in ${HOTSPOT_CONNECTION_DELAY_MS}ms...`,
+            );
             setTimeout(() => {
-              logger.info("Hotspot connection delay elapsed (onboarding) - checking conditions...");
+              logger.info(
+                "Hotspot connection delay elapsed (onboarding) - checking conditions...",
+              );
               if (this.currentState === WiFiState.WAITING_FOR_HOTSPOT) {
-                logger.info("Conditions met - initiating hotspot connection attempt for onboarding");
+                logger.info(
+                  "Conditions met - initiating hotspot connection attempt for onboarding",
+                );
                 void this.attemptMobileHotspotConnection();
               } else {
-                logger.info(`State changed to ${this.currentState} - skipping connection attempt`);
+                logger.info(
+                  `State changed to ${this.currentState} - skipping connection attempt`,
+                );
               }
             }, HOTSPOT_CONNECTION_DELAY_MS);
           }
@@ -1148,18 +1388,26 @@ export class WiFiService implements IWiFiService {
           logger.info(`Connected: ${connected.data}`);
           if (this.currentState === WiFiState.CONNECTED) {
             // We were connected to hotspot but now not
-            logger.info("Was connected to hotspot but now disconnected - setting state to DISCONNECTED");
+            logger.info(
+              "Was connected to hotspot but now disconnected - setting state to DISCONNECTED",
+            );
             this.setState(WiFiState.DISCONNECTED);
           } else if (
             this.currentState !== WiFiState.IDLE &&
             this.currentState !== WiFiState.DISCONNECTED
           ) {
             // Reset to idle/disconnected in driving mode
-            const newState = connected.data ? WiFiState.IDLE : WiFiState.DISCONNECTED;
-            logger.info(`Resetting state in driving mode: ${this.currentState} -> ${newState}`);
+            const newState = connected.data
+              ? WiFiState.IDLE
+              : WiFiState.DISCONNECTED;
+            logger.info(
+              `Resetting state in driving mode: ${this.currentState} -> ${newState}`,
+            );
             this.setState(newState);
           } else {
-            logger.info(`State already appropriate (${this.currentState}) for driving mode`);
+            logger.info(
+              `State already appropriate (${this.currentState}) for driving mode`,
+            );
           }
         } else {
           logger.info("Failed to check connection status in driving mode");
@@ -1173,18 +1421,21 @@ export class WiFiService implements IWiFiService {
     logger.info("saveFallbackNetwork() called");
 
     if (!this.configService) {
-      logger.warn("saveFallbackNetwork() - No config service available, cannot save fallback");
+      logger.warn(
+        "saveFallbackNetwork() - No config service available, cannot save fallback",
+      );
       return;
     }
 
     try {
       logger.info("Getting current connection to save as fallback...");
       const connectionResult = await this.getCurrentConnection();
+      const effectiveSSID = this.getEffectiveHotspotSSID();
 
       if (
         connectionResult.success &&
         connectionResult.data &&
-        connectionResult.data.ssid !== this.config.primarySSID
+        connectionResult.data.ssid !== effectiveSSID
       ) {
         logger.info(`Saving fallback network: "${connectionResult.data.ssid}"`);
 
@@ -1199,8 +1450,13 @@ export class WiFiService implements IWiFiService {
         logger.info("Fallback network saved successfully");
       } else if (connectionResult.success && !connectionResult.data) {
         logger.info("No current connection to save as fallback");
-      } else if (connectionResult.success && connectionResult.data?.ssid === this.config.primarySSID) {
-        logger.info("Current connection is the primary hotspot - not saving as fallback");
+      } else if (
+        connectionResult.success &&
+        connectionResult.data?.ssid === effectiveSSID
+      ) {
+        logger.info(
+          "Current connection is the primary hotspot - not saving as fallback",
+        );
       } else {
         logger.info("Could not get current connection to save as fallback");
       }
@@ -1236,14 +1492,18 @@ export class WiFiService implements IWiFiService {
     }
 
     const fallback = this.configService.getWiFiFallbackNetwork();
-    logger.info(`Fallback network from config: ${fallback ? `"${fallback.ssid}" (saved at ${fallback.savedAt})` : "(none)"}`);
+    logger.info(
+      `Fallback network from config: ${fallback ? `"${fallback.ssid}" (saved at ${fallback.savedAt})` : "(none)"}`,
+    );
 
     if (!fallback) {
       logger.info("No fallback network saved - nothing to reconnect to");
       return success(undefined);
     }
 
-    logger.info(`Attempting to reconnect to fallback network: "${fallback.ssid}"`);
+    logger.info(
+      `Attempting to reconnect to fallback network: "${fallback.ssid}"`,
+    );
 
     try {
       // First disconnect from any current network
@@ -1261,14 +1521,19 @@ export class WiFiService implements IWiFiService {
       logger.info(`nmcli output: ${stdout.trim()}`);
 
       if (stdout.includes("successfully activated")) {
-        logger.info(`Successfully reconnected to fallback network "${fallback.ssid}"`);
+        logger.info(
+          `Successfully reconnected to fallback network "${fallback.ssid}"`,
+        );
         return success(undefined);
       }
 
       logger.info("Connection command completed but activation status unclear");
       return success(undefined);
     } catch (error) {
-      logger.error(`Failed to reconnect to fallback network "${fallback.ssid}":`, error);
+      logger.error(
+        `Failed to reconnect to fallback network "${fallback.ssid}":`,
+        error,
+      );
       return failure(
         WiFiError.fallbackReconnectFailed(fallback.ssid, error as Error),
       );

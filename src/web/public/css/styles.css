@@ -479,3 +479,72 @@ footer {
 .indicator-icon.hidden {
   display: none;
 }
+
+/* WiFi Settings Section */
+.wifi-section .section-description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.wifi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.form-group input[type="text"],
+.form-group input[type="password"] {
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="password"]:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.form-info {
+  padding: 12px;
+  background: var(--background);
+  border-radius: 8px;
+}
+
+.current-config {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.btn-icon {
+  position: absolute;
+  right: 8px;
+  top: 32px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--background);
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.btn-icon:hover {
+  background: var(--border-color);
+}

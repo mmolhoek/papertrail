@@ -61,7 +61,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly wifiService?: IWiFiService,
   ) {
     this.app = express();
-    this.controller = new WebController(orchestrator);
+    this.controller = new WebController(orchestrator, wifiService);
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -329,6 +329,15 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     this.app.post(`${api}/auto-update/stop`, (req, res) =>
       this.controller.stopAutoUpdate(req, res),
+    );
+
+    // WiFi configuration endpoints
+    this.app.get(`${api}/wifi/hotspot`, (req, res) =>
+      this.controller.getHotspotConfig(req, res),
+    );
+
+    this.app.post(`${api}/wifi/hotspot`, (req, res) =>
+      this.controller.setHotspotConfig(req, res),
     );
 
     // 404 handler

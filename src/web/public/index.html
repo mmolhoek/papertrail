@@ -20,11 +20,23 @@
           <div id="menu-content" class="menu-content hidden">
             <button id="menu-track-selection" class="menu-item">
               GPX Track Selection
-              <span id="track-selection-indicator" class="indicator-icon hidden">✔</span>
+              <span id="track-selection-indicator" class="indicator-icon hidden"
+                >✔</span
+              >
             </button>
             <button id="menu-display-controls" class="menu-item">
               Display Controls
-              <span id="display-controls-indicator" class="indicator-icon hidden">✔</span>
+              <span
+                id="display-controls-indicator"
+                class="indicator-icon hidden"
+                >✔</span
+              >
+            </button>
+            <button id="menu-wifi-settings" class="menu-item">
+              WiFi Settings
+              <span id="wifi-settings-indicator" class="indicator-icon hidden"
+                >✔</span
+              >
             </button>
           </div>
         </nav>
@@ -39,7 +51,9 @@
             </div>
             <div class="status-item">
               <span class="label">GPS Fix:</span>
-              <span class="value status-unknown" id="gps-fix-status">Unknown</span>
+              <span class="value status-unknown" id="gps-fix-status"
+                >Unknown</span
+              >
             </div>
             <div class="status-item">
               <span class="label">Satellites:</span>
@@ -80,7 +94,11 @@
         </section>
 
         <!-- Track Selection Section -->
-        <section class="card track-section hidden" id="track-selection-panel" style="display: none;">
+        <section
+          class="card track-section hidden"
+          id="track-selection-panel"
+          style="display: none"
+        >
           <h2>GPX Track Selection</h2>
           <div class="track-controls">
             <select id="track-select" class="track-select">
@@ -99,7 +117,11 @@
         </section>
 
         <!-- Display Controls Section -->
-        <section class="card controls-section hidden" id="display-controls-panel" style="display: none;">
+        <section
+          class="card controls-section hidden"
+          id="display-controls-panel"
+          style="display: none"
+        >
           <h2>Display Controls</h2>
           <div class="control-grid">
             <div class="control-group">
@@ -139,6 +161,49 @@
           </div>
         </section>
 
+        <!-- WiFi Settings Section -->
+        <section
+          class="card wifi-section hidden"
+          id="wifi-settings-panel"
+          style="display: none"
+        >
+          <h2>WiFi Hotspot Settings</h2>
+          <p class="section-description">
+            Configure the mobile hotspot your device will connect to.
+          </p>
+          <div class="wifi-form">
+            <div class="form-group">
+              <label for="wifi-ssid">Hotspot Name (SSID)</label>
+              <input
+                type="text"
+                id="wifi-ssid"
+                placeholder="Enter your phone's hotspot name"
+                maxlength="32"
+              />
+            </div>
+            <div class="form-group">
+              <label for="wifi-password">Password</label>
+              <input
+                type="password"
+                id="wifi-password"
+                placeholder="Enter hotspot password (min 8 characters)"
+                minlength="8"
+              />
+              <button type="button" id="toggle-password" class="btn-icon">
+                Show
+              </button>
+            </div>
+            <div class="form-info">
+              <p id="wifi-current-ssid" class="current-config"></p>
+            </div>
+            <div class="button-group">
+              <button id="save-wifi-btn" class="btn btn-primary">
+                Save WiFi Settings
+              </button>
+            </div>
+          </div>
+        </section>
+
         <!-- System Messages -->
         <section id="system-messages" class="system-messages">
           <div id="message-indicator" class="indicator hidden">
@@ -165,4 +230,3 @@
     <script src="js/app.js"></script>
   </body>
 </html>
-

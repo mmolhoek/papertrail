@@ -7,6 +7,7 @@ import {
   UserState,
   RenderOptions,
   FallbackNetworkConfig,
+  HotspotConfig,
   success,
   failure,
 } from "../../core/types";
@@ -237,6 +238,20 @@ export class ConfigService implements IConfigService {
     }
   }
 
+  // Hotspot configuration management
+
+  getHotspotConfig(): HotspotConfig | undefined {
+    return this.userState.hotspotConfig;
+  }
+
+  setHotspotConfig(config: HotspotConfig | null): void {
+    if (config === null) {
+      this.userState.hotspotConfig = undefined;
+    } else {
+      this.userState.hotspotConfig = config;
+    }
+  }
+
   // Persistence
 
   async save(): Promise<Result<void>> {
@@ -436,6 +451,7 @@ export class ConfigService implements IConfigService {
       recentFiles: [],
       customWaypoints: [],
       wifiFallbackNetwork: undefined,
+      hotspotConfig: undefined,
     };
   }
 }

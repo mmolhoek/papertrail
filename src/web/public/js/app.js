@@ -12,7 +12,7 @@ class PapertrailClient {
 
   // Bind and initialize the hamburger menu
 
-    setupHamburgerMenu() {
+  setupHamburgerMenu() {
     const menuToggle = document.getElementById("menu-toggle");
     const menuContent = document.getElementById("menu-content");
 
@@ -33,7 +33,9 @@ class PapertrailClient {
       menuContent.classList.add("hidden");
 
       // Toggle indicator icon
-      const trackIndicator = document.getElementById("track-selection-indicator");
+      const trackIndicator = document.getElementById(
+        "track-selection-indicator",
+      );
       trackIndicator.classList.toggle("hidden", !isHidden);
     });
 
@@ -50,8 +52,28 @@ class PapertrailClient {
       menuContent.classList.add("hidden");
 
       // Toggle indicator icon
-      const displayIndicator = document.getElementById("display-controls-indicator");
+      const displayIndicator = document.getElementById(
+        "display-controls-indicator",
+      );
       displayIndicator.classList.toggle("hidden", !isHidden);
+    });
+
+    // Show the WiFi Settings panel
+    const wifiSettingsButton = document.getElementById("menu-wifi-settings");
+    const wifiSettingsPanel = document.getElementById("wifi-settings-panel");
+    wifiSettingsButton.addEventListener("click", () => {
+      const isHidden = wifiSettingsPanel.style.display === "none";
+      wifiSettingsPanel.style.display = isHidden ? "block" : "none";
+      menuContent.classList.add("hidden");
+
+      // Toggle indicator icon
+      const wifiIndicator = document.getElementById("wifi-settings-indicator");
+      wifiIndicator.classList.toggle("hidden", !isHidden);
+
+      // Load current WiFi config when opening
+      if (isHidden) {
+        this.loadWiFiConfig();
+      }
     });
   }
 
@@ -159,6 +181,15 @@ class PapertrailClient {
 
     document.getElementById("auto-refresh").addEventListener("change", (e) => {
       this.setAutoRefresh(e.target.checked);
+    });
+
+    // WiFi settings
+    document.getElementById("save-wifi-btn").addEventListener("click", () => {
+      this.saveWiFiConfig();
+    });
+
+    document.getElementById("toggle-password").addEventListener("click", () => {
+      this.togglePasswordVisibility();
     });
   }
 
@@ -287,6 +318,95 @@ class PapertrailClient {
         clearInterval(this.autoRefreshInterval);
         this.autoRefreshInterval = null;
       }
+    }
+  }
+
+  // WiFi Configuration Methods
+
+  async loadWiFiConfig() {
+    try {
+      const response = await this.fetchJSON(`${this.apiBase}/wifi/hotspot`);
+
+      if (response && response.data) {
+        const ssidInput = document.getElementById("wifi-ssid");
+        const currentSsidDisplay = document.getElementById("wifi-current-ssid");
+
+        // Set current SSID in the input field
+        ssidInput.value = response.data.ssid || "";
+
+        // Show current configuration info
+        if (response.data.ssid) {
+          currentSsidDisplay.textContent = `Current hotspot: ${response.data.ssid}`;
+        } else {
+          currentSsidDisplay.textContent = "No hotspot configured";
+        }
+      }
+    } catch (error) {
+      console.error("Error loading WiFi config:", error);
+      this.showMessage("Failed to load WiFi settings", "error");
+    }
+  }
+
+  async saveWiFiConfig() {
+    const ssidInput = document.getElementById("wifi-ssid");
+    const passwordInput = document.getElementById("wifi-password");
+    const saveBtn = document.getElementById("save-wifi-btn");
+
+    const ssid = ssidInput.value.trim();
+    const password = passwordInput.value;
+
+    // Validate inputs
+    if (!ssid) {
+      this.showMessage("Please enter a hotspot name (SSID)", "error");
+      return;
+    }
+
+    if (!password || password.length < 8) {
+      this.showMessage("Password must be at least 8 characters", "error");
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/wifi/hotspot`, {
+        method: "POST",
+        body: JSON.stringify({ ssid, password }),
+      });
+
+      if (result.success) {
+        this.showMessage("WiFi settings saved successfully", "success");
+        // Clear password field after successful save
+        passwordInput.value = "";
+        // Update the display
+        document.getElementById("wifi-current-ssid").textContent =
+          `Current hotspot: ${ssid}`;
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to save WiFi settings",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error saving WiFi config:", error);
+      this.showMessage("Failed to save WiFi settings", "error");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save WiFi Settings";
+    }
+  }
+
+  togglePasswordVisibility() {
+    const passwordInput = document.getElementById("wifi-password");
+    const toggleBtn = document.getElementById("toggle-password");
+
+    if (passwordInput.type === "password") {
+      passwordInput.type = "text";
+      toggleBtn.textContent = "Hide";
+    } else {
+      passwordInput.type = "password";
+      toggleBtn.textContent = "Show";
     }
   }
 

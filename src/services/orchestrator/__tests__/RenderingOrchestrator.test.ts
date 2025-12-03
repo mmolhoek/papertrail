@@ -154,6 +154,8 @@ describe("RenderingOrchestrator", () => {
       importConfig: jest.fn(),
       getWiFiFallbackNetwork: jest.fn().mockReturnValue(undefined),
       setWiFiFallbackNetwork: jest.fn(),
+      getHotspotConfig: jest.fn().mockReturnValue(undefined),
+      setHotspotConfig: jest.fn(),
     };
 
     orchestrator = new RenderingOrchestrator(

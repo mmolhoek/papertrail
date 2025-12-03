@@ -306,7 +306,9 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     onGPSStatusChange: jest.fn().mockReturnValue(() => {}),
     onDisplayUpdate: jest.fn().mockReturnValue(() => {}),
     onError: jest.fn().mockReturnValue(() => {}),
-    checkAndShowOnboardingScreen: jest.fn().mockResolvedValue(success(undefined)),
+    checkAndShowOnboardingScreen: jest
+      .fn()
+      .mockResolvedValue(success(undefined)),
     setWebSocketClientCount: jest.fn(),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
@@ -368,6 +370,8 @@ function createMockConfigService(): IConfigService {
     importConfig: jest.fn().mockReturnValue(success(undefined)),
     getWiFiFallbackNetwork: jest.fn().mockReturnValue(undefined),
     setWiFiFallbackNetwork: jest.fn(),
+    getHotspotConfig: jest.fn().mockReturnValue(undefined),
+    setHotspotConfig: jest.fn(),
   } as IConfigService;
 }
 

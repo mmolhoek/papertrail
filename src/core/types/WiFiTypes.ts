@@ -84,3 +84,13 @@ export type FallbackNetworkConfig = {
   ssid: string;
   savedAt: string; // ISO timestamp
 };
+
+/**
+ * Mobile hotspot configuration (persisted to config)
+ * This is the hotspot the device connects TO (e.g., user's phone hotspot)
+ */
+export type HotspotConfig = {
+  ssid: string;
+  password: string;
+  updatedAt: string; // ISO timestamp
+};

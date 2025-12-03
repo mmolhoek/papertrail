@@ -1,7 +1,7 @@
 import { GPSConfig } from "./GPSTypes";
 import { EpaperConfig } from "./DisplayTypes";
 import { RenderOptions } from "./DisplayTypes";
-import { FallbackNetworkConfig } from "./WiFiTypes";
+import { FallbackNetworkConfig, HotspotConfig } from "./WiFiTypes";
 
 /**
  * Application-wide configuration
@@ -165,6 +165,9 @@ export type UserState = {
 
   /** WiFi fallback network configuration (persisted) */
   wifiFallbackNetwork?: FallbackNetworkConfig;
+
+  /** Mobile hotspot configuration (the hotspot the device connects TO) */
+  hotspotConfig?: HotspotConfig;
 };
 
 /**

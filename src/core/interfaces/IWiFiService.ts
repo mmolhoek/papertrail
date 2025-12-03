@@ -4,6 +4,7 @@ import {
   WiFiConnection,
   WiFiNetworkConfig,
   WiFiState,
+  HotspotConfig,
 } from "../types";
 
 /**
@@ -143,4 +144,22 @@ export interface IWiFiService {
    * Stops the WiFi service from sending retry notifications
    */
   notifyConnectedScreenDisplayed(): void;
+
+  // Hotspot configuration methods
+
+  /**
+   * Get the current hotspot configuration
+   * Returns the configured SSID and password for the mobile hotspot the device connects to
+   * @returns Current hotspot configuration
+   */
+  getHotspotConfig(): HotspotConfig;
+
+  /**
+   * Set the hotspot configuration
+   * Updates the SSID and password for the mobile hotspot the device connects to
+   * @param ssid The new hotspot SSID
+   * @param password The new hotspot password
+   * @returns Result indicating success or failure
+   */
+  setHotspotConfig(ssid: string, password: string): Promise<Result<void>>;
 }

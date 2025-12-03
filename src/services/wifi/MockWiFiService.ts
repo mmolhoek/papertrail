@@ -6,6 +6,7 @@ import {
   WiFiNetworkConfig,
   WiFiConfig,
   WiFiState,
+  HotspotConfig,
 } from "../../core/types";
 import { success, failure } from "../../core/types";
 import { WiFiError } from "../../core/errors";
@@ -311,7 +312,91 @@ export class MockWiFiService implements IWiFiService {
   }
 
   getMobileHotspotSSID(): string {
-    return this.config.primarySSID;
+    return this.getEffectiveHotspotSSID();
+  }
+
+  // Hotspot configuration methods
+
+  getHotspotConfig(): HotspotConfig {
+    const savedConfig = this.configService?.getHotspotConfig();
+    if (savedConfig) {
+      logger.info(
+        `Mock: getHotspotConfig() - returning saved config: SSID="${savedConfig.ssid}"`,
+      );
+      return savedConfig;
+    }
+
+    // Return default config
+    const defaultConfig: HotspotConfig = {
+      ssid: this.config.primarySSID,
+      password: this.config.primaryPassword,
+      updatedAt: new Date().toISOString(),
+    };
+    logger.info(
+      `Mock: getHotspotConfig() - returning default config: SSID="${defaultConfig.ssid}"`,
+    );
+    return defaultConfig;
+  }
+
+  async setHotspotConfig(
+    ssid: string,
+    password: string,
+  ): Promise<Result<void>> {
+    logger.info(`Mock: setHotspotConfig() called - SSID="${ssid}"`);
+
+    if (!ssid || ssid.trim().length === 0) {
+      logger.error("Mock: setHotspotConfig() - SSID cannot be empty");
+      return failure(WiFiError.unknown("SSID cannot be empty"));
+    }
+
+    if (!password || password.length < 8) {
+      logger.error(
+        "Mock: setHotspotConfig() - Password must be at least 8 characters",
+      );
+      return failure(
+        WiFiError.unknown("Password must be at least 8 characters for WPA2"),
+      );
+    }
+
+    if (!this.configService) {
+      logger.error("Mock: setHotspotConfig() - No config service available");
+      return failure(WiFiError.unknown("Config service not available"));
+    }
+
+    await this.delay(200);
+
+    try {
+      const config: HotspotConfig = {
+        ssid: ssid.trim(),
+        password,
+        updatedAt: new Date().toISOString(),
+      };
+
+      // Save to ConfigService
+      this.configService.setHotspotConfig(config);
+      await this.configService.save();
+
+      logger.info(
+        `Mock: setHotspotConfig() - Saved new hotspot config: SSID="${ssid}"`,
+      );
+
+      // Simulate disconnect and trigger reconnection flow
+      logger.info(
+        "Mock: setHotspotConfig() - Simulating disconnect to trigger reconnection",
+      );
+      this.connected = false;
+
+      // Transition to WAITING_FOR_HOTSPOT state to show instruction screen
+      logger.info(
+        "Mock: setHotspotConfig() - Setting state to WAITING_FOR_HOTSPOT",
+      );
+      this.setState(WiFiState.WAITING_FOR_HOTSPOT);
+
+      return success(undefined);
+    } catch (error) {
+      logger.error("Mock: setHotspotConfig() - Failed to save config:", error);
+      return failure(WiFiError.unknown((error as Error).message));
+    }
   }
 
   notifyConnectedScreenDisplayed(): void {
@@ -319,6 +404,14 @@ export class MockWiFiService implements IWiFiService {
   }
 
   // Private helper methods
+
+  /**
+   * Get the effective hotspot SSID (from ConfigService if saved, otherwise from initial config)
+   */
+  private getEffectiveHotspotSSID(): string {
+    const savedConfig = this.configService?.getHotspotConfig();
+    return savedConfig?.ssid ?? this.config.primarySSID;
+  }
 
   private setState(newState: WiFiState): void {
     if (newState === this.currentState) {

@@ -4,6 +4,7 @@ import {
   UserState,
   RenderOptions,
   FallbackNetworkConfig,
+  HotspotConfig,
 } from "@core/types";
 
 /**
@@ -191,6 +192,20 @@ export interface IConfigService {
    * @param config FallbackNetworkConfig to store, or null to clear
    */
   setWiFiFallbackNetwork(config: FallbackNetworkConfig | null): void;
+
+  // Hotspot configuration management
+
+  /**
+   * Get the stored hotspot configuration
+   * @returns HotspotConfig or undefined if not set
+   */
+  getHotspotConfig(): HotspotConfig | undefined;
+
+  /**
+   * Set the hotspot configuration
+   * @param config HotspotConfig to store, or null to clear
+   */
+  setHotspotConfig(config: HotspotConfig | null): void;
 
   // Persistence
 

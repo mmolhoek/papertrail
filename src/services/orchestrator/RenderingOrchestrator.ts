@@ -1334,7 +1334,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
-    const ssid = this.wifiService.getMobileHotspotSSID();
+    const config = this.wifiService.getHotspotConfig();
 
     const template: TextTemplate = {
       version: "1.0",
@@ -1360,21 +1360,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           marginBottom: 30,
         },
         {
-          content: `Network Name: ${ssid}`,
+          content: `Network Name: ${config.ssid}`,
           fontSize: 26,
           fontWeight: "bold",
           alignment: "center",
           marginBottom: 15,
         },
         {
-          content: "Password: papertrail123",
+          content: `Password: ${config.password}`,
           fontSize: 26,
           fontWeight: "bold",
           alignment: "center",
           marginBottom: 40,
         },
         {
-          content: `...Searching for ${ssid}...`,
+          content: `...Searching for ${config.ssid}...`,
           fontSize: 26,
           fontWeight: "normal",
           alignment: "center",
@@ -1387,7 +1387,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     const height = this.configService.getDisplayHeight();
     const renderResult = await this.textRendererService.renderTemplate(
       template,
-      { ssid },
+      config,
       width,
       height,
     );
