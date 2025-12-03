@@ -1,4 +1,6 @@
 // Papertrail Web Interface Client
+// Expedition Command - GPS Tracker Control
+
 class PapertrailClient {
   constructor() {
     this.socket = null;
@@ -11,12 +13,19 @@ class PapertrailClient {
   }
 
   // Bind and initialize the hamburger menu
-
   setupHamburgerMenu() {
     const menuToggle = document.getElementById("menu-toggle");
     const menuContent = document.getElementById("menu-content");
 
-    menuToggle.addEventListener("click", () => {
+    // Close menu when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!menuToggle.contains(e.target) && !menuContent.contains(e.target)) {
+        menuContent.classList.add("hidden");
+      }
+    });
+
+    menuToggle.addEventListener("click", (e) => {
+      e.stopPropagation();
       menuContent.classList.toggle("hidden");
     });
 
@@ -77,14 +86,14 @@ class PapertrailClient {
     });
   }
 
-  // Show a system message
+  // Show a system message (toast notification)
   showMessage(message, type = "info") {
     const messageIndicator = document.getElementById("message-indicator");
     const messageText = document.getElementById("message-text");
 
     // Set message content and type
     messageText.textContent = message;
-    messageIndicator.className = `indicator ${type}`;
+    messageIndicator.className = `toast ${type}`;
 
     // Show the message indicator
     messageIndicator.classList.remove("hidden");
@@ -268,24 +277,35 @@ class PapertrailClient {
 
   async refreshDisplay() {
     const btn = document.getElementById("refresh-btn");
+    const btnText = btn.querySelector(".btn-text");
+    const btnIcon = btn.querySelector(".btn-icon");
+
     btn.disabled = true;
-    btn.textContent = "⏳ Refreshing...";
+    if (btnIcon) btnIcon.textContent = "⏳";
+    if (btnText) btnText.textContent = "Refreshing...";
 
     try {
       await this.fetchJSON(`${this.apiBase}/display/update`, {
         method: "POST",
       });
 
-      btn.textContent = "✓ Refreshed";
+      if (btnIcon) btnIcon.textContent = "✓";
+      if (btnText) btnText.textContent = "Refreshed";
+
       setTimeout(() => {
-        btn.textContent = "🔄 Refresh Display";
+        if (btnIcon) btnIcon.textContent = "↻";
+        if (btnText) btnText.textContent = "Refresh Display";
         btn.disabled = false;
       }, 2000);
     } catch (error) {
       console.error("Error refreshing display:", error);
-      btn.textContent = "✗ Failed";
+
+      if (btnIcon) btnIcon.textContent = "✕";
+      if (btnText) btnText.textContent = "Failed";
+
       setTimeout(() => {
-        btn.textContent = "🔄 Refresh Display";
+        if (btnIcon) btnIcon.textContent = "↻";
+        if (btnText) btnText.textContent = "Refresh Display";
         btn.disabled = false;
       }, 2000);
     }
@@ -336,7 +356,7 @@ class PapertrailClient {
 
         // Show current configuration info
         if (response.data.ssid) {
-          currentSsidDisplay.textContent = `Current hotspot: ${response.data.ssid}`;
+          currentSsidDisplay.textContent = `Current: ${response.data.ssid}`;
         } else {
           currentSsidDisplay.textContent = "No hotspot configured";
         }
@@ -351,6 +371,7 @@ class PapertrailClient {
     const ssidInput = document.getElementById("wifi-ssid");
     const passwordInput = document.getElementById("wifi-password");
     const saveBtn = document.getElementById("save-wifi-btn");
+    const btnText = saveBtn.querySelector(".btn-icon");
 
     const ssid = ssidInput.value.trim();
     const password = passwordInput.value;
@@ -367,7 +388,7 @@ class PapertrailClient {
     }
 
     saveBtn.disabled = true;
-    saveBtn.textContent = "Saving...";
+    if (btnText) btnText.textContent = "⏳";
 
     try {
       const result = await this.fetchJSON(`${this.apiBase}/wifi/hotspot`, {
@@ -381,19 +402,24 @@ class PapertrailClient {
         passwordInput.value = "";
         // Update the display
         document.getElementById("wifi-current-ssid").textContent =
-          `Current hotspot: ${ssid}`;
+          `Current: ${ssid}`;
+        if (btnText) btnText.textContent = "✓";
       } else {
         this.showMessage(
           result.error?.message || "Failed to save WiFi settings",
           "error",
         );
+        if (btnText) btnText.textContent = "✕";
       }
     } catch (error) {
       console.error("Error saving WiFi config:", error);
       this.showMessage("Failed to save WiFi settings", "error");
+      if (btnText) btnText.textContent = "✕";
     } finally {
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Save WiFi Settings";
+      setTimeout(() => {
+        saveBtn.disabled = false;
+        if (btnText) btnText.textContent = "✓";
+      }, 1500);
     }
   }
 
@@ -432,23 +458,48 @@ class PapertrailClient {
         data.latitude.toFixed(6) + "°";
       document.getElementById("longitude").textContent =
         data.longitude.toFixed(6) + "°";
-      document.getElementById("altitude").textContent = data.altitude
-        ? data.altitude.toFixed(1) + " m"
-        : "--";
+
+      const altitudeEl = document.getElementById("altitude");
+      if (data.altitude) {
+        altitudeEl.textContent = data.altitude.toFixed(1);
+      } else {
+        altitudeEl.textContent = "--";
+      }
+
+      // Update mini status in position card
+      const gpsPulse = document.getElementById("gps-pulse");
+      const gpsStatusMini = document.getElementById("gps-status-mini");
+      if (gpsPulse && gpsStatusMini) {
+        gpsPulse.classList.add("active");
+        gpsStatusMini.textContent = "Tracking";
+      }
     }
   }
 
   updateGPSStatus(data) {
     if (data) {
       // Update GPS connection status
-      // If we're receiving GPS data, the GPS is active
       const gpsStatusElement = document.getElementById("gps-status");
+      const gpsPulse = document.getElementById("gps-pulse");
+      const gpsStatusMini = document.getElementById("gps-status-mini");
+
       if (gpsStatusElement) {
         const isActive = data.isTracking !== undefined ? data.isTracking : true;
-        gpsStatusElement.textContent = isActive ? "✓ Active" : "✗ Inactive";
+        gpsStatusElement.textContent = isActive ? "Active" : "Inactive";
         gpsStatusElement.className = isActive
-          ? "value status-good"
-          : "value status-bad";
+          ? "status-value status-good"
+          : "status-value status-bad";
+
+        // Update mini status
+        if (gpsPulse && gpsStatusMini) {
+          if (isActive) {
+            gpsPulse.classList.add("active");
+            gpsStatusMini.textContent = "Tracking";
+          } else {
+            gpsPulse.classList.remove("active");
+            gpsStatusMini.textContent = "Inactive";
+          }
+        }
       }
 
       // Update fix status display
@@ -468,8 +519,10 @@ class PapertrailClient {
         const fixName = fixQualityNames[data.fixQuality] || "Unknown";
         const hasFix = data.fixQuality > 0;
 
-        fixElement.textContent = hasFix ? "✓ " + fixName : "✗ " + fixName;
-        fixElement.className = hasFix ? "status-good" : "status-bad";
+        fixElement.textContent = fixName;
+        fixElement.className = hasFix
+          ? "status-value status-good"
+          : "status-value status-bad";
       }
 
       // Update satellites count
@@ -479,11 +532,11 @@ class PapertrailClient {
 
         // Color-code satellites: green if 4+, yellow if 1-3, red if 0
         if (data.satellitesInUse >= 4) {
-          satellitesElement.className = "value status-good";
+          satellitesElement.className = "status-value status-good";
         } else if (data.satellitesInUse > 0) {
-          satellitesElement.className = "value status-unknown";
+          satellitesElement.className = "status-value status-unknown";
         } else {
-          satellitesElement.className = "value status-bad";
+          satellitesElement.className = "status-value status-bad";
         }
       }
 
@@ -494,13 +547,13 @@ class PapertrailClient {
 
         // Color-code HDOP: <2=excellent, 2-5=good, 5-10=moderate, >10=poor
         if (data.hdop < 2) {
-          hdopElement.className = "value status-good";
+          hdopElement.className = "status-value status-good";
         } else if (data.hdop < 5) {
-          hdopElement.className = "value status-good";
+          hdopElement.className = "status-value status-good";
         } else if (data.hdop < 10) {
-          hdopElement.className = "value status-unknown";
+          hdopElement.className = "status-value status-unknown";
         } else {
-          hdopElement.className = "value status-bad";
+          hdopElement.className = "status-value status-bad";
         }
       }
     }
@@ -513,11 +566,24 @@ class PapertrailClient {
         // Only update on initial load if element still shows "Unknown"
         const gpsStatusElement = document.getElementById("gps-status");
         if (gpsStatusElement && gpsStatusElement.textContent === "Unknown") {
-          const gpsStatus = data.gps.connected ? "✓ Active" : "✗ Inactive";
+          const gpsStatus = data.gps.connected ? "Active" : "Inactive";
           gpsStatusElement.textContent = gpsStatus;
           gpsStatusElement.className = data.gps.connected
-            ? "value status-good"
-            : "value status-bad";
+            ? "status-value status-good"
+            : "status-value status-bad";
+
+          // Update mini status
+          const gpsPulse = document.getElementById("gps-pulse");
+          const gpsStatusMini = document.getElementById("gps-status-mini");
+          if (gpsPulse && gpsStatusMini) {
+            if (data.gps.connected) {
+              gpsPulse.classList.add("active");
+              gpsStatusMini.textContent = "Tracking";
+            } else {
+              gpsPulse.classList.remove("active");
+              gpsStatusMini.textContent = "Acquiring";
+            }
+          }
         }
 
         // Note: Satellites are now updated via real-time gps:update/gps:status events
@@ -536,17 +602,17 @@ class PapertrailClient {
         if (data.display.initialized) {
           // Show display model if available, otherwise just "Ready"
           const displayInfo = data.display.model || "Ready";
-          displayElement.textContent = "✓ " + displayInfo;
-          displayElement.className = "value status-good";
+          displayElement.textContent = displayInfo;
+          displayElement.className = "status-value status-good";
         } else {
-          displayElement.textContent = "✗ Not Ready";
-          displayElement.className = "value status-bad";
+          displayElement.textContent = "Not Ready";
+          displayElement.className = "status-value status-bad";
         }
       } else {
         // No display data available
         const displayElement = document.getElementById("display-status");
         displayElement.textContent = "Unknown";
-        displayElement.className = "value status-unknown";
+        displayElement.className = "status-value status-unknown";
       }
 
       if (data.activeTrack) {

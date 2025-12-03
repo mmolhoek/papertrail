@@ -3,224 +3,391 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Papertrail - GPS Tracker Control</title>
+    <title>Papertrail - GPS Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=DM+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
+    <!-- Topographic Background Pattern -->
+    <div class="topo-bg"></div>
+
     <div class="container">
-      <header>
-        <h1>📍 Papertrail</h1>
-        <p class="subtitle">GPS Tracker Control Panel</p>
+      <!-- Header with Compass Rose -->
+      <header class="header">
+        <div class="compass-rose">
+          <svg viewBox="0 0 100 100" class="compass-svg">
+            <circle cx="50" cy="50" r="45" class="compass-outer" />
+            <circle cx="50" cy="50" r="35" class="compass-inner" />
+            <line x1="50" y1="5" x2="50" y2="20" class="compass-tick major" />
+            <line x1="50" y1="80" x2="50" y2="95" class="compass-tick major" />
+            <line x1="5" y1="50" x2="20" y2="50" class="compass-tick major" />
+            <line x1="80" y1="50" x2="95" y2="50" class="compass-tick major" />
+            <polygon points="50,15 45,45 50,40 55,45" class="compass-north" />
+            <polygon points="50,85 45,55 50,60 55,55" class="compass-south" />
+            <text x="50" y="12" class="compass-label">N</text>
+          </svg>
+        </div>
+        <div class="header-text">
+          <h1>Papertrail</h1>
+          <p class="tagline">Expedition Command</p>
+        </div>
       </header>
 
-      <main>
-        <!-- Hamburger Menu -->
-        <nav class="hamburger-menu">
-          <button id="menu-toggle" class="menu-toggle">☰</button>
-          <div id="menu-content" class="menu-content hidden">
-            <button id="menu-track-selection" class="menu-item">
-              GPX Track Selection
-              <span id="track-selection-indicator" class="indicator-icon hidden"
-                >✔</span
-              >
-            </button>
-            <button id="menu-display-controls" class="menu-item">
-              Display Controls
-              <span
-                id="display-controls-indicator"
-                class="indicator-icon hidden"
-                >✔</span
-              >
-            </button>
-            <button id="menu-wifi-settings" class="menu-item">
-              WiFi Settings
-              <span id="wifi-settings-indicator" class="indicator-icon hidden"
-                >✔</span
-              >
-            </button>
-          </div>
-        </nav>
+      <!-- Navigation Menu -->
+      <nav class="nav-bar">
+        <button id="menu-toggle" class="nav-toggle" aria-label="Menu">
+          <span class="nav-icon"></span>
+        </button>
+        <div id="menu-content" class="nav-menu hidden">
+          <button id="menu-track-selection" class="nav-item">
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Track Selection</span>
+            <span id="track-selection-indicator" class="nav-check hidden"
+              >✓</span
+            >
+          </button>
+          <button id="menu-display-controls" class="nav-item">
+            <span class="nav-item-icon">◈</span>
+            <span class="nav-item-text">Display Controls</span>
+            <span id="display-controls-indicator" class="nav-check hidden"
+              >✓</span
+            >
+          </button>
+          <button id="menu-wifi-settings" class="nav-item">
+            <span class="nav-item-icon">◉</span>
+            <span class="nav-item-text">WiFi Settings</span>
+            <span id="wifi-settings-indicator" class="nav-check hidden">✓</span>
+          </button>
+        </div>
+      </nav>
 
-        <!-- Status Section -->
-        <section class="card status-section">
-          <h2>System Status</h2>
+      <main class="main-content">
+        <!-- Position Display - Hero Section -->
+        <section class="position-card">
+          <div class="position-header">
+            <span class="section-marker">POSITION</span>
+            <div class="position-status">
+              <span class="pulse-dot" id="gps-pulse"></span>
+              <span id="gps-status-mini">Acquiring</span>
+            </div>
+          </div>
+          <div class="coordinates">
+            <div class="coord-group">
+              <div class="coord-row">
+                <span class="coord-label">LAT</span>
+                <span class="coord-value" id="latitude">--°</span>
+              </div>
+              <div class="coord-row">
+                <span class="coord-label">LON</span>
+                <span class="coord-value" id="longitude">--°</span>
+              </div>
+            </div>
+            <div class="coord-divider"></div>
+            <div class="altitude-display">
+              <span class="altitude-label">ELEV</span>
+              <span class="altitude-value" id="altitude">--</span>
+              <span class="altitude-unit">m</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- System Status Grid -->
+        <section class="status-card">
+          <div class="section-header">
+            <span class="section-marker">SYSTEM STATUS</span>
+          </div>
           <div class="status-grid">
-            <div class="status-item">
-              <span class="label">GPS Status:</span>
-              <span class="value" id="gps-status">Unknown</span>
+            <div class="status-tile">
+              <div class="status-icon gps-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="3" />
+                  <line x1="12" y1="2" x2="12" y2="6" />
+                  <line x1="12" y1="18" x2="12" y2="22" />
+                  <line x1="2" y1="12" x2="6" y2="12" />
+                  <line x1="18" y1="12" x2="22" y2="12" />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">GPS</span>
+                <span class="status-value" id="gps-status">Unknown</span>
+              </div>
             </div>
-            <div class="status-item">
-              <span class="label">GPS Fix:</span>
-              <span class="value status-unknown" id="gps-fix-status"
-                >Unknown</span
-              >
+            <div class="status-tile">
+              <div class="status-icon fix-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+                  />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">Fix Quality</span>
+                <span class="status-value status-unknown" id="gps-fix-status"
+                  >Unknown</span
+                >
+              </div>
             </div>
-            <div class="status-item">
-              <span class="label">Satellites:</span>
-              <span class="value" id="satellites">0</span>
+            <div class="status-tile">
+              <div class="status-icon sat-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"
+                  />
+                  <circle cx="12" cy="12" r="4" />
+                  <path
+                    d="M16.24 7.76l2.12-2.12M18 12h4M16.24 16.24l2.12 2.12"
+                  />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">Satellites</span>
+                <span class="status-value" id="satellites">0</span>
+              </div>
             </div>
-            <div class="status-item">
-              <span class="label">HDOP:</span>
-              <span class="value" id="gps-hdop">--</span>
+            <div class="status-tile">
+              <div class="status-icon hdop-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">HDOP</span>
+                <span class="status-value" id="gps-hdop">--</span>
+              </div>
             </div>
-            <div class="status-item">
-              <span class="label">E-Paper:</span>
-              <span class="value" id="display-status">Unknown</span>
+            <div class="status-tile">
+              <div class="status-icon display-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                  <line x1="8" y1="21" x2="16" y2="21" />
+                  <line x1="12" y1="17" x2="12" y2="21" />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">E-Paper</span>
+                <span class="status-value" id="display-status">Unknown</span>
+              </div>
             </div>
-            <div class="status-item">
-              <span class="label">Active Track:</span>
-              <span class="value" id="active-track">None</span>
+            <div class="status-tile">
+              <div class="status-icon track-icon">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path d="M3 17l6-6 4 4 8-8" />
+                  <polyline points="14 7 21 7 21 14" />
+                </svg>
+              </div>
+              <div class="status-info">
+                <span class="status-label">Active Track</span>
+                <span class="status-value truncate" id="active-track"
+                  >None</span
+                >
+              </div>
             </div>
           </div>
         </section>
 
-        <!-- GPS Position Section -->
-        <section class="card position-section">
-          <h2>Current Position</h2>
-          <div class="position-display">
-            <div class="coordinate">
-              <span class="label">Latitude:</span>
-              <span class="value" id="latitude">--</span>
-            </div>
-            <div class="coordinate">
-              <span class="label">Longitude:</span>
-              <span class="value" id="longitude">--</span>
-            </div>
-            <div class="coordinate">
-              <span class="label">Altitude:</span>
-              <span class="value" id="altitude">--</span>
-            </div>
-          </div>
-        </section>
-
-        <!-- Track Selection Section -->
+        <!-- GPX Track Selection Panel -->
         <section
-          class="card track-section hidden"
+          class="panel-card hidden"
           id="track-selection-panel"
           style="display: none"
         >
-          <h2>GPX Track Selection</h2>
-          <div class="track-controls">
-            <select id="track-select" class="track-select">
-              <option value="">Select a track...</option>
-            </select>
+          <div class="section-header">
+            <span class="section-marker">TRACK SELECTION</span>
+          </div>
+          <div class="panel-content">
+            <div class="select-wrapper">
+              <select id="track-select" class="custom-select">
+                <option value="">Select a track...</option>
+              </select>
+              <span class="select-arrow">▾</span>
+            </div>
             <button id="load-track-btn" class="btn btn-primary">
+              <span class="btn-icon">↻</span>
               Load Track
             </button>
           </div>
           <div id="track-info" class="track-info hidden">
-            <p><strong>Points:</strong> <span id="track-points">0</span></p>
-            <p>
-              <strong>Distance:</strong> <span id="track-distance">0 km</span>
-            </p>
+            <div class="track-stat">
+              <span class="track-stat-label">Points</span>
+              <span class="track-stat-value" id="track-points">0</span>
+            </div>
+            <div class="track-stat">
+              <span class="track-stat-label">Distance</span>
+              <span class="track-stat-value" id="track-distance">0 km</span>
+            </div>
           </div>
         </section>
 
-        <!-- Display Controls Section -->
+        <!-- Display Controls Panel -->
         <section
-          class="card controls-section hidden"
+          class="panel-card hidden"
           id="display-controls-panel"
           style="display: none"
         >
-          <h2>Display Controls</h2>
-          <div class="control-grid">
-            <div class="control-group">
-              <label for="zoom-control"
-                >Zoom Level: <span id="zoom-value">14</span></label
-              >
-              <input
-                type="range"
-                id="zoom-control"
-                min="1"
-                max="20"
-                value="14"
-              />
+          <div class="section-header">
+            <span class="section-marker">DISPLAY CONTROLS</span>
+          </div>
+          <div class="panel-content">
+            <div class="zoom-control">
+              <label class="control-label">
+                Zoom Level
+                <span class="zoom-badge" id="zoom-value">14</span>
+              </label>
+              <div class="zoom-slider-group">
+                <button id="zoom-out-btn" class="zoom-btn">−</button>
+                <input
+                  type="range"
+                  id="zoom-control"
+                  min="1"
+                  max="20"
+                  value="14"
+                  class="zoom-slider"
+                />
+                <button id="zoom-in-btn" class="zoom-btn">+</button>
+              </div>
             </div>
-            <div class="button-group">
-              <button id="zoom-in-btn" class="btn">Zoom In (+)</button>
-              <button id="zoom-out-btn" class="btn">Zoom Out (-)</button>
-            </div>
-            <div class="button-group">
-              <button id="refresh-btn" class="btn btn-primary">
-                🔄 Refresh Display
+
+            <div class="action-buttons">
+              <button id="refresh-btn" class="btn btn-primary btn-large">
+                <span class="btn-icon">↻</span>
+                <span class="btn-text">Refresh Display</span>
               </button>
               <button id="clear-btn" class="btn btn-secondary">
-                Clear Display
+                <span class="btn-icon">✕</span>
+                <span class="btn-text">Clear</span>
               </button>
             </div>
-            <div class="checkbox-group">
-              <label>
-                <input type="checkbox" id="auto-center" checked />
-                Auto-center on GPS
+
+            <div class="toggle-group">
+              <label class="toggle-item">
+                <input
+                  type="checkbox"
+                  id="auto-center"
+                  checked
+                  class="toggle-input"
+                />
+                <span class="toggle-switch"></span>
+                <span class="toggle-label">Auto-center on GPS</span>
               </label>
-              <label>
-                <input type="checkbox" id="auto-refresh" />
-                Auto-refresh (every 5s)
+              <label class="toggle-item">
+                <input type="checkbox" id="auto-refresh" class="toggle-input" />
+                <span class="toggle-switch"></span>
+                <span class="toggle-label">Auto-refresh (5s)</span>
               </label>
             </div>
           </div>
         </section>
 
-        <!-- WiFi Settings Section -->
+        <!-- WiFi Settings Panel -->
         <section
-          class="card wifi-section hidden"
+          class="panel-card hidden"
           id="wifi-settings-panel"
           style="display: none"
         >
-          <h2>WiFi Hotspot Settings</h2>
-          <p class="section-description">
+          <div class="section-header">
+            <span class="section-marker">WIFI HOTSPOT</span>
+          </div>
+          <p class="panel-description">
             Configure the mobile hotspot your device will connect to.
           </p>
-          <div class="wifi-form">
-            <div class="form-group">
-              <label for="wifi-ssid">Hotspot Name (SSID)</label>
+          <div class="panel-content">
+            <div class="form-field">
+              <label for="wifi-ssid" class="field-label"
+                >Network Name (SSID)</label
+              >
               <input
                 type="text"
                 id="wifi-ssid"
-                placeholder="Enter your phone's hotspot name"
+                class="field-input"
+                placeholder="Enter hotspot name"
                 maxlength="32"
               />
             </div>
-            <div class="form-group">
-              <label for="wifi-password">Password</label>
-              <input
-                type="password"
-                id="wifi-password"
-                placeholder="Enter hotspot password (min 8 characters)"
-                minlength="8"
-              />
-              <button type="button" id="toggle-password" class="btn-icon">
-                Show
-              </button>
+            <div class="form-field">
+              <label for="wifi-password" class="field-label">Password</label>
+              <div class="password-field">
+                <input
+                  type="password"
+                  id="wifi-password"
+                  class="field-input"
+                  placeholder="Min 8 characters"
+                  minlength="8"
+                />
+                <button
+                  type="button"
+                  id="toggle-password"
+                  class="password-toggle"
+                >
+                  Show
+                </button>
+              </div>
             </div>
-            <div class="form-info">
-              <p id="wifi-current-ssid" class="current-config"></p>
+            <div class="wifi-current">
+              <span id="wifi-current-ssid">No hotspot configured</span>
             </div>
-            <div class="button-group">
-              <button id="save-wifi-btn" class="btn btn-primary">
-                Save WiFi Settings
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <!-- System Messages -->
-        <section id="system-messages" class="system-messages">
-          <div id="message-indicator" class="indicator hidden">
-            <span class="dot"></span>
-            <span id="message-text">System Message</span>
-          </div>
-        </section>
-        <!-- Connection Status -->
-        <section class="connection-status">
-          <div id="connection-indicator" class="indicator disconnected">
-            <span class="dot"></span>
-            <span id="connection-text">Connecting...</span>
+            <button id="save-wifi-btn" class="btn btn-primary btn-full">
+              <span class="btn-icon">✓</span>
+              Save Settings
+            </button>
           </div>
         </section>
       </main>
 
-      <footer>
+      <!-- Connection Status -->
+      <div class="connection-bar">
+        <div id="connection-indicator" class="connection-status disconnected">
+          <span class="connection-dot"></span>
+          <span id="connection-text">Connecting...</span>
+        </div>
+      </div>
+
+      <!-- System Messages Toast -->
+      <div id="system-messages" class="toast-container">
+        <div id="message-indicator" class="toast hidden">
+          <span class="toast-icon"></span>
+          <span id="message-text">System Message</span>
+        </div>
+      </div>
+
+      <footer class="footer">
         <p>Papertrail GPS Tracker © 2025</p>
       </footer>
     </div>
