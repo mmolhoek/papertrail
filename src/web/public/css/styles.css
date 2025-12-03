@@ -754,10 +754,12 @@ body {
   display: flex;
   gap: 0.5rem;
   margin-top: 0.75rem;
+  width: 100%;
 }
 
 .track-actions .btn {
   flex: 1;
+  min-width: 0;
   padding: 0.5rem 0.75rem;
   font-size: 0.85rem;
 }
