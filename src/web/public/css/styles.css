@@ -738,6 +738,30 @@ body {
   border-color: var(--color-sienna-light);
 }
 
+.btn-danger {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: var(--color-parchment);
+}
+
+.btn-danger:hover {
+  background: #e74c3c;
+  border-color: #e74c3c;
+}
+
+/* Track actions button group */
+.track-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.track-actions .btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 .btn-large {
   padding: var(--space-md) var(--space-xl);
   flex: 1;

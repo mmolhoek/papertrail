@@ -261,10 +261,26 @@
               </select>
               <span class="select-arrow">▾</span>
             </div>
-            <button id="load-track-btn" class="btn btn-primary">
-              <span class="btn-icon">↻</span>
-              Load Track
-            </button>
+            <div class="track-actions">
+              <button id="load-track-btn" class="btn btn-primary">
+                <span class="btn-icon">↻</span>
+                Load
+              </button>
+              <button id="upload-track-btn" class="btn btn-secondary">
+                <span class="btn-icon">+</span>
+                Upload
+              </button>
+              <button id="delete-track-btn" class="btn btn-danger">
+                <span class="btn-icon">×</span>
+                Delete
+              </button>
+            </div>
+            <input
+              type="file"
+              id="gpx-file-input"
+              accept=".gpx"
+              class="hidden"
+            />
           </div>
           <div id="track-info" class="track-info hidden">
             <div class="track-stat">

@@ -53,7 +53,10 @@ async function main() {
     logger.info("Checking onboarding status...");
     const onboardingResult = await orchestrator.checkAndShowOnboardingScreen();
     if (!isSuccess(onboardingResult)) {
-      logger.warn("Failed to show onboarding screen:", onboardingResult.error.message);
+      logger.warn(
+        "Failed to show onboarding screen:",
+        onboardingResult.error.message,
+      );
     } else {
       logger.info("✓ Onboarding screen check complete\n");
     }
@@ -61,10 +64,14 @@ async function main() {
     // Create and start web interface
     logger.info("Starting web interface...");
     const webConfig = container.getWebConfig();
+    const mapConfig = container.getMapConfig();
+    const mapService = container.getMapService();
     const webService = new IntegratedWebService(
       orchestrator,
       webConfig,
       wifiService,
+      mapService,
+      mapConfig.gpxDirectory,
     );
 
     const webResult = await webService.start();

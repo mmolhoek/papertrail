@@ -151,6 +151,26 @@ class PapertrailClient {
       this.loadSelectedTrack();
     });
 
+    // Track upload
+    const uploadBtn = document.getElementById("upload-track-btn");
+    const uploadInput = document.getElementById("gpx-file-input");
+    if (uploadBtn && uploadInput) {
+      uploadBtn.addEventListener("click", () => {
+        uploadInput.click();
+      });
+      uploadInput.addEventListener("change", (e) => {
+        this.handleFileSelect(e);
+      });
+    }
+
+    // Track delete
+    const deleteBtn = document.getElementById("delete-track-btn");
+    if (deleteBtn) {
+      deleteBtn.addEventListener("click", () => {
+        this.deleteSelectedTrack();
+      });
+    }
+
     // Zoom controls
     document.getElementById("zoom-in-btn").addEventListener("click", () => {
       this.changeZoom(1);
@@ -614,19 +634,174 @@ class PapertrailClient {
 
   populateTrackList(data) {
     const select = document.getElementById("track-select");
+    const trackInfo = document.getElementById("track-info");
 
     // Keep the first option
     select.innerHTML = '<option value="">Select a track...</option>';
 
-    // Add tracks (placeholder for now)
-    // Will be populated with actual track data from backend
-    const tracks = ["Track 1", "Track 2", "Track 3"];
-    tracks.forEach((track) => {
+    // Check if we have actual file data
+    if (data && data.data && data.data.files && data.data.files.length > 0) {
+      const files = data.data.files;
+      files.forEach((file) => {
+        const option = document.createElement("option");
+        option.value = file.path;
+        option.textContent = file.trackName || file.fileName;
+        // Store additional data for display
+        option.dataset.points = file.pointCount || 0;
+        option.dataset.fileName = file.fileName;
+        select.appendChild(option);
+      });
+
+      // Show track count
+      if (trackInfo) {
+        trackInfo.classList.remove("hidden");
+      }
+    } else {
+      // No files available
       const option = document.createElement("option");
-      option.value = track;
-      option.textContent = track;
+      option.value = "";
+      option.textContent = "No tracks available - upload one!";
+      option.disabled = true;
       select.appendChild(option);
+    }
+
+    // Add change listener to show track info when selected
+    select.addEventListener("change", () => {
+      this.updateTrackInfo();
     });
+  }
+
+  updateTrackInfo() {
+    const select = document.getElementById("track-select");
+    const trackInfo = document.getElementById("track-info");
+    const pointsEl = document.getElementById("track-points");
+
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (selectedOption && selectedOption.value && pointsEl) {
+      const points = selectedOption.dataset.points || "0";
+      pointsEl.textContent = points;
+      if (trackInfo) {
+        trackInfo.classList.remove("hidden");
+      }
+    } else {
+      if (trackInfo) {
+        trackInfo.classList.add("hidden");
+      }
+    }
+  }
+
+  // GPX File Management Methods
+
+  async uploadGPXFile(file, customName = null) {
+    const formData = new FormData();
+    formData.append("gpxFile", file);
+    if (customName) {
+      formData.append("trackName", customName);
+    }
+
+    try {
+      const response = await fetch(`${this.apiBase}/map/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        const displayName = customName || file.name;
+        this.showMessage(`Track "${displayName}" uploaded successfully`, "success");
+        // Reload the track list
+        await this.reloadTrackList();
+      } else {
+        this.showMessage(result.error?.message || "Upload failed", "error");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      this.showMessage("Failed to upload file", "error");
+    }
+  }
+
+  async deleteSelectedTrack() {
+    const select = document.getElementById("track-select");
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (!selectedOption || !selectedOption.value) {
+      this.showMessage("Please select a track to delete", "error");
+      return;
+    }
+
+    const fileName = selectedOption.dataset.fileName;
+    if (!fileName) {
+      this.showMessage("Cannot determine file name", "error");
+      return;
+    }
+
+    // Confirm deletion
+    if (
+      !confirm(
+        `Are you sure you want to delete "${selectedOption.textContent}"?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${this.apiBase}/map/files/${encodeURIComponent(fileName)}`,
+        { method: "DELETE" },
+      );
+
+      const result = await response.json();
+
+      if (result.success) {
+        this.showMessage("Track deleted successfully", "success");
+        // Reload the track list
+        await this.reloadTrackList();
+      } else {
+        this.showMessage(result.error?.message || "Delete failed", "error");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      this.showMessage("Failed to delete track", "error");
+    }
+  }
+
+  async reloadTrackList() {
+    try {
+      const tracks = await this.fetchJSON(`${this.apiBase}/map/files`);
+      this.populateTrackList(tracks);
+    } catch (error) {
+      console.error("Failed to reload track list:", error);
+    }
+  }
+
+  handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith(".gpx")) {
+        this.showMessage("Please select a GPX file", "error");
+        event.target.value = "";
+        return;
+      }
+
+      // Get default name (filename without .gpx extension)
+      const defaultName = file.name.replace(/\.gpx$/i, "");
+
+      // Prompt user for track name
+      const trackName = prompt("Enter a name for this track:", defaultName);
+
+      if (trackName === null) {
+        // User cancelled
+        event.target.value = "";
+        return;
+      }
+
+      const finalName = trackName.trim() || defaultName;
+      this.uploadGPXFile(file, finalName);
+    }
+    // Reset input so same file can be selected again
+    event.target.value = "";
   }
 
   // Utility Methods

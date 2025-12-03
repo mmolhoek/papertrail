@@ -1,5 +1,11 @@
 import { Request, Response } from "express";
-import { IRenderingOrchestrator, IWiFiService } from "@core/interfaces";
+import * as fs from "fs/promises";
+import * as path from "path";
+import {
+  IRenderingOrchestrator,
+  IWiFiService,
+  IMapService,
+} from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
@@ -16,6 +22,8 @@ export class WebController {
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
     private readonly wifiService?: IWiFiService,
+    private readonly mapService?: IMapService,
+    private readonly gpxDirectory: string = "./data/gpx-files",
   ) {}
 
   /**
@@ -101,14 +109,59 @@ export class WebController {
    */
   async getGPXFiles(_req: Request, res: Response): Promise<void> {
     logger.debug("GPX files list requested");
-    // This will be implemented when MapService is available
-    // For now, return placeholder
-    res.json({
-      success: true,
-      data: {
-        files: [],
-      },
-    });
+
+    if (!this.mapService) {
+      logger.warn("MapService not available");
+      res.json({
+        success: true,
+        data: {
+          files: [],
+        },
+      });
+      return;
+    }
+
+    const result = await this.mapService.getGPXFileInfo();
+
+    if (isSuccess(result)) {
+      logger.debug(`Found ${result.data.length} GPX files`);
+      res.json({
+        success: true,
+        data: {
+          files: result.data.map((info) => {
+            // Use filename if track has no meaningful name
+            const hasValidTrackName =
+              info.trackName &&
+              info.trackName !== "Unnamed Track" &&
+              info.trackName.trim() !== "";
+            const displayName = hasValidTrackName
+              ? info.trackName
+              : info.fileName.replace(/\.gpx$/i, "");
+            logger.debug(
+              `Track: "${info.trackName}" -> display: "${displayName}" (valid=${hasValidTrackName})`,
+            );
+            return {
+              path: info.path,
+              fileName: info.fileName,
+              trackName: displayName,
+              trackCount: info.trackCount,
+              pointCount: info.pointCount,
+              fileSize: info.fileSize,
+              lastModified: info.lastModified,
+            };
+          }),
+        },
+      });
+    } else {
+      // No GPX files is not an error - return empty array
+      logger.debug("No GPX files found or error occurred");
+      res.json({
+        success: true,
+        data: {
+          files: [],
+        },
+      });
+    }
   }
 
   /**
@@ -512,6 +565,207 @@ export class WebController {
             result.error.message || "Failed to update hotspot configuration",
         },
       });
+    }
+  }
+
+  // GPX File Management Endpoints
+
+  /**
+   * Upload a GPX file
+   * Expects multipart form data with a 'gpxFile' field
+   */
+  async uploadGPXFile(req: Request, res: Response): Promise<void> {
+    logger.info("GPX file upload requested");
+
+    if (!req.file) {
+      logger.warn("Upload requested without file");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "NO_FILE",
+          message: "No file was uploaded",
+        },
+      });
+      return;
+    }
+
+    const file = req.file;
+    const originalName = file.originalname;
+    const customName = req.body.trackName as string | undefined;
+
+    // Validate file extension
+    if (!originalName.toLowerCase().endsWith(".gpx")) {
+      logger.warn(`Invalid file type: ${originalName}`);
+      // Clean up uploaded file
+      try {
+        await fs.unlink(file.path);
+      } catch {
+        // Ignore cleanup errors
+      }
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_FILE_TYPE",
+          message: "Only .gpx files are allowed",
+        },
+      });
+      return;
+    }
+
+    try {
+      // Ensure GPX directory exists
+      await fs.mkdir(this.gpxDirectory, { recursive: true });
+
+      // Use custom name if provided, otherwise use original filename
+      const baseName = customName
+        ? customName.replace(/[^a-zA-Z0-9._-]/g, "_")
+        : originalName.replace(/\.gpx$/i, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      const safeFileName = baseName.endsWith(".gpx")
+        ? baseName
+        : `${baseName}.gpx`;
+      const destPath = path.join(this.gpxDirectory, safeFileName);
+
+      // Check if file already exists
+      try {
+        await fs.access(destPath);
+        // File exists - remove uploaded temp file and return error
+        await fs.unlink(file.path);
+        res.status(409).json({
+          success: false,
+          error: {
+            code: "FILE_EXISTS",
+            message: `A file named "${safeFileName}" already exists`,
+          },
+        });
+        return;
+      } catch {
+        // File doesn't exist, proceed
+      }
+
+      // Move file from temp location to GPX directory
+      // Use copyFile + unlink instead of rename to handle cross-device moves
+      await fs.copyFile(file.path, destPath);
+      await fs.unlink(file.path);
+
+      // Validate the GPX file if mapService is available
+      if (this.mapService) {
+        const validationResult =
+          await this.mapService.validateGPXFile(destPath);
+        if (!validationResult.success) {
+          // Invalid GPX - remove the file
+          await fs.unlink(destPath);
+          logger.warn(`Invalid GPX file uploaded: ${originalName}`);
+          res.status(400).json({
+            success: false,
+            error: {
+              code: "INVALID_GPX",
+              message: "The uploaded file is not a valid GPX file",
+            },
+          });
+          return;
+        }
+        // Clear cache to pick up the new file
+        this.mapService.clearCache();
+      }
+
+      logger.info(`GPX file uploaded successfully: ${safeFileName}`);
+      res.json({
+        success: true,
+        message: "File uploaded successfully",
+        data: {
+          fileName: safeFileName,
+          path: destPath,
+        },
+      });
+    } catch (error) {
+      logger.error("Failed to upload GPX file:", error);
+      // Try to clean up the temp file
+      try {
+        await fs.unlink(file.path);
+      } catch {
+        // Ignore cleanup errors
+      }
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "UPLOAD_FAILED",
+          message: "Failed to upload file",
+        },
+      });
+    }
+  }
+
+  /**
+   * Delete a GPX file
+   */
+  async deleteGPXFile(req: Request, res: Response): Promise<void> {
+    const fileName = req.params.fileName;
+
+    if (!fileName) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "File name is required",
+        },
+      });
+      return;
+    }
+
+    logger.info(`GPX file deletion requested: ${fileName}`);
+
+    // Validate file extension
+    if (!fileName.toLowerCase().endsWith(".gpx")) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_FILE_TYPE",
+          message: "Only .gpx files can be deleted through this endpoint",
+        },
+      });
+      return;
+    }
+
+    // Sanitize filename to prevent path traversal
+    const safeName = path.basename(fileName);
+    const filePath = path.join(this.gpxDirectory, safeName);
+
+    try {
+      // Check if file exists
+      await fs.access(filePath);
+
+      // Delete the file
+      await fs.unlink(filePath);
+
+      // Clear cache if mapService is available
+      if (this.mapService) {
+        this.mapService.clearCache();
+      }
+
+      logger.info(`GPX file deleted: ${safeName}`);
+      res.json({
+        success: true,
+        message: "File deleted successfully",
+      });
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: "FILE_NOT_FOUND",
+            message: "File not found",
+          },
+        });
+      } else {
+        logger.error("Failed to delete GPX file:", error);
+        res.status(500).json({
+          success: false,
+          error: {
+            code: "DELETE_FAILED",
+            message: "Failed to delete file",
+          },
+        });
+      }
     }
   }
 }

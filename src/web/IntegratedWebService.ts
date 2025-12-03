@@ -1,12 +1,14 @@
 import express, { Express } from "express";
 import http from "http";
 import path from "path";
+import multer from "multer";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Result, success, failure, WebConfig } from "../core/types";
 import {
   IRenderingOrchestrator,
   IWebInterfaceService,
   IWiFiService,
+  IMapService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -32,6 +34,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private io: SocketIOServer | null = null;
   private running: boolean = false;
   private controller: WebController;
+  private upload: multer.Multer;
   private gpsUpdateUnsubscribe: (() => void) | null = null;
   private gpsStatusUnsubscribe: (() => void) | null = null;
   private displayUpdateUnsubscribe: (() => void) | null = null;
@@ -59,9 +62,23 @@ export class IntegratedWebService implements IWebInterfaceService {
       },
     },
     private readonly wifiService?: IWiFiService,
+    private readonly mapService?: IMapService,
+    private readonly gpxDirectory: string = "./data/gpx-files",
   ) {
     this.app = express();
-    this.controller = new WebController(orchestrator, wifiService);
+    this.controller = new WebController(
+      orchestrator,
+      wifiService,
+      mapService,
+      gpxDirectory,
+    );
+    // Configure multer for file uploads
+    this.upload = multer({
+      dest: "/tmp/papertrail-uploads",
+      limits: {
+        fileSize: 10 * 1024 * 1024, // 10 MB max
+      },
+    });
     this.setupMiddleware();
     this.setupRoutes();
   }
@@ -338,6 +355,17 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     this.app.post(`${api}/wifi/hotspot`, (req, res) =>
       this.controller.setHotspotConfig(req, res),
+    );
+
+    // GPX file management endpoints
+    this.app.post(
+      `${api}/map/upload`,
+      this.upload.single("gpxFile"),
+      (req, res) => this.controller.uploadGPXFile(req, res),
+    );
+
+    this.app.delete(`${api}/map/files/:fileName`, (req, res) =>
+      this.controller.deleteGPXFile(req, res),
     );
 
     // 404 handler
