@@ -1433,41 +1433,40 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const qrCodeSize = Math.floor(height / 2);
+
     const template: TextTemplate = {
       version: "1.0",
       title: "Connected",
       layout: {
         backgroundColor: "white",
         textColor: "black",
-        padding: { top: 150, right: 20, bottom: 20, left: 20 },
+        padding: { top: 70, right: 20, bottom: 20, left: 20 },
       },
       textBlocks: [
         {
-          content: "Open your browser and go to:",
-          fontSize: 32,
-          fontWeight: "normal",
-          alignment: "center",
-          marginBottom: 40,
-        },
-        {
-          content: deviceUrl,
-          fontSize: 32,
+          content: "Scan to open Papertrail:",
+          fontSize: 28,
           fontWeight: "bold",
           alignment: "center",
-          marginBottom: 45,
+          marginBottom: 320,
         },
         {
-          content: "to access the Papertrail interface",
-          fontSize: 32,
-          fontWeight: "normal",
+          content: `Or type ${deviceUrl} in your browser`,
+          fontSize: 24,
+          fontWeight: "bold",
           alignment: "center",
-          marginBottom: 0,
+          marginBottom: 20,
         },
       ],
+      qrCode: {
+        content: deviceUrl,
+        size: qrCodeSize,
+        position: "center",
+      },
     };
-
-    const width = this.configService.getDisplayWidth();
-    const height = this.configService.getDisplayHeight();
     const renderResult = await this.textRendererService.renderTemplate(
       template,
       { url: deviceUrl },

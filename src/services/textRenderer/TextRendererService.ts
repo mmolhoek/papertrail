@@ -1,8 +1,10 @@
 import sharp from "sharp";
+import QRCode from "qrcode";
 import {
   ITextRendererService,
   TextTemplate,
   TemplateVariables,
+  QRCodeConfig,
 } from "@core/interfaces";
 import { Result, Bitmap1Bit, success, failure } from "@core/types";
 import { getLogger } from "@utils/logger";
@@ -34,8 +36,13 @@ export class TextRendererService implements ITextRendererService {
     try {
       logger.info(`Rendering text template: ${template.title || "Untitled"}`);
 
-      // Generate SVG from template
-      const svgString = this.generateSVG(template, variables, width, height);
+      // Generate SVG from template (async for QR code generation)
+      const svgString = await this.generateSVG(
+        template,
+        variables,
+        width,
+        height,
+      );
 
       // Convert SVG to 1-bit bitmap
       const bitmap = await this.svgToBitmap(svgString, width, height);
@@ -106,22 +113,88 @@ export class TextRendererService implements ITextRendererService {
   }
 
   /**
+   * Generate QR code as SVG path data
+   */
+  private async generateQRCodeSVG(
+    config: QRCodeConfig,
+    width: number,
+    height: number,
+    layout: TextTemplate["layout"],
+  ): Promise<{ svg: string; yOffset: number }> {
+    const qrSvg = await QRCode.toString(config.content, {
+      type: "svg",
+      margin: 1,
+      color: {
+        dark: layout.textColor === "white" ? "#FFFFFF" : "#000000",
+        light: layout.textColor === "white" ? "#000000" : "#FFFFFF",
+      },
+    });
+
+    // Extract the viewBox from the original SVG to get the coordinate system
+    const viewBoxMatch = qrSvg.match(/viewBox="([^"]*)"/);
+    const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+
+    // Extract just the path/rect content from the QR SVG (skip the outer svg tags)
+    const innerContent = qrSvg
+      .replace(/<\?xml[^>]*\?>/g, "")
+      .replace(/<svg[^>]*>/g, "")
+      .replace(/<\/svg>/g, "");
+
+    // Calculate position based on config.position
+    const xPosition = (width - config.size) / 2; // Always center horizontally
+    let yPosition: number;
+
+    switch (config.position) {
+      case "top":
+        yPosition = layout.padding.top;
+        break;
+      case "center":
+        yPosition = (height - config.size) / 2;
+        break;
+      case "bottom":
+        yPosition = height - config.size - layout.padding.bottom;
+        break;
+    }
+
+    // Embed as a nested SVG with proper viewBox to scale correctly
+    const positionedSvg = `<svg x="${xPosition}" y="${yPosition}" width="${config.size}" height="${config.size}" viewBox="${viewBox}">${innerContent}</svg>`;
+
+    return {
+      svg: positionedSvg,
+      yOffset: config.position === "top" ? config.size + 20 : 0,
+    };
+  }
+
+  /**
    * Generate SVG string from template
    */
-  private generateSVG(
+  private async generateSVG(
     template: TextTemplate,
     variables: TemplateVariables,
     width: number,
     height: number,
-  ): string {
-    const { layout, textBlocks } = template;
+  ): Promise<string> {
+    const { layout, textBlocks, qrCode } = template;
     const bgColor = layout.backgroundColor === "white" ? "white" : "black";
     const textColor = layout.textColor === "white" ? "white" : "black";
 
     let svgContent = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
     svgContent += `<rect width="100%" height="100%" fill="${bgColor}"/>`;
 
-    let yPosition = layout.padding.top;
+    // Add QR code if configured
+    let qrYOffset = 0;
+    if (qrCode) {
+      const qrResult = await this.generateQRCodeSVG(
+        qrCode,
+        width,
+        height,
+        layout,
+      );
+      svgContent += qrResult.svg;
+      qrYOffset = qrResult.yOffset;
+    }
+
+    let yPosition = layout.padding.top + qrYOffset;
     const contentWidth = width - layout.padding.left - layout.padding.right;
 
     for (const block of textBlocks) {

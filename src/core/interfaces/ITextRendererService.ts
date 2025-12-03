@@ -3,6 +3,18 @@ import { Result, Bitmap1Bit } from "@core/types";
 /**
  * Template structure for rendering text screens
  */
+/**
+ * QR code configuration for embedding in templates
+ */
+export interface QRCodeConfig {
+  /** The content to encode in the QR code (e.g., URL) */
+  content: string;
+  /** Size of the QR code in pixels */
+  size: number;
+  /** Vertical position of the QR code */
+  position: "top" | "center" | "bottom";
+}
+
 export interface TextTemplate {
   version: string;
   title?: string;
@@ -17,6 +29,8 @@ export interface TextTemplate {
     };
   };
   textBlocks: TextBlock[];
+  /** Optional QR code to display */
+  qrCode?: QRCodeConfig;
 }
 
 /**

@@ -24,10 +24,12 @@
   "author": "Mischa Molhoek",
   "license": "MIT",
   "dependencies": {
+    "@types/qrcode": "^1.5.6",
     "bmp-js": "^0.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "lgpio": "^1.0.6",
+    "qrcode": "^1.5.4",
     "serialport": "^12.0.0",
     "sharp": "^0.34.5",
     "socket.io": "^4.6.1",
