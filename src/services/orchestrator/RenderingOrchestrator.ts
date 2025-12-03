@@ -59,6 +59,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private gpsInfoRefreshInterval: NodeJS.Timeout | null = null;
   private lastGPSPosition: GPSCoordinate | null = null;
   private lastGPSStatus: GPSStatus | null = null;
+  private lastDisplayedGPSPosition: GPSCoordinate | null = null;
+  private lastDisplayedGPSStatus: GPSStatus | null = null;
   private static readonly GPS_INFO_REFRESH_INTERVAL_MS = 15000; // 15 seconds
 
   constructor(
@@ -892,18 +894,91 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Stop any existing interval
     this.stopGPSInfoRefresh();
 
+    // Reset last displayed data to ensure first update always renders
+    this.lastDisplayedGPSPosition = null;
+    this.lastDisplayedGPSStatus = null;
+
     // Display immediately with full update
     void this.displaySelectTrackScreen(true);
 
-    // Set up refresh interval with auto update
+    // Set up refresh interval - only update if data has changed
     this.gpsInfoRefreshInterval = setInterval(() => {
-      logger.info("GPS info refresh tick - updating select track screen");
-      void this.displaySelectTrackScreen(false);
+      if (this.hasGPSDataChanged()) {
+        logger.info(
+          "GPS info refresh tick - data changed, updating select track screen",
+        );
+        void this.displaySelectTrackScreen(false);
+      } else {
+        logger.debug("GPS info refresh tick - no changes, skipping update");
+      }
     }, RenderingOrchestrator.GPS_INFO_REFRESH_INTERVAL_MS);
 
     logger.info(
       `Started GPS info refresh (every ${RenderingOrchestrator.GPS_INFO_REFRESH_INTERVAL_MS}ms)`,
     );
+  }
+
+  /**
+   * Check if GPS data has changed since last display update
+   */
+  private hasGPSDataChanged(): boolean {
+    // Check if status changed
+    const currentFixQuality = this.lastGPSStatus?.fixQuality ?? null;
+    const displayedFixQuality = this.lastDisplayedGPSStatus?.fixQuality ?? null;
+    if (currentFixQuality !== displayedFixQuality) {
+      return true;
+    }
+
+    const currentSatellites = this.lastGPSStatus?.satellitesInUse ?? 0;
+    const displayedSatellites =
+      this.lastDisplayedGPSStatus?.satellitesInUse ?? 0;
+    if (currentSatellites !== displayedSatellites) {
+      return true;
+    }
+
+    // Check if position changed (null vs non-null)
+    const hasCurrentPosition = this.lastGPSPosition !== null;
+    const hasDisplayedPosition = this.lastDisplayedGPSPosition !== null;
+    if (hasCurrentPosition !== hasDisplayedPosition) {
+      return true;
+    }
+
+    // If both have position, check if lat/lon changed (within display precision)
+    if (this.lastGPSPosition && this.lastDisplayedGPSPosition) {
+      // Position is displayed with 5 decimal places, so threshold is 0.000005
+      const latDiff = Math.abs(
+        this.lastGPSPosition.latitude - this.lastDisplayedGPSPosition.latitude,
+      );
+      const lonDiff = Math.abs(
+        this.lastGPSPosition.longitude -
+          this.lastDisplayedGPSPosition.longitude,
+      );
+      if (latDiff >= 0.000005 || lonDiff >= 0.000005) {
+        return true;
+      }
+
+      // Check if speed display changed
+      // Speed is shown only if > 1 km/h, with 1 decimal place
+      const currentSpeedKmh = (this.lastGPSPosition.speed ?? 0) * 3.6;
+      const displayedSpeedKmh =
+        (this.lastDisplayedGPSPosition.speed ?? 0) * 3.6;
+      const currentShowsSpeed = currentSpeedKmh >= 1;
+      const displayedShowsSpeed = displayedSpeedKmh >= 1;
+
+      // If visibility changed, update is needed
+      if (currentShowsSpeed !== displayedShowsSpeed) {
+        return true;
+      }
+
+      // If both show speed, check if value changed (0.1 km/h threshold for display)
+      if (currentShowsSpeed && displayedShowsSpeed) {
+        if (Math.abs(currentSpeedKmh - displayedSpeedKmh) >= 0.05) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**
@@ -1034,6 +1109,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info(
         `Displayed select track screen with GPS info (${fullUpdate ? "full" : "auto"} update)`,
       );
+
+      // Store the data that was displayed for change detection
+      this.lastDisplayedGPSPosition = this.lastGPSPosition
+        ? { ...this.lastGPSPosition }
+        : null;
+      this.lastDisplayedGPSStatus = this.lastGPSStatus
+        ? { ...this.lastGPSStatus }
+        : null;
     } else {
       logger.error("Failed to render select track template");
     }
