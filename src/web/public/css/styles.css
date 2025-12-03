@@ -69,6 +69,8 @@ html {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scrollbar-gutter: stable;
+  overflow-y: scroll;
 }
 
 body {
@@ -296,6 +298,15 @@ body {
   background: var(--color-parchment);
 }
 
+.nav-item.active {
+  background: var(--color-forest);
+  color: var(--color-parchment);
+}
+
+.nav-item.active .nav-item-icon {
+  color: var(--color-sienna-light);
+}
+
 .nav-item-icon {
   color: var(--color-forest);
   font-size: 1.1rem;
@@ -317,7 +328,8 @@ body {
 /* ============================================
    POSITION CARD - Hero Coordinates Display
    ============================================ */
-.position-card {
+.position-card,
+.position-card.panel-card {
   background: var(--color-forest);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
@@ -327,6 +339,7 @@ body {
   position: relative;
   overflow: hidden;
   animation: fadeSlideIn 0.6s ease-out 0.1s both;
+  border: none;
 }
 
 .position-card::before {
@@ -460,7 +473,8 @@ body {
 /* ============================================
    STATUS CARD - System Status Grid
    ============================================ */
-.status-card {
+.status-card,
+.status-card.panel-card {
   background: var(--color-cream);
   border: 1px solid var(--color-parchment-dark);
   border-radius: var(--radius-lg);

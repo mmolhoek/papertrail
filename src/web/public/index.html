@@ -44,21 +44,47 @@
           <span class="nav-icon"></span>
         </button>
         <div id="menu-content" class="nav-menu hidden">
-          <button id="menu-track-selection" class="nav-item">
+          <button
+            id="menu-position"
+            class="nav-item active"
+            data-panel="position-panel"
+          >
             <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Position</span>
+            <span id="position-indicator" class="nav-check">✓</span>
+          </button>
+          <button id="menu-status" class="nav-item" data-panel="status-panel">
+            <span class="nav-item-icon">◇</span>
+            <span class="nav-item-text">System Status</span>
+            <span id="status-indicator" class="nav-check hidden">✓</span>
+          </button>
+          <button
+            id="menu-track-selection"
+            class="nav-item"
+            data-panel="track-selection-panel"
+          >
+            <span class="nav-item-icon">⬡</span>
             <span class="nav-item-text">Track Selection</span>
             <span id="track-selection-indicator" class="nav-check hidden"
               >✓</span
             >
           </button>
-          <button id="menu-display-controls" class="nav-item">
+          <button
+            id="menu-display-controls"
+            class="nav-item"
+            data-panel="display-controls-panel"
+          >
             <span class="nav-item-icon">◈</span>
             <span class="nav-item-text">Display Controls</span>
             <span id="display-controls-indicator" class="nav-check hidden"
               >✓</span
             >
           </button>
-          <button id="menu-wifi-settings" class="nav-item">
+          <button
+            id="menu-wifi-settings"
+            class="nav-item"
+            data-panel="wifi-settings-panel"
+          >
             <span class="nav-item-icon">◉</span>
             <span class="nav-item-text">WiFi Settings</span>
             <span id="wifi-settings-indicator" class="nav-check hidden">✓</span>
@@ -68,7 +94,7 @@
 
       <main class="main-content">
         <!-- Position Display - Hero Section -->
-        <section class="position-card">
+        <section class="position-card panel-card" id="position-panel">
           <div class="position-header">
             <span class="section-marker">POSITION</span>
             <div class="position-status">
@@ -97,7 +123,7 @@
         </section>
 
         <!-- System Status Grid -->
-        <section class="status-card">
+        <section class="status-card panel-card hidden" id="status-panel">
           <div class="section-header">
             <span class="section-marker">SYSTEM STATUS</span>
           </div>
@@ -224,11 +250,7 @@
         </section>
 
         <!-- GPX Track Selection Panel -->
-        <section
-          class="panel-card hidden"
-          id="track-selection-panel"
-          style="display: none"
-        >
+        <section class="panel-card hidden" id="track-selection-panel">
           <div class="section-header">
             <span class="section-marker">TRACK SELECTION</span>
           </div>
@@ -257,11 +279,7 @@
         </section>
 
         <!-- Display Controls Panel -->
-        <section
-          class="panel-card hidden"
-          id="display-controls-panel"
-          style="display: none"
-        >
+        <section class="panel-card hidden" id="display-controls-panel">
           <div class="section-header">
             <span class="section-marker">DISPLAY CONTROLS</span>
           </div>
@@ -317,11 +335,7 @@
         </section>
 
         <!-- WiFi Settings Panel -->
-        <section
-          class="panel-card hidden"
-          id="wifi-settings-panel"
-          style="display: none"
-        >
+        <section class="panel-card hidden" id="wifi-settings-panel">
           <div class="section-header">
             <span class="section-marker">WIFI HOTSPOT</span>
           </div>

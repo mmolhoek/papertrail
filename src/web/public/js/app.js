@@ -16,6 +16,7 @@ class PapertrailClient {
   setupHamburgerMenu() {
     const menuToggle = document.getElementById("menu-toggle");
     const menuContent = document.getElementById("menu-content");
+    const menuItems = document.querySelectorAll(".nav-item");
 
     // Close menu when clicking outside
     document.addEventListener("click", (e) => {
@@ -29,61 +30,50 @@ class PapertrailClient {
       menuContent.classList.toggle("hidden");
     });
 
-    // Show the GPX Track Selection panel
-    const trackSelectionButton = document.getElementById(
-      "menu-track-selection",
-    );
-    const trackSelectionPanel = document.getElementById(
-      "track-selection-panel",
-    );
-    trackSelectionButton.addEventListener("click", () => {
-      const isHidden = trackSelectionPanel.style.display === "none";
-      trackSelectionPanel.style.display = isHidden ? "block" : "none";
-      menuContent.classList.add("hidden");
+    // Setup radio-style panel switching
+    menuItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        const panelId = item.dataset.panel;
+        this.switchToPanel(panelId, item);
+        menuContent.classList.add("hidden");
+      });
+    });
+  }
 
-      // Toggle indicator icon
-      const trackIndicator = document.getElementById(
-        "track-selection-indicator",
-      );
-      trackIndicator.classList.toggle("hidden", !isHidden);
+  // Switch to a specific panel (radio-style - only one active)
+  switchToPanel(panelId, menuItem) {
+    const allPanels = document.querySelectorAll(".panel-card");
+    const allMenuItems = document.querySelectorAll(".nav-item");
+
+    // Hide all panels
+    allPanels.forEach((panel) => {
+      panel.classList.add("hidden");
     });
 
-    // Show the Display Controls panel
-    const displayControlsButton = document.getElementById(
-      "menu-display-controls",
-    );
-    const displayControlsPanel = document.getElementById(
-      "display-controls-panel",
-    );
-    displayControlsButton.addEventListener("click", () => {
-      const isHidden = displayControlsPanel.style.display === "none";
-      displayControlsPanel.style.display = isHidden ? "block" : "none";
-      menuContent.classList.add("hidden");
-
-      // Toggle indicator icon
-      const displayIndicator = document.getElementById(
-        "display-controls-indicator",
-      );
-      displayIndicator.classList.toggle("hidden", !isHidden);
+    // Deactivate all menu items and hide their checkmarks
+    allMenuItems.forEach((item) => {
+      item.classList.remove("active");
+      const check = item.querySelector(".nav-check");
+      if (check) check.classList.add("hidden");
     });
 
-    // Show the WiFi Settings panel
-    const wifiSettingsButton = document.getElementById("menu-wifi-settings");
-    const wifiSettingsPanel = document.getElementById("wifi-settings-panel");
-    wifiSettingsButton.addEventListener("click", () => {
-      const isHidden = wifiSettingsPanel.style.display === "none";
-      wifiSettingsPanel.style.display = isHidden ? "block" : "none";
-      menuContent.classList.add("hidden");
+    // Show the selected panel
+    const targetPanel = document.getElementById(panelId);
+    if (targetPanel) {
+      targetPanel.classList.remove("hidden");
+    }
 
-      // Toggle indicator icon
-      const wifiIndicator = document.getElementById("wifi-settings-indicator");
-      wifiIndicator.classList.toggle("hidden", !isHidden);
+    // Activate the menu item and show its checkmark
+    if (menuItem) {
+      menuItem.classList.add("active");
+      const check = menuItem.querySelector(".nav-check");
+      if (check) check.classList.remove("hidden");
+    }
 
-      // Load current WiFi config when opening
-      if (isHidden) {
-        this.loadWiFiConfig();
-      }
-    });
+    // Special handling for WiFi panel - load config when shown
+    if (panelId === "wifi-settings-panel") {
+      this.loadWiFiConfig();
+    }
   }
 
   // Show a system message (toast notification)
