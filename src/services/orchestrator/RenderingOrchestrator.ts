@@ -882,8 +882,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         "Last WebSocket client disconnected - returning to connected screen",
       );
       this.stopGPSInfoRefresh();
-      // Show the connected screen again
-      void this.displayConnectedScreen();
+      // Show the connected screen again - skip connection check since we know we were connected
+      // (the phone being put away may cause temporary hotspot disconnection)
+      void this.displayConnectedScreen(true);
     }
   }
 
@@ -1488,14 +1489,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
   /**
    * Display connected screen with device URL on e-paper
+   * @param skipConnectionCheck - If true, skip the hotspot connection check (used when client disconnects)
    */
-  private async displayConnectedScreen(): Promise<void> {
+  private async displayConnectedScreen(
+    skipConnectionCheck: boolean = false,
+  ): Promise<void> {
     if (!this.textRendererService) {
       return;
     }
 
     // Verify we're actually connected to the hotspot before showing
-    if (this.wifiService) {
+    // Skip this check when called from client disconnect (we know we were connected)
+    if (!skipConnectionCheck && this.wifiService) {
       const connectedResult =
         await this.wifiService.isConnectedToMobileHotspot();
       if (!connectedResult.success || !connectedResult.data) {
