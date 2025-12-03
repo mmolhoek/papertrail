@@ -116,6 +116,12 @@ function setupGracefulShutdown(
   const shutdown = async (signal: string) => {
     logger.info(`\n${signal} received. Shutting down gracefully...`);
 
+    // Force exit after 5 seconds if graceful shutdown hangs
+    const forceExitTimeout = setTimeout(() => {
+      logger.warn("Shutdown timed out, forcing exit");
+      process.exit(1);
+    }, 5000);
+
     try {
       // Stop auto-update
       if (orchestrator.isAutoUpdateRunning()) {
@@ -131,9 +137,11 @@ function setupGracefulShutdown(
       logger.info("Cleaning up services...");
       await orchestrator.dispose();
 
+      clearTimeout(forceExitTimeout);
       logger.info("✓ Shutdown complete");
       process.exit(0);
     } catch (error) {
+      clearTimeout(forceExitTimeout);
       logger.error("Error during shutdown:", error);
       process.exit(1);
     }
