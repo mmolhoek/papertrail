@@ -519,8 +519,16 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Subscribe to display updates
     this.displayUpdateUnsubscribe = this.orchestrator.onDisplayUpdate(
-      (success) => {
+      async (success) => {
         this.broadcast("display:updated", { success });
+
+        // Also broadcast updated system status (includes active track)
+        if (success) {
+          const statusResult = await this.orchestrator.getSystemStatus();
+          if (statusResult.success) {
+            this.broadcast("status:update", statusResult.data);
+          }
+        }
       },
     );
 

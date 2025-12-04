@@ -22,6 +22,7 @@ import {
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import * as os from "os";
+import * as path from "path";
 
 const logger = getLogger("RenderingOrchestrator");
 
@@ -560,8 +561,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             (sum, seg) => sum + seg.points.length,
             0,
           );
+          // Use track name if valid, otherwise fall back to filename
+          const hasValidTrackName =
+            track.name &&
+            track.name !== "Unnamed Track" &&
+            track.name.trim() !== "";
+          const displayName = hasValidTrackName
+            ? track.name
+            : path.basename(activeGPXPath).replace(/\.gpx$/i, "");
           activeTrack = {
-            name: track.name,
+            name: displayName,
             pointCount: totalPoints,
             distance: track.totalDistance || 0,
           };
@@ -971,7 +980,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         return true;
       }
 
-      // If both show speed, check if value changed (0.1 km/h threshold for display)
       if (currentShowsSpeed && displayedShowsSpeed) {
         if (Math.abs(currentSpeedKmh - displayedSpeedKmh) >= 0.05) {
           return true;

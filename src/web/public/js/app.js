@@ -254,8 +254,22 @@ class PapertrailClient {
         body: JSON.stringify({ path: trackPath }),
       });
 
-      this.showMessage("Track loaded successfully", "success");
-      this.refreshDisplay();
+      if (result.success) {
+        this.showMessage("Track loaded successfully", "success");
+        this.refreshDisplay();
+        // Refresh system status to update active track display
+        const statusResponse = await this.fetchJSON(
+          `${this.apiBase}/system/status`,
+        );
+        if (statusResponse && statusResponse.data) {
+          this.updateSystemStatus(statusResponse.data);
+        }
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to load track",
+          "error",
+        );
+      }
     } catch (error) {
       console.error("Error loading track:", error);
       this.showMessage("Failed to load track", "error");
@@ -625,10 +639,9 @@ class PapertrailClient {
         displayElement.className = "status-value status-unknown";
       }
 
-      if (data.activeTrack) {
-        document.getElementById("active-track").textContent =
-          data.activeTrack.name || "None";
-      }
+      // Update active track display (show "None" if no track)
+      document.getElementById("active-track").textContent =
+        data.activeTrack?.name || "None";
     }
   }
 
@@ -710,7 +723,10 @@ class PapertrailClient {
 
       if (result.success) {
         const displayName = customName || file.name;
-        this.showMessage(`Track "${displayName}" uploaded successfully`, "success");
+        this.showMessage(
+          `Track "${displayName}" uploaded successfully`,
+          "success",
+        );
         // Reload the track list
         await this.reloadTrackList();
       } else {
