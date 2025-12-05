@@ -55,11 +55,38 @@ export class SVGService implements ISVGService {
       }
 
       const totalPoints = track.segments[0].points.length;
-      logger.debug(`Rendering track with ${totalPoints} points`);
+      logger.info(`Rendering track with ${totalPoints} points`);
+      logger.info(
+        `Render options: showLine=${renderOpts.showLine}, lineWidth=${renderOpts.lineWidth}, showPoints=${renderOpts.showPoints}`,
+      );
+
+      // Log first track point for debugging
+      const firstTrackPoint = track.segments[0].points[0];
+      logger.info(
+        `First track point: ${firstTrackPoint.latitude.toFixed(6)}, ${firstTrackPoint.longitude.toFixed(6)}`,
+      );
 
       // Project all track points to pixel coordinates
       const projectedPoints = track.segments[0].points.map((point) =>
         this.projectToPixels(point.latitude, point.longitude, viewport),
+      );
+
+      // Debug: Log first few projected points to see where they end up
+      logger.info(
+        `Track projection: centerPoint=${viewport.centerPoint.latitude.toFixed(6)},${viewport.centerPoint.longitude.toFixed(6)}, zoom=${viewport.zoomLevel}`,
+      );
+      const firstFew = projectedPoints.slice(0, 5);
+      logger.info(
+        `First ${firstFew.length} projected points: ${firstFew.map((p) => `(${p.x},${p.y})`).join(", ")}`,
+      );
+
+      // Count how many points are within viewport bounds
+      const inViewport = projectedPoints.filter(
+        (p) =>
+          p.x >= 0 && p.x < viewport.width && p.y >= 0 && p.y < viewport.height,
+      );
+      logger.info(
+        `Points in viewport: ${inViewport.length}/${projectedPoints.length}`,
       );
 
       // Draw connecting lines if enabled
