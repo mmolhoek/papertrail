@@ -236,7 +236,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   /**
    * Broadcast a message to all connected WebSocket clients
    */
-  broadcast(event: string, data: any): void {
+  broadcast(event: string, data: unknown): void {
     if (this.io) {
       this.io.emit(event, data);
     }
@@ -389,6 +389,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     });
 
     // Error handler
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
     this.app.use((err: Error, _req: any, res: any, _next: any) => {
       logger.error("Express error:", err);
       res.status(500).json({

@@ -24,8 +24,8 @@ jest.mock("sharp", () => {
 });
 
 jest.mock("bmp-js", () => ({
-  encode: jest.fn((data) => ({ data: Buffer.alloc(1000) })),
-  decode: jest.fn((data) => ({
+  encode: jest.fn(() => ({ data: Buffer.alloc(1000) })),
+  decode: jest.fn(() => ({
     width: 800,
     height: 480,
     data: Buffer.alloc(800 * 480 * 4),
@@ -380,8 +380,8 @@ function makeRequest(
   port: number,
   path: string,
   method: string = "GET",
-  data?: any,
-): Promise<{ statusCode: number; body: any }> {
+  data?: Record<string, unknown>,
+): Promise<{ statusCode: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     const postData = data ? JSON.stringify(data) : undefined;
 
@@ -411,7 +411,7 @@ function makeRequest(
             statusCode: res.statusCode || 500,
             body: JSON.parse(body),
           });
-        } catch (error) {
+        } catch {
           resolve({
             statusCode: res.statusCode || 500,
             body: {},

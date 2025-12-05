@@ -396,6 +396,7 @@ export class MapService implements IMapService {
               ? [gpx.trk]
               : [];
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           trkArray.forEach((trk: any) => {
             const segments = this.parseTrackSegments(trk);
 
@@ -431,6 +432,7 @@ export class MapService implements IMapService {
   /**
    * Parse track segments from GPX track
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseTrackSegments(trk: any): Array<{ points: GPXTrackPoint[] }> {
     const segments: Array<{ points: GPXTrackPoint[] }> = [];
     const trksegArray = Array.isArray(trk.trkseg)
@@ -439,6 +441,7 @@ export class MapService implements IMapService {
         ? [trk.trkseg]
         : [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     trksegArray.forEach((trkseg: any) => {
       const points: GPXTrackPoint[] = [];
       const trkptArray = Array.isArray(trkseg.trkpt)
@@ -447,6 +450,7 @@ export class MapService implements IMapService {
           ? [trkseg.trkpt]
           : [];
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       trkptArray.forEach((trkpt: any) => {
         const lat = parseFloat(trkpt.$.lat);
         const lon = parseFloat(trkpt.$.lon);

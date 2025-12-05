@@ -1,5 +1,5 @@
 import { MockGPSService } from "../MockGPSService";
-import { GPSFixQuality } from "@core/types/GPSTypes";
+import { GPSFixQuality, GPSCoordinate } from "@core/types/GPSTypes";
 import { GPSError } from "@core/errors";
 
 describe("MockGPSService", () => {
@@ -264,7 +264,7 @@ describe("MockGPSService", () => {
     });
 
     it("should generate varying positions during tracking", async () => {
-      const positions: any[] = [];
+      const positions: GPSCoordinate[] = [];
       mockGPSService.onPositionUpdate((pos) => positions.push(pos));
 
       await mockGPSService.startTracking();

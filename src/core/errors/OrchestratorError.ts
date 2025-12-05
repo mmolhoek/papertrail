@@ -36,7 +36,7 @@ export class OrchestratorError extends BaseError {
     message: string,
     code: OrchestratorErrorCode = OrchestratorErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     errors?: Error[],
   ) {
     super(message, code, recoverable, context);
@@ -127,7 +127,7 @@ export class OrchestratorError extends BaseError {
     );
   }
 
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       ...super.toJSON(),
       errors: this.errors?.map((e) => ({

@@ -42,7 +42,7 @@ export class DisplayError extends BaseError {
     message: string,
     code: DisplayErrorCode = DisplayErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, code, recoverable, context);
   }

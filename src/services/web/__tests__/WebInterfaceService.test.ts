@@ -248,8 +248,8 @@ function makeRequest(
   port: number,
   path: string,
   method: string = "GET",
-  data?: any,
-): Promise<{ statusCode: number; body: any }> {
+  data?: Record<string, unknown>,
+): Promise<{ statusCode: number; body: Record<string, unknown> }> {
   return new Promise((resolve, reject) => {
     const postData = data ? JSON.stringify(data) : undefined;
 
@@ -279,7 +279,7 @@ function makeRequest(
             statusCode: res.statusCode || 500,
             body: JSON.parse(body),
           });
-        } catch (error) {
+        } catch {
           resolve({
             statusCode: res.statusCode || 500,
             body: {},

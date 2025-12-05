@@ -172,7 +172,7 @@ export class WebInterfaceService implements IWebInterfaceService {
   /**
    * Register a WebSocket connection handler
    */
-  onWebSocketConnection(handler: (socket: any) => void): void {
+  onWebSocketConnection(handler: (socket: unknown) => void): void {
     if (this.io) {
       this.io.on("connection", handler);
     }
@@ -181,7 +181,7 @@ export class WebInterfaceService implements IWebInterfaceService {
   /**
    * Broadcast a message to all connected WebSocket clients
    */
-  broadcast(event: string, data: any): void {
+  broadcast(event: string, data: unknown): void {
     if (this.io) {
       this.io.emit(event, data);
     }
@@ -303,6 +303,7 @@ export class WebInterfaceService implements IWebInterfaceService {
 
     // Error handler
     this.app.use(
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       (err: Error, req: Request, res: Response, _next: NextFunction) => {
         logger.error("Express error:", err);
         res.status(500).json({

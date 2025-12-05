@@ -24,8 +24,8 @@ jest.mock("sharp", () => {
 });
 
 jest.mock("bmp-js", () => ({
-  encode: jest.fn((data) => ({ data: Buffer.alloc(1000) })),
-  decode: jest.fn((data) => ({
+  encode: jest.fn(() => ({ data: Buffer.alloc(1000) })),
+  decode: jest.fn(() => ({
     width: 800,
     height: 480,
     data: Buffer.alloc(800 * 480 * 4),

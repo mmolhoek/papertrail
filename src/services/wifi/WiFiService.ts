@@ -67,7 +67,7 @@ export class WiFiService implements IWiFiService {
     try {
       await execAsync("which nmcli");
       logger.info("nmcli found - NetworkManager is available");
-    } catch (error) {
+    } catch {
       logger.error("nmcli not found - WiFi management requires NetworkManager");
       return failure(WiFiError.nmcliNotAvailable());
     }
@@ -997,7 +997,7 @@ export class WiFiService implements IWiFiService {
       const signalStrength = parseInt(signal, 10) || 0;
       logger.info(`Signal strength for "${ssid}": ${signalStrength}%`);
       return success(signalStrength);
-    } catch (error) {
+    } catch {
       logger.info(
         `Could not get signal strength for "${ssid}" - defaulting to 0`,
       );

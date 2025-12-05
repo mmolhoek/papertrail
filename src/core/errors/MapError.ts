@@ -38,7 +38,7 @@ export class MapError extends BaseError {
     message: string,
     code: MapErrorCode = MapErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, code, recoverable, context);
   }

@@ -4,6 +4,7 @@ import { GPSError } from "@core/errors";
 
 // Mock serialport module
 jest.mock("serialport", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const EventEmitter = require("events");
 
   class MockSerialPort extends EventEmitter {
@@ -11,6 +12,7 @@ jest.mock("serialport", () => {
     baudRate: number;
     isOpen: boolean = false;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     constructor(options: any) {
       super();
       this.path = options.path;
@@ -33,6 +35,7 @@ jest.mock("serialport", () => {
       callback();
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     pipe(parser: any) {
       return parser;
     }
@@ -42,6 +45,7 @@ jest.mock("serialport", () => {
 });
 
 jest.mock("@serialport/parser-readline", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const EventEmitter = require("events");
 
   class MockReadlineParser extends EventEmitter {

@@ -1,6 +1,7 @@
 import { ServiceContainer } from "@di/ServiceContainer";
 import { IntegratedWebService } from "@web/IntegratedWebService";
 import { isSuccess } from "@core/types";
+import { IRenderingOrchestrator } from "@core/interfaces";
 import { getLogger } from "@utils/logger";
 
 const logger = getLogger("Papertrail");
@@ -112,7 +113,7 @@ async function main() {
  * Setup handlers for graceful shutdown
  */
 function setupGracefulShutdown(
-  orchestrator: any,
+  orchestrator: IRenderingOrchestrator,
   webService: IntegratedWebService,
 ): void {
   const shutdown = async (signal: string) => {

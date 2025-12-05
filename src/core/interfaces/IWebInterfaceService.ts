@@ -42,12 +42,12 @@ export interface IWebInterfaceService {
    * @param event Event name
    * @param handler Handler function
    */
-  onWebSocketConnection(handler: (socket: any) => void): void;
+  onWebSocketConnection(handler: (socket: unknown) => void): void;
 
   /**
    * Broadcast a message to all connected WebSocket clients
    * @param event Event name
    * @param data Data to send
    */
-  broadcast(event: string, data: any): void;
+  broadcast(event: string, data: unknown): void;
 }

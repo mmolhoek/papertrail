@@ -73,6 +73,7 @@ describe("MapService", () => {
   describe("loadGPXFile", () => {
     it("should load and parse a valid GPX file", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
 
@@ -102,6 +103,7 @@ describe("MapService", () => {
       mockFs.stat.mockResolvedValue({
         size: 20 * 1024 * 1024,
         mtime: new Date(),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
       const result = await mapService.loadGPXFile("./large.gpx");
@@ -114,6 +116,7 @@ describe("MapService", () => {
 
     it("should use cached data on second load", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
 
@@ -126,6 +129,7 @@ describe("MapService", () => {
 
     it("should handle invalid XML", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue("invalid xml content");
 
@@ -141,6 +145,7 @@ describe("MapService", () => {
   describe("getTrack", () => {
     beforeEach(() => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
     });
@@ -193,6 +198,7 @@ describe("MapService", () => {
         "track1.gpx",
         "track2.gpx",
         "notes.txt",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ] as any);
 
       const result = await mapService.listAvailableGPXFiles();
@@ -217,6 +223,7 @@ describe("MapService", () => {
 
     it("should return error if no GPX files found", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdir.mockResolvedValue(["notes.txt", "readme.md"] as any);
 
       const result = await mapService.listAvailableGPXFiles();
@@ -234,11 +241,13 @@ describe("MapService", () => {
       mockFs.stat.mockResolvedValue({
         size: 1024,
         mtime: new Date("2024-01-01"),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
     });
 
     it("should get info for all files if none specified", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdir.mockResolvedValue(["track1.gpx", "track2.gpx"] as any);
 
       const result = await mapService.getGPXFileInfo();
@@ -432,6 +441,7 @@ describe("MapService", () => {
   describe("validateGPXFile", () => {
     it("should validate correct GPX file", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
 
@@ -442,6 +452,7 @@ describe("MapService", () => {
 
     it("should reject GPX with no tracks", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(emptyGPX);
 
@@ -457,6 +468,7 @@ describe("MapService", () => {
   describe("clearCache", () => {
     it("should clear the cache", async () => {
       mockFs.access.mockResolvedValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.stat.mockResolvedValue({ size: 1024, mtime: new Date() } as any);
       mockFs.readFile.mockResolvedValue(sampleGPX);
 

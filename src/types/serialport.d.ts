@@ -16,6 +16,7 @@ declare module "serialport" {
     open(callback: (err?: Error) => void): void;
     close(callback?: (err?: Error) => void): void;
     pipe<T>(parser: T): T;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on(event: string, callback: (...args: any[]) => void): this;
     write(data: string | Buffer, callback?: (err?: Error) => void): void;
     isOpen: boolean;
@@ -29,6 +30,7 @@ declare module "@serialport/parser-readline" {
 
   export class ReadlineParser {
     constructor(options?: ReadlineParserOptions);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     on(event: string, callback: (...args: any[]) => void): this;
   }
 }

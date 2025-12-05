@@ -119,7 +119,8 @@ export class MockWiFiService implements IWiFiService {
     return success(this.connected);
   }
 
-  async connect(ssid: string, password: string): Promise<Result<void>> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async connect(ssid: string, _password: string): Promise<Result<void>> {
     if (!this.initialized) {
       return failure(WiFiError.unknown("WiFi service not initialized"));
     }

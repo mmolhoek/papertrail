@@ -16,7 +16,7 @@ export abstract class BaseError extends Error {
   /**
    * Additional context about the error
    */
-  public readonly context?: Record<string, any>;
+  public readonly context?: Record<string, unknown>;
 
   /**
    * Whether this error is recoverable
@@ -27,7 +27,7 @@ export abstract class BaseError extends Error {
     message: string,
     code: string,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message);
 
@@ -47,7 +47,7 @@ export abstract class BaseError extends Error {
   /**
    * Convert error to a plain object for logging/serialization
    */
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       name: this.name,
       message: this.message,

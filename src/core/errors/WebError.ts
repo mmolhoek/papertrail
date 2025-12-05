@@ -39,7 +39,7 @@ export class WebError extends BaseError {
     message: string,
     code: WebErrorCode = WebErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
     statusCode?: number,
   ) {
     super(message, code, recoverable, context);
@@ -116,7 +116,7 @@ export class WebError extends BaseError {
    */
   static invalidParameter(
     parameter: string,
-    value: any,
+    value: unknown,
     expected: string,
   ): WebError {
     return new WebError(
@@ -193,7 +193,7 @@ export class WebError extends BaseError {
     );
   }
 
-  toJSON(): Record<string, any> {
+  toJSON(): Record<string, unknown> {
     return {
       ...super.toJSON(),
       statusCode: this.statusCode,

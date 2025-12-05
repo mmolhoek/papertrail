@@ -26,7 +26,7 @@ export class WiFiError extends BaseError {
     message: string,
     public readonly code: WiFiErrorCode,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, code, recoverable, context);
   }

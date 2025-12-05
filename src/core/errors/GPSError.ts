@@ -37,7 +37,7 @@ export class GPSError extends BaseError {
     message: string,
     code: GPSErrorCode = GPSErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, code, recoverable, context);
   }

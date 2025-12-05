@@ -1,5 +1,5 @@
 import { SVGService } from "../SVGService";
-import { GPXTrack, ViewportConfig, GPSCoordinate } from "@core/types";
+import { GPXTrack, ViewportConfig } from "@core/types";
 
 describe("SVGService", () => {
   let svgService: SVGService;

@@ -35,7 +35,7 @@ export class ConfigError extends BaseError {
     message: string,
     code: ConfigErrorCode = ConfigErrorCode.UNKNOWN,
     recoverable: boolean = false,
-    context?: Record<string, any>,
+    context?: Record<string, unknown>,
   ) {
     super(message, code, recoverable, context);
   }
@@ -105,7 +105,7 @@ export class ConfigError extends BaseError {
    */
   static invalidValue(
     field: string,
-    value: any,
+    value: unknown,
     expected: string,
   ): ConfigError {
     return new ConfigError(

@@ -120,7 +120,7 @@ export class EPD {
     let bitmap;
     try {
       bitmap = bmp.decode(bmpBuffer);
-    } catch (error) {
+    } catch {
       console.log(
         "epaper: Image is not in BMP format, converting using sharp...",
       );
@@ -346,6 +346,7 @@ export class EPD {
       .raw()
       .toBuffer();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let bitmap: any;
 
     epdLogger.info("Image loaded, converting using sharp...");
