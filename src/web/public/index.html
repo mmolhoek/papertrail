@@ -70,6 +70,15 @@
             >
           </button>
           <button
+            id="menu-simulation"
+            class="nav-item"
+            data-panel="simulation-panel"
+          >
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Simulation</span>
+            <span id="simulation-indicator" class="nav-check hidden">✓</span>
+          </button>
+          <button
             id="menu-display-controls"
             class="nav-item"
             data-panel="display-controls-panel"
@@ -297,75 +306,85 @@
               <span class="track-stat-value" id="track-distance">0 km</span>
             </div>
           </div>
+        </section>
 
-          <!-- Simulation Controls -->
-          <div id="simulation-controls" class="simulation-controls hidden">
-            <div class="section-subheader">
-              <span class="section-marker">SIMULATE TRACK</span>
+        <!-- Simulation Panel -->
+        <section class="panel-card hidden" id="simulation-panel">
+          <div class="section-header">
+            <span class="section-marker">SIMULATION</span>
+          </div>
+          <div class="panel-content">
+            <div id="simulation-no-track" class="simulation-message">
+              <p>
+                Please select and load a track first from the Track Selection
+                menu.
+              </p>
             </div>
-            <div class="speed-selector">
-              <label class="control-label">Simulation Speed</label>
-              <div class="speed-buttons">
-                <button
-                  id="speed-walk"
-                  class="speed-btn active"
-                  data-speed="walk"
-                >
-                  <span class="speed-icon">🚶</span>
-                  <span class="speed-label">Walk</span>
-                  <span class="speed-value">5 km/h</span>
-                </button>
-                <button
-                  id="speed-bicycle"
-                  class="speed-btn"
-                  data-speed="bicycle"
-                >
-                  <span class="speed-icon">🚴</span>
-                  <span class="speed-label">Bicycle</span>
-                  <span class="speed-value">20 km/h</span>
-                </button>
-                <button id="speed-drive" class="speed-btn" data-speed="drive">
-                  <span class="speed-icon">🚗</span>
-                  <span class="speed-label">Drive</span>
-                  <span class="speed-value">50 km/h</span>
-                </button>
-              </div>
-            </div>
-            <div class="simulation-actions">
-              <button
-                id="start-simulation-btn"
-                class="btn btn-primary btn-large"
-              >
-                <span class="btn-icon">▶</span>
-                <span class="btn-text">Start Simulation</span>
-              </button>
-              <button id="stop-simulation-btn" class="btn btn-danger hidden">
-                <span class="btn-icon">■</span>
-                <span class="btn-text">Stop</span>
-              </button>
-              <button
-                id="pause-simulation-btn"
-                class="btn btn-secondary hidden"
-              >
-                <span class="btn-icon">⏸</span>
-                <span class="btn-text">Pause</span>
-              </button>
-            </div>
-            <div id="simulation-status" class="simulation-status hidden">
-              <div class="sim-stat">
-                <span class="sim-stat-label">Progress</span>
-                <div class="progress-bar">
-                  <div
-                    id="sim-progress-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
+            <div id="simulation-controls" class="simulation-controls hidden">
+              <div class="speed-selector">
+                <label class="control-label">Simulation Speed</label>
+                <div class="speed-buttons">
+                  <button
+                    id="speed-walk"
+                    class="speed-btn active"
+                    data-speed="walk"
+                  >
+                    <span class="speed-icon">🚶</span>
+                    <span class="speed-label">Walk</span>
+                    <span class="speed-value">5 km/h</span>
+                  </button>
+                  <button
+                    id="speed-bicycle"
+                    class="speed-btn"
+                    data-speed="bicycle"
+                  >
+                    <span class="speed-icon">🚴</span>
+                    <span class="speed-label">Bicycle</span>
+                    <span class="speed-value">20 km/h</span>
+                  </button>
+                  <button id="speed-drive" class="speed-btn" data-speed="drive">
+                    <span class="speed-icon">🚗</span>
+                    <span class="speed-label">Drive</span>
+                    <span class="speed-value">50 km/h</span>
+                  </button>
                 </div>
-                <span class="sim-stat-value" id="sim-progress">0%</span>
               </div>
-              <div class="sim-stat">
-                <span class="sim-stat-label">Remaining</span>
-                <span class="sim-stat-value" id="sim-remaining">--</span>
+              <div class="simulation-actions">
+                <button
+                  id="start-simulation-btn"
+                  class="btn btn-primary btn-large"
+                >
+                  <span class="btn-icon">▶</span>
+                  <span class="btn-text">Start Simulation</span>
+                </button>
+                <button id="stop-simulation-btn" class="btn btn-danger hidden">
+                  <span class="btn-icon">■</span>
+                  <span class="btn-text">Stop</span>
+                </button>
+                <button
+                  id="pause-simulation-btn"
+                  class="btn btn-secondary hidden"
+                >
+                  <span class="btn-icon">⏸</span>
+                  <span class="btn-text">Pause</span>
+                </button>
+              </div>
+              <div id="simulation-status" class="simulation-status hidden">
+                <div class="sim-stat">
+                  <span class="sim-stat-label">Progress</span>
+                  <div class="progress-bar">
+                    <div
+                      id="sim-progress-bar"
+                      class="progress-fill"
+                      style="width: 0%"
+                    ></div>
+                  </div>
+                  <span class="sim-stat-value" id="sim-progress">0%</span>
+                </div>
+                <div class="sim-stat">
+                  <span class="sim-stat-label">Remaining</span>
+                  <span class="sim-stat-value" id="sim-remaining">--</span>
+                </div>
               </div>
             </div>
           </div>

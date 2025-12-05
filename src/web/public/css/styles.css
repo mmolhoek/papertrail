@@ -1386,13 +1386,18 @@ body {
    TRACK SIMULATION CONTROLS
    ============================================ */
 
-.simulation-controls {
-  margin-top: var(--space-lg);
-  padding-top: var(--space-lg);
-  border-top: 1px solid var(--color-parchment-dark);
+.simulation-controls.hidden {
+  display: none;
 }
 
-.simulation-controls.hidden {
+.simulation-message {
+  padding: var(--space-lg);
+  text-align: center;
+  color: var(--color-slate);
+  font-style: italic;
+}
+
+.simulation-message.hidden {
   display: none;
 }
 

@@ -807,6 +807,9 @@ class PapertrailClient {
       // Update active track display (show "None" if no track)
       document.getElementById("active-track").textContent =
         data.activeTrack?.name || "None";
+
+      // Update simulation panel based on whether a track is loaded
+      this.updateSimulationPanel(!!data.activeTrack?.name);
     }
   }
 
@@ -853,7 +856,6 @@ class PapertrailClient {
     const select = document.getElementById("track-select");
     const trackInfo = document.getElementById("track-info");
     const pointsEl = document.getElementById("track-points");
-    const simulationControls = document.getElementById("simulation-controls");
 
     const selectedOption = select.options[select.selectedIndex];
 
@@ -863,17 +865,31 @@ class PapertrailClient {
       if (trackInfo) {
         trackInfo.classList.remove("hidden");
       }
-      // Show simulation controls when a track is selected
-      if (simulationControls) {
-        simulationControls.classList.remove("hidden");
-      }
     } else {
       if (trackInfo) {
         trackInfo.classList.add("hidden");
       }
-      // Hide simulation controls when no track is selected
+    }
+  }
+
+  // Update simulation panel based on whether a track is loaded
+  updateSimulationPanel(hasActiveTrack) {
+    const simulationControls = document.getElementById("simulation-controls");
+    const simulationMessage = document.getElementById("simulation-no-track");
+
+    if (hasActiveTrack) {
+      if (simulationControls) {
+        simulationControls.classList.remove("hidden");
+      }
+      if (simulationMessage) {
+        simulationMessage.classList.add("hidden");
+      }
+    } else {
       if (simulationControls) {
         simulationControls.classList.add("hidden");
+      }
+      if (simulationMessage) {
+        simulationMessage.classList.remove("hidden");
       }
     }
   }
