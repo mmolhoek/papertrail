@@ -446,15 +446,87 @@ export class SVGService implements ISVGService {
     bitmap: Bitmap1Bit,
     x: number,
     y: number,
-    width: number,
+    maxWidth: number,
     metersPerPixel: number,
   ): Result<Bitmap1Bit> {
     logger.debug(
-      `Adding scale bar at (${x}, ${y}), width=${width}, metersPerPixel=${metersPerPixel}`,
+      `Adding scale bar at (${x}, ${y}), maxWidth=${maxWidth}, metersPerPixel=${metersPerPixel}`,
     );
-    // TODO: Implement scale bar rendering
-    logger.warn("Scale bar rendering not yet implemented");
+
+    // Calculate max distance the bar could represent
+    const maxDistance = maxWidth * metersPerPixel;
+
+    // Find a nice round distance that fits within maxWidth
+    const niceDistance = this.getNiceScaleDistance(maxDistance);
+
+    // Calculate actual bar width for this nice distance
+    const barWidth = Math.round(niceDistance / metersPerPixel);
+
+    // Format the distance label
+    const label = this.formatDistance(niceDistance);
+
+    // Bar dimensions
+    const barHeight = 4;
+    const capHeight = 10;
+
+    // Draw the main horizontal bar
+    this.drawHorizontalLine(bitmap, x, y, barWidth, barHeight);
+
+    // Draw left end cap (vertical line)
+    this.drawVerticalLine(
+      bitmap,
+      x,
+      y - Math.floor((capHeight - barHeight) / 2),
+      capHeight,
+      2,
+    );
+
+    // Draw right end cap (vertical line)
+    this.drawVerticalLine(
+      bitmap,
+      x + barWidth - 2,
+      y - Math.floor((capHeight - barHeight) / 2),
+      capHeight,
+      2,
+    );
+
+    // Draw the distance label centered above the bar
+    const labelY = y - 12;
+    const labelX =
+      x + Math.floor(barWidth / 2) - Math.floor((label.length * 6) / 2);
+    this.renderSimpleText(bitmap, labelX, labelY, label);
+
     return success(bitmap);
+  }
+
+  /**
+   * Get a nice round distance for scale bar
+   */
+  private getNiceScaleDistance(maxDistance: number): number {
+    // Nice distances in meters
+    const niceDistances = [
+      10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
+    ];
+
+    // Find the largest nice distance that fits
+    for (let i = niceDistances.length - 1; i >= 0; i--) {
+      if (niceDistances[i] <= maxDistance) {
+        return niceDistances[i];
+      }
+    }
+
+    return niceDistances[0];
+  }
+
+  /**
+   * Format distance for display (m or km)
+   */
+  private formatDistance(meters: number): string {
+    if (meters >= 1000) {
+      const km = meters / 1000;
+      return km % 1 === 0 ? `${km} KM` : `${km.toFixed(1)} KM`;
+    }
+    return `${meters} M`;
   }
 
   /**
@@ -582,6 +654,23 @@ export class SVGService implements ISVGService {
       const compassY = compassPadding;
       const heading = info.bearing ?? 0;
       this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
+
+      // Draw scale bar in bottom-right of map area
+      const scale = Math.pow(2, viewport.zoomLevel);
+      const metersPerPixel =
+        (156543.03392 * Math.cos((currentPosition.latitude * Math.PI) / 180)) /
+        scale;
+      const scaleBarMaxWidth = 100;
+      const scaleBarPadding = 15;
+      const scaleBarX = mapWidth - scaleBarMaxWidth - scaleBarPadding;
+      const scaleBarY = height - scaleBarPadding;
+      this.addScaleBar(
+        bitmap,
+        scaleBarX,
+        scaleBarY,
+        scaleBarMaxWidth,
+        metersPerPixel,
+      );
 
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
