@@ -67,9 +67,20 @@ export class SVGService implements ISVGService {
       );
 
       // Project all track points to pixel coordinates
-      const projectedPoints = track.segments[0].points.map((point) =>
+      let projectedPoints = track.segments[0].points.map((point) =>
         this.projectToPixels(point.latitude, point.longitude, viewport),
       );
+
+      // Apply rotation if rotateWithBearing is enabled and bearing is available
+      const bearing = viewport.centerPoint.bearing;
+      if (renderOpts.rotateWithBearing && bearing !== undefined) {
+        logger.info(`Rotating map by ${bearing.toFixed(1)}° for track-up view`);
+        const centerX = viewport.width / 2;
+        const centerY = viewport.height / 2;
+        projectedPoints = projectedPoints.map((p) =>
+          this.rotatePoint(p, centerX, centerY, -bearing),
+        );
+      }
 
       // Debug: Log first few projected points to see where they end up
       logger.info(
@@ -875,5 +886,27 @@ export class SVGService implements ISVGService {
         }
       }
     }
+  }
+
+  /**
+   * Rotate a point around a center by given angle in degrees
+   */
+  private rotatePoint(
+    point: Point2D,
+    centerX: number,
+    centerY: number,
+    angleDegrees: number,
+  ): Point2D {
+    const angleRadians = (angleDegrees * Math.PI) / 180;
+    const cos = Math.cos(angleRadians);
+    const sin = Math.sin(angleRadians);
+
+    const dx = point.x - centerX;
+    const dy = point.y - centerY;
+
+    return {
+      x: Math.round(centerX + dx * cos - dy * sin),
+      y: Math.round(centerY + dx * sin + dy * cos),
+    };
   }
 }

@@ -10,6 +10,7 @@ class PapertrailClient {
     this.selectedSpeed = "walk";
     this.isSimulating = false;
     this.isPaused = false;
+    this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
 
@@ -205,6 +206,14 @@ class PapertrailClient {
     document.getElementById("auto-refresh").addEventListener("change", (e) => {
       this.setAutoRefresh(e.target.checked);
     });
+
+    // Orientation control
+    const orientationBtn = document.getElementById("orientation-btn");
+    if (orientationBtn) {
+      orientationBtn.addEventListener("click", () => {
+        this.cycleOrientation();
+      });
+    }
 
     // WiFi settings
     document.getElementById("save-wifi-btn").addEventListener("click", () => {
@@ -417,6 +426,43 @@ class PapertrailClient {
         clearInterval(this.autoRefreshInterval);
         this.autoRefreshInterval = null;
       }
+    }
+  }
+
+  // Cycle through map orientation modes
+  async cycleOrientation() {
+    const btn = document.getElementById("orientation-btn");
+    const icon = btn.querySelector(".orientation-icon");
+    const text = btn.querySelector(".orientation-text");
+
+    // Toggle between modes
+    if (this.currentOrientation === "north-up") {
+      this.currentOrientation = "track-up";
+      icon.textContent = "⬆";
+      text.textContent = "Track Up";
+      btn.classList.add("track-up");
+    } else {
+      this.currentOrientation = "north-up";
+      icon.textContent = "↑";
+      text.textContent = "North Up";
+      btn.classList.remove("track-up");
+    }
+
+    // Send to backend
+    const rotateWithBearing = this.currentOrientation === "track-up";
+    try {
+      await fetch(`${this.apiBase}/config/rotate-bearing`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: rotateWithBearing }),
+      });
+      this.showMessage(
+        `Orientation: ${this.currentOrientation === "north-up" ? "North Up" : "Track Up"}`,
+        "success",
+      );
+    } catch (error) {
+      console.error("Failed to set orientation:", error);
+      this.showMessage("Failed to change orientation", "error");
     }
   }
 

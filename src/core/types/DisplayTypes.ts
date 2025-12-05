@@ -101,6 +101,9 @@ export type RenderOptions = {
 
   /** Whether to apply anti-aliasing (may be slower) */
   antiAlias: boolean;
+
+  /** Whether to rotate map so bearing/track direction points up */
+  rotateWithBearing?: boolean;
 };
 
 /**

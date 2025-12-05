@@ -452,6 +452,13 @@ export class WebController {
     logger.info(`Setting rotate-with-bearing to: ${enabled}`);
     this.orchestrator.setRotateWithBearing(enabled);
     logger.info(`Rotate with bearing ${enabled ? "enabled" : "disabled"}`);
+
+    // Trigger display refresh to show the change immediately
+    const updateResult = await this.orchestrator.updateDisplay();
+    if (!updateResult.success) {
+      logger.warn("Failed to refresh display after orientation change");
+    }
+
     res.json({
       success: true,
       message: `Rotate with bearing ${enabled ? "enabled" : "disabled"}`,

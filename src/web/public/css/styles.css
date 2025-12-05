@@ -929,6 +929,41 @@ body {
 }
 
 /* ============================================
+   ORIENTATION CONTROL
+   ============================================ */
+.orientation-control {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-parchment-dark);
+}
+
+.orientation-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  margin-top: var(--space-sm);
+}
+
+.orientation-icon {
+  font-size: 1.4rem;
+  transition: transform 0.3s ease;
+}
+
+.orientation-btn.track-up .orientation-icon {
+  color: var(--color-rust);
+}
+
+.control-hint {
+  font-size: 0.75rem;
+  color: var(--color-slate);
+  margin-top: var(--space-sm);
+  text-align: center;
+}
+
+/* ============================================
    FORM FIELDS
    ============================================ */
 .form-field {

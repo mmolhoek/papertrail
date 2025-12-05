@@ -414,9 +414,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         `Viewport: ${viewport.width}x${viewport.height}, zoom ${viewport.zoomLevel}, center: ${viewport.centerPoint.latitude.toFixed(6)}, ${viewport.centerPoint.longitude.toFixed(6)}`,
       );
 
-      const renderOptions = this.configService.getRenderOptions();
+      const renderOptions = {
+        ...this.configService.getRenderOptions(),
+        rotateWithBearing: this.configService.getRotateWithBearing(),
+      };
       logger.info(
-        `Render options: lineWidth=${renderOptions.lineWidth}, showPoints=${renderOptions.showPoints}, highlightCurrentPosition=${renderOptions.highlightCurrentPosition}`,
+        `Render options: lineWidth=${renderOptions.lineWidth}, showPoints=${renderOptions.showPoints}, rotateWithBearing=${renderOptions.rotateWithBearing}`,
       );
 
       const bitmapResult = await this.svgService.renderViewport(
