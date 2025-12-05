@@ -439,7 +439,7 @@ export class ConfigService implements IConfigService {
   private getDefaultUserState(): UserState {
     return {
       activeGPXPath: null,
-      zoomLevel: 14,
+      zoomLevel: 17,
       onboardingCompleted: false,
       onboardingTimestamp: undefined,
       displayPreferences: {

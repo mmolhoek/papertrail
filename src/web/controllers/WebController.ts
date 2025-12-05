@@ -920,6 +920,23 @@ export class WebController {
       speedValue = speedMap[speed] || SimulationSpeed.WALK;
     }
 
+    // Set appropriate zoom level based on speed
+    // Walking: show ~100m ahead (zoom 18, ~0.6m/pixel, ~480m visible)
+    // Cycling: show ~300m ahead (zoom 16, ~2.4m/pixel, ~1900m visible)
+    // Driving: show ~800m ahead (zoom 14, ~9.5m/pixel, ~7600m visible)
+    let zoomLevel: number;
+    if (speedValue <= SimulationSpeed.WALK) {
+      zoomLevel = 18; // Walking - detailed view
+    } else if (speedValue <= SimulationSpeed.BICYCLE) {
+      zoomLevel = 16; // Cycling - medium view
+    } else {
+      zoomLevel = 14; // Driving - wide view
+    }
+    logger.info(
+      `Setting zoom level to ${zoomLevel} for speed ${speedValue} m/s`,
+    );
+    await this.orchestrator.setZoom(zoomLevel);
+
     // Set the track as active for display rendering
     const setActiveResult = await this.orchestrator.setActiveGPX(trackPath);
     if (!isSuccess(setActiveResult)) {
