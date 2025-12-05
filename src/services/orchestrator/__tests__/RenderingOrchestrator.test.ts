@@ -251,8 +251,16 @@ describe("RenderingOrchestrator", () => {
 
     it("should update display successfully", async () => {
       mockGPS.getCurrentPosition.mockResolvedValue(success(mockCoordinate));
+      mockGPS.getStatus.mockResolvedValue(
+        success({
+          fixQuality: 1,
+          satellitesInUse: 8,
+          hdop: 1.2,
+          isTracking: true,
+        }),
+      );
       mockMap.getTrack.mockResolvedValue(success(mockTrack));
-      mockSVG.renderViewport.mockResolvedValue(success(mockBitmap));
+      mockSVG.renderFollowTrackScreen.mockResolvedValue(success(mockBitmap));
       mockEpaper.displayBitmap.mockResolvedValue(success(undefined));
 
       const result = await orchestrator.updateDisplay();
@@ -260,7 +268,7 @@ describe("RenderingOrchestrator", () => {
       expect(result.success).toBe(true);
       expect(mockGPS.getCurrentPosition).toHaveBeenCalled();
       expect(mockMap.getTrack).toHaveBeenCalledWith("/path/to/track.gpx");
-      expect(mockSVG.renderViewport).toHaveBeenCalled();
+      expect(mockSVG.renderFollowTrackScreen).toHaveBeenCalled();
       expect(mockEpaper.displayBitmap).toHaveBeenCalledWith(
         mockBitmap,
         undefined,
@@ -338,7 +346,15 @@ describe("RenderingOrchestrator", () => {
         maxLon: 13.407,
       });
       mockGPS.getCurrentPosition.mockResolvedValue(success(mockCoordinate));
-      mockSVG.renderViewport.mockResolvedValue(success(mockBitmap));
+      mockGPS.getStatus.mockResolvedValue(
+        success({
+          fixQuality: 1,
+          satellitesInUse: 8,
+          hdop: 1.2,
+          isTracking: true,
+        }),
+      );
+      mockSVG.renderFollowTrackScreen.mockResolvedValue(success(mockBitmap));
       mockEpaper.displayBitmap.mockResolvedValue(success(undefined));
 
       const result = await orchestrator.setActiveGPX("/new/path.gpx");
@@ -389,8 +405,16 @@ describe("RenderingOrchestrator", () => {
 
       // Setup for successful display update
       mockGPS.getCurrentPosition.mockResolvedValue(success(mockCoordinate));
+      mockGPS.getStatus.mockResolvedValue(
+        success({
+          fixQuality: 1,
+          satellitesInUse: 8,
+          hdop: 1.2,
+          isTracking: true,
+        }),
+      );
       mockMap.getTrack.mockResolvedValue(success(mockTrack));
-      mockSVG.renderViewport.mockResolvedValue(success(mockBitmap));
+      mockSVG.renderFollowTrackScreen.mockResolvedValue(success(mockBitmap));
       mockEpaper.displayBitmap.mockResolvedValue(success(undefined));
     });
 

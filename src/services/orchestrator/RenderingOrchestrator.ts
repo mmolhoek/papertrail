@@ -11,6 +11,7 @@ import {
   IDriveNavigationService,
   TextTemplate,
   DriveNavigationInfo,
+  FollowTrackInfo,
 } from "@core/interfaces";
 import {
   Result,
@@ -699,8 +700,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
-      // Step 4: Render viewport
-      logger.info("Step 4/5: Rendering viewport to bitmap...");
+      // Step 4: Render split view (80% map, 20% info panel)
+      logger.info("Step 4/5: Rendering split view to bitmap...");
       const viewport = {
         width: this.configService.getDisplayWidth(),
         height: this.configService.getDisplayHeight(),
@@ -720,21 +721,41 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         `Render options: lineWidth=${renderOptions.lineWidth}, showPoints=${renderOptions.showPoints}, rotateWithBearing=${renderOptions.rotateWithBearing}`,
       );
 
-      const bitmapResult = await this.svgService.renderViewport(
+      // Get satellite count from GPS status
+      const gpsStatus = await this.gpsService.getStatus();
+      const satellites = gpsStatus.success ? gpsStatus.data.satellitesInUse : 0;
+
+      // Build info for the right panel
+      const followTrackInfo: FollowTrackInfo = {
+        speed: position.speed ? position.speed * 3.6 : 0, // Convert m/s to km/h
+        satellites: satellites,
+        bearing: position.bearing,
+      };
+
+      logger.info(
+        `Info panel: speed=${followTrackInfo.speed.toFixed(1)} km/h, satellites=${followTrackInfo.satellites}, bearing=${followTrackInfo.bearing || 0}°`,
+      );
+
+      const bitmapResult = await this.svgService.renderFollowTrackScreen(
         trackResult.data,
+        position,
         viewport,
+        followTrackInfo,
         renderOptions,
       );
 
       if (!bitmapResult.success) {
-        logger.error("Failed to render viewport:", bitmapResult.error);
+        logger.error("Failed to render split view:", bitmapResult.error);
         this.notifyError(bitmapResult.error);
         return failure(
-          OrchestratorError.updateFailed("Viewport render", bitmapResult.error),
+          OrchestratorError.updateFailed(
+            "Split view render",
+            bitmapResult.error,
+          ),
         );
       }
       logger.info(
-        `✓ Viewport rendered: ${bitmapResult.data.width}x${bitmapResult.data.height}, ${bitmapResult.data.data.length} bytes`,
+        `✓ Split view rendered: ${bitmapResult.data.width}x${bitmapResult.data.height}, ${bitmapResult.data.data.length} bytes`,
       );
 
       // Step 5: Display on e-paper

@@ -711,81 +711,43 @@ export class SVGService implements ISVGService {
 
     // Panel layout constants
     const padding = 10;
-    const sectionHeight = Math.floor(height / 4);
+    const sectionHeight = Math.floor(height / 3);
 
     // Section 1: Speed (top)
-    const speedY = padding + 20;
-    this.renderSimpleText(bitmap, x + padding, speedY, "SPEED");
-    this.renderLargeNumber(
+    const speedY = padding;
+    this.renderRotatedMediumText(bitmap, x + padding, speedY, "SPEED");
+    this.renderRotatedLargeNumber(
       bitmap,
-      x + padding,
-      speedY + 25,
+      x + padding + 20,
+      speedY + 30,
       Math.round(info.speed),
-      width - padding * 2,
     );
-    this.renderSimpleText(bitmap, x + padding, speedY + 80, "km/h");
+    this.renderRotatedMediumText(bitmap, x + padding, speedY + 100, "KM/H");
 
     // Section 2: Satellites
-    const satY = sectionHeight + padding + 20;
-    this.renderSimpleText(bitmap, x + padding, satY, "SATS");
-    this.renderLargeNumber(
+    const satY = sectionHeight + padding;
+    this.renderRotatedMediumText(bitmap, x + padding, satY, "SATS");
+    this.renderRotatedLargeNumber(
       bitmap,
-      x + padding,
-      satY + 25,
+      x + padding + 20,
+      satY + 30,
       info.satellites,
-      width - padding * 2,
     );
 
-    // Section 3: Progress (if available)
-    if (info.progress !== undefined) {
-      const progY = sectionHeight * 2 + padding + 20;
-      this.renderSimpleText(bitmap, x + padding, progY, "PROGRESS");
-
-      // Draw progress bar
-      const barWidth = width - padding * 2;
-      const barHeight = 15;
-      const barY = progY + 25;
-
-      // Outline
-      this.drawHorizontalLine(bitmap, x + padding, barY, barWidth);
-      this.drawHorizontalLine(bitmap, x + padding, barY + barHeight, barWidth);
-      this.drawVerticalLine(bitmap, x + padding, barY, barHeight, 1);
-      this.drawVerticalLine(bitmap, x + padding + barWidth, barY, barHeight, 1);
-
-      // Fill based on progress
-      const fillWidth = Math.floor((barWidth - 4) * (info.progress / 100));
-      for (let row = barY + 2; row < barY + barHeight - 2; row++) {
-        for (
-          let col = x + padding + 2;
-          col < x + padding + 2 + fillWidth;
-          col++
-        ) {
-          this.setPixel(bitmap, col, row, true);
-        }
-      }
-
-      // Progress percentage text
-      this.renderSimpleText(
+    // Section 3: Bearing (if available)
+    if (info.bearing !== undefined) {
+      const bearY = sectionHeight * 2 + padding;
+      this.renderRotatedMediumText(bitmap, x + padding, bearY, "BEAR");
+      this.renderRotatedLargeNumber(
         bitmap,
-        x + padding,
-        progY + 50,
-        `${Math.round(info.progress)}%`,
+        x + padding + 20,
+        bearY + 30,
+        Math.round(info.bearing),
       );
-    }
-
-    // Section 4: Distance remaining (if available)
-    if (info.distanceRemaining !== undefined) {
-      const distY = sectionHeight * 3 + padding + 20;
-      this.renderSimpleText(bitmap, x + padding, distY, "REMAINING");
-
-      // Format distance (meters or km)
-      let distText: string;
-      if (info.distanceRemaining >= 1000) {
-        distText = `${(info.distanceRemaining / 1000).toFixed(1)} km`;
-      } else {
-        distText = `${Math.round(info.distanceRemaining)} m`;
-      }
-      this.renderSimpleText(bitmap, x + padding, distY + 20, distText);
+      // Draw degree symbol (small circle)
+      const degX = x + padding + 80;
+      const degY = bearY + 50;
+      this.drawCircle(bitmap, { x: degX, y: degY }, 3);
     }
   }
 
@@ -940,6 +902,255 @@ export class SVGService implements ISVGService {
                 y + row * scale + sy,
                 true,
               );
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Render medium-sized text (2x scale) for headers
+   */
+  private renderMediumText(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    text: string,
+  ): void {
+    const charWidth = 12; // 2x scale: 5*2 + 2 space
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charAt(i).toUpperCase();
+      const charX = x + i * charWidth;
+      this.drawScaledChar(bitmap, charX, y, char, 2);
+    }
+  }
+
+  /**
+   * Render medium-sized text rotated 90 degrees counter-clockwise
+   * Text reads from bottom to top
+   */
+  private renderRotatedMediumText(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    text: string,
+  ): void {
+    const scale = 2;
+    const charHeight = 7 * scale;
+    const charSpacing = 8 * scale;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charAt(i).toUpperCase();
+      // Characters stack vertically (top to bottom)
+      const charOffsetY = i * charSpacing;
+      this.drawRotatedScaledChar(bitmap, x, y + charOffsetY, char, scale);
+    }
+  }
+
+  /**
+   * Draw a character rotated 90 degrees counter-clockwise at specified scale
+   */
+  private drawRotatedScaledChar(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    char: string,
+    scale: number,
+  ): void {
+    const font: Record<string, number[]> = {
+      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
+      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
+      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
+      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
+      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
+      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
+      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
+      A: [0xfc, 0x12, 0x12, 0x12, 0xfc, 0x00, 0x00],
+      B: [0xfe, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      C: [0x7c, 0x82, 0x82, 0x82, 0x44, 0x00, 0x00],
+      D: [0xfe, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      E: [0xfe, 0x92, 0x92, 0x92, 0x82, 0x00, 0x00],
+      F: [0xfe, 0x12, 0x12, 0x12, 0x02, 0x00, 0x00],
+      G: [0x7c, 0x82, 0x92, 0x92, 0x74, 0x00, 0x00],
+      H: [0xfe, 0x10, 0x10, 0x10, 0xfe, 0x00, 0x00],
+      I: [0x00, 0x82, 0xfe, 0x82, 0x00, 0x00, 0x00],
+      J: [0x40, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
+      K: [0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00],
+      L: [0xfe, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00],
+      M: [0xfe, 0x04, 0x08, 0x04, 0xfe, 0x00, 0x00],
+      N: [0xfe, 0x04, 0x08, 0x10, 0xfe, 0x00, 0x00],
+      O: [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      P: [0xfe, 0x12, 0x12, 0x12, 0x0c, 0x00, 0x00],
+      Q: [0x7c, 0x82, 0xa2, 0x42, 0xbc, 0x00, 0x00],
+      R: [0xfe, 0x12, 0x32, 0x52, 0x8c, 0x00, 0x00],
+      S: [0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00],
+      T: [0x02, 0x02, 0xfe, 0x02, 0x02, 0x00, 0x00],
+      U: [0x7e, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
+      V: [0x3e, 0x40, 0x80, 0x40, 0x3e, 0x00, 0x00],
+      W: [0xfe, 0x40, 0x20, 0x40, 0xfe, 0x00, 0x00],
+      X: [0xc6, 0x28, 0x10, 0x28, 0xc6, 0x00, 0x00],
+      Y: [0x06, 0x08, 0xf0, 0x08, 0x06, 0x00, 0x00],
+      Z: [0xc2, 0xa2, 0x92, 0x8a, 0x86, 0x00, 0x00],
+      " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+      "/": [0xc0, 0x20, 0x10, 0x08, 0x06, 0x00, 0x00],
+    };
+
+    const charData = font[char];
+    if (!charData) return;
+
+    const charHeight = 7 * scale;
+
+    for (let row = 0; row < 7; row++) {
+      const rowData = charData[row] || 0;
+      for (let col = 0; col < 8; col++) {
+        if (rowData & (0x80 >> col)) {
+          for (let sy = 0; sy < scale; sy++) {
+            for (let sx = 0; sx < scale; sx++) {
+              const localX = col * scale + sx;
+              const localY = row * scale + sy;
+
+              // 90° counter-clockwise rotation
+              const rotX = localY;
+              const rotY = charHeight - localX;
+
+              this.setPixel(bitmap, x + rotX, y + rotY, true);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Draw a character at specified scale
+   */
+  private drawScaledChar(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    char: string,
+    scale: number,
+  ): void {
+    const font: Record<string, number[]> = {
+      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
+      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
+      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
+      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
+      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
+      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
+      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
+      A: [0xfc, 0x12, 0x12, 0x12, 0xfc, 0x00, 0x00],
+      B: [0xfe, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      C: [0x7c, 0x82, 0x82, 0x82, 0x44, 0x00, 0x00],
+      D: [0xfe, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      E: [0xfe, 0x92, 0x92, 0x92, 0x82, 0x00, 0x00],
+      F: [0xfe, 0x12, 0x12, 0x12, 0x02, 0x00, 0x00],
+      G: [0x7c, 0x82, 0x92, 0x92, 0x74, 0x00, 0x00],
+      H: [0xfe, 0x10, 0x10, 0x10, 0xfe, 0x00, 0x00],
+      I: [0x00, 0x82, 0xfe, 0x82, 0x00, 0x00, 0x00],
+      J: [0x40, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
+      K: [0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00],
+      L: [0xfe, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00],
+      M: [0xfe, 0x04, 0x08, 0x04, 0xfe, 0x00, 0x00],
+      N: [0xfe, 0x04, 0x08, 0x10, 0xfe, 0x00, 0x00],
+      O: [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      P: [0xfe, 0x12, 0x12, 0x12, 0x0c, 0x00, 0x00],
+      Q: [0x7c, 0x82, 0xa2, 0x42, 0xbc, 0x00, 0x00],
+      R: [0xfe, 0x12, 0x32, 0x52, 0x8c, 0x00, 0x00],
+      S: [0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00],
+      T: [0x02, 0x02, 0xfe, 0x02, 0x02, 0x00, 0x00],
+      U: [0x7e, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
+      V: [0x3e, 0x40, 0x80, 0x40, 0x3e, 0x00, 0x00],
+      W: [0xfe, 0x40, 0x20, 0x40, 0xfe, 0x00, 0x00],
+      X: [0xc6, 0x28, 0x10, 0x28, 0xc6, 0x00, 0x00],
+      Y: [0x06, 0x08, 0xf0, 0x08, 0x06, 0x00, 0x00],
+      Z: [0xc2, 0xa2, 0x92, 0x8a, 0x86, 0x00, 0x00],
+      " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+      ".": [0x00, 0x00, 0xc0, 0xc0, 0x00, 0x00, 0x00],
+      "/": [0xc0, 0x20, 0x10, 0x08, 0x06, 0x00, 0x00],
+      "%": [0x86, 0x46, 0x20, 0x10, 0xc4, 0xc2, 0x00],
+    };
+
+    const charData = font[char];
+    if (!charData) return;
+
+    for (let row = 0; row < 7; row++) {
+      const rowData = charData[row] || 0;
+      for (let col = 0; col < 8; col++) {
+        if (rowData & (0x80 >> col)) {
+          for (let sy = 0; sy < scale; sy++) {
+            for (let sx = 0; sx < scale; sx++) {
+              this.setPixel(bitmap, x + col * scale + sx, y + row * scale + sy, true);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Render a large number rotated 90 degrees counter-clockwise
+   * Text reads from bottom to top
+   */
+  private renderRotatedLargeNumber(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    value: number,
+  ): void {
+    const text = value.toString();
+    const scale = 3;
+    const charHeight = 7 * scale;
+    const charSpacing = 8 * scale;
+
+    const font: Record<string, number[]> = {
+      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
+      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
+      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
+      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
+      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
+      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
+      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
+      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
+      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
+    };
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charAt(i);
+      const charData = font[char];
+      if (!charData) continue;
+
+      // For 90° CCW rotation, characters stack vertically (top to bottom)
+      const charOffsetY = i * charSpacing;
+
+      for (let row = 0; row < 7; row++) {
+        const rowData = charData[row] || 0;
+        for (let col = 0; col < 8; col++) {
+          if (rowData & (0x80 >> col)) {
+            // For each pixel in the scaled character
+            for (let sy = 0; sy < scale; sy++) {
+              for (let sx = 0; sx < scale; sx++) {
+                const localX = col * scale + sx;
+                const localY = row * scale + sy;
+
+                // 90° counter-clockwise: (x, y) -> (-y, x) or (y, -x) depending on direction
+                // For CCW: new_x = y, new_y = -x (but we offset to keep positive)
+                const rotX = localY;
+                const rotY = charHeight - localX;
+
+                const finalX = x + rotX;
+                const finalY = y + charOffsetY + rotY;
+
+                this.setPixel(bitmap, finalX, finalY, true);
+              }
             }
           }
         }
