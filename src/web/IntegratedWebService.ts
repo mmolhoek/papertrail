@@ -508,9 +508,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     // Subscribe to GPS position updates
     // When the GPS service gets new position data, it triggers this callback
     this.gpsUpdateUnsubscribe = this.orchestrator.onGPSUpdate((position) => {
-      // console.log(
-      //   `Broadcasting GPS update: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-      // );
+      // Skip real GPS updates when simulation is running
+      // to avoid flickering between real (no fix) and simulated positions
+      if (this.simulationService?.isSimulating()) {
+        return;
+      }
 
       // Broadcast to ALL connected WebSocket clients
       // Include the latest GPS status (fix quality, satellites, hdop) with the position
