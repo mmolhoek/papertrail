@@ -66,12 +66,14 @@ async function main() {
     const webConfig = container.getWebConfig();
     const mapConfig = container.getMapConfig();
     const mapService = container.getMapService();
+    const configService = container.getConfigService();
     const webService = new IntegratedWebService(
       orchestrator,
       webConfig,
       wifiService,
       mapService,
       mapConfig.gpxDirectory,
+      configService,
     );
 
     const webResult = await webService.start();

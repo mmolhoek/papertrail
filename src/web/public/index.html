@@ -89,6 +89,15 @@
             <span class="nav-item-text">WiFi Settings</span>
             <span id="wifi-settings-indicator" class="nav-check hidden">✓</span>
           </button>
+          <button
+            id="menu-reset"
+            class="nav-item"
+            data-panel="reset-panel"
+          >
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Reset</span>
+            <span id="reset-indicator" class="nav-check hidden">✓</span>
+          </button>
         </div>
       </nav>
 
@@ -396,6 +405,32 @@
             <button id="save-wifi-btn" class="btn btn-primary btn-full">
               <span class="btn-icon">✓</span>
               Save Settings
+            </button>
+          </div>
+        </section>
+
+        <!-- Reset Panel -->
+        <section class="panel-card hidden" id="reset-panel">
+          <div class="section-header">
+            <span class="section-marker">FACTORY RESET</span>
+          </div>
+          <div class="panel-content">
+            <div class="warning-box">
+              <div class="warning-icon">⚠</div>
+              <div class="warning-text">
+                <strong>Warning:</strong> This will reset all settings to their defaults, including:
+                <ul>
+                  <li>WiFi hotspot configuration</li>
+                  <li>Display preferences</li>
+                  <li>Zoom level and active track</li>
+                  <li>Recent files list</li>
+                </ul>
+                The device will disconnect from WiFi and you may need to reconnect.
+              </div>
+            </div>
+            <button id="reset-btn" class="btn btn-danger btn-full">
+              <span class="btn-icon">↺</span>
+              Reset All Settings
             </button>
           </div>
         </section>

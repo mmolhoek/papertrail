@@ -5,6 +5,7 @@ import {
   IRenderingOrchestrator,
   IWiFiService,
   IMapService,
+  IConfigService,
 } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { WebError } from "@core/errors";
@@ -24,6 +25,7 @@ export class WebController {
     private readonly wifiService?: IWiFiService,
     private readonly mapService?: IMapService,
     private readonly gpxDirectory: string = "./data/gpx-files",
+    private readonly configService?: IConfigService,
   ) {}
 
   /**
@@ -766,6 +768,78 @@ export class WebController {
           },
         });
       }
+    }
+  }
+
+  // System Reset Endpoint
+
+  /**
+   * Reset system to factory defaults
+   * Clears all user settings, disconnects WiFi, and restarts onboarding
+   */
+  async resetSystem(_req: Request, res: Response): Promise<void> {
+    logger.info("System reset requested");
+
+    try {
+      // Reset config to defaults
+      if (this.configService) {
+        logger.info("Resetting configuration to defaults...");
+        const resetResult = await this.configService.resetToDefaults();
+        if (!resetResult.success) {
+          logger.error("Failed to reset config:", resetResult.error);
+          res.status(500).json({
+            success: false,
+            error: {
+              code: "CONFIG_RESET_FAILED",
+              message: "Failed to reset configuration",
+            },
+          });
+          return;
+        }
+        logger.info("Configuration reset successfully");
+      } else {
+        logger.warn("No config service available - skipping config reset");
+      }
+
+      // Disconnect WiFi
+      if (this.wifiService) {
+        logger.info("Disconnecting WiFi...");
+        const disconnectResult = await this.wifiService.disconnect();
+        if (!disconnectResult.success) {
+          // Log but don't fail - WiFi might not be connected
+          logger.warn("WiFi disconnect warning:", disconnectResult.error);
+        } else {
+          logger.info("WiFi disconnected successfully");
+        }
+      } else {
+        logger.warn("No WiFi service available - skipping WiFi disconnect");
+      }
+
+      // Restart onboarding flow (show logo, then WiFi instructions)
+      logger.info("Restarting onboarding flow...");
+      const onboardingResult = await this.orchestrator.restartOnboarding();
+      if (!onboardingResult.success) {
+        logger.warn("Failed to restart onboarding:", onboardingResult.error);
+        // Don't fail the reset - config was already reset
+      } else {
+        logger.info("Onboarding flow restarted successfully");
+      }
+
+      logger.info("System reset completed successfully");
+      res.json({
+        success: true,
+        message:
+          "System reset to factory defaults. Device is restarting setup.",
+      });
+    } catch (error) {
+      logger.error("Failed to reset system:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "RESET_FAILED",
+          message: "Failed to reset system",
+        },
+      });
     }
   }
 }

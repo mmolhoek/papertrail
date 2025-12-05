@@ -210,6 +210,11 @@ class PapertrailClient {
     document.getElementById("toggle-password").addEventListener("click", () => {
       this.togglePasswordVisibility();
     });
+
+    // Reset system
+    document.getElementById("reset-btn").addEventListener("click", () => {
+      this.confirmAndResetSystem();
+    });
   }
 
   // API Methods
@@ -457,6 +462,70 @@ class PapertrailClient {
     } else {
       passwordInput.type = "password";
       toggleBtn.textContent = "Show";
+    }
+  }
+
+  // System Reset Methods
+
+  async confirmAndResetSystem() {
+    // Show confirmation dialog
+    const confirmed = confirm(
+      "Are you sure you want to reset all settings?\n\n" +
+        "This will:\n" +
+        "- Clear WiFi hotspot configuration\n" +
+        "- Reset display preferences\n" +
+        "- Reset zoom level and active track\n" +
+        "- Clear recent files list\n\n" +
+        "The device will disconnect from WiFi and you may need to reconnect.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    await this.resetSystem();
+  }
+
+  async resetSystem() {
+    const btn = document.getElementById("reset-btn");
+    const btnIcon = btn.querySelector(".btn-icon");
+    const originalIcon = btnIcon ? btnIcon.textContent : "";
+
+    btn.disabled = true;
+    if (btnIcon) btnIcon.textContent = "⏳";
+
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/system/reset`, {
+        method: "POST",
+      });
+
+      if (result.success) {
+        this.showMessage(
+          "System reset complete. Device is restarting setup.",
+          "success",
+        );
+        if (btnIcon) btnIcon.textContent = "✓";
+
+        // After a short delay, the connection will likely be lost
+        setTimeout(() => {
+          this.showMessage(
+            "Device will disconnect. Follow the setup instructions on the e-paper display.",
+            "info",
+          );
+        }, 2000);
+      } else {
+        this.showMessage(result.error?.message || "Reset failed", "error");
+        if (btnIcon) btnIcon.textContent = "✕";
+      }
+    } catch (error) {
+      console.error("Reset error:", error);
+      this.showMessage("Failed to reset system", "error");
+      if (btnIcon) btnIcon.textContent = "✕";
+    } finally {
+      setTimeout(() => {
+        btn.disabled = false;
+        if (btnIcon) btnIcon.textContent = originalIcon;
+      }, 2000);
     }
   }
 

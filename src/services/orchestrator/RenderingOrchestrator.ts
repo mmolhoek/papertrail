@@ -868,6 +868,66 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Restart the onboarding flow (used after factory reset)
+   * Displays the logo, then shows WiFi instructions screen
+   */
+  async restartOnboarding(): Promise<Result<void>> {
+    logger.info("restartOnboarding() called - starting onboarding flow");
+
+    if (!this.isInitialized) {
+      logger.warn("Orchestrator not initialized - cannot restart onboarding");
+      return failure(OrchestratorError.notInitialized());
+    }
+
+    try {
+      // Step 1: Display the logo
+      logger.info("Step 1: Displaying startup logo...");
+      const logoResult = await this.epaperService.displayLogo();
+      if (!logoResult.success) {
+        logger.error("Failed to display startup logo:", logoResult.error);
+        return failure(
+          OrchestratorError.updateFailed("Startup logo", logoResult.error),
+        );
+      }
+      logger.info("✓ Startup logo displayed");
+
+      // Wait a moment for the logo to be visible
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Step 2: Show WiFi instructions screen
+      logger.info("Step 2: Showing WiFi instructions screen...");
+      await this.displayWiFiInstructionsScreen();
+      logger.info("✓ WiFi instructions screen displayed");
+
+      // Step 3: Start attempting to connect to the mobile hotspot
+      if (this.wifiService) {
+        logger.info(
+          "Step 3: Starting mobile hotspot connection attempt for onboarding...",
+        );
+        void this.wifiService.attemptMobileHotspotConnection().then((result) => {
+          if (result.success) {
+            logger.info(
+              "Successfully connected to mobile hotspot during onboarding restart!",
+            );
+          } else {
+            logger.warn(
+              "Failed to connect to mobile hotspot during onboarding restart:",
+              result.error.message,
+            );
+          }
+        });
+      }
+
+      return success(undefined);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Failed to restart onboarding: ${errorMsg}`);
+      const err = error instanceof Error ? error : new Error("Unknown error");
+      return failure(OrchestratorError.updateFailed("Restart onboarding", err));
+    }
+  }
+
+  /**
    * Set the number of connected WebSocket clients
    * Shows "select track" screen when clients connect, returns to connected screen when all disconnect
    */

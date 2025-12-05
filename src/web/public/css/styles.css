@@ -1282,6 +1282,42 @@ body {
   }
 }
 
+/* Warning Box */
+.warning-box {
+  display: flex;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(168, 64, 37, 0.15);
+  border: 1px solid var(--color-sienna);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+}
+
+.warning-icon {
+  font-size: 1.5rem;
+  color: var(--color-sienna);
+  flex-shrink: 0;
+}
+
+.warning-text {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.warning-text strong {
+  color: var(--color-sienna);
+}
+
+.warning-text ul {
+  margin: var(--space-xs) 0 var(--space-sm) var(--space-md);
+  padding: 0;
+}
+
+.warning-text li {
+  margin-bottom: var(--space-xxs);
+}
+
 /* High contrast mode support */
 @media (prefers-contrast: high) {
   :root {

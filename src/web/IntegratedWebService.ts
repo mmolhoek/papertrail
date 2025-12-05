@@ -9,6 +9,7 @@ import {
   IWebInterfaceService,
   IWiFiService,
   IMapService,
+  IConfigService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -64,6 +65,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly wifiService?: IWiFiService,
     private readonly mapService?: IMapService,
     private readonly gpxDirectory: string = "./data/gpx-files",
+    private readonly configService?: IConfigService,
   ) {
     this.app = express();
     this.controller = new WebController(
@@ -71,6 +73,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       wifiService,
       mapService,
       gpxDirectory,
+      configService,
     );
     // Configure multer for file uploads
     this.upload = multer({
@@ -366,6 +369,11 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     this.app.delete(`${api}/map/files/:fileName`, (req, res) =>
       this.controller.deleteGPXFile(req, res),
+    );
+
+    // System reset endpoint
+    this.app.post(`${api}/system/reset`, (req, res) =>
+      this.controller.resetSystem(req, res),
     );
 
     // 404 handler
