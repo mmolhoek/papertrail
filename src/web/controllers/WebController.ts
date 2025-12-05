@@ -920,6 +920,16 @@ export class WebController {
       speedValue = speedMap[speed] || SimulationSpeed.WALK;
     }
 
+    // Set the track as active for display rendering
+    const setActiveResult = await this.orchestrator.setActiveGPX(trackPath);
+    if (!isSuccess(setActiveResult)) {
+      logger.warn(
+        "Failed to set track as active, display may not update:",
+        setActiveResult.error,
+      );
+      // Continue anyway - simulation can still run
+    }
+
     // Initialize and start simulation
     const initResult = await this.simulationService.initialize();
     if (!isSuccess(initResult)) {

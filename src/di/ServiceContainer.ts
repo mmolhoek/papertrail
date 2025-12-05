@@ -165,6 +165,7 @@ export class ServiceContainer {
         this.getConfigService(),
         this.getWiFiService(),
         this.getTextRendererService(),
+        this.getTrackSimulationService(),
       );
     }
     return this.services.orchestrator;

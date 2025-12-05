@@ -7,6 +7,7 @@ import {
   IConfigService,
   IWiFiService,
   ITextRendererService,
+  ITrackSimulationService,
   TextTemplate,
 } from "@core/interfaces";
 import {
@@ -64,6 +65,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private lastDisplayedGPSStatus: GPSStatus | null = null;
   private static readonly GPS_INFO_REFRESH_INTERVAL_MS = 15000; // 15 seconds
 
+  // Simulation support
+  private simulationPositionUnsubscribe: (() => void) | null = null;
+  private simulationDisplayInterval: NodeJS.Timeout | null = null;
+  private static readonly SIMULATION_DISPLAY_UPDATE_MS = 5000; // Update e-paper every 5s during simulation
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -72,6 +78,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly configService: IConfigService,
     private readonly wifiService?: IWiFiService,
     private readonly textRendererService?: ITextRendererService,
+    private readonly simulationService?: ITrackSimulationService,
   ) {}
 
   /**
@@ -146,6 +153,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       if (this.wifiService) {
         logger.info("Subscribing to WiFi state changes...");
         this.subscribeToWiFiStateChanges();
+      }
+
+      // Subscribe to simulation state changes (if simulation service provided)
+      if (this.simulationService) {
+        logger.info("Subscribing to simulation state changes...");
+        this.subscribeToSimulationUpdates();
       }
 
       this.isInitialized = true;
@@ -245,6 +258,71 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Subscribe to simulation state changes to trigger display updates
+   */
+  private subscribeToSimulationUpdates(): void {
+    if (!this.simulationService) {
+      return;
+    }
+
+    // Subscribe to state changes (start/stop/pause)
+    this.simulationPositionUnsubscribe = this.simulationService.onStateChange(
+      (status) => {
+        logger.info(`Simulation state changed: ${status.state}`);
+
+        if (status.state === "running") {
+          // Start periodic display updates during simulation
+          this.startSimulationDisplayUpdates();
+        } else if (status.state === "stopped") {
+          // Stop periodic display updates when simulation stops
+          this.stopSimulationDisplayUpdates();
+        }
+        // Note: "paused" state keeps the interval but updateDisplay won't change position
+      },
+    );
+
+    logger.info("Subscribed to simulation state changes");
+  }
+
+  /**
+   * Start periodic display updates during simulation
+   */
+  private startSimulationDisplayUpdates(): void {
+    // Stop any existing interval
+    this.stopSimulationDisplayUpdates();
+
+    logger.info(
+      `Starting simulation display updates (every ${RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS}ms)`,
+    );
+
+    // Do an immediate update
+    void this.updateDisplay().catch((error) => {
+      logger.error("Simulation display update failed:", error);
+    });
+
+    // Set up periodic updates
+    this.simulationDisplayInterval = setInterval(() => {
+      if (this.simulationService?.isSimulating()) {
+        logger.info("Simulation display update tick");
+        void this.updateDisplay().catch((error) => {
+          logger.error("Simulation display update failed:", error);
+        });
+      }
+    }, RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS);
+  }
+
+  /**
+   * Stop periodic display updates for simulation
+   */
+  private stopSimulationDisplayUpdates(): void {
+    if (this.simulationDisplayInterval) {
+      clearInterval(this.simulationDisplayInterval);
+      this.simulationDisplayInterval = null;
+      logger.info("Stopped simulation display updates");
+    }
+  }
+
+  /**
    * Update the display with current GPS position and active track
    */
   async updateDisplay(): Promise<Result<void>> {
@@ -256,19 +334,45 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info("Starting display update...");
 
     try {
-      // Step 1: Get current GPS position
+      // Step 1: Get current GPS position (use simulated position if simulation is running)
       logger.info("Step 1/5: Getting current GPS position...");
-      const positionResult = await this.gpsService.getCurrentPosition();
-      if (!positionResult.success) {
-        logger.error("Failed to get GPS position:", positionResult.error);
-        this.notifyError(positionResult.error);
-        return failure(
-          OrchestratorError.updateFailed("GPS position", positionResult.error),
+      let position: GPSCoordinate;
+
+      if (this.simulationService?.isSimulating()) {
+        // Use simulated position
+        const simStatus = this.simulationService.getStatus();
+        if (simStatus.currentPosition) {
+          position = simStatus.currentPosition;
+          logger.info(
+            `✓ Simulated position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+          );
+        } else {
+          logger.warn("Simulation running but no position available");
+          return failure(
+            OrchestratorError.updateFailed(
+              "GPS position",
+              new Error("No simulated position available"),
+            ),
+          );
+        }
+      } else {
+        // Use real GPS position
+        const positionResult = await this.gpsService.getCurrentPosition();
+        if (!positionResult.success) {
+          logger.error("Failed to get GPS position:", positionResult.error);
+          this.notifyError(positionResult.error);
+          return failure(
+            OrchestratorError.updateFailed(
+              "GPS position",
+              positionResult.error,
+            ),
+          );
+        }
+        position = positionResult.data;
+        logger.info(
+          `✓ GPS position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
         );
       }
-      logger.info(
-        `✓ GPS position: ${positionResult.data.latitude.toFixed(6)}, ${positionResult.data.longitude.toFixed(6)}`,
-      );
 
       // Step 2: Get active GPX path
       logger.info("Step 2/5: Getting active GPX path...");
@@ -302,7 +406,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       const viewport = {
         width: this.configService.getDisplayWidth(),
         height: this.configService.getDisplayHeight(),
-        centerPoint: positionResult.data,
+        centerPoint: position,
         zoomLevel: this.configService.getZoomLevel(),
       };
 
@@ -1283,6 +1387,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.wifiStateUnsubscribe();
       this.wifiStateUnsubscribe = null;
     }
+
+    // Unsubscribe from simulation state changes and stop display updates
+    if (this.simulationPositionUnsubscribe) {
+      logger.info("Unsubscribing from simulation state changes");
+      this.simulationPositionUnsubscribe();
+      this.simulationPositionUnsubscribe = null;
+    }
+    this.stopSimulationDisplayUpdates();
 
     // Stop auto-update if running
     logger.info("Stopping auto-update if running");
