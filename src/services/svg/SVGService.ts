@@ -288,13 +288,155 @@ export class SVGService implements ISVGService {
     logger.debug(
       `Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`,
     );
-    // TODO: Implement compass rendering
-    // For now, just draw a circle
-    this.drawCircle(bitmap, { x, y }, radius);
-    logger.warn(
-      "Compass rendering not fully implemented (showing circle only)",
-    );
+
+    const center = { x, y };
+
+    // Draw outer circle
+    this.drawCircle(bitmap, center, radius);
+    this.drawCircle(bitmap, center, radius - 1);
+
+    // Draw inner circle (smaller)
+    this.drawCircle(bitmap, center, Math.floor(radius * 0.3));
+
+    // Calculate north direction (adjusted by heading)
+    // When heading is 0, north is up. As heading increases, north rotates clockwise
+    // So we need to rotate the north indicator counter-clockwise by heading
+    const northAngle = -heading; // degrees
+
+    // Draw north arrow/triangle
+    this.drawCompassArrow(bitmap, center, radius, northAngle, true);
+
+    // Draw south indicator (opposite direction, smaller)
+    this.drawCompassArrow(bitmap, center, radius, northAngle + 180, false);
+
+    // Draw "N" label near the north arrow
+    const labelDistance = radius + 12;
+    const northRadians = ((northAngle - 90) * Math.PI) / 180;
+    const labelX = Math.round(x + labelDistance * Math.cos(northRadians)) - 2;
+    const labelY = Math.round(y + labelDistance * Math.sin(northRadians)) - 3;
+    this.drawChar(bitmap, labelX, labelY, "N");
+
     return success(bitmap);
+  }
+
+  /**
+   * Draw a compass arrow pointing in a direction
+   */
+  private drawCompassArrow(
+    bitmap: Bitmap1Bit,
+    center: { x: number; y: number },
+    radius: number,
+    angleDegrees: number,
+    isNorth: boolean,
+  ): void {
+    const angleRadians = ((angleDegrees - 90) * Math.PI) / 180; // -90 to make 0 degrees point up
+
+    // Arrow tip at the edge of the compass
+    const tipDistance = radius - 3;
+    const tipX = Math.round(center.x + tipDistance * Math.cos(angleRadians));
+    const tipY = Math.round(center.y + tipDistance * Math.sin(angleRadians));
+
+    // Arrow base (closer to center)
+    const baseDistance = isNorth ? radius * 0.35 : radius * 0.5;
+    const baseX = Math.round(center.x + baseDistance * Math.cos(angleRadians));
+    const baseY = Math.round(center.y + baseDistance * Math.sin(angleRadians));
+
+    // Draw the main arrow line
+    this.drawLine(bitmap, { x: baseX, y: baseY }, { x: tipX, y: tipY }, 2);
+
+    if (isNorth) {
+      // Draw arrowhead for north
+      const headSize = Math.max(4, Math.floor(radius * 0.25));
+      const perpAngle = angleRadians + Math.PI / 2;
+
+      const leftX = Math.round(
+        tipX -
+          headSize * Math.cos(angleRadians) +
+          (headSize / 2) * Math.cos(perpAngle),
+      );
+      const leftY = Math.round(
+        tipY -
+          headSize * Math.sin(angleRadians) +
+          (headSize / 2) * Math.sin(perpAngle),
+      );
+
+      const rightX = Math.round(
+        tipX -
+          headSize * Math.cos(angleRadians) -
+          (headSize / 2) * Math.cos(perpAngle),
+      );
+      const rightY = Math.round(
+        tipY -
+          headSize * Math.sin(angleRadians) -
+          (headSize / 2) * Math.sin(perpAngle),
+      );
+
+      this.drawLine(bitmap, { x: tipX, y: tipY }, { x: leftX, y: leftY }, 2);
+      this.drawLine(bitmap, { x: tipX, y: tipY }, { x: rightX, y: rightY }, 2);
+      this.drawLine(
+        bitmap,
+        { x: leftX, y: leftY },
+        { x: rightX, y: rightY },
+        1,
+      );
+
+      // Fill the arrowhead
+      this.fillTriangle(
+        bitmap,
+        { x: tipX, y: tipY },
+        { x: leftX, y: leftY },
+        { x: rightX, y: rightY },
+      );
+    }
+  }
+
+  /**
+   * Fill a triangle defined by three points
+   */
+  private fillTriangle(
+    bitmap: Bitmap1Bit,
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+    p3: { x: number; y: number },
+  ): void {
+    // Sort points by y coordinate
+    const points = [p1, p2, p3].sort((a, b) => a.y - b.y);
+    const [top, mid, bottom] = points;
+
+    // Scan line fill
+    for (let y = top.y; y <= bottom.y; y++) {
+      let xStart: number, xEnd: number;
+
+      if (y < mid.y) {
+        // Upper part of triangle
+        xStart = this.interpolateX(top, mid, y);
+        xEnd = this.interpolateX(top, bottom, y);
+      } else {
+        // Lower part of triangle
+        xStart = this.interpolateX(mid, bottom, y);
+        xEnd = this.interpolateX(top, bottom, y);
+      }
+
+      if (xStart > xEnd) {
+        [xStart, xEnd] = [xEnd, xStart];
+      }
+
+      for (let x = Math.floor(xStart); x <= Math.ceil(xEnd); x++) {
+        this.setPixel(bitmap, x, y, true);
+      }
+    }
+  }
+
+  /**
+   * Interpolate x coordinate for a given y on a line segment
+   */
+  private interpolateX(
+    p1: { x: number; y: number },
+    p2: { x: number; y: number },
+    y: number,
+  ): number {
+    if (p2.y === p1.y) return p1.x;
+    return p1.x + ((y - p1.y) * (p2.x - p1.x)) / (p2.y - p1.y);
   }
 
   /**
@@ -432,6 +574,14 @@ export class SVGService implements ISVGService {
         this.drawCircle(bitmap, centerPoint, radius);
         this.drawFilledCircle(bitmap, centerPoint, radius - 2);
       }
+
+      // Draw compass in top-left corner of map area
+      const compassRadius = 25;
+      const compassPadding = 35; // Distance from edges (accounts for "N" label)
+      const compassX = compassPadding;
+      const compassY = compassPadding;
+      const heading = info.bearing ?? 0;
+      this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
 
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
