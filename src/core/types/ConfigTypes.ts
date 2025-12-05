@@ -199,6 +199,7 @@ export type SystemStatus = {
   /** Active GPX track info */
   activeTrack?: {
     name: string;
+    path: string;
     pointCount: number;
     distance: number;
   };

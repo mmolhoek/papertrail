@@ -219,6 +219,19 @@ export class WebController {
 
     if (isSuccess(result)) {
       logger.info(`GPX file loaded successfully: ${path}`);
+
+      // Update the e-paper display in the background (don't block the response)
+      this.orchestrator.updateDisplay().then((displayResult) => {
+        if (displayResult.success) {
+          logger.info("Display updated with loaded track");
+        } else {
+          logger.warn(
+            "Track loaded but display update failed:",
+            displayResult.error,
+          );
+        }
+      });
+
       res.json({
         success: true,
         message: "GPX file loaded successfully",

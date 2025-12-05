@@ -328,6 +328,8 @@ class PapertrailClient {
         if (statusResponse && statusResponse.data) {
           this.updateSystemStatus(statusResponse.data);
         }
+        // Also directly update simulation panel since a track is now loaded
+        this.updateSimulationPanel(true);
       } else {
         this.showMessage(
           result.error?.message || "Failed to load track",
@@ -808,6 +810,15 @@ class PapertrailClient {
       document.getElementById("active-track").textContent =
         data.activeTrack?.name || "None";
 
+      // Update the dropdown to show the active track
+      if (data.activeTrack?.path) {
+        const select = document.getElementById("track-select");
+        if (select && select.value !== data.activeTrack.path) {
+          select.value = data.activeTrack.path;
+          this.updateTrackInfo();
+        }
+      }
+
       // Update simulation panel based on whether a track is loaded
       this.updateSimulationPanel(!!data.activeTrack?.name);
     }
@@ -912,13 +923,43 @@ class PapertrailClient {
       const result = await response.json();
 
       if (result.success) {
-        const displayName = customName || file.name;
-        this.showMessage(
-          `Track "${displayName}" uploaded successfully`,
-          "success",
-        );
-        // Reload the track list
-        await this.reloadTrackList();
+        const displayName = customName || file.name.replace(/\.gpx$/i, "");
+
+        // Auto-load the uploaded track as active
+        if (result.data && result.data.path) {
+          // Immediately add to dropdown and select it (before slow reloadTrackList)
+          const select = document.getElementById("track-select");
+          if (select) {
+            // Add new option if it doesn't exist
+            let option = select.querySelector(
+              `option[value="${result.data.path}"]`,
+            );
+            if (!option) {
+              option = document.createElement("option");
+              option.value = result.data.path;
+              option.textContent = displayName;
+              select.appendChild(option);
+            }
+            select.value = result.data.path;
+          }
+
+          // Set as active track
+          await this.fetchJSON(`${this.apiBase}/map/active`, {
+            method: "POST",
+            body: JSON.stringify({ path: result.data.path }),
+          });
+
+          // Update UI immediately
+          document.getElementById("active-track").textContent = displayName;
+          this.updateSimulationPanel(true);
+          this.showMessage(`Track "${displayName}" uploaded and loaded`, "success");
+
+          // Reload full track list in background (for point counts, etc.)
+          this.reloadTrackList();
+        } else {
+          this.showMessage(`Track "${displayName}" uploaded`, "success");
+          this.reloadTrackList();
+        }
       } else {
         this.showMessage(result.error?.message || "Upload failed", "error");
       }

@@ -126,7 +126,7 @@ describe("ConfigService", () => {
     });
 
     it("should return default zoom level", () => {
-      expect(configService.getZoomLevel()).toBe(14);
+      expect(configService.getZoomLevel()).toBe(17);
     });
 
     it("should set zoom level", () => {
@@ -340,7 +340,7 @@ describe("ConfigService", () => {
       const result = await configService.resetToDefaults();
 
       expect(result.success).toBe(true);
-      expect(configService.getZoomLevel()).toBe(14);
+      expect(configService.getZoomLevel()).toBe(17);
     });
   });
 

@@ -334,8 +334,34 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info("Starting display update...");
 
     try {
-      // Step 1: Get current GPS position (use simulated position if simulation is running)
-      logger.info("Step 1/5: Getting current GPS position...");
+      // Step 1: Get active GPX path first (needed for fallback position)
+      logger.info("Step 1/5: Getting active GPX path...");
+      const gpxPath = this.configService.getActiveGPXPath();
+      if (!gpxPath) {
+        logger.warn("No active GPX file configured");
+        return failure(OrchestratorError.noActiveGPX());
+      }
+      logger.info(`✓ Active GPX: ${gpxPath}`);
+
+      // Step 2: Load the track (needed early for fallback position)
+      logger.info("Step 2/5: Loading GPX track...");
+      const trackResult = await this.mapService.getTrack(gpxPath);
+      if (!trackResult.success) {
+        logger.error("Failed to load track:", trackResult.error);
+        return failure(
+          OrchestratorError.updateFailed("GPX track", trackResult.error),
+        );
+      }
+      const pointCount = trackResult.data.segments.reduce(
+        (sum, seg) => sum + seg.points.length,
+        0,
+      );
+      logger.info(
+        `✓ GPX track loaded: ${trackResult.data.segments.length} segments, ${pointCount} points`,
+      );
+
+      // Step 3: Get current position (simulation > GPS > track start)
+      logger.info("Step 3/5: Getting current position...");
       let position: GPSCoordinate;
 
       if (this.simulationService?.isSimulating()) {
@@ -356,50 +382,37 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           );
         }
       } else {
-        // Use real GPS position
+        // Try real GPS position
         const positionResult = await this.gpsService.getCurrentPosition();
-        if (!positionResult.success) {
-          logger.error("Failed to get GPS position:", positionResult.error);
-          this.notifyError(positionResult.error);
-          return failure(
-            OrchestratorError.updateFailed(
-              "GPS position",
-              positionResult.error,
-            ),
+        if (positionResult.success && positionResult.data.latitude !== 0) {
+          position = positionResult.data;
+          logger.info(
+            `✓ GPS position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
           );
+        } else {
+          // Fall back to track's starting point
+          const firstPoint = trackResult.data.segments[0]?.points[0];
+          if (firstPoint) {
+            position = {
+              latitude: firstPoint.latitude,
+              longitude: firstPoint.longitude,
+              altitude: firstPoint.altitude,
+              timestamp: new Date(),
+            };
+            logger.info(
+              `✓ Using track start position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+            );
+          } else {
+            logger.error("No GPS and track has no points");
+            return failure(
+              OrchestratorError.updateFailed(
+                "GPS position",
+                new Error("No position available"),
+              ),
+            );
+          }
         }
-        position = positionResult.data;
-        logger.info(
-          `✓ GPS position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-        );
       }
-
-      // Step 2: Get active GPX path
-      logger.info("Step 2/5: Getting active GPX path...");
-      const gpxPath = this.configService.getActiveGPXPath();
-      if (!gpxPath) {
-        logger.warn("No active GPX file configured");
-        return failure(OrchestratorError.noActiveGPX());
-      }
-      logger.info(`✓ Active GPX: ${gpxPath}`);
-
-      // Step 3: Load GPX track
-      logger.info("Step 3/5: Loading GPX track...");
-      const trackResult = await this.mapService.getTrack(gpxPath);
-      if (!trackResult.success) {
-        logger.error("Failed to load GPX track:", trackResult.error);
-        this.notifyError(trackResult.error);
-        return failure(
-          OrchestratorError.updateFailed("GPX track load", trackResult.error),
-        );
-      }
-      const pointCount = trackResult.data.segments.reduce(
-        (sum, seg) => sum + seg.points.length,
-        0,
-      );
-      logger.info(
-        `✓ GPX track loaded: ${trackResult.data.segments.length} segments, ${pointCount} points`,
-      );
 
       // Step 4: Render viewport
       logger.info("Step 4/5: Rendering viewport to bitmap...");
@@ -678,6 +691,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             : path.basename(activeGPXPath).replace(/\.gpx$/i, "");
           activeTrack = {
             name: displayName,
+            path: activeGPXPath,
             pointCount: totalPoints,
             distance: track.totalDistance || 0,
           };
