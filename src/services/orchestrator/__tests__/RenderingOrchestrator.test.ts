@@ -324,6 +324,12 @@ describe("RenderingOrchestrator", () => {
     it("should set active GPX and update display", async () => {
       mockMap.validateGPXFile.mockResolvedValue(success(true));
       mockMap.getTrack.mockResolvedValue(success(mockTrack));
+      mockMap.calculateBounds.mockReturnValue({
+        minLat: 52.52,
+        maxLat: 52.522,
+        minLon: 13.405,
+        maxLon: 13.407,
+      });
       mockGPS.getCurrentPosition.mockResolvedValue(success(mockCoordinate));
       mockSVG.renderViewport.mockResolvedValue(success(mockBitmap));
       mockEpaper.displayBitmap.mockResolvedValue(success(undefined));

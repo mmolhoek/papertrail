@@ -16,6 +16,7 @@ import {
   GPSStatus,
   SystemStatus,
   WiFiState,
+  GPXTrack,
   success,
   failure,
   DisplayUpdateMode,
@@ -507,6 +508,15 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       }
       logger.info("✓ GPX file validated");
 
+      // Load the track to calculate fit zoom
+      logger.info("Loading track to calculate fit zoom...");
+      const trackResult = await this.mapService.getTrack(filePath);
+      if (trackResult.success) {
+        const fitZoom = this.calculateFitZoom(trackResult.data);
+        logger.info(`Setting zoom to fit track: ${fitZoom}`);
+        this.configService.setZoomLevel(fitZoom);
+      }
+
       // Set as active
       logger.info("Setting as active GPX and saving config...");
       this.configService.setActiveGPXPath(filePath);
@@ -571,6 +581,53 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info("✓ Zoom level saved");
 
     return await this.updateDisplay();
+  }
+
+  /**
+   * Calculate zoom level that fits a track's bounds on the display
+   */
+  calculateFitZoom(track: GPXTrack): number {
+    const bounds = this.mapService.calculateBounds(track);
+    const displayWidth = this.configService.getDisplayWidth();
+    const displayHeight = this.configService.getDisplayHeight();
+
+    // Calculate the center latitude for mercator projection
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+
+    // Calculate the span in degrees
+    const latSpan = bounds.maxLat - bounds.minLat;
+    const lonSpan = bounds.maxLon - bounds.minLon;
+
+    // Convert to approximate meters (at center latitude)
+    const latMeters = latSpan * 111320; // ~111.32 km per degree latitude
+    const lonMeters = lonSpan * 111320 * Math.cos((centerLat * Math.PI) / 180);
+
+    // Calculate meters per pixel needed (with some padding)
+    const padding = 0.8; // Use 80% of screen for track
+    const metersPerPixelX = lonMeters / (displayWidth * padding);
+    const metersPerPixelY = latMeters / (displayHeight * padding);
+    const metersPerPixel = Math.max(metersPerPixelX, metersPerPixelY);
+
+    // Earth circumference in meters
+    const earthCircumference = 40075016.686;
+
+    // Calculate zoom level
+    // At zoom z, meters per pixel = (earthCircumference * cos(lat)) / (256 * 2^z)
+    // So: 2^z = (earthCircumference * cos(lat)) / (256 * metersPerPixel)
+    const cosLat = Math.cos((centerLat * Math.PI) / 180);
+    const zoomExact = Math.log2(
+      (earthCircumference * cosLat) / (256 * metersPerPixel),
+    );
+
+    // Clamp to valid zoom range and round down for safety
+    const zoom = Math.max(1, Math.min(20, Math.floor(zoomExact)));
+
+    logger.info(
+      `Calculated fit zoom: bounds=${latSpan.toFixed(4)}°×${lonSpan.toFixed(4)}°, ` +
+        `display=${displayWidth}×${displayHeight}, zoom=${zoom}`,
+    );
+
+    return zoom;
   }
 
   /**
