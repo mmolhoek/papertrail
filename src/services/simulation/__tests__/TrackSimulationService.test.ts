@@ -31,7 +31,8 @@ describe("TrackSimulationService", () => {
   };
 
   // Helper to wait for async operations
-  const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const wait = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   beforeEach(() => {
     service = new TrackSimulationService();
@@ -691,9 +692,21 @@ describe("TrackSimulationService", () => {
         segments: [
           {
             points: [
-              { latitude: 37.7749, longitude: -122.4194, timestamp: new Date() },
-              { latitude: 37.7749, longitude: -122.4194, timestamp: new Date() }, // Same point
-              { latitude: 37.7759, longitude: -122.4184, timestamp: new Date() },
+              {
+                latitude: 37.7749,
+                longitude: -122.4194,
+                timestamp: new Date(),
+              },
+              {
+                latitude: 37.7749,
+                longitude: -122.4194,
+                timestamp: new Date(),
+              }, // Same point
+              {
+                latitude: 37.7759,
+                longitude: -122.4184,
+                timestamp: new Date(),
+              },
             ],
           },
         ],
@@ -730,7 +743,9 @@ describe("TrackSimulationService", () => {
       await service.startSimulation(track, 50);
       await wait(600);
 
-      const position = callback.mock.calls[callback.mock.calls.length - 1][0] as GPSCoordinate;
+      const position = callback.mock.calls[
+        callback.mock.calls.length - 1
+      ][0] as GPSCoordinate;
       // Bearing should be approximately 0 (north)
       expect(position.bearing).toBeDefined();
       expect(position.bearing).toBeCloseTo(0, 0);

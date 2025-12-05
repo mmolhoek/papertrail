@@ -282,7 +282,9 @@ describe("MockGPSService", () => {
 
         // Positions should be different but close to each other
         expect(firstPos.latitude).not.toBe(lastPos.latitude);
-        expect(Math.abs(firstPos.latitude - lastPos.latitude)).toBeLessThan(0.01);
+        expect(Math.abs(firstPos.latitude - lastPos.latitude)).toBeLessThan(
+          0.01,
+        );
       }
     });
   });

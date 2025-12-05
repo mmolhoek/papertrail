@@ -160,7 +160,9 @@ describe("MockEpaperService", () => {
       if (statusResult.success) {
         expect(statusResult.data.lastUpdate).toBeDefined();
         const lastUpdate = statusResult.data.lastUpdate!;
-        expect(lastUpdate.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
+        expect(lastUpdate.getTime()).toBeGreaterThanOrEqual(
+          beforeTime.getTime(),
+        );
         expect(lastUpdate.getTime()).toBeLessThanOrEqual(afterTime.getTime());
       }
     });
@@ -172,18 +174,16 @@ describe("MockEpaperService", () => {
     });
 
     it("should display bitmap from file successfully", async () => {
-      const result = await mockEpaperService.displayBitmapFromFile(
-        "/path/to/image.bmp",
-      );
+      const result =
+        await mockEpaperService.displayBitmapFromFile("/path/to/image.bmp");
 
       expect(result.success).toBe(true);
     });
 
     it("should return error if not initialized", async () => {
       const uninitializedService = new MockEpaperService(config);
-      const result = await uninitializedService.displayBitmapFromFile(
-        "/path/to/image.bmp",
-      );
+      const result =
+        await uninitializedService.displayBitmapFromFile("/path/to/image.bmp");
 
       expect(result.success).toBe(false);
       if (!result.success) {

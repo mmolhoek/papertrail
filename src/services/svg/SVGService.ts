@@ -350,10 +350,7 @@ export class SVGService implements ISVGService {
       const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
 
       // Render track on left portion
-      if (
-        track.segments.length > 0 &&
-        track.segments[0].points.length > 0
-      ) {
+      if (track.segments.length > 0 && track.segments[0].points.length > 0) {
         // Project all track points to pixel coordinates
         const projectedPoints = track.segments[0].points.map((point) =>
           this.projectToPixels(point.latitude, point.longitude, mapViewport),
@@ -363,7 +360,10 @@ export class SVGService implements ISVGService {
         if (renderOpts.showLine && projectedPoints.length > 1) {
           for (let i = 0; i < projectedPoints.length - 1; i++) {
             // Only draw if at least one point is in the map area
-            if (projectedPoints[i].x < mapWidth || projectedPoints[i + 1].x < mapWidth) {
+            if (
+              projectedPoints[i].x < mapWidth ||
+              projectedPoints[i + 1].x < mapWidth
+            ) {
               this.drawLine(
                 bitmap,
                 projectedPoints[i],
@@ -471,7 +471,11 @@ export class SVGService implements ISVGService {
       // Fill based on progress
       const fillWidth = Math.floor((barWidth - 4) * (info.progress / 100));
       for (let row = barY + 2; row < barY + barHeight - 2; row++) {
-        for (let col = x + padding + 2; col < x + padding + 2 + fillWidth; col++) {
+        for (
+          let col = x + padding + 2;
+          col < x + padding + 2 + fillWidth;
+          col++
+        ) {
           this.setPixel(bitmap, col, row, true);
         }
       }
@@ -546,7 +550,12 @@ export class SVGService implements ISVGService {
   /**
    * Draw a single character using a 5x7 pixel font
    */
-  private drawChar(bitmap: Bitmap1Bit, x: number, y: number, char: string): void {
+  private drawChar(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    char: string,
+  ): void {
     const font: Record<string, number[]> = {
       "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
       "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],

@@ -904,18 +904,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         logger.info(
           "Step 3: Starting mobile hotspot connection attempt for onboarding...",
         );
-        void this.wifiService.attemptMobileHotspotConnection().then((result) => {
-          if (result.success) {
-            logger.info(
-              "Successfully connected to mobile hotspot during onboarding restart!",
-            );
-          } else {
-            logger.warn(
-              "Failed to connect to mobile hotspot during onboarding restart:",
-              result.error.message,
-            );
-          }
-        });
+        void this.wifiService
+          .attemptMobileHotspotConnection()
+          .then((result) => {
+            if (result.success) {
+              logger.info(
+                "Successfully connected to mobile hotspot during onboarding restart!",
+              );
+            } else {
+              logger.warn(
+                "Failed to connect to mobile hotspot during onboarding restart:",
+                result.error.message,
+              );
+            }
+          });
       }
 
       return success(undefined);

@@ -855,7 +855,9 @@ export class WebController {
   async startSimulation(req: Request, res: Response): Promise<void> {
     const { trackPath, speed = "walk" } = req.body;
 
-    logger.info(`Starting simulation with track: ${trackPath}, speed: ${speed}`);
+    logger.info(
+      `Starting simulation with track: ${trackPath}, speed: ${speed}`,
+    );
 
     if (!this.simulationService) {
       logger.error("Simulation service not available");

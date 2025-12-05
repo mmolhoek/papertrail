@@ -88,8 +88,9 @@ export class ServiceContainer {
         this.services.gps = new MockGPSService(config);
       } else {
         // Lazy import to avoid loading serialport on non-Linux platforms
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { GPSService } = require("@services/gps/GPSService") as typeof import("@services/gps/GPSService");
+        const { GPSService } =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require("@services/gps/GPSService") as typeof import("@services/gps/GPSService");
         this.services.gps = new GPSService(config);
       }
     }
@@ -132,8 +133,9 @@ export class ServiceContainer {
         this.services.epaper = new MockEpaperService(config);
       } else {
         // Lazy import to avoid loading lgpio on non-Linux platforms
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { EpaperService } = require("@services/epaper/EPaperService") as typeof import("@services/epaper/EPaperService");
+        const { EpaperService } =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require("@services/epaper/EPaperService") as typeof import("@services/epaper/EPaperService");
         this.services.epaper = new EpaperService(config);
       }
     }
@@ -181,8 +183,9 @@ export class ServiceContainer {
         this.services.wifi = new MockWiFiService(config, configService);
       } else {
         // Lazy import to avoid loading nmcli dependencies on non-Linux platforms
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { WiFiService } = require("@services/wifi/WiFiService") as typeof import("@services/wifi/WiFiService");
+        const { WiFiService } =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require("@services/wifi/WiFiService") as typeof import("@services/wifi/WiFiService");
         this.services.wifi = new WiFiService(config, configService);
       }
     }

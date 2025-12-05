@@ -119,7 +119,9 @@ export class EpaperService implements IEpaperService {
         height: this.config.height,
         data: imageBuffer,
       };
-      logger.info(`  Bitmap dimensions: ${logoBitmap.width}x${logoBitmap.height}`);
+      logger.info(
+        `  Bitmap dimensions: ${logoBitmap.width}x${logoBitmap.height}`,
+      );
 
       // Display the logo using full update mode
       logger.info("Sending logo bitmap to display (FULL update mode)...");
