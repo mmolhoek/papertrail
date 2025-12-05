@@ -9,6 +9,16 @@ export interface Logger extends winston.Logger {
 }
 
 /**
+ * Get the list of allowed logger prefixes from LOG_ONLY env var
+ * Returns null if no filter is set (all loggers allowed)
+ */
+const getAllowedLoggers = (): Set<string> | null => {
+  const logOnly = process.env.LOG_ONLY;
+  if (!logOnly) return null;
+  return new Set(logOnly.split(",").map((s) => s.trim()));
+};
+
+/**
  * Logger instance for logging messages at different log levels.
  * The logger is configured to log to stdout by default.
  * If you want to log to a different transport, you can pass it as an argument.
@@ -38,17 +48,32 @@ export interface Logger extends winston.Logger {
  * Timing functionality:
  * - `time(label)`: Start a timer with the given label
  * - `timeEnd(label)`: End the timer and log the elapsed time
+ *
+ * Filtering (for debugging):
+ * - Set LOG_ONLY=SVGService to only see logs from SVGService
+ * - Set LOG_ONLY=SVGService,RenderingOrchestrator for multiple services
  */
 
 export const getLogger = (
   prefix: string,
   transport?: winston.transport,
 ): Logger => {
+  const allowedLoggers = getAllowedLoggers();
+
+  // Create a filter format that silences non-allowed loggers
+  const filterFormat = winston.format((info) => {
+    if (allowedLoggers && !allowedLoggers.has(info.label as string)) {
+      return false; // Filter out this log
+    }
+    return info;
+  });
+
   const baseLogger = winston.createLogger({
     level: process.env.LOG_LEVEL || "info",
     format: winston.format.combine(
       winston.format.label({ label: prefix }),
       winston.format.timestamp(),
+      filterFormat(),
       winston.format.printf(({ label, message }) => {
         return `[${label}] ${message}`;
       }),
