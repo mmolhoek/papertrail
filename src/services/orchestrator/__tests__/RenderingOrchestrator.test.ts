@@ -261,7 +261,10 @@ describe("RenderingOrchestrator", () => {
       expect(mockGPS.getCurrentPosition).toHaveBeenCalled();
       expect(mockMap.getTrack).toHaveBeenCalledWith("/path/to/track.gpx");
       expect(mockSVG.renderViewport).toHaveBeenCalled();
-      expect(mockEpaper.displayBitmap).toHaveBeenCalledWith(mockBitmap);
+      expect(mockEpaper.displayBitmap).toHaveBeenCalledWith(
+        mockBitmap,
+        undefined,
+      );
     });
 
     it("should fail if no active GPX path", async () => {

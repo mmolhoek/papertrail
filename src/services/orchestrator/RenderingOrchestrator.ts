@@ -608,8 +608,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
   /**
    * Update the display with current GPS position and active track
+   * @param mode Optional display update mode (FULL, PARTIAL, or AUTO)
    */
-  async updateDisplay(): Promise<Result<void>> {
+  async updateDisplay(mode?: DisplayUpdateMode): Promise<Result<void>> {
     if (!this.isInitialized) {
       logger.warn("Cannot update display: orchestrator not initialized");
       return failure(OrchestratorError.notInitialized());
@@ -737,9 +738,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
 
       // Step 5: Display on e-paper
-      logger.info("Step 5/5: Sending bitmap to e-paper display...");
+      logger.info(
+        `Step 5/5: Sending bitmap to e-paper display (mode: ${mode || "default"})...`,
+      );
       const displayResult = await this.epaperService.displayBitmap(
         bitmapResult.data,
+        mode,
       );
 
       if (!displayResult.success) {
@@ -806,9 +810,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       await this.configService.save();
       logger.info("✓ Active GPX saved to config");
 
-      // Update display
-      logger.info("Updating display with new GPX...");
-      return await this.updateDisplay();
+      // Update display with FULL refresh for new track
+      logger.info("Updating display with new GPX (FULL refresh)...");
+      return await this.updateDisplay(DisplayUpdateMode.FULL);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error(`Failed to set active GPX: ${errorMsg}`);
