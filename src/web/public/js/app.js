@@ -972,7 +972,10 @@ class PapertrailClient {
           // Update UI immediately
           document.getElementById("active-track").textContent = displayName;
           this.updateSimulationPanel(true);
-          this.showMessage(`Track "${displayName}" uploaded and loaded`, "success");
+          this.showMessage(
+            `Track "${displayName}" uploaded and loaded`,
+            "success",
+          );
 
           // Reload full track list in background (for point counts, etc.)
           this.reloadTrackList();

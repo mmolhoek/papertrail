@@ -640,10 +640,12 @@ export class SVGService implements ISVGService {
     const charData = font[char];
     if (!charData) return;
 
-    for (let row = 0; row < 7; row++) {
-      const rowData = charData[row] || 0;
-      for (let col = 0; col < 8; col++) {
-        if (rowData & (0x80 >> col)) {
+    // Font data is column-based: each array element is a column,
+    // each bit represents a row (MSB = top row)
+    for (let col = 0; col < 5; col++) {
+      const colData = charData[col] || 0;
+      for (let row = 0; row < 7; row++) {
+        if (colData & (0x80 >> row)) {
           this.setPixel(bitmap, x + col, y + row, true);
         }
       }
@@ -677,10 +679,12 @@ export class SVGService implements ISVGService {
 
     const scale = 3;
 
-    for (let row = 0; row < 7; row++) {
-      const rowData = charData[row] || 0;
-      for (let col = 0; col < 8; col++) {
-        if (rowData & (0x80 >> col)) {
+    // Font data is column-based: each array element is a column,
+    // each bit represents a row (MSB = top row)
+    for (let col = 0; col < 5; col++) {
+      const colData = charData[col] || 0;
+      for (let row = 0; row < 7; row++) {
+        if (colData & (0x80 >> row)) {
           // Draw scaled pixel (3x3 block)
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
