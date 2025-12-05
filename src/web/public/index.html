@@ -53,12 +53,12 @@
         <div id="menu-content" class="nav-menu hidden">
           <button
             id="menu-position"
-            class="nav-item active"
+            class="nav-item"
             data-panel="position-panel"
           >
             <span class="nav-item-icon">◎</span>
             <span class="nav-item-text">Position</span>
-            <span id="position-indicator" class="nav-check">✓</span>
+            <span id="position-indicator" class="nav-check hidden">✓</span>
           </button>
           <button id="menu-status" class="nav-item" data-panel="status-panel">
             <span class="nav-item-icon">◎</span>
@@ -67,14 +67,12 @@
           </button>
           <button
             id="menu-track-selection"
-            class="nav-item"
+            class="nav-item active"
             data-panel="track-selection-panel"
           >
             <span class="nav-item-icon">◎</span>
             <span class="nav-item-text">Track Selection</span>
-            <span id="track-selection-indicator" class="nav-check hidden"
-              >✓</span
-            >
+            <span id="track-selection-indicator" class="nav-check">✓</span>
           </button>
           <button
             id="menu-simulation"
@@ -120,7 +118,7 @@
 
       <main class="main-content">
         <!-- Position Display - Hero Section -->
-        <section class="position-card panel-card" id="position-panel">
+        <section class="position-card panel-card hidden" id="position-panel">
           <div class="position-header">
             <span class="section-marker">POSITION</span>
             <div class="position-status">
@@ -276,7 +274,7 @@
         </section>
 
         <!-- GPX Track Selection Panel -->
-        <section class="panel-card hidden" id="track-selection-panel">
+        <section class="panel-card" id="track-selection-panel">
           <div class="section-header">
             <span class="section-marker">TRACK SELECTION</span>
           </div>
@@ -367,7 +365,7 @@
                   class="btn btn-primary btn-large"
                 >
                   <span class="btn-icon">▶</span>
-                  <span class="btn-text">Start Simulation</span>
+                  <span class="btn-text">Start</span>
                 </button>
                 <button id="stop-simulation-btn" class="btn btn-danger hidden">
                   <span class="btn-icon">■</span>
