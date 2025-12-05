@@ -1346,3 +1346,149 @@ body {
     animation: none;
   }
 }
+
+/* ============================================
+   TRACK SIMULATION CONTROLS
+   ============================================ */
+
+.simulation-controls {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-parchment-dark);
+}
+
+.simulation-controls.hidden {
+  display: none;
+}
+
+.section-subheader {
+  margin-bottom: var(--space-md);
+}
+
+.section-subheader .section-marker {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  color: var(--color-forest-light);
+}
+
+.speed-selector {
+  margin-bottom: var(--space-lg);
+}
+
+.speed-buttons {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.speed-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-xs);
+  background: var(--color-cream);
+  border: 2px solid var(--color-parchment-dark);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.speed-btn:hover {
+  border-color: var(--color-forest-light);
+  background: var(--color-parchment);
+}
+
+.speed-btn.active {
+  border-color: var(--color-forest);
+  background: var(--color-forest);
+  color: var(--color-parchment);
+}
+
+.speed-icon {
+  font-size: 1.5rem;
+}
+
+.speed-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.speed-value {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+.simulation-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.simulation-actions .btn {
+  flex: 1;
+}
+
+.simulation-status {
+  background: var(--color-cream);
+  border: 1px solid var(--color-parchment-dark);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.sim-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.sim-stat:last-child {
+  margin-bottom: 0;
+}
+
+.sim-stat-label {
+  font-size: var(--text-xs);
+  color: var(--color-slate);
+  min-width: 70px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sim-stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-forest);
+  font-weight: 500;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--color-parchment-dark);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--color-forest);
+  border-radius: 4px;
+  transition: width var(--transition-fast);
+}
+
+/* Simulation Running State */
+.simulation-controls.running .start-simulation-btn {
+  display: none;
+}
+
+.simulation-controls.running .stop-simulation-btn,
+.simulation-controls.running .pause-simulation-btn {
+  display: flex;
+}
+
+.simulation-controls.paused .pause-simulation-btn .btn-text::after {
+  content: " (Resume)";
+}

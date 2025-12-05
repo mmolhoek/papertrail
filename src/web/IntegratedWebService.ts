@@ -10,6 +10,7 @@ import {
   IWiFiService,
   IMapService,
   IConfigService,
+  ITrackSimulationService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -41,6 +42,8 @@ export class IntegratedWebService implements IWebInterfaceService {
   private displayUpdateUnsubscribe: (() => void) | null = null;
   private errorUnsubscribe: (() => void) | null = null;
   private wifiStateUnsubscribe: (() => void) | null = null;
+  private simulationPositionUnsubscribe: (() => void) | null = null;
+  private simulationStateUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
@@ -66,6 +69,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly mapService?: IMapService,
     private readonly gpxDirectory: string = "./data/gpx-files",
     private readonly configService?: IConfigService,
+    private readonly simulationService?: ITrackSimulationService,
   ) {
     this.app = express();
     this.controller = new WebController(
@@ -74,6 +78,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       mapService,
       gpxDirectory,
       configService,
+      simulationService,
     );
     // Configure multer for file uploads
     this.upload = multer({
@@ -376,6 +381,31 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.resetSystem(req, res),
     );
 
+    // Track simulation endpoints
+    this.app.post(`${api}/simulation/start`, (req, res) =>
+      this.controller.startSimulation(req, res),
+    );
+
+    this.app.post(`${api}/simulation/stop`, (req, res) =>
+      this.controller.stopSimulation(req, res),
+    );
+
+    this.app.post(`${api}/simulation/pause`, (req, res) =>
+      this.controller.pauseSimulation(req, res),
+    );
+
+    this.app.post(`${api}/simulation/resume`, (req, res) =>
+      this.controller.resumeSimulation(req, res),
+    );
+
+    this.app.post(`${api}/simulation/speed`, (req, res) =>
+      this.controller.setSimulationSpeed(req, res),
+    );
+
+    this.app.get(`${api}/simulation/status`, (req, res) =>
+      this.controller.getSimulationStatus(req, res),
+    );
+
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({
@@ -563,6 +593,33 @@ export class IntegratedWebService implements IWebInterfaceService {
         },
       );
     }
+
+    // Subscribe to simulation position updates (if simulation service provided)
+    if (this.simulationService) {
+      this.simulationPositionUnsubscribe =
+        this.simulationService.onPositionUpdate((position) => {
+          // Broadcast simulated GPS position to all clients
+          // Mark fixQuality as SIMULATION (8) to indicate this is simulated data
+          this.broadcast("gps:update", {
+            latitude: position.latitude,
+            longitude: position.longitude,
+            altitude: position.altitude,
+            timestamp: position.timestamp,
+            speed: position.speed,
+            bearing: position.bearing,
+            fixQuality: 8, // SIMULATION
+            satellitesInUse: 12,
+            hdop: 0.5,
+          });
+        });
+
+      this.simulationStateUnsubscribe = this.simulationService.onStateChange(
+        (status) => {
+          // Broadcast simulation state changes
+          this.broadcast("simulation:status", status);
+        },
+      );
+    }
   }
 
   /**
@@ -592,6 +649,16 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.wifiStateUnsubscribe) {
       this.wifiStateUnsubscribe();
       this.wifiStateUnsubscribe = null;
+    }
+
+    if (this.simulationPositionUnsubscribe) {
+      this.simulationPositionUnsubscribe();
+      this.simulationPositionUnsubscribe = null;
+    }
+
+    if (this.simulationStateUnsubscribe) {
+      this.simulationStateUnsubscribe();
+      this.simulationStateUnsubscribe = null;
     }
   }
 }

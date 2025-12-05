@@ -92,6 +92,7 @@ describe("RenderingOrchestrator", () => {
       addScaleBar: jest.fn(),
       addInfoPanel: jest.fn(),
       getDefaultRenderOptions: jest.fn(),
+      renderFollowTrackScreen: jest.fn(),
     };
 
     mockEpaper = {

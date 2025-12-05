@@ -1,10 +1,27 @@
 import {
   Result,
   GPXTrack,
+  GPSCoordinate,
   ViewportConfig,
   Bitmap1Bit,
   RenderOptions,
 } from "@core/types";
+
+/**
+ * Follow Track screen info for the split layout display
+ */
+export interface FollowTrackInfo {
+  /** Current speed in km/h */
+  speed: number;
+  /** Number of satellites in use */
+  satellites: number;
+  /** Progress percentage (0-100) */
+  progress?: number;
+  /** Current bearing/heading in degrees */
+  bearing?: number;
+  /** Distance remaining in meters */
+  distanceRemaining?: number;
+}
 
 /**
  * SVG Service Interface
@@ -122,4 +139,23 @@ export interface ISVGService {
    * @returns Default RenderOptions
    */
   getDefaultRenderOptions(): RenderOptions;
+
+  /**
+   * Render the "Follow Track" screen with 80/20 split layout
+   * Left area (80%): Track map centered on current position
+   * Right area (20%): Speed and satellite information
+   * @param track The GPX track being followed
+   * @param currentPosition Current GPS position
+   * @param viewport Viewport configuration for the map area
+   * @param info Information to display in the info panel (speed, satellites, etc.)
+   * @param options Optional rendering options
+   * @returns Result containing 1-bit bitmap or error
+   */
+  renderFollowTrackScreen(
+    track: GPXTrack,
+    currentPosition: GPSCoordinate,
+    viewport: ViewportConfig,
+    info: FollowTrackInfo,
+    options?: Partial<RenderOptions>,
+  ): Promise<Result<Bitmap1Bit>>;
 }

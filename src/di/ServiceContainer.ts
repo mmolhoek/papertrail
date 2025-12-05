@@ -7,6 +7,7 @@ import {
   IRenderingOrchestrator,
   IWiFiService,
   ITextRendererService,
+  ITrackSimulationService,
 } from "@core/interfaces";
 import {
   WebConfig,
@@ -26,6 +27,7 @@ import { SVGService } from "@services/svg/SVGService";
 import { ConfigService } from "@services/config/ConfigService";
 import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
 import { TextRendererService } from "@services/textRenderer/TextRendererService";
+import { TrackSimulationService } from "@services/simulation/TrackSimulationService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -48,6 +50,7 @@ export class ServiceContainer {
     orchestrator?: IRenderingOrchestrator;
     wifi?: IWiFiService;
     textRenderer?: ITextRendererService;
+    simulation?: ITrackSimulationService;
   } = {};
 
   private constructor() {}
@@ -194,6 +197,16 @@ export class ServiceContainer {
       this.services.textRenderer = new TextRendererService();
     }
     return this.services.textRenderer;
+  }
+
+  /**
+   * Get Track Simulation Service
+   */
+  getTrackSimulationService(): ITrackSimulationService {
+    if (!this.services.simulation) {
+      this.services.simulation = new TrackSimulationService();
+    }
+    return this.services.simulation;
   }
 
   // Configuration getters
@@ -347,5 +360,12 @@ export class ServiceContainer {
    */
   setTextRendererService(service: ITextRendererService): void {
     this.services.textRenderer = service;
+  }
+
+  /**
+   * Set Track Simulation Service (for testing)
+   */
+  setTrackSimulationService(service: ITrackSimulationService): void {
+    this.services.simulation = service;
   }
 }

@@ -6,6 +6,10 @@ class PapertrailClient {
     this.socket = null;
     this.apiBase = "/api";
     this.autoRefreshInterval = null;
+    this.simulationPollingInterval = null;
+    this.selectedSpeed = "walk";
+    this.isSimulating = false;
+    this.isPaused = false;
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
 
@@ -215,6 +219,52 @@ class PapertrailClient {
     document.getElementById("reset-btn").addEventListener("click", () => {
       this.confirmAndResetSystem();
     });
+
+    // Simulation controls
+    this.setupSimulationControls();
+  }
+
+  // Setup simulation control event listeners
+  setupSimulationControls() {
+    // Speed buttons
+    const speedButtons = document.querySelectorAll(".speed-btn");
+    speedButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        speedButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        this.selectedSpeed = btn.dataset.speed;
+
+        // If simulation is running, update speed
+        if (this.isSimulating) {
+          this.setSimulationSpeed(this.selectedSpeed);
+        }
+      });
+    });
+
+    // Start simulation
+    document
+      .getElementById("start-simulation-btn")
+      .addEventListener("click", () => {
+        this.startSimulation();
+      });
+
+    // Stop simulation
+    document
+      .getElementById("stop-simulation-btn")
+      .addEventListener("click", () => {
+        this.stopSimulation();
+      });
+
+    // Pause/Resume simulation
+    document
+      .getElementById("pause-simulation-btn")
+      .addEventListener("click", () => {
+        if (this.isPaused) {
+          this.resumeSimulation();
+        } else {
+          this.pauseSimulation();
+        }
+      });
   }
 
   // API Methods
@@ -757,6 +807,7 @@ class PapertrailClient {
     const select = document.getElementById("track-select");
     const trackInfo = document.getElementById("track-info");
     const pointsEl = document.getElementById("track-points");
+    const simulationControls = document.getElementById("simulation-controls");
 
     const selectedOption = select.options[select.selectedIndex];
 
@@ -766,9 +817,17 @@ class PapertrailClient {
       if (trackInfo) {
         trackInfo.classList.remove("hidden");
       }
+      // Show simulation controls when a track is selected
+      if (simulationControls) {
+        simulationControls.classList.remove("hidden");
+      }
     } else {
       if (trackInfo) {
         trackInfo.classList.add("hidden");
+      }
+      // Hide simulation controls when no track is selected
+      if (simulationControls) {
+        simulationControls.classList.add("hidden");
       }
     }
   }
@@ -887,6 +946,213 @@ class PapertrailClient {
     }
     // Reset input so same file can be selected again
     event.target.value = "";
+  }
+
+  // Simulation Methods
+
+  async startSimulation() {
+    const select = document.getElementById("track-select");
+    const trackPath = select.value;
+
+    if (!trackPath) {
+      this.showMessage("Please select a track first", "error");
+      return;
+    }
+
+    const btn = document.getElementById("start-simulation-btn");
+    btn.disabled = true;
+
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/simulation/start`, {
+        method: "POST",
+        body: JSON.stringify({
+          trackPath: trackPath,
+          speed: this.selectedSpeed,
+        }),
+      });
+
+      if (result.success) {
+        this.isSimulating = true;
+        this.isPaused = false;
+        this.updateSimulationUI();
+        this.startSimulationPolling();
+        this.showMessage("Simulation started", "success");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to start simulation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error starting simulation:", error);
+      this.showMessage("Failed to start simulation", "error");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async stopSimulation() {
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/simulation/stop`, {
+        method: "POST",
+      });
+
+      if (result.success) {
+        this.isSimulating = false;
+        this.isPaused = false;
+        this.stopSimulationPolling();
+        this.updateSimulationUI();
+        this.showMessage("Simulation stopped", "info");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to stop simulation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error stopping simulation:", error);
+      this.showMessage("Failed to stop simulation", "error");
+    }
+  }
+
+  async pauseSimulation() {
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/simulation/pause`, {
+        method: "POST",
+      });
+
+      if (result.success) {
+        this.isPaused = true;
+        this.updateSimulationUI();
+        this.showMessage("Simulation paused", "info");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to pause simulation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error pausing simulation:", error);
+      this.showMessage("Failed to pause simulation", "error");
+    }
+  }
+
+  async resumeSimulation() {
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/simulation/resume`, {
+        method: "POST",
+      });
+
+      if (result.success) {
+        this.isPaused = false;
+        this.updateSimulationUI();
+        this.showMessage("Simulation resumed", "success");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to resume simulation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error resuming simulation:", error);
+      this.showMessage("Failed to resume simulation", "error");
+    }
+  }
+
+  async setSimulationSpeed(speed) {
+    try {
+      await this.fetchJSON(`${this.apiBase}/simulation/speed`, {
+        method: "POST",
+        body: JSON.stringify({ speed }),
+      });
+    } catch (error) {
+      console.error("Error setting simulation speed:", error);
+    }
+  }
+
+  startSimulationPolling() {
+    // Poll simulation status every 500ms
+    this.simulationPollingInterval = setInterval(async () => {
+      try {
+        const result = await this.fetchJSON(
+          `${this.apiBase}/simulation/status`,
+        );
+        if (result.success && result.data) {
+          this.updateSimulationStatus(result.data);
+
+          // Stop polling if simulation stopped
+          if (result.data.state === "stopped") {
+            this.isSimulating = false;
+            this.isPaused = false;
+            this.stopSimulationPolling();
+            this.updateSimulationUI();
+          }
+        }
+      } catch (error) {
+        console.error("Error polling simulation status:", error);
+      }
+    }, 500);
+  }
+
+  stopSimulationPolling() {
+    if (this.simulationPollingInterval) {
+      clearInterval(this.simulationPollingInterval);
+      this.simulationPollingInterval = null;
+    }
+  }
+
+  updateSimulationUI() {
+    const controls = document.getElementById("simulation-controls");
+    const startBtn = document.getElementById("start-simulation-btn");
+    const stopBtn = document.getElementById("stop-simulation-btn");
+    const pauseBtn = document.getElementById("pause-simulation-btn");
+    const statusEl = document.getElementById("simulation-status");
+    const pauseBtnText = pauseBtn.querySelector(".btn-text");
+
+    if (this.isSimulating) {
+      controls.classList.add("running");
+      startBtn.classList.add("hidden");
+      stopBtn.classList.remove("hidden");
+      pauseBtn.classList.remove("hidden");
+      statusEl.classList.remove("hidden");
+
+      if (this.isPaused) {
+        controls.classList.add("paused");
+        pauseBtnText.textContent = "Resume";
+        pauseBtn.querySelector(".btn-icon").textContent = "▶";
+      } else {
+        controls.classList.remove("paused");
+        pauseBtnText.textContent = "Pause";
+        pauseBtn.querySelector(".btn-icon").textContent = "⏸";
+      }
+    } else {
+      controls.classList.remove("running", "paused");
+      startBtn.classList.remove("hidden");
+      stopBtn.classList.add("hidden");
+      pauseBtn.classList.add("hidden");
+      statusEl.classList.add("hidden");
+    }
+  }
+
+  updateSimulationStatus(data) {
+    const progressBar = document.getElementById("sim-progress-bar");
+    const progressText = document.getElementById("sim-progress");
+    const remainingText = document.getElementById("sim-remaining");
+
+    if (progressBar && progressText) {
+      progressBar.style.width = `${data.progress}%`;
+      progressText.textContent = `${data.progress.toFixed(1)}%`;
+    }
+
+    if (remainingText && data.estimatedTimeRemaining !== undefined) {
+      const mins = Math.floor(data.estimatedTimeRemaining / 60);
+      const secs = data.estimatedTimeRemaining % 60;
+      if (mins > 0) {
+        remainingText.textContent = `${mins}m ${secs}s`;
+      } else {
+        remainingText.textContent = `${secs}s`;
+      }
+    }
   }
 
   // Utility Methods
