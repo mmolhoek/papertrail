@@ -937,7 +937,6 @@ export class SVGService implements ISVGService {
     text: string,
   ): void {
     const scale = 2;
-    const charHeight = 7 * scale;
     const charSpacing = 8 * scale;
 
     for (let i = 0; i < text.length; i++) {
@@ -1087,7 +1086,12 @@ export class SVGService implements ISVGService {
         if (rowData & (0x80 >> col)) {
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
-              this.setPixel(bitmap, x + col * scale + sx, y + row * scale + sy, true);
+              this.setPixel(
+                bitmap,
+                x + col * scale + sx,
+                y + row * scale + sy,
+                true,
+              );
             }
           }
         }

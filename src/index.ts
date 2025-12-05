@@ -89,16 +89,24 @@ async function main() {
 
     logger.info(`✓ Web interface available at ${webService.getServerUrl()}\n`);
 
-    // Start auto-update if configured
+    // Start auto-update only if configured AND onboarding is complete
+    // Don't start auto-update during onboarding to avoid overwriting WiFi setup screens
     const autoRefreshInterval = container
       .getConfigService()
       .getAutoRefreshInterval();
-    if (autoRefreshInterval > 0) {
+    const onboardingComplete = container
+      .getConfigService()
+      .isOnboardingCompleted();
+    if (autoRefreshInterval > 0 && onboardingComplete) {
       logger.info(
         `Starting auto-update (interval: ${autoRefreshInterval}s)...`,
       );
       await orchestrator.startAutoUpdate();
       logger.info("✓ Auto-update started\n");
+    } else if (autoRefreshInterval > 0 && !onboardingComplete) {
+      logger.info(
+        "Skipping auto-update during onboarding (will start after onboarding completes)",
+      );
     }
 
     logger.info("✅ Papertrail is ready!\n");

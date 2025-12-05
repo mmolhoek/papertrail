@@ -828,6 +828,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       // Set as active
       logger.info("Setting as active GPX and saving config...");
       this.configService.setActiveGPXPath(filePath);
+
+      // Mark onboarding as complete if this is the first track loaded
+      if (!this.configService.isOnboardingCompleted()) {
+        logger.info("First track loaded - marking onboarding as complete");
+        this.configService.setOnboardingCompleted(true);
+
+        // Start auto-update now that onboarding is complete
+        const autoRefreshInterval = this.configService.getAutoRefreshInterval();
+        if (autoRefreshInterval > 0 && !this.autoUpdateInterval) {
+          logger.info(
+            `Starting auto-update (interval: ${autoRefreshInterval}s) after onboarding...`,
+          );
+          void this.startAutoUpdate();
+        }
+      }
+
       await this.configService.save();
       logger.info("✓ Active GPX saved to config");
 
