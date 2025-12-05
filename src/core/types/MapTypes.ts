@@ -140,6 +140,9 @@ export type GPXFileInfo = {
   /** Total number of track points */
   pointCount: number;
 
+  /** Total distance in meters */
+  totalDistance: number;
+
   /** File size in bytes */
   fileSize: number;
 

@@ -840,6 +840,7 @@ class PapertrailClient {
         option.textContent = file.trackName || file.fileName;
         // Store additional data for display
         option.dataset.points = file.pointCount || 0;
+        option.dataset.distance = file.totalDistance || 0;
         option.dataset.fileName = file.fileName;
         select.appendChild(option);
       });
@@ -867,12 +868,22 @@ class PapertrailClient {
     const select = document.getElementById("track-select");
     const trackInfo = document.getElementById("track-info");
     const pointsEl = document.getElementById("track-points");
+    const distanceEl = document.getElementById("track-distance");
 
     const selectedOption = select.options[select.selectedIndex];
 
-    if (selectedOption && selectedOption.value && pointsEl) {
+    if (selectedOption && selectedOption.value) {
       const points = selectedOption.dataset.points || "0";
-      pointsEl.textContent = points;
+      const distanceMeters = parseFloat(selectedOption.dataset.distance) || 0;
+
+      if (pointsEl) {
+        pointsEl.textContent = points;
+      }
+
+      if (distanceEl) {
+        distanceEl.textContent = this.formatDistance(distanceMeters);
+      }
+
       if (trackInfo) {
         trackInfo.classList.remove("hidden");
       }
@@ -880,6 +891,15 @@ class PapertrailClient {
       if (trackInfo) {
         trackInfo.classList.add("hidden");
       }
+    }
+  }
+
+  // Format distance: show meters if < 1km, otherwise km
+  formatDistance(meters) {
+    if (meters < 1000) {
+      return `${Math.round(meters)} m`;
+    } else {
+      return `${(meters / 1000).toFixed(1)} km`;
     }
   }
 

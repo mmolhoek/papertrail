@@ -195,11 +195,14 @@ export class MapService implements IMapService {
           if (fileResult.success) {
             const gpxFile = fileResult.data;
             let totalPoints = 0;
+            let totalDistance = 0;
 
             gpxFile.tracks.forEach((track) => {
               track.segments.forEach((segment) => {
                 totalPoints += segment.points.length;
               });
+              // Calculate distance for each track
+              totalDistance += this.calculateDistance(track);
             });
 
             infos.push({
@@ -208,6 +211,7 @@ export class MapService implements IMapService {
               trackName: gpxFile.tracks[0]?.name,
               trackCount: gpxFile.tracks.length,
               pointCount: totalPoints,
+              totalDistance: totalDistance,
               fileSize: stats.size,
               lastModified: stats.mtime,
               createdAt: gpxFile.metadata?.time,

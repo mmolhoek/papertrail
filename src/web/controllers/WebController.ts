@@ -151,6 +151,7 @@ export class WebController {
               trackName: displayName,
               trackCount: info.trackCount,
               pointCount: info.pointCount,
+              totalDistance: info.totalDistance,
               fileSize: info.fileSize,
               lastModified: info.lastModified,
             };
