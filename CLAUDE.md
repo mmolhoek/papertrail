@@ -355,3 +355,4 @@ WebSocket events are defined in `IntegratedWebService.subscribeToOrchestratorEve
 - **Logging:** Uses winston logger via `src/utils/logger.ts` - Call `getLogger(name)` for named loggers
 - **Auto-update:** RenderingOrchestrator can run periodic display updates via `startAutoUpdate()`
 - **Systemd service:** `papertrail.service` file for running as system service
+- alway run npm run format after you are done making changes
