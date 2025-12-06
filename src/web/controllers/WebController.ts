@@ -1587,6 +1587,10 @@ export class WebController {
     try {
       // Convert drive route geometry to GPX track format
       // geometry is [[lat, lon], [lat, lon], ...]
+      logger.info(
+        `Creating GPX track from ${route.geometry.length} geometry points`,
+      );
+
       const gpxTrack = {
         name: `Drive to ${route.destination || "destination"}`,
         segments: [
@@ -1603,21 +1607,35 @@ export class WebController {
         ],
       };
 
+      logger.info(
+        `GPX track created with ${gpxTrack.segments[0].points.length} points`,
+      );
+
       // Start simulation at drive speed (100 km/h)
+      logger.info(`Starting simulation service at ${speed} km/h`);
       const result = await this.simulationService.startSimulation(
         gpxTrack,
         speed,
       );
+      logger.info(`Simulation start result: ${result.success}`);
 
       if (isSuccess(result)) {
         // Also start drive navigation so it tracks progress
         if (this.driveNavigationService && this.orchestrator) {
-          await this.orchestrator.startDriveNavigation(route);
+          logger.info("Starting drive navigation for tracking");
+          const navResult = await this.orchestrator.startDriveNavigation(route);
+          logger.info(`Drive navigation start result: ${navResult.success}`);
+          if (!navResult.success) {
+            logger.error("Drive navigation failed:", navResult.error);
+          }
         }
 
         // Trigger a full e-paper display refresh
         logger.info("Triggering full display refresh for drive simulation");
-        await this.orchestrator.updateDisplay(DisplayUpdateMode.FULL);
+        const displayResult = await this.orchestrator.updateDisplay(
+          DisplayUpdateMode.FULL,
+        );
+        logger.info(`Display update result: ${displayResult.success}`);
 
         logger.info(`Drive simulation started at ${speed} km/h`);
         res.json({
