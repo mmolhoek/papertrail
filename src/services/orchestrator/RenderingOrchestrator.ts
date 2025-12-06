@@ -185,6 +185,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         this.subscribeToSimulationUpdates();
       }
 
+      // Initialize drive navigation service (if provided)
+      if (this.driveNavigationService) {
+        logger.info("Initializing DriveNavigationService...");
+        const driveResult = await this.driveNavigationService.initialize();
+        if (!driveResult.success) {
+          logger.error(
+            "Failed to initialize DriveNavigationService:",
+            driveResult.error,
+          );
+          // Non-fatal - drive navigation is optional
+          logger.warn("Drive navigation will not be available");
+        } else {
+          logger.info("✓ DriveNavigationService initialized");
+        }
+      }
+
       this.isInitialized = true;
       logger.info("✓ RenderingOrchestrator initialization complete");
       return success(undefined);
