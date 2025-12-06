@@ -185,9 +185,11 @@ class PapertrailClient {
 
   // Setup UI Event Listeners
   setupEventListeners() {
-    // Track selection
-    document.getElementById("load-track-btn").addEventListener("click", () => {
-      this.loadSelectedTrack();
+    // Track selection - auto-load on change
+    document.getElementById("track-select").addEventListener("change", (e) => {
+      if (e.target.value) {
+        this.loadSelectedTrack();
+      }
     });
 
     // Track upload
