@@ -15,3 +15,4 @@ export * from "./IWebInterfaceService";
 export * from "./IWiFiService";
 export * from "./ITextRendererService";
 export * from "./ITrackSimulationService";
+export * from "./IDriveNavigationService";

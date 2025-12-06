@@ -93,6 +93,10 @@ describe("RenderingOrchestrator", () => {
       addInfoPanel: jest.fn(),
       getDefaultRenderOptions: jest.fn(),
       renderFollowTrackScreen: jest.fn(),
+      renderTurnScreen: jest.fn(),
+      renderDriveMapScreen: jest.fn(),
+      renderOffRoadScreen: jest.fn(),
+      renderArrivalScreen: jest.fn(),
     };
 
     mockEpaper = {

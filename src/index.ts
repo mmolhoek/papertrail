@@ -69,6 +69,7 @@ async function main() {
     const mapService = container.getMapService();
     const configService = container.getConfigService();
     const simulationService = container.getTrackSimulationService();
+    const driveNavigationService = container.getDriveNavigationService();
     const webService = new IntegratedWebService(
       orchestrator,
       webConfig,
@@ -77,6 +78,7 @@ async function main() {
       mapConfig.gpxDirectory,
       configService,
       simulationService,
+      driveNavigationService,
     );
 
     const webResult = await webService.start();

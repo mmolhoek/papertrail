@@ -5,6 +5,9 @@ import {
   ViewportConfig,
   Bitmap1Bit,
   RenderOptions,
+  ManeuverType,
+  DriveRoute,
+  DriveWaypoint,
 } from "@core/types";
 
 /**
@@ -21,6 +24,30 @@ export interface FollowTrackInfo {
   bearing?: number;
   /** Distance remaining in meters */
   distanceRemaining?: number;
+}
+
+/**
+ * Drive navigation screen info for turn-by-turn display
+ */
+export interface DriveNavigationInfo {
+  /** Current speed in km/h */
+  speed: number;
+  /** Number of satellites in use */
+  satellites: number;
+  /** Next turn maneuver type */
+  nextManeuver: ManeuverType;
+  /** Distance to next turn in meters */
+  distanceToTurn: number;
+  /** Turn instruction text */
+  instruction: string;
+  /** Street name after the turn */
+  streetName?: string;
+  /** Total distance remaining in meters */
+  distanceRemaining: number;
+  /** Progress percentage (0-100) */
+  progress: number;
+  /** Estimated time remaining in seconds */
+  timeRemaining?: number;
 }
 
 /**
@@ -157,5 +184,69 @@ export interface ISVGService {
     viewport: ViewportConfig,
     info: FollowTrackInfo,
     options?: Partial<RenderOptions>,
+  ): Promise<Result<Bitmap1Bit>>;
+
+  /**
+   * Render full-screen turn display for drive navigation
+   * Shows large turn arrow, distance countdown, and instruction text
+   * @param maneuverType Type of turn/maneuver
+   * @param distance Distance to turn in meters
+   * @param instruction Turn instruction text
+   * @param streetName Optional street name
+   * @param viewport Viewport configuration for dimensions
+   * @returns Result containing 1-bit bitmap or error
+   */
+  renderTurnScreen(
+    maneuverType: ManeuverType,
+    distance: number,
+    instruction: string,
+    streetName: string | undefined,
+    viewport: ViewportConfig,
+  ): Promise<Result<Bitmap1Bit>>;
+
+  /**
+   * Render drive navigation map screen with turn overlay
+   * Shows map with route, current position, and turn info overlay
+   * @param route The drive route
+   * @param currentPosition Current GPS position
+   * @param nextWaypoint The next upcoming turn/waypoint
+   * @param viewport Viewport configuration
+   * @param info Navigation info for the overlay
+   * @param options Optional rendering options
+   * @returns Result containing 1-bit bitmap or error
+   */
+  renderDriveMapScreen(
+    route: DriveRoute,
+    currentPosition: GPSCoordinate,
+    nextWaypoint: DriveWaypoint,
+    viewport: ViewportConfig,
+    info: DriveNavigationInfo,
+    options?: Partial<RenderOptions>,
+  ): Promise<Result<Bitmap1Bit>>;
+
+  /**
+   * Render off-road arrow screen for drive navigation
+   * Shows arrow pointing to route start with distance
+   * @param bearing Bearing to route start in degrees
+   * @param distance Distance to route start in meters
+   * @param viewport Viewport configuration for dimensions
+   * @returns Result containing 1-bit bitmap or error
+   */
+  renderOffRoadScreen(
+    bearing: number,
+    distance: number,
+    viewport: ViewportConfig,
+  ): Promise<Result<Bitmap1Bit>>;
+
+  /**
+   * Render arrival screen for drive navigation
+   * Shows destination reached message
+   * @param destination Destination name/address
+   * @param viewport Viewport configuration for dimensions
+   * @returns Result containing 1-bit bitmap or error
+   */
+  renderArrivalScreen(
+    destination: string,
+    viewport: ViewportConfig,
   ): Promise<Result<Bitmap1Bit>>;
 }

@@ -17,3 +17,4 @@ export * from "./ConfigError";
 export * from "./OrchestratorError";
 export * from "./WebError";
 export * from "./WiFiError";
+export * from "./DriveError";

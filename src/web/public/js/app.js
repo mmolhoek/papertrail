@@ -11,6 +11,17 @@ class PapertrailClient {
     this.isSimulating = false;
     this.isPaused = false;
     this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
+
+    // Drive navigation state
+    this.driveMap = null;
+    this.driveDestination = null; // { lat, lon, name }
+    this.driveRoute = null;
+    this.driveMarker = null;
+    this.driveRouteLine = null;
+    this.isDriveNavigating = false;
+    this.addressSearchTimeout = null;
+    this.currentPosition = null; // { lat, lon }
+
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
 
@@ -79,6 +90,11 @@ class PapertrailClient {
     if (panelId === "wifi-settings-panel") {
       this.loadWiFiConfig();
     }
+
+    // Special handling for Drive panel - initialize map when shown
+    if (panelId === "drive-panel") {
+      this.initDriveMap();
+    }
   }
 
   // Show a system message (toast notification)
@@ -139,6 +155,24 @@ class PapertrailClient {
 
     this.socket.on("status:update", (data) => {
       this.updateSystemStatus(data);
+    });
+
+    // Drive navigation events
+    this.socket.on("drive:update", (data) => {
+      this.updateDriveNavigationStatus(data);
+    });
+
+    this.socket.on("drive:arrived", (data) => {
+      this.showMessage(
+        `Arrived at ${data.destination || "destination"}!`,
+        "success",
+      );
+      this.isDriveNavigating = false;
+      this.updateDriveUI();
+    });
+
+    this.socket.on("drive:off-road", (data) => {
+      console.log("Off-road detected:", data);
     });
 
     // Keep connection alive
@@ -231,6 +265,9 @@ class PapertrailClient {
 
     // Simulation controls
     this.setupSimulationControls();
+
+    // Drive navigation controls
+    this.setupDriveControls();
   }
 
   // Setup simulation control event listeners
@@ -645,6 +682,9 @@ class PapertrailClient {
 
   updateGPSPosition(data) {
     if (data && data.latitude !== undefined) {
+      // Store current position for drive navigation
+      this.currentPosition = { lat: data.latitude, lon: data.longitude };
+
       document.getElementById("latitude").textContent =
         data.latitude.toFixed(6) + "°";
       document.getElementById("longitude").textContent =
@@ -1296,6 +1336,577 @@ class PapertrailClient {
     }
 
     return await response.json();
+  }
+
+  // ============================================
+  // DRIVE NAVIGATION METHODS
+  // ============================================
+
+  setupDriveControls() {
+    // Tab switching
+    const tabs = document.querySelectorAll(".drive-tab");
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => {
+        this.switchDriveTab(tab.dataset.tab);
+      });
+    });
+
+    // Address search input
+    const addressInput = document.getElementById("drive-address-input");
+    if (addressInput) {
+      addressInput.addEventListener("input", (e) => {
+        this.handleAddressSearch(e.target.value);
+      });
+
+      // Close results when clicking outside
+      document.addEventListener("click", (e) => {
+        const results = document.getElementById("drive-address-results");
+        if (!addressInput.contains(e.target) && !results.contains(e.target)) {
+          results.classList.add("hidden");
+        }
+      });
+    }
+
+    // Coordinate apply button
+    const coordsApply = document.getElementById("drive-coords-apply");
+    if (coordsApply) {
+      coordsApply.addEventListener("click", () => {
+        this.applyCoordinates();
+      });
+    }
+
+    // Clear destination button
+    const clearDest = document.getElementById("drive-clear-dest");
+    if (clearDest) {
+      clearDest.addEventListener("click", () => {
+        this.clearDriveDestination();
+      });
+    }
+
+    // Calculate route button
+    const calcRoute = document.getElementById("drive-calc-route");
+    if (calcRoute) {
+      calcRoute.addEventListener("click", () => {
+        this.calculateRoute();
+      });
+    }
+
+    // Start navigation button
+    const startBtn = document.getElementById("drive-start-btn");
+    if (startBtn) {
+      startBtn.addEventListener("click", () => {
+        this.startDriveNavigation();
+      });
+    }
+
+    // Stop navigation button
+    const stopBtn = document.getElementById("drive-stop-btn");
+    if (stopBtn) {
+      stopBtn.addEventListener("click", () => {
+        this.stopDriveNavigation();
+      });
+    }
+  }
+
+  switchDriveTab(tabName) {
+    // Update tab buttons
+    const tabs = document.querySelectorAll(".drive-tab");
+    tabs.forEach((tab) => {
+      tab.classList.toggle("active", tab.dataset.tab === tabName);
+    });
+
+    // Update tab content
+    const contents = document.querySelectorAll(".drive-tab-content");
+    contents.forEach((content) => {
+      const contentId = content.id.replace("drive-tab-", "");
+      content.classList.toggle("active", contentId === tabName);
+    });
+
+    // Initialize map if switching to map tab
+    if (tabName === "map") {
+      setTimeout(() => this.initDriveMap(), 100);
+    }
+  }
+
+  initDriveMap() {
+    if (this.driveMap) {
+      this.driveMap.invalidateSize();
+      return;
+    }
+
+    const mapContainer = document.getElementById("drive-map");
+    if (!mapContainer || typeof L === "undefined") {
+      return;
+    }
+
+    // Remove placeholder text
+    mapContainer.innerHTML = "";
+
+    // Default center (will be updated with GPS position)
+    const defaultLat = this.currentPosition?.lat || 52.52;
+    const defaultLon = this.currentPosition?.lon || 13.405;
+
+    this.driveMap = L.map("drive-map").setView([defaultLat, defaultLon], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(this.driveMap);
+
+    // Click to select destination
+    this.driveMap.on("click", (e) => {
+      this.setDriveDestination(e.latlng.lat, e.latlng.lng, "Map selection");
+    });
+  }
+
+  handleAddressSearch(query) {
+    // Debounce the search
+    if (this.addressSearchTimeout) {
+      clearTimeout(this.addressSearchTimeout);
+    }
+
+    if (query.length < 3) {
+      document.getElementById("drive-address-results").classList.add("hidden");
+      return;
+    }
+
+    this.addressSearchTimeout = setTimeout(async () => {
+      try {
+        // Use Nominatim for geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`,
+          {
+            headers: {
+              "User-Agent": "Papertrail GPS Tracker",
+            },
+          },
+        );
+
+        const results = await response.json();
+        this.showAddressResults(results);
+      } catch (error) {
+        console.error("Address search error:", error);
+      }
+    }, 300);
+  }
+
+  showAddressResults(results) {
+    const container = document.getElementById("drive-address-results");
+    container.innerHTML = "";
+
+    if (results.length === 0) {
+      container.classList.add("hidden");
+      return;
+    }
+
+    results.forEach((result) => {
+      const item = document.createElement("div");
+      item.className = "address-result-item";
+      item.textContent = result.display_name;
+      item.addEventListener("click", () => {
+        this.setDriveDestination(
+          parseFloat(result.lat),
+          parseFloat(result.lon),
+          result.display_name,
+        );
+        container.classList.add("hidden");
+        document.getElementById("drive-address-input").value = "";
+      });
+      container.appendChild(item);
+    });
+
+    container.classList.remove("hidden");
+  }
+
+  applyCoordinates() {
+    const lat = parseFloat(document.getElementById("drive-lat-input").value);
+    const lon = parseFloat(document.getElementById("drive-lon-input").value);
+
+    if (isNaN(lat) || isNaN(lon)) {
+      this.showMessage("Please enter valid coordinates", "error");
+      return;
+    }
+
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      this.showMessage("Coordinates out of range", "error");
+      return;
+    }
+
+    this.setDriveDestination(lat, lon, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+  }
+
+  setDriveDestination(lat, lon, name) {
+    this.driveDestination = { lat, lon, name };
+
+    // Update destination display
+    const destContainer = document.getElementById("drive-destination");
+    const destText = document.getElementById("drive-dest-text");
+    destContainer.classList.remove("hidden");
+    destText.textContent = name;
+
+    // Enable calculate button
+    document.getElementById("drive-calc-route").disabled = false;
+
+    // Clear previous route preview
+    document.getElementById("drive-route-preview").classList.add("hidden");
+    document.getElementById("drive-nav-controls").classList.add("hidden");
+    this.driveRoute = null;
+
+    // Update map marker if map is initialized
+    if (this.driveMap) {
+      if (this.driveMarker) {
+        this.driveMarker.setLatLng([lat, lon]);
+      } else {
+        this.driveMarker = L.marker([lat, lon]).addTo(this.driveMap);
+      }
+      this.driveMap.setView([lat, lon], 14);
+    }
+
+    this.showMessage("Destination set", "success");
+  }
+
+  clearDriveDestination() {
+    this.driveDestination = null;
+    this.driveRoute = null;
+
+    document.getElementById("drive-destination").classList.add("hidden");
+    document.getElementById("drive-route-preview").classList.add("hidden");
+    document.getElementById("drive-nav-controls").classList.add("hidden");
+    document.getElementById("drive-calc-route").disabled = true;
+
+    if (this.driveMarker) {
+      this.driveMarker.remove();
+      this.driveMarker = null;
+    }
+
+    if (this.driveRouteLine) {
+      this.driveRouteLine.remove();
+      this.driveRouteLine = null;
+    }
+  }
+
+  async calculateRoute() {
+    if (!this.driveDestination) {
+      this.showMessage("Please set a destination first", "error");
+      return;
+    }
+
+    if (!this.currentPosition) {
+      this.showMessage("Waiting for GPS position...", "error");
+      return;
+    }
+
+    const calcBtn = document.getElementById("drive-calc-route");
+    const btnText = calcBtn.querySelector(".btn-text");
+    calcBtn.disabled = true;
+    if (btnText) btnText.textContent = "Calculating...";
+
+    try {
+      // Use OSRM for routing
+      const start = `${this.currentPosition.lon},${this.currentPosition.lat}`;
+      const end = `${this.driveDestination.lon},${this.driveDestination.lat}`;
+
+      const response = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson&steps=true`,
+      );
+
+      const data = await response.json();
+
+      if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
+        throw new Error("No route found");
+      }
+
+      const route = data.routes[0];
+      this.processOSRMRoute(route, data);
+    } catch (error) {
+      console.error("Route calculation error:", error);
+      this.showMessage("Failed to calculate route", "error");
+    } finally {
+      calcBtn.disabled = false;
+      if (btnText) btnText.textContent = "Calculate Route";
+    }
+  }
+
+  processOSRMRoute(route, data) {
+    // Extract waypoints with turn instructions
+    const waypoints = [];
+    let waypointIndex = 0;
+
+    route.legs.forEach((leg) => {
+      leg.steps.forEach((step, stepIndex) => {
+        const maneuver = step.maneuver;
+        const maneuverType = this.osrmManeuverToType(
+          maneuver.type,
+          maneuver.modifier,
+        );
+
+        waypoints.push({
+          latitude: maneuver.location[1],
+          longitude: maneuver.location[0],
+          instruction: step.name
+            ? `${this.formatManeuverType(maneuverType)} onto ${step.name}`
+            : this.formatManeuverType(maneuverType),
+          maneuverType: maneuverType,
+          distance: step.distance,
+          streetName: step.name || undefined,
+          bearingAfter: maneuver.bearing_after,
+          index: waypointIndex++,
+        });
+      });
+    });
+
+    // Extract geometry as [lat, lon] pairs
+    const geometry = route.geometry.coordinates.map((coord) => [
+      coord[1],
+      coord[0],
+    ]);
+
+    // Build the route object
+    this.driveRoute = {
+      id: `route_${Date.now()}`,
+      destination: this.driveDestination.name,
+      createdAt: new Date().toISOString(),
+      startPoint: {
+        latitude: this.currentPosition.lat,
+        longitude: this.currentPosition.lon,
+      },
+      endPoint: {
+        latitude: this.driveDestination.lat,
+        longitude: this.driveDestination.lon,
+      },
+      waypoints: waypoints,
+      geometry: geometry,
+      totalDistance: route.distance,
+      estimatedTime: route.duration,
+    };
+
+    // Update route preview
+    this.showRoutePreview();
+
+    // Draw route on map
+    if (this.driveMap) {
+      if (this.driveRouteLine) {
+        this.driveRouteLine.remove();
+      }
+      this.driveRouteLine = L.polyline(geometry, {
+        color: "#1a3c34",
+        weight: 4,
+      }).addTo(this.driveMap);
+      this.driveMap.fitBounds(this.driveRouteLine.getBounds(), {
+        padding: [20, 20],
+      });
+    }
+  }
+
+  osrmManeuverToType(type, modifier) {
+    // Map OSRM maneuver types to our ManeuverType enum
+    const modifierMap = {
+      sharp_left: "sharp_left",
+      left: "left",
+      slight_left: "slight_left",
+      straight: "straight",
+      slight_right: "slight_right",
+      right: "right",
+      sharp_right: "sharp_right",
+      uturn: "uturn",
+    };
+
+    if (type === "depart") return "depart";
+    if (type === "arrive") return "arrive";
+    if (type === "roundabout" || type === "rotary") {
+      return "roundabout";
+    }
+    if (type === "turn" || type === "new name" || type === "continue") {
+      return modifierMap[modifier] || "straight";
+    }
+
+    return modifierMap[modifier] || "straight";
+  }
+
+  formatManeuverType(type) {
+    const names = {
+      depart: "Depart",
+      straight: "Continue straight",
+      slight_left: "Turn slightly left",
+      left: "Turn left",
+      sharp_left: "Turn sharp left",
+      slight_right: "Turn slightly right",
+      right: "Turn right",
+      sharp_right: "Turn sharp right",
+      uturn: "Make a U-turn",
+      arrive: "Arrive",
+      roundabout: "Enter roundabout",
+    };
+    return names[type] || "Continue";
+  }
+
+  showRoutePreview() {
+    const preview = document.getElementById("drive-route-preview");
+    const controls = document.getElementById("drive-nav-controls");
+
+    // Format distance
+    const distanceKm = (this.driveRoute.totalDistance / 1000).toFixed(1);
+    document.getElementById("drive-route-distance").textContent =
+      `${distanceKm} km`;
+
+    // Format time
+    const minutes = Math.round(this.driveRoute.estimatedTime / 60);
+    document.getElementById("drive-route-time").textContent = `${minutes} min`;
+
+    // Count turns (exclude depart and arrive)
+    const turns = this.driveRoute.waypoints.filter(
+      (w) => w.maneuverType !== "depart" && w.maneuverType !== "arrive",
+    ).length;
+    document.getElementById("drive-route-turns").textContent = turns;
+
+    preview.classList.remove("hidden");
+    controls.classList.remove("hidden");
+  }
+
+  async startDriveNavigation() {
+    if (!this.driveRoute) {
+      this.showMessage("Please calculate a route first", "error");
+      return;
+    }
+
+    const startBtn = document.getElementById("drive-start-btn");
+    const stopBtn = document.getElementById("drive-stop-btn");
+
+    startBtn.disabled = true;
+
+    try {
+      // Send route to server and start navigation
+      const result = await this.fetchJSON(`${this.apiBase}/drive/start`, {
+        method: "POST",
+        body: JSON.stringify({ route: this.driveRoute }),
+      });
+
+      if (result.success) {
+        this.isDriveNavigating = true;
+        this.updateDriveUI();
+        this.showMessage("Navigation started", "success");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to start navigation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error starting navigation:", error);
+      this.showMessage("Failed to start navigation", "error");
+    } finally {
+      startBtn.disabled = false;
+    }
+  }
+
+  async stopDriveNavigation() {
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/drive/stop`, {
+        method: "POST",
+      });
+
+      if (result.success) {
+        this.isDriveNavigating = false;
+        this.updateDriveUI();
+        this.showMessage("Navigation stopped", "info");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to stop navigation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error stopping navigation:", error);
+      this.showMessage("Failed to stop navigation", "error");
+    }
+  }
+
+  updateDriveUI() {
+    const startBtn = document.getElementById("drive-start-btn");
+    const stopBtn = document.getElementById("drive-stop-btn");
+    const navStatus = document.getElementById("drive-nav-status");
+
+    if (this.isDriveNavigating) {
+      startBtn.classList.add("hidden");
+      stopBtn.classList.remove("hidden");
+      navStatus.classList.remove("hidden");
+    } else {
+      startBtn.classList.remove("hidden");
+      stopBtn.classList.add("hidden");
+      navStatus.classList.add("hidden");
+    }
+  }
+
+  updateDriveNavigationStatus(data) {
+    if (!data) return;
+
+    // Update navigation state
+    const stateEl = document.getElementById("drive-nav-state");
+    if (stateEl) {
+      const stateNames = {
+        idle: "Idle",
+        navigating: "Navigating",
+        off_road: "Off Road",
+        arrived: "Arrived",
+        cancelled: "Cancelled",
+      };
+      stateEl.textContent = stateNames[data.state] || data.state;
+    }
+
+    // Update turn icon
+    const turnIcon = document.getElementById("drive-turn-icon");
+    if (turnIcon && data.nextManeuver) {
+      const iconMap = {
+        left: "↰",
+        right: "↱",
+        straight: "↑",
+        uturn: "↩",
+        slight_left: "↖",
+        slight_right: "↗",
+        sharp_left: "↰",
+        sharp_right: "↱",
+        arrive: "◉",
+        depart: "⬆",
+        roundabout: "↻",
+      };
+      turnIcon.textContent = iconMap[data.nextManeuver] || "→";
+    }
+
+    // Update turn distance
+    const turnDist = document.getElementById("drive-turn-distance");
+    if (turnDist && data.distanceToNextTurn !== undefined) {
+      turnDist.textContent = this.formatDistance(data.distanceToNextTurn);
+    }
+
+    // Update instruction
+    const instruction = document.getElementById("drive-instruction");
+    if (instruction && data.instruction) {
+      let text = data.instruction;
+      if (data.streetName) {
+        text += ` - ${data.streetName}`;
+      }
+      instruction.textContent = text;
+    }
+
+    // Update progress
+    const progressBar = document.getElementById("drive-progress-bar");
+    if (progressBar && data.progress !== undefined) {
+      progressBar.style.width = `${data.progress}%`;
+    }
+
+    // Update remaining distance
+    const remaining = document.getElementById("drive-remaining");
+    if (remaining && data.distanceRemaining !== undefined) {
+      remaining.textContent = `${this.formatDistance(data.distanceRemaining)} remaining`;
+    }
+
+    // Show navigation status if navigating
+    if (data.state === "navigating" || data.state === "off_road") {
+      this.isDriveNavigating = true;
+      this.updateDriveUI();
+    } else if (data.state === "arrived" || data.state === "cancelled") {
+      this.isDriveNavigating = false;
+      this.updateDriveUI();
+    }
   }
 }
 

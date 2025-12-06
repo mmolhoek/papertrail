@@ -1,4 +1,11 @@
-import { Result, GPSCoordinate, GPSStatus, SystemStatus } from "@core/types";
+import {
+  Result,
+  GPSCoordinate,
+  GPSStatus,
+  SystemStatus,
+  DriveRoute,
+  DriveNavigationUpdate,
+} from "@core/types";
 
 /**
  * Rendering Orchestrator Interface
@@ -165,6 +172,38 @@ export interface IRenderingOrchestrator {
    * @param count Number of connected WebSocket clients
    */
   setWebSocketClientCount(count: number): void;
+
+  // ============================================
+  // Drive Navigation Methods
+  // ============================================
+
+  /**
+   * Start drive navigation with a route
+   * @param route The drive route to navigate
+   * @returns Result indicating success or failure
+   */
+  startDriveNavigation(route: DriveRoute): Promise<Result<void>>;
+
+  /**
+   * Stop current drive navigation
+   * @returns Result indicating success or failure
+   */
+  stopDriveNavigation(): Promise<Result<void>>;
+
+  /**
+   * Check if drive navigation is currently active
+   * @returns true if drive navigation is running
+   */
+  isDriveNavigating(): boolean;
+
+  /**
+   * Register a callback for drive navigation updates
+   * @param callback Function to call on navigation updates
+   * @returns Unsubscribe function
+   */
+  onDriveNavigationUpdate(
+    callback: (update: DriveNavigationUpdate) => void,
+  ): () => void;
 
   /**
    * Clean up resources and shut down all services

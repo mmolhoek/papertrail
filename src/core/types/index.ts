@@ -9,3 +9,4 @@ export * from "./GPSTypes";
 export * from "./MapTypes";
 export * from "./DisplayTypes";
 export * from "./WiFiTypes";
+export * from "./DriveTypes";

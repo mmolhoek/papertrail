@@ -311,6 +311,10 @@ function createMockOrchestrator(): IRenderingOrchestrator {
       .mockResolvedValue(success(undefined)),
     restartOnboarding: jest.fn().mockResolvedValue(success(undefined)),
     setWebSocketClientCount: jest.fn(),
+    startDriveNavigation: jest.fn().mockResolvedValue(success(undefined)),
+    stopDriveNavigation: jest.fn().mockResolvedValue(success(undefined)),
+    isDriveNavigating: jest.fn().mockReturnValue(false),
+    onDriveNavigationUpdate: jest.fn().mockReturnValue(() => {}),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
 }

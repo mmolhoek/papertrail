@@ -11,6 +11,7 @@ import {
   IMapService,
   IConfigService,
   ITrackSimulationService,
+  IDriveNavigationService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -44,6 +45,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private wifiStateUnsubscribe: (() => void) | null = null;
   private simulationPositionUnsubscribe: (() => void) | null = null;
   private simulationStateUnsubscribe: (() => void) | null = null;
+  private driveNavigationUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
@@ -70,6 +72,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly gpxDirectory: string = "./data/gpx-files",
     private readonly configService?: IConfigService,
     private readonly simulationService?: ITrackSimulationService,
+    private readonly driveNavigationService?: IDriveNavigationService,
   ) {
     this.app = express();
     this.controller = new WebController(
@@ -79,6 +82,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       gpxDirectory,
       configService,
       simulationService,
+      driveNavigationService,
     );
     // Configure multer for file uploads
     this.upload = multer({
@@ -406,6 +410,35 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getSimulationStatus(req, res),
     );
 
+    // Drive navigation endpoints
+    this.app.post(`${api}/drive/route`, (req, res) =>
+      this.controller.saveDriveRoute(req, res),
+    );
+
+    this.app.get(`${api}/drive/route`, (req, res) =>
+      this.controller.getActiveDriveRoute(req, res),
+    );
+
+    this.app.get(`${api}/drive/routes`, (req, res) =>
+      this.controller.listDriveRoutes(req, res),
+    );
+
+    this.app.delete(`${api}/drive/route/:routeId`, (req, res) =>
+      this.controller.deleteDriveRoute(req, res),
+    );
+
+    this.app.post(`${api}/drive/start`, (req, res) =>
+      this.controller.startDriveNavigation(req, res),
+    );
+
+    this.app.post(`${api}/drive/stop`, (req, res) =>
+      this.controller.stopDriveNavigation(req, res),
+    );
+
+    this.app.get(`${api}/drive/status`, (req, res) =>
+      this.controller.getDriveNavigationStatus(req, res),
+    );
+
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({
@@ -622,6 +655,47 @@ export class IntegratedWebService implements IWebInterfaceService {
         },
       );
     }
+
+    // Subscribe to drive navigation updates (if drive navigation service provided)
+    if (this.driveNavigationService) {
+      this.driveNavigationUnsubscribe =
+        this.driveNavigationService.onNavigationUpdate((update) => {
+          const status = update.status;
+          // Broadcast drive navigation updates to all clients
+          logger.debug(
+            `Broadcasting drive navigation: state=${status.state}, waypoint=${status.currentWaypointIndex}`,
+          );
+          this.broadcast("drive:update", {
+            state: status.state,
+            displayMode: status.displayMode,
+            currentWaypointIndex: status.currentWaypointIndex,
+            distanceToNextTurn: status.distanceToNextTurn,
+            bearingToNextTurn: status.bearingToRoute,
+            nextManeuver: status.nextTurn?.maneuverType,
+            instruction: status.nextTurn?.instruction,
+            streetName: status.nextTurn?.streetName,
+            progress: status.progress,
+            distanceRemaining: status.distanceRemaining,
+            timeRemaining: status.timeRemaining,
+            isOffRoad: status.state === "off_road",
+            distanceToRouteStart: status.distanceToRoute,
+            bearingToRouteStart: status.bearingToRoute,
+          });
+
+          // Also emit specific events for key state changes
+          if (status.state === "arrived") {
+            this.broadcast("drive:arrived", {
+              destination:
+                this.driveNavigationService?.getActiveRoute()?.destination,
+            });
+          } else if (status.state === "off_road") {
+            this.broadcast("drive:off-road", {
+              distance: status.distanceToRoute,
+              bearing: status.bearingToRoute,
+            });
+          }
+        });
+    }
   }
 
   /**
@@ -661,6 +735,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.simulationStateUnsubscribe) {
       this.simulationStateUnsubscribe();
       this.simulationStateUnsubscribe = null;
+    }
+
+    if (this.driveNavigationUnsubscribe) {
+      this.driveNavigationUnsubscribe();
+      this.driveNavigationUnsubscribe = null;
     }
   }
 }

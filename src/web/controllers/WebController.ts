@@ -7,9 +7,10 @@ import {
   IMapService,
   IConfigService,
   ITrackSimulationService,
+  IDriveNavigationService,
   SimulationSpeed,
 } from "@core/interfaces";
-import { isSuccess } from "@core/types";
+import { isSuccess, DriveRoute } from "@core/types";
 import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
 
@@ -29,6 +30,7 @@ export class WebController {
     private readonly gpxDirectory: string = "./data/gpx-files",
     private readonly configService?: IConfigService,
     private readonly simulationService?: ITrackSimulationService,
+    private readonly driveNavigationService?: IDriveNavigationService,
   ) {}
 
   /**
@@ -1201,6 +1203,359 @@ export class WebController {
     res.json({
       success: true,
       data: this.simulationService.getStatus(),
+    });
+  }
+
+  // Drive Navigation Endpoints
+
+  /**
+   * Save a drive route calculated by the browser
+   * Expects DriveRoute object in body
+   */
+  async saveDriveRoute(req: Request, res: Response): Promise<void> {
+    logger.info("Save drive route requested");
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    const route = req.body as DriveRoute;
+
+    // Validate required fields
+    if (!route || !route.destination || !route.waypoints || !route.geometry) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message:
+            "Route must include destination, waypoints, and geometry arrays",
+        },
+      });
+      return;
+    }
+
+    if (!Array.isArray(route.waypoints) || route.waypoints.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Route must have at least one waypoint",
+        },
+      });
+      return;
+    }
+
+    // Ensure required fields are present
+    const completeRoute: DriveRoute = {
+      id: route.id || `route_${Date.now()}`,
+      destination: route.destination,
+      createdAt: route.createdAt ? new Date(route.createdAt) : new Date(),
+      startPoint: route.startPoint || {
+        latitude: route.geometry[0][0],
+        longitude: route.geometry[0][1],
+      },
+      endPoint: route.endPoint || {
+        latitude: route.geometry[route.geometry.length - 1][0],
+        longitude: route.geometry[route.geometry.length - 1][1],
+      },
+      waypoints: route.waypoints,
+      geometry: route.geometry,
+      totalDistance: route.totalDistance || 0,
+      estimatedTime: route.estimatedTime || 0,
+    };
+
+    const result = await this.driveNavigationService.saveRoute(completeRoute);
+
+    if (isSuccess(result)) {
+      logger.info(`Drive route saved with ID: ${result.data}`);
+      res.json({
+        success: true,
+        message: "Route saved successfully",
+        data: {
+          routeId: result.data,
+        },
+      });
+    } else {
+      logger.error("Failed to save drive route:", result.error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "ROUTE_SAVE_FAILED",
+          message: result.error.message || "Failed to save route",
+        },
+      });
+    }
+  }
+
+  /**
+   * Get the currently active drive route
+   */
+  async getActiveDriveRoute(_req: Request, res: Response): Promise<void> {
+    logger.debug("Get active drive route requested");
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    const route = this.driveNavigationService.getActiveRoute();
+
+    res.json({
+      success: true,
+      data: {
+        route: route,
+        hasActiveRoute: route !== null,
+      },
+    });
+  }
+
+  /**
+   * List all saved drive routes
+   */
+  async listDriveRoutes(_req: Request, res: Response): Promise<void> {
+    logger.debug("List drive routes requested");
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    const result = await this.driveNavigationService.listRoutes();
+
+    if (isSuccess(result)) {
+      res.json({
+        success: true,
+        data: {
+          routes: result.data,
+        },
+      });
+    } else {
+      logger.error("Failed to list drive routes:", result.error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "ROUTE_LIST_FAILED",
+          message: result.error.message || "Failed to list routes",
+        },
+      });
+    }
+  }
+
+  /**
+   * Delete a drive route
+   */
+  async deleteDriveRoute(req: Request, res: Response): Promise<void> {
+    const routeId = req.params.routeId;
+
+    logger.info(`Delete drive route requested: ${routeId}`);
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    if (!routeId) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Route ID is required",
+        },
+      });
+      return;
+    }
+
+    const result = await this.driveNavigationService.deleteRoute(routeId);
+
+    if (isSuccess(result)) {
+      logger.info(`Drive route deleted: ${routeId}`);
+      res.json({
+        success: true,
+        message: "Route deleted successfully",
+      });
+    } else {
+      logger.error("Failed to delete drive route:", result.error);
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "ROUTE_NOT_FOUND",
+          message: result.error.message || "Route not found",
+        },
+      });
+    }
+  }
+
+  /**
+   * Start drive navigation
+   * Expects { routeId: string } or complete route object in body
+   */
+  async startDriveNavigation(req: Request, res: Response): Promise<void> {
+    const { routeId, route } = req.body;
+
+    logger.info(
+      `Start drive navigation requested: ${routeId || "with inline route"}`,
+    );
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    if (!routeId && !route) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Either routeId or route object is required",
+        },
+      });
+      return;
+    }
+
+    // Stop any active simulation first
+    if (this.simulationService) {
+      const status = this.simulationService.getStatus();
+      if (status.state === "running" || status.state === "paused") {
+        logger.info("Stopping simulation before starting drive navigation");
+        await this.simulationService.stopSimulation();
+      }
+    }
+
+    // Start navigation using orchestrator (which coordinates services)
+    let result;
+    if (route) {
+      result = await this.orchestrator.startDriveNavigation(route);
+    } else {
+      // Load route by ID first
+      const loadResult = await this.driveNavigationService.loadRoute(routeId);
+      if (!isSuccess(loadResult)) {
+        res.status(404).json({
+          success: false,
+          error: {
+            code: "ROUTE_NOT_FOUND",
+            message: "Route not found",
+          },
+        });
+        return;
+      }
+      result = await this.orchestrator.startDriveNavigation(loadResult.data);
+    }
+
+    if (isSuccess(result)) {
+      logger.info("Drive navigation started successfully");
+      res.json({
+        success: true,
+        message: "Navigation started",
+        data: {
+          state: this.driveNavigationService.getNavigationState(),
+          status: this.driveNavigationService.getNavigationStatus(),
+        },
+      });
+    } else {
+      logger.error("Failed to start drive navigation:", result.error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "NAVIGATION_START_FAILED",
+          message: result.error.message || "Failed to start navigation",
+        },
+      });
+    }
+  }
+
+  /**
+   * Stop drive navigation
+   */
+  async stopDriveNavigation(_req: Request, res: Response): Promise<void> {
+    logger.info("Stop drive navigation requested");
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    const result = await this.orchestrator.stopDriveNavigation();
+
+    if (isSuccess(result)) {
+      logger.info("Drive navigation stopped successfully");
+      res.json({
+        success: true,
+        message: "Navigation stopped",
+      });
+    } else {
+      logger.error("Failed to stop drive navigation:", result.error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "NAVIGATION_STOP_FAILED",
+          message: result.error.message || "Failed to stop navigation",
+        },
+      });
+    }
+  }
+
+  /**
+   * Get drive navigation status
+   */
+  async getDriveNavigationStatus(_req: Request, res: Response): Promise<void> {
+    logger.debug("Drive navigation status requested");
+
+    if (!this.driveNavigationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Drive navigation service is not available",
+        },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        state: this.driveNavigationService.getNavigationState(),
+        status: this.driveNavigationService.getNavigationStatus(),
+        isNavigating: this.driveNavigationService.isNavigating(),
+        activeRoute: this.driveNavigationService.getActiveRoute(),
+      },
     });
   }
 }

@@ -8,7 +8,9 @@ import {
   IWiFiService,
   ITextRendererService,
   ITrackSimulationService,
+  IDriveNavigationService,
   TextTemplate,
+  DriveNavigationInfo,
 } from "@core/interfaces";
 import {
   Result,
@@ -17,6 +19,10 @@ import {
   SystemStatus,
   WiFiState,
   GPXTrack,
+  DriveRoute,
+  DriveNavigationUpdate,
+  DriveDisplayMode,
+  NavigationState,
   success,
   failure,
   DisplayUpdateMode,
@@ -71,6 +77,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private simulationDisplayInterval: NodeJS.Timeout | null = null;
   private static readonly SIMULATION_DISPLAY_UPDATE_MS = 5000; // Update e-paper every 5s during simulation
 
+  // Drive navigation support
+  private driveNavigationUnsubscribe: (() => void) | null = null;
+  private driveDisplayUnsubscribe: (() => void) | null = null;
+  private driveNavigationCallbacks: Array<
+    (update: DriveNavigationUpdate) => void
+  > = [];
+  private static readonly DRIVE_DISPLAY_UPDATE_MS = 2000; // Update e-paper every 2s during navigation
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -80,6 +94,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly wifiService?: IWiFiService,
     private readonly textRendererService?: ITextRendererService,
     private readonly simulationService?: ITrackSimulationService,
+    private readonly driveNavigationService?: IDriveNavigationService,
   ) {}
 
   /**
@@ -195,6 +210,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
       // Store latest position for GPS info screen
       this.lastGPSPosition = position;
+
+      // Forward to drive navigation service if navigating
+      if (this.driveNavigationService?.isNavigating()) {
+        this.driveNavigationService.updatePosition(position);
+      }
 
       // Notify all GPS update callbacks
       this.gpsUpdateCallbacks.forEach((callback) => {
@@ -320,6 +340,269 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       clearInterval(this.simulationDisplayInterval);
       this.simulationDisplayInterval = null;
       logger.info("Stopped simulation display updates");
+    }
+  }
+
+  // ============================================
+  // Drive Navigation Methods
+  // ============================================
+
+  /**
+   * Start drive navigation with a route
+   */
+  async startDriveNavigation(route: DriveRoute): Promise<Result<void>> {
+    if (!this.driveNavigationService) {
+      logger.error("Drive navigation service not available");
+      return failure(
+        new OrchestratorError(
+          "Drive navigation service not available",
+          OrchestratorErrorCode.SERVICE_UNAVAILABLE,
+          false,
+        ),
+      );
+    }
+
+    logger.info(`Starting drive navigation to: ${route.destination}`);
+
+    // Subscribe to navigation updates
+    this.subscribeToDriveNavigation();
+
+    // Start navigation
+    const result = await this.driveNavigationService.startNavigation(route);
+
+    if (result.success) {
+      // Subscribe to GPS updates for navigation
+      this.subscribeGPSToDriveNavigation();
+    }
+
+    return result;
+  }
+
+  /**
+   * Stop current drive navigation
+   */
+  async stopDriveNavigation(): Promise<Result<void>> {
+    if (!this.driveNavigationService) {
+      return success(undefined);
+    }
+
+    logger.info("Stopping drive navigation");
+
+    // Unsubscribe from GPS updates
+    this.unsubscribeGPSFromDriveNavigation();
+
+    // Unsubscribe from navigation updates
+    if (this.driveNavigationUnsubscribe) {
+      this.driveNavigationUnsubscribe();
+      this.driveNavigationUnsubscribe = null;
+    }
+
+    return this.driveNavigationService.stopNavigation();
+  }
+
+  /**
+   * Check if drive navigation is currently active
+   */
+  isDriveNavigating(): boolean {
+    return this.driveNavigationService?.isNavigating() ?? false;
+  }
+
+  /**
+   * Register a callback for drive navigation updates
+   */
+  onDriveNavigationUpdate(
+    callback: (update: DriveNavigationUpdate) => void,
+  ): () => void {
+    this.driveNavigationCallbacks.push(callback);
+    return () => {
+      const index = this.driveNavigationCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.driveNavigationCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Subscribe to drive navigation updates
+   */
+  private subscribeToDriveNavigation(): void {
+    if (!this.driveNavigationService) {
+      return;
+    }
+
+    // Unsubscribe from any existing subscription
+    if (this.driveNavigationUnsubscribe) {
+      this.driveNavigationUnsubscribe();
+    }
+
+    this.driveNavigationUnsubscribe =
+      this.driveNavigationService.onNavigationUpdate((update) => {
+        logger.debug(`Drive navigation update: ${update.type}`);
+
+        // Forward to registered callbacks
+        for (const callback of this.driveNavigationCallbacks) {
+          try {
+            callback(update);
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : String(error);
+            logger.error(`Error in drive navigation callback: ${errorMsg}`);
+          }
+        }
+
+        // Update display based on navigation state
+        void this.updateDriveDisplay(update).catch((error) => {
+          logger.error("Failed to update drive display:", error);
+        });
+      });
+
+    // Also subscribe to display update requests
+    if (this.driveDisplayUnsubscribe) {
+      this.driveDisplayUnsubscribe();
+    }
+
+    this.driveDisplayUnsubscribe = this.driveNavigationService.onDisplayUpdate(
+      () => {
+        void this.updateDriveDisplay().catch((error) => {
+          logger.error("Failed to update drive display:", error);
+        });
+      },
+    );
+
+    logger.info("Subscribed to drive navigation updates");
+  }
+
+  /**
+   * Subscribe GPS position updates to drive navigation
+   */
+  private subscribeGPSToDriveNavigation(): void {
+    // The GPS service is already subscribed at orchestrator initialization
+    // The position updates will be forwarded to drive navigation via onPositionUpdate callback
+  }
+
+  /**
+   * Unsubscribe GPS from drive navigation
+   */
+  private unsubscribeGPSFromDriveNavigation(): void {
+    // GPS is always subscribed via the orchestrator, so nothing specific to unsubscribe
+  }
+
+  /**
+   * Update the display for drive navigation
+   */
+  private async updateDriveDisplay(
+    update?: DriveNavigationUpdate,
+  ): Promise<Result<void>> {
+    if (!this.driveNavigationService || !this.isInitialized) {
+      return success(undefined);
+    }
+
+    const status =
+      update?.status ?? this.driveNavigationService.getNavigationStatus();
+
+    if (status.state === NavigationState.IDLE) {
+      return success(undefined);
+    }
+
+    logger.info(
+      `Updating drive display: mode=${status.displayMode}, state=${status.state}`,
+    );
+
+    const width = this.configService.getDisplayWidth();
+    const height = this.configService.getDisplayHeight();
+    const viewport = {
+      width,
+      height,
+      zoomLevel: this.configService.getZoomLevel(),
+      centerPoint: this.lastGPSPosition || {
+        latitude: 0,
+        longitude: 0,
+        timestamp: new Date(),
+      },
+    };
+
+    try {
+      let renderResult;
+
+      switch (status.displayMode) {
+        case DriveDisplayMode.TURN_SCREEN:
+          if (status.nextTurn) {
+            renderResult = await this.svgService.renderTurnScreen(
+              status.nextTurn.maneuverType,
+              status.distanceToNextTurn,
+              status.nextTurn.instruction,
+              status.nextTurn.streetName,
+              viewport,
+            );
+          }
+          break;
+
+        case DriveDisplayMode.MAP_WITH_OVERLAY:
+          if (status.route && status.nextTurn && this.lastGPSPosition) {
+            const info: DriveNavigationInfo = {
+              speed: this.lastGPSPosition.speed
+                ? this.lastGPSPosition.speed * 3.6
+                : 0, // m/s to km/h
+              satellites: this.lastGPSStatus?.satellitesInUse ?? 0,
+              nextManeuver: status.nextTurn.maneuverType,
+              distanceToTurn: status.distanceToNextTurn,
+              instruction: status.nextTurn.instruction,
+              streetName: status.nextTurn.streetName,
+              distanceRemaining: status.distanceRemaining,
+              progress: status.progress,
+              timeRemaining: status.timeRemaining,
+            };
+
+            renderResult = await this.svgService.renderDriveMapScreen(
+              status.route,
+              this.lastGPSPosition,
+              status.nextTurn,
+              viewport,
+              info,
+            );
+          }
+          break;
+
+        case DriveDisplayMode.OFF_ROAD_ARROW:
+          if (
+            status.bearingToRoute !== undefined &&
+            status.distanceToRoute !== undefined
+          ) {
+            renderResult = await this.svgService.renderOffRoadScreen(
+              status.bearingToRoute,
+              status.distanceToRoute,
+              viewport,
+            );
+          }
+          break;
+
+        case DriveDisplayMode.ARRIVED:
+          if (status.route) {
+            renderResult = await this.svgService.renderArrivalScreen(
+              status.route.destination,
+              viewport,
+            );
+          }
+          break;
+      }
+
+      if (renderResult?.success) {
+        await this.epaperService.displayBitmap(renderResult.data);
+        logger.info("Drive display updated successfully");
+      } else if (renderResult) {
+        logger.error("Failed to render drive display:", renderResult.error);
+      }
+
+      return success(undefined);
+    } catch (error) {
+      logger.error("Error updating drive display:", error);
+      return failure(
+        new OrchestratorError(
+          "Failed to update drive display",
+          OrchestratorErrorCode.DISPLAY_UPDATE_FAILED,
+          true,
+        ),
+      );
     }
   }
 

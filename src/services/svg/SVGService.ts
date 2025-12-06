@@ -1,4 +1,8 @@
-import { ISVGService, FollowTrackInfo } from "@core/interfaces";
+import {
+  ISVGService,
+  FollowTrackInfo,
+  DriveNavigationInfo,
+} from "@core/interfaces";
 import {
   Result,
   GPXTrack,
@@ -7,6 +11,9 @@ import {
   Bitmap1Bit,
   RenderOptions,
   Point2D,
+  ManeuverType,
+  DriveRoute,
+  DriveWaypoint,
   success,
   failure,
 } from "@core/types";
@@ -1151,5 +1158,872 @@ export class SVGService implements ISVGService {
       x: Math.round(centerX + dx * cos - dy * sin),
       y: Math.round(centerY + dx * sin + dy * cos),
     };
+  }
+
+  // ============================================
+  // Drive Navigation Rendering Methods
+  // ============================================
+
+  /**
+   * Render full-screen turn display for drive navigation
+   */
+  async renderTurnScreen(
+    maneuverType: ManeuverType,
+    distance: number,
+    instruction: string,
+    streetName: string | undefined,
+    viewport: ViewportConfig,
+  ): Promise<Result<Bitmap1Bit>> {
+    logger.debug(`Rendering turn screen: ${maneuverType}, ${distance}m`);
+
+    try {
+      const { width, height } = viewport;
+      const bitmap = this.createBlankBitmap(width, height, false);
+
+      const centerX = Math.floor(width / 2);
+      const centerY = Math.floor(height / 3); // Upper third for arrow
+
+      // Draw the large turn arrow
+      this.drawManeuverArrow(bitmap, centerX, centerY, maneuverType, 120);
+
+      // Draw distance text (large)
+      const distanceText = this.formatDistanceForDisplay(distance);
+      const distanceY = Math.floor(height / 2) + 40;
+      this.renderLargeText(bitmap, centerX, distanceY, distanceText);
+
+      // Draw instruction text
+      const instructionY = Math.floor(height * 0.7);
+      this.renderSimpleText(
+        bitmap,
+        centerX - Math.floor((instruction.length * 6) / 2),
+        instructionY,
+        instruction.toUpperCase(),
+      );
+
+      // Draw street name if provided
+      if (streetName) {
+        const streetY = instructionY + 25;
+        this.renderSimpleText(
+          bitmap,
+          centerX - Math.floor((streetName.length * 6) / 2),
+          streetY,
+          streetName.toUpperCase(),
+        );
+      }
+
+      logger.info("Turn screen rendered successfully");
+      return success(bitmap);
+    } catch (error) {
+      logger.error("Failed to render turn screen:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.renderFailed(error.message, error));
+      }
+      return failure(DisplayError.renderFailed("Unknown error"));
+    }
+  }
+
+  /**
+   * Render drive navigation map screen with turn overlay
+   */
+  async renderDriveMapScreen(
+    route: DriveRoute,
+    currentPosition: GPSCoordinate,
+    nextWaypoint: DriveWaypoint,
+    viewport: ViewportConfig,
+    info: DriveNavigationInfo,
+    options?: Partial<RenderOptions>,
+  ): Promise<Result<Bitmap1Bit>> {
+    logger.debug("Rendering drive map screen");
+
+    try {
+      const { width, height } = viewport;
+      const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
+
+      // Calculate split dimensions (70/30 for drive mode)
+      const mapWidth = Math.floor(width * 0.7);
+      const infoWidth = width - mapWidth;
+
+      // Create main bitmap
+      const bitmap = this.createBlankBitmap(width, height, false);
+
+      // Render the route on the map section
+      const mapViewport: ViewportConfig = {
+        ...viewport,
+        width: mapWidth,
+        centerPoint: currentPosition,
+      };
+
+      // Draw route line using geometry
+      if (route.geometry && route.geometry.length > 1) {
+        const projectedRoute = route.geometry.map(([lat, lon]) =>
+          this.projectToPixels(lat, lon, mapViewport),
+        );
+
+        if (renderOpts.showLine) {
+          for (let i = 0; i < projectedRoute.length - 1; i++) {
+            if (
+              projectedRoute[i].x < mapWidth ||
+              projectedRoute[i + 1].x < mapWidth
+            ) {
+              this.drawLine(
+                bitmap,
+                projectedRoute[i],
+                projectedRoute[i + 1],
+                renderOpts.lineWidth,
+              );
+            }
+          }
+        }
+      }
+
+      // Highlight current position
+      if (renderOpts.highlightCurrentPosition) {
+        const centerPoint = {
+          x: Math.floor(mapWidth / 2),
+          y: Math.floor(height / 2),
+        };
+        const radius = renderOpts.currentPositionRadius || 8;
+        this.drawCircle(bitmap, centerPoint, radius);
+        this.drawFilledCircle(bitmap, centerPoint, radius - 2);
+      }
+
+      // Draw next waypoint marker
+      const waypointPixel = this.projectToPixels(
+        nextWaypoint.latitude,
+        nextWaypoint.longitude,
+        mapViewport,
+      );
+      if (waypointPixel.x < mapWidth) {
+        this.drawCircle(bitmap, waypointPixel, 6);
+        this.drawCircle(bitmap, waypointPixel, 8);
+      }
+
+      // Draw vertical divider line
+      this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
+
+      // Render info panel (right 30%)
+      this.renderDriveInfoPanel(
+        bitmap,
+        mapWidth + 10,
+        info,
+        infoWidth - 20,
+        height,
+      );
+
+      logger.info("Drive map screen rendered successfully");
+      return success(bitmap);
+    } catch (error) {
+      logger.error("Failed to render drive map screen:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.renderFailed(error.message, error));
+      }
+      return failure(DisplayError.renderFailed("Unknown error"));
+    }
+  }
+
+  /**
+   * Render off-road arrow screen for drive navigation
+   */
+  async renderOffRoadScreen(
+    bearing: number,
+    distance: number,
+    viewport: ViewportConfig,
+  ): Promise<Result<Bitmap1Bit>> {
+    logger.debug(
+      `Rendering off-road screen: bearing=${bearing}, distance=${distance}m`,
+    );
+
+    try {
+      const { width, height } = viewport;
+      const bitmap = this.createBlankBitmap(width, height, false);
+
+      const centerX = Math.floor(width / 2);
+      const centerY = Math.floor(height / 3);
+
+      // Draw large directional arrow pointing to route
+      this.drawDirectionalArrow(bitmap, centerX, centerY, bearing, 100);
+
+      // Draw distance text
+      const distanceText = this.formatDistanceForDisplay(distance);
+      const distanceY = Math.floor(height / 2) + 40;
+      this.renderLargeText(bitmap, centerX, distanceY, distanceText);
+
+      // Draw "TO ROUTE" text
+      const labelY = Math.floor(height / 2) + 100;
+      const label = "TO ROUTE";
+      this.renderSimpleText(
+        bitmap,
+        centerX - Math.floor((label.length * 6) / 2),
+        labelY,
+        label,
+      );
+
+      // Draw instruction at bottom
+      const instructionY = Math.floor(height * 0.8);
+      const instruction =
+        "HEAD " + this.bearingToDirection(bearing) + " TO REACH PAVED ROAD";
+      this.renderSimpleText(
+        bitmap,
+        centerX - Math.floor((instruction.length * 6) / 2),
+        instructionY,
+        instruction,
+      );
+
+      logger.info("Off-road screen rendered successfully");
+      return success(bitmap);
+    } catch (error) {
+      logger.error("Failed to render off-road screen:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.renderFailed(error.message, error));
+      }
+      return failure(DisplayError.renderFailed("Unknown error"));
+    }
+  }
+
+  /**
+   * Render arrival screen for drive navigation
+   */
+  async renderArrivalScreen(
+    destination: string,
+    viewport: ViewportConfig,
+  ): Promise<Result<Bitmap1Bit>> {
+    logger.debug(`Rendering arrival screen: ${destination}`);
+
+    try {
+      const { width, height } = viewport;
+      const bitmap = this.createBlankBitmap(width, height, false);
+
+      const centerX = Math.floor(width / 2);
+
+      // Draw checkmark or destination marker
+      const markerY = Math.floor(height / 3);
+      this.drawCheckmark(bitmap, centerX, markerY, 80);
+
+      // Draw "ARRIVED" text
+      const arrivedY = Math.floor(height / 2) + 20;
+      const arrivedText = "ARRIVED";
+      this.renderLargeText(bitmap, centerX, arrivedY, arrivedText);
+
+      // Draw destination name
+      const destY = Math.floor(height * 0.7);
+      // Truncate if too long
+      const truncatedDest =
+        destination.length > 40
+          ? destination.substring(0, 37) + "..."
+          : destination;
+      this.renderSimpleText(
+        bitmap,
+        centerX - Math.floor((truncatedDest.length * 6) / 2),
+        destY,
+        truncatedDest.toUpperCase(),
+      );
+
+      logger.info("Arrival screen rendered successfully");
+      return success(bitmap);
+    } catch (error) {
+      logger.error("Failed to render arrival screen:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.renderFailed(error.message, error));
+      }
+      return failure(DisplayError.renderFailed("Unknown error"));
+    }
+  }
+
+  // ============================================
+  // Drive Navigation Helper Methods
+  // ============================================
+
+  /**
+   * Draw a maneuver arrow for turn display
+   */
+  private drawManeuverArrow(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    maneuverType: ManeuverType,
+    size: number,
+  ): void {
+    // Get arrow angle based on maneuver type
+    const angle = this.getManeuverAngle(maneuverType);
+
+    if (maneuverType === ManeuverType.UTURN) {
+      this.drawUturnArrow(bitmap, x, y, size);
+    } else if (maneuverType === ManeuverType.STRAIGHT) {
+      this.drawStraightArrow(bitmap, x, y, size);
+    } else if (maneuverType === ManeuverType.ARRIVE) {
+      this.drawDestinationMarker(bitmap, x, y, size);
+    } else if (maneuverType.startsWith("roundabout")) {
+      this.drawRoundaboutArrow(bitmap, x, y, size, maneuverType);
+    } else {
+      // Turn arrows (left, right, slight, sharp)
+      this.drawTurnArrow(bitmap, x, y, size, angle);
+    }
+  }
+
+  /**
+   * Get angle for maneuver type
+   */
+  private getManeuverAngle(maneuverType: ManeuverType): number {
+    switch (maneuverType) {
+      case ManeuverType.SHARP_LEFT:
+        return -135;
+      case ManeuverType.LEFT:
+        return -90;
+      case ManeuverType.SLIGHT_LEFT:
+        return -45;
+      case ManeuverType.STRAIGHT:
+        return 0;
+      case ManeuverType.SLIGHT_RIGHT:
+        return 45;
+      case ManeuverType.RIGHT:
+        return 90;
+      case ManeuverType.SHARP_RIGHT:
+        return 135;
+      case ManeuverType.UTURN:
+        return 180;
+      case ManeuverType.FORK_LEFT:
+        return -30;
+      case ManeuverType.FORK_RIGHT:
+        return 30;
+      case ManeuverType.RAMP_LEFT:
+        return -45;
+      case ManeuverType.RAMP_RIGHT:
+        return 45;
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * Draw a turn arrow at specified angle
+   */
+  private drawTurnArrow(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+    angleDegrees: number,
+  ): void {
+    const arrowLength = size * 0.8;
+    const headSize = size * 0.3;
+    const lineWidth = Math.max(4, Math.floor(size / 20));
+
+    // Arrow shaft
+    const angleRad = ((angleDegrees - 90) * Math.PI) / 180; // -90 to make 0 degrees point up
+    const endX = Math.round(centerX + arrowLength * Math.cos(angleRad));
+    const endY = Math.round(centerY + arrowLength * Math.sin(angleRad));
+
+    // Draw curved path from bottom to turn direction
+    const startY = centerY + size * 0.4;
+
+    // Draw shaft
+    this.drawLine(
+      bitmap,
+      { x: centerX, y: startY },
+      { x: centerX, y: centerY },
+      lineWidth,
+    );
+    this.drawLine(
+      bitmap,
+      { x: centerX, y: centerY },
+      { x: endX, y: endY },
+      lineWidth,
+    );
+
+    // Draw arrowhead
+    const headAngle1 = angleRad + Math.PI * 0.8;
+    const headAngle2 = angleRad - Math.PI * 0.8;
+
+    const head1X = Math.round(endX + headSize * Math.cos(headAngle1));
+    const head1Y = Math.round(endY + headSize * Math.sin(headAngle1));
+    const head2X = Math.round(endX + headSize * Math.cos(headAngle2));
+    const head2Y = Math.round(endY + headSize * Math.sin(headAngle2));
+
+    this.drawLine(
+      bitmap,
+      { x: endX, y: endY },
+      { x: head1X, y: head1Y },
+      lineWidth,
+    );
+    this.drawLine(
+      bitmap,
+      { x: endX, y: endY },
+      { x: head2X, y: head2Y },
+      lineWidth,
+    );
+
+    // Fill arrowhead
+    this.fillTriangle(
+      bitmap,
+      { x: endX, y: endY },
+      { x: head1X, y: head1Y },
+      { x: head2X, y: head2Y },
+    );
+  }
+
+  /**
+   * Draw straight arrow
+   */
+  private drawStraightArrow(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+  ): void {
+    const lineWidth = Math.max(4, Math.floor(size / 20));
+    const arrowLength = size * 0.8;
+    const headSize = size * 0.25;
+
+    const topY = centerY - arrowLength / 2;
+    const bottomY = centerY + arrowLength / 2;
+
+    // Draw shaft
+    this.drawLine(
+      bitmap,
+      { x: centerX, y: bottomY },
+      { x: centerX, y: topY },
+      lineWidth,
+    );
+
+    // Draw arrowhead
+    const head1 = { x: centerX - headSize, y: topY + headSize };
+    const head2 = { x: centerX + headSize, y: topY + headSize };
+
+    this.drawLine(bitmap, { x: centerX, y: topY }, head1, lineWidth);
+    this.drawLine(bitmap, { x: centerX, y: topY }, head2, lineWidth);
+    this.fillTriangle(bitmap, { x: centerX, y: topY }, head1, head2);
+  }
+
+  /**
+   * Draw U-turn arrow
+   */
+  private drawUturnArrow(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+  ): void {
+    const lineWidth = Math.max(4, Math.floor(size / 20));
+    const arcRadius = size * 0.3;
+
+    // Draw the U shape
+    const startX = centerX + arcRadius;
+    const endX = centerX - arcRadius;
+    const bottomY = centerY + size * 0.3;
+    const topY = centerY - size * 0.2;
+
+    // Right side going up
+    this.drawLine(
+      bitmap,
+      { x: startX, y: bottomY },
+      { x: startX, y: topY },
+      lineWidth,
+    );
+
+    // Arc at top (simplified as lines)
+    const steps = 10;
+    for (let i = 0; i < steps; i++) {
+      const angle1 = (Math.PI * i) / steps;
+      const angle2 = (Math.PI * (i + 1)) / steps;
+      const x1 = Math.round(centerX + arcRadius * Math.cos(angle1));
+      const y1 = Math.round(topY - arcRadius * Math.sin(angle1));
+      const x2 = Math.round(centerX + arcRadius * Math.cos(angle2));
+      const y2 = Math.round(topY - arcRadius * Math.sin(angle2));
+      this.drawLine(bitmap, { x: x1, y: y1 }, { x: x2, y: y2 }, lineWidth);
+    }
+
+    // Left side going down with arrowhead
+    const arrowY = bottomY;
+    this.drawLine(
+      bitmap,
+      { x: endX, y: topY },
+      { x: endX, y: arrowY },
+      lineWidth,
+    );
+
+    // Arrowhead pointing down
+    const headSize = size * 0.15;
+    this.drawLine(
+      bitmap,
+      { x: endX, y: arrowY },
+      { x: endX - headSize, y: arrowY - headSize },
+      lineWidth,
+    );
+    this.drawLine(
+      bitmap,
+      { x: endX, y: arrowY },
+      { x: endX + headSize, y: arrowY - headSize },
+      lineWidth,
+    );
+  }
+
+  /**
+   * Draw destination marker
+   */
+  private drawDestinationMarker(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+  ): void {
+    // Draw location pin shape
+    const pinHeight = size * 0.8;
+    const pinWidth = size * 0.5;
+    const circleRadius = size * 0.2;
+
+    // Draw outer pin shape
+    const topY = centerY - pinHeight / 2;
+    const bottomY = centerY + pinHeight / 2;
+
+    // Circle part at top
+    this.drawCircle(
+      bitmap,
+      { x: centerX, y: topY + circleRadius },
+      circleRadius,
+    );
+    this.drawCircle(
+      bitmap,
+      { x: centerX, y: topY + circleRadius },
+      circleRadius + 2,
+    );
+
+    // Triangular point
+    const leftX = centerX - pinWidth / 2;
+    const rightX = centerX + pinWidth / 2;
+    const pointY = bottomY;
+
+    this.drawLine(
+      bitmap,
+      { x: leftX, y: topY + circleRadius },
+      { x: centerX, y: pointY },
+      3,
+    );
+    this.drawLine(
+      bitmap,
+      { x: rightX, y: topY + circleRadius },
+      { x: centerX, y: pointY },
+      3,
+    );
+  }
+
+  /**
+   * Draw roundabout arrow
+   */
+  private drawRoundaboutArrow(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+    maneuverType: ManeuverType,
+  ): void {
+    const lineWidth = Math.max(3, Math.floor(size / 25));
+    const circleRadius = size * 0.25;
+
+    // Draw roundabout circle
+    this.drawCircle(bitmap, { x: centerX, y: centerY }, circleRadius);
+    this.drawCircle(bitmap, { x: centerX, y: centerY }, circleRadius - 2);
+
+    // Draw entry from bottom
+    const entryY = centerY + size * 0.4;
+    this.drawLine(
+      bitmap,
+      { x: centerX, y: entryY },
+      { x: centerX, y: centerY + circleRadius },
+      lineWidth,
+    );
+
+    // Draw exit based on exit number
+    const exitNumber = this.getExitNumber(maneuverType);
+    const exitAngle = -90 + (exitNumber - 1) * 45; // First exit is straight
+    const exitRad = (exitAngle * Math.PI) / 180;
+
+    const exitStartX = Math.round(centerX + circleRadius * Math.cos(exitRad));
+    const exitStartY = Math.round(centerY + circleRadius * Math.sin(exitRad));
+    const exitEndX = Math.round(
+      centerX + (circleRadius + size * 0.3) * Math.cos(exitRad),
+    );
+    const exitEndY = Math.round(
+      centerY + (circleRadius + size * 0.3) * Math.sin(exitRad),
+    );
+
+    this.drawLine(
+      bitmap,
+      { x: exitStartX, y: exitStartY },
+      { x: exitEndX, y: exitEndY },
+      lineWidth,
+    );
+
+    // Draw arrowhead on exit
+    const headSize = size * 0.1;
+    const headAngle1 = exitRad + Math.PI * 0.8;
+    const headAngle2 = exitRad - Math.PI * 0.8;
+
+    this.drawLine(
+      bitmap,
+      { x: exitEndX, y: exitEndY },
+      {
+        x: Math.round(exitEndX + headSize * Math.cos(headAngle1)),
+        y: Math.round(exitEndY + headSize * Math.sin(headAngle1)),
+      },
+      lineWidth,
+    );
+    this.drawLine(
+      bitmap,
+      { x: exitEndX, y: exitEndY },
+      {
+        x: Math.round(exitEndX + headSize * Math.cos(headAngle2)),
+        y: Math.round(exitEndY + headSize * Math.sin(headAngle2)),
+      },
+      lineWidth,
+    );
+  }
+
+  /**
+   * Get exit number from roundabout maneuver type
+   */
+  private getExitNumber(maneuverType: ManeuverType): number {
+    switch (maneuverType) {
+      case ManeuverType.ROUNDABOUT_EXIT_1:
+        return 1;
+      case ManeuverType.ROUNDABOUT_EXIT_2:
+        return 2;
+      case ManeuverType.ROUNDABOUT_EXIT_3:
+        return 3;
+      case ManeuverType.ROUNDABOUT_EXIT_4:
+        return 4;
+      case ManeuverType.ROUNDABOUT_EXIT_5:
+        return 5;
+      case ManeuverType.ROUNDABOUT_EXIT_6:
+        return 6;
+      case ManeuverType.ROUNDABOUT_EXIT_7:
+        return 7;
+      case ManeuverType.ROUNDABOUT_EXIT_8:
+        return 8;
+      default:
+        return 1;
+    }
+  }
+
+  /**
+   * Draw directional arrow for off-road display
+   */
+  private drawDirectionalArrow(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    bearing: number,
+    size: number,
+  ): void {
+    const lineWidth = Math.max(4, Math.floor(size / 20));
+    const arrowLength = size * 0.7;
+    const headSize = size * 0.25;
+
+    // Convert bearing to radians (0 = north/up)
+    const angleRad = ((bearing - 90) * Math.PI) / 180;
+
+    const endX = Math.round(centerX + arrowLength * Math.cos(angleRad));
+    const endY = Math.round(centerY + arrowLength * Math.sin(angleRad));
+
+    // Draw shaft
+    this.drawLine(
+      bitmap,
+      { x: centerX, y: centerY },
+      { x: endX, y: endY },
+      lineWidth,
+    );
+
+    // Draw arrowhead
+    const headAngle1 = angleRad + Math.PI * 0.85;
+    const headAngle2 = angleRad - Math.PI * 0.85;
+
+    const head1 = {
+      x: Math.round(endX + headSize * Math.cos(headAngle1)),
+      y: Math.round(endY + headSize * Math.sin(headAngle1)),
+    };
+    const head2 = {
+      x: Math.round(endX + headSize * Math.cos(headAngle2)),
+      y: Math.round(endY + headSize * Math.sin(headAngle2)),
+    };
+
+    this.drawLine(bitmap, { x: endX, y: endY }, head1, lineWidth);
+    this.drawLine(bitmap, { x: endX, y: endY }, head2, lineWidth);
+    this.fillTriangle(bitmap, { x: endX, y: endY }, head1, head2);
+
+    // Draw circle at base
+    this.drawCircle(bitmap, { x: centerX, y: centerY }, 10);
+  }
+
+  /**
+   * Draw checkmark for arrival screen
+   */
+  private drawCheckmark(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    centerY: number,
+    size: number,
+  ): void {
+    const lineWidth = Math.max(5, Math.floor(size / 15));
+
+    // Draw circle
+    this.drawCircle(bitmap, { x: centerX, y: centerY }, size / 2);
+    this.drawCircle(bitmap, { x: centerX, y: centerY }, size / 2 - 2);
+
+    // Draw checkmark
+    const checkStart = {
+      x: centerX - size * 0.25,
+      y: centerY,
+    };
+    const checkMid = {
+      x: centerX - size * 0.05,
+      y: centerY + size * 0.2,
+    };
+    const checkEnd = {
+      x: centerX + size * 0.25,
+      y: centerY - size * 0.15,
+    };
+
+    this.drawLine(bitmap, checkStart, checkMid, lineWidth);
+    this.drawLine(bitmap, checkMid, checkEnd, lineWidth);
+  }
+
+  /**
+   * Render the info panel for drive navigation
+   */
+  private renderDriveInfoPanel(
+    bitmap: Bitmap1Bit,
+    x: number,
+    info: DriveNavigationInfo,
+    width: number,
+    height: number,
+  ): void {
+    const padding = 10;
+    let currentY = padding + 20;
+
+    // Next turn section
+    this.renderSimpleText(bitmap, x + padding, currentY, "NEXT TURN");
+    currentY += 20;
+
+    // Small turn arrow
+    this.drawManeuverArrow(
+      bitmap,
+      x + padding + 30,
+      currentY + 25,
+      info.nextManeuver,
+      50,
+    );
+    currentY += 70;
+
+    // Distance to turn
+    const distText = this.formatDistanceForDisplay(info.distanceToTurn);
+    this.renderSimpleText(bitmap, x + padding, currentY, distText);
+    currentY += 30;
+
+    // Divider
+    this.drawHorizontalLine(bitmap, x + padding, currentY, width - padding * 2);
+    currentY += 20;
+
+    // Speed
+    this.renderSimpleText(bitmap, x + padding, currentY, "SPEED");
+    currentY += 20;
+    this.renderLargeNumber(
+      bitmap,
+      x + padding,
+      currentY,
+      Math.round(info.speed),
+      width - padding * 2,
+    );
+    this.renderSimpleText(bitmap, x + padding, currentY + 55, "KM/H");
+    currentY += 80;
+
+    // Progress
+    this.renderSimpleText(bitmap, x + padding, currentY, "PROGRESS");
+    currentY += 20;
+
+    // Progress bar
+    const barWidth = width - padding * 2;
+    const barHeight = 12;
+    this.drawHorizontalLine(bitmap, x + padding, currentY, barWidth);
+    this.drawHorizontalLine(
+      bitmap,
+      x + padding,
+      currentY + barHeight,
+      barWidth,
+    );
+    this.drawVerticalLine(bitmap, x + padding, currentY, barHeight, 1);
+    this.drawVerticalLine(
+      bitmap,
+      x + padding + barWidth,
+      currentY,
+      barHeight,
+      1,
+    );
+
+    const fillWidth = Math.floor((barWidth - 4) * (info.progress / 100));
+    for (let row = currentY + 2; row < currentY + barHeight - 2; row++) {
+      for (
+        let col = x + padding + 2;
+        col < x + padding + 2 + fillWidth;
+        col++
+      ) {
+        this.setPixel(bitmap, col, row, true);
+      }
+    }
+    currentY += barHeight + 15;
+
+    this.renderSimpleText(
+      bitmap,
+      x + padding,
+      currentY,
+      `${Math.round(info.progress)}%`,
+    );
+    currentY += 30;
+
+    // Remaining distance
+    this.renderSimpleText(bitmap, x + padding, currentY, "REMAINING");
+    currentY += 20;
+    const remainingText = this.formatDistanceForDisplay(info.distanceRemaining);
+    this.renderSimpleText(bitmap, x + padding, currentY, remainingText);
+  }
+
+  /**
+   * Format distance for display (m or km)
+   */
+  private formatDistanceForDisplay(meters: number): string {
+    if (meters >= 1000) {
+      const km = meters / 1000;
+      if (km >= 10) {
+        return `${Math.round(km)} KM`;
+      }
+      return `${km.toFixed(1)} KM`;
+    }
+    return `${Math.round(meters)} M`;
+  }
+
+  /**
+   * Convert bearing to cardinal direction
+   */
+  private bearingToDirection(bearing: number): string {
+    const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+    const index = Math.round(bearing / 45) % 8;
+    return directions[index];
+  }
+
+  /**
+   * Render large text centered at position
+   */
+  private renderLargeText(
+    bitmap: Bitmap1Bit,
+    centerX: number,
+    y: number,
+    text: string,
+  ): void {
+    const charWidth = 18; // Larger spacing
+    const totalWidth = text.length * charWidth;
+    const startX = centerX - totalWidth / 2;
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charAt(i);
+      this.drawLargeChar(bitmap, Math.round(startX + i * charWidth), y, char);
+    }
   }
 }

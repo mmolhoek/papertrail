@@ -356,3 +356,4 @@ WebSocket events are defined in `IntegratedWebService.subscribeToOrchestratorEve
 - **Auto-update:** RenderingOrchestrator can run periodic display updates via `startAutoUpdate()`
 - **Systemd service:** `papertrail.service` file for running as system service
 - alway run npm run format after you are done making changes
+- do the commit this way always after making changes. do not mention you as a co auther as this is clear already

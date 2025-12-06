@@ -8,6 +8,7 @@ import {
   IWiFiService,
   ITextRendererService,
   ITrackSimulationService,
+  IDriveNavigationService,
 } from "@core/interfaces";
 import {
   WebConfig,
@@ -28,6 +29,7 @@ import { ConfigService } from "@services/config/ConfigService";
 import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
 import { TextRendererService } from "@services/textRenderer/TextRendererService";
 import { TrackSimulationService } from "@services/simulation/TrackSimulationService";
+import { DriveNavigationService } from "@services/drive/DriveNavigationService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -51,6 +53,7 @@ export class ServiceContainer {
     wifi?: IWiFiService;
     textRenderer?: ITextRendererService;
     simulation?: ITrackSimulationService;
+    driveNavigation?: IDriveNavigationService;
   } = {};
 
   private constructor() {}
@@ -166,6 +169,7 @@ export class ServiceContainer {
         this.getWiFiService(),
         this.getTextRendererService(),
         this.getTrackSimulationService(),
+        this.getDriveNavigationService(),
       );
     }
     return this.services.orchestrator;
@@ -211,6 +215,16 @@ export class ServiceContainer {
       this.services.simulation = new TrackSimulationService();
     }
     return this.services.simulation;
+  }
+
+  /**
+   * Get Drive Navigation Service
+   */
+  getDriveNavigationService(): IDriveNavigationService {
+    if (!this.services.driveNavigation) {
+      this.services.driveNavigation = new DriveNavigationService();
+    }
+    return this.services.driveNavigation;
   }
 
   // Configuration getters
@@ -371,5 +385,12 @@ export class ServiceContainer {
    */
   setTrackSimulationService(service: ITrackSimulationService): void {
     this.services.simulation = service;
+  }
+
+  /**
+   * Set Drive Navigation Service (for testing)
+   */
+  setDriveNavigationService(service: IDriveNavigationService): void {
+    this.services.driveNavigation = service;
   }
 }
