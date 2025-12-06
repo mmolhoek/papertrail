@@ -611,9 +611,22 @@ export class SVGService implements ISVGService {
       // Render track on left portion
       if (track.segments.length > 0 && track.segments[0].points.length > 0) {
         // Project all track points to pixel coordinates
-        const projectedPoints = track.segments[0].points.map((point) =>
+        let projectedPoints = track.segments[0].points.map((point) =>
           this.projectToPixels(point.latitude, point.longitude, mapViewport),
         );
+
+        // Apply rotation if rotateWithBearing is enabled and bearing is available
+        const bearing = info.bearing;
+        if (renderOpts.rotateWithBearing && bearing !== undefined) {
+          logger.info(
+            `Rotating map by ${bearing.toFixed(1)}° for track-up view`,
+          );
+          const centerX = mapWidth / 2;
+          const centerY = height / 2;
+          projectedPoints = projectedPoints.map((p) =>
+            this.rotatePoint(p, centerX, centerY, -bearing),
+          );
+        }
 
         // Draw connecting lines if enabled
         if (renderOpts.showLine && projectedPoints.length > 1) {
