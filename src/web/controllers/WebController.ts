@@ -959,23 +959,6 @@ export class WebController {
       speedValue = speedMap[speed] || SimulationSpeed.WALK;
     }
 
-    // Set appropriate zoom level based on speed
-    // Walking: show ~100m ahead (zoom 18, ~0.6m/pixel, ~480m visible)
-    // Cycling: show ~300m ahead (zoom 16, ~2.4m/pixel, ~1900m visible)
-    // Driving: show ~800m ahead (zoom 14, ~9.5m/pixel, ~7600m visible)
-    let zoomLevel: number;
-    if (speedValue <= SimulationSpeed.WALK) {
-      zoomLevel = 18; // Walking - detailed view
-    } else if (speedValue <= SimulationSpeed.BICYCLE) {
-      zoomLevel = 16; // Cycling - medium view
-    } else {
-      zoomLevel = 14; // Driving - wide view
-    }
-    logger.info(
-      `Setting zoom level to ${zoomLevel} for speed ${speedValue} m/s`,
-    );
-    await this.orchestrator.setZoom(zoomLevel);
-
     // Set the track as active for display rendering
     const setActiveResult = await this.orchestrator.setActiveGPX(trackPath);
     if (!isSuccess(setActiveResult)) {
@@ -1012,7 +995,7 @@ export class WebController {
         message: "Simulation started",
         data: {
           ...this.simulationService.getStatus(),
-          zoomLevel,
+          zoomLevel: this.configService?.getZoomLevel() ?? 14,
         },
       });
     } else {
@@ -1169,17 +1152,9 @@ export class WebController {
     }
 
     let result;
-    let speedValue: number;
     if (typeof speed === "number") {
-      speedValue = speed;
       result = await this.simulationService.setSpeed(speed);
     } else if (["walk", "bicycle", "drive"].includes(speed)) {
-      const speedMap: Record<string, number> = {
-        walk: SimulationSpeed.WALK,
-        bicycle: SimulationSpeed.BICYCLE,
-        drive: SimulationSpeed.DRIVE,
-      };
-      speedValue = speedMap[speed];
       result = await this.simulationService.setSpeedPreset(speed);
     } else {
       res.status(400).json({
@@ -1192,20 +1167,6 @@ export class WebController {
       return;
     }
 
-    // Update zoom level based on new speed
-    let zoomLevel: number;
-    if (speedValue <= SimulationSpeed.WALK) {
-      zoomLevel = 18;
-    } else if (speedValue <= SimulationSpeed.BICYCLE) {
-      zoomLevel = 16;
-    } else {
-      zoomLevel = 14;
-    }
-    logger.info(
-      `Updating zoom level to ${zoomLevel} for speed ${speedValue} m/s`,
-    );
-    await this.orchestrator.setZoom(zoomLevel);
-
     if (isSuccess(result)) {
       logger.info("Simulation speed updated");
       res.json({
@@ -1213,7 +1174,7 @@ export class WebController {
         message: "Speed updated",
         data: {
           ...this.simulationService.getStatus(),
-          zoomLevel,
+          zoomLevel: this.configService?.getZoomLevel() ?? 14,
         },
       });
     } else {
