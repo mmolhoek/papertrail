@@ -10,7 +10,7 @@ import {
   IDriveNavigationService,
   SimulationSpeed,
 } from "@core/interfaces";
-import { isSuccess, DriveRoute } from "@core/types";
+import { isSuccess, DriveRoute, DisplayUpdateMode } from "@core/types";
 import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
 
@@ -1614,6 +1614,10 @@ export class WebController {
         if (this.driveNavigationService && this.orchestrator) {
           await this.orchestrator.startDriveNavigation(route);
         }
+
+        // Trigger a full e-paper display refresh
+        logger.info("Triggering full display refresh for drive simulation");
+        await this.orchestrator.updateDisplay(DisplayUpdateMode.FULL);
 
         logger.info(`Drive simulation started at ${speed} km/h`);
         res.json({

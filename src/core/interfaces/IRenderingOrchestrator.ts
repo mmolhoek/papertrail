@@ -5,6 +5,7 @@ import {
   SystemStatus,
   DriveRoute,
   DriveNavigationUpdate,
+  DisplayUpdateMode,
 } from "@core/types";
 
 /**
@@ -27,9 +28,10 @@ export interface IRenderingOrchestrator {
    * 2. Loads active GPX track
    * 3. Renders viewport
    * 4. Displays on e-paper
+   * @param mode Optional display update mode (FULL, PARTIAL, or AUTO)
    * @returns Result indicating success or failure
    */
-  updateDisplay(): Promise<Result<void>>;
+  updateDisplay(mode?: DisplayUpdateMode): Promise<Result<void>>;
 
   /**
    * Set the active GPX file and update display

@@ -1688,7 +1688,7 @@ class PapertrailClient {
           );
           return;
         }
-      } catch (e) {
+      } catch (error) {
         this.showMessage(
           "No valid GPS position. Please wait for GPS fix.",
           "error",
