@@ -211,4 +211,17 @@ export interface IRenderingOrchestrator {
    * Clean up resources and shut down all services
    */
   dispose(): Promise<void>;
+
+  /**
+   * Get the mock display image (only available when using MockEpaperService)
+   * Returns a PNG buffer of what would be shown on the e-paper display
+   * @returns PNG buffer or null if not available
+   */
+  getMockDisplayImage(): Buffer | null;
+
+  /**
+   * Check if mock display image is available
+   * @returns true if using MockEpaperService and an image is available
+   */
+  hasMockDisplayImage(): boolean;
 }

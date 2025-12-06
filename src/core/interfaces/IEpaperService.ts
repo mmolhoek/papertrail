@@ -118,4 +118,16 @@ export interface IEpaperService {
    * Clean up resources and close hardware connections
    */
   dispose(): Promise<void>;
+
+  /**
+   * Get the last displayed image as a PNG buffer (MockEpaperService only)
+   * This is used for development to view what would be shown on the e-paper
+   * @returns PNG buffer or null if not available/not a mock service
+   */
+  getMockDisplayImage?(): Buffer | null;
+
+  /**
+   * Check if a mock display image is available (MockEpaperService only)
+   */
+  hasMockDisplayImage?(): boolean;
 }

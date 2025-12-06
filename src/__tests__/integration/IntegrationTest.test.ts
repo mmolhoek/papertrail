@@ -315,6 +315,8 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     stopDriveNavigation: jest.fn().mockResolvedValue(success(undefined)),
     isDriveNavigating: jest.fn().mockReturnValue(false),
     onDriveNavigationUpdate: jest.fn().mockReturnValue(() => {}),
+    getMockDisplayImage: jest.fn().mockReturnValue(null),
+    hasMockDisplayImage: jest.fn().mockReturnValue(false),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
 }

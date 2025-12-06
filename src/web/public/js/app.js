@@ -31,6 +31,9 @@ class PapertrailClient {
     this.addressSearchTimeout = null;
     this.currentPosition = null; // { lat, lon }
 
+    // Mock display state
+    this.mockDisplayAutoRefreshInterval = null;
+
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
 
@@ -103,6 +106,14 @@ class PapertrailClient {
     // Special handling for Drive panel - initialize map when shown
     if (panelId === "drive-panel") {
       this.initDriveMap();
+    }
+
+    // Special handling for Mock Display panel - load image when shown
+    if (panelId === "mock-display-panel") {
+      this.initMockDisplay();
+    } else {
+      // Stop auto-refresh when leaving mock display panel
+      this.stopMockDisplayAutoRefresh();
     }
   }
 
@@ -2104,6 +2115,121 @@ class PapertrailClient {
     } else if (data.state === "arrived" || data.state === "cancelled") {
       this.isDriveNavigating = false;
       this.updateDriveUI();
+    }
+  }
+
+  // ============================================
+  // Mock Display Methods
+  // ============================================
+
+  /**
+   * Initialize the mock display panel
+   */
+  initMockDisplay() {
+    // Setup event listeners (only once)
+    const refreshBtn = document.getElementById("mock-display-refresh");
+    const autoRefreshCheckbox = document.getElementById(
+      "mock-display-auto-refresh",
+    );
+
+    // Remove existing listeners to avoid duplicates
+    refreshBtn.replaceWith(refreshBtn.cloneNode(true));
+    autoRefreshCheckbox.replaceWith(autoRefreshCheckbox.cloneNode(true));
+
+    // Re-get the elements after cloning
+    const newRefreshBtn = document.getElementById("mock-display-refresh");
+    const newAutoRefreshCheckbox = document.getElementById(
+      "mock-display-auto-refresh",
+    );
+
+    newRefreshBtn.addEventListener("click", () => {
+      this.refreshMockDisplay();
+    });
+
+    newAutoRefreshCheckbox.addEventListener("change", (e) => {
+      if (e.target.checked) {
+        this.startMockDisplayAutoRefresh();
+      } else {
+        this.stopMockDisplayAutoRefresh();
+      }
+    });
+
+    // Load the initial image
+    this.refreshMockDisplay();
+  }
+
+  /**
+   * Refresh the mock display image
+   */
+  async refreshMockDisplay() {
+    const statusEl = document.getElementById("mock-display-status");
+    const imageEl = document.getElementById("mock-display-image");
+
+    // Show loading state
+    statusEl.textContent = "Loading...";
+    statusEl.className = "mock-display-status";
+    statusEl.classList.remove("hidden");
+    imageEl.classList.add("hidden");
+
+    try {
+      // First check if mock display is available
+      const statusResponse = await fetch(`${this.apiBase}/mock-display/status`);
+      const statusData = await statusResponse.json();
+
+      if (!statusData.success || !statusData.data.available) {
+        statusEl.textContent =
+          "Mock display not available. Make sure you are running in development mode with the mock e-paper service.";
+        statusEl.className = "mock-display-status error";
+        return;
+      }
+
+      // Fetch the image with cache-busting
+      const imageUrl = `${this.apiBase}/mock-display/image?t=${Date.now()}`;
+      const imageResponse = await fetch(imageUrl);
+
+      if (!imageResponse.ok) {
+        throw new Error(`Failed to load image: ${imageResponse.status}`);
+      }
+
+      // Convert to blob and create URL
+      const blob = await imageResponse.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      // Clean up old object URL if any
+      if (imageEl.dataset.objectUrl) {
+        URL.revokeObjectURL(imageEl.dataset.objectUrl);
+      }
+
+      // Display the image
+      imageEl.src = objectUrl;
+      imageEl.dataset.objectUrl = objectUrl;
+      imageEl.classList.remove("hidden");
+      statusEl.classList.add("hidden");
+    } catch (error) {
+      console.error("Failed to load mock display:", error);
+      statusEl.textContent = `Error: ${error.message}`;
+      statusEl.className = "mock-display-status error";
+      imageEl.classList.add("hidden");
+    }
+  }
+
+  /**
+   * Start auto-refreshing the mock display
+   */
+  startMockDisplayAutoRefresh() {
+    this.stopMockDisplayAutoRefresh();
+    this.mockDisplayAutoRefreshInterval = setInterval(() => {
+      this.refreshMockDisplay();
+    }, 5000);
+  }
+
+  /**
+   * Stop auto-refreshing the mock display
+   */
+  stopMockDisplayAutoRefresh() {
+    if (this.mockDisplayAutoRefreshInterval) {
+      clearInterval(this.mockDisplayAutoRefreshInterval);
+      this.mockDisplayAutoRefreshInterval = null;
     }
   }
 }

@@ -562,6 +562,38 @@ describe("MockEpaperService", () => {
         expect(statusResult.data.partialRefreshCount).toBe(10);
         expect(statusResult.data.fullRefreshCount).toBe(1);
       }
+    }, 30000); // Increased timeout for 11 displayBitmap calls with PNG conversion
+  });
+
+  describe("mock display image", () => {
+    beforeEach(async () => {
+      await mockEpaperService.initialize();
+    });
+
+    it("should not have mock display image before any bitmap is displayed", () => {
+      expect(mockEpaperService.hasMockDisplayImage()).toBe(false);
+      expect(mockEpaperService.getMockDisplayImage()).toBeNull();
+    });
+
+    it("should have mock display image after displaying a bitmap", async () => {
+      const dataSize = Math.ceil((config.width * config.height) / 8);
+      const bitmap: Bitmap1Bit = {
+        width: config.width,
+        height: config.height,
+        data: new Uint8Array(dataSize),
+      };
+
+      await mockEpaperService.displayBitmap(bitmap);
+
+      expect(mockEpaperService.hasMockDisplayImage()).toBe(true);
+      const pngBuffer = mockEpaperService.getMockDisplayImage();
+      expect(pngBuffer).not.toBeNull();
+      expect(pngBuffer).toBeInstanceOf(Buffer);
+      // PNG magic number
+      expect(pngBuffer![0]).toBe(0x89);
+      expect(pngBuffer![1]).toBe(0x50); // 'P'
+      expect(pngBuffer![2]).toBe(0x4e); // 'N'
+      expect(pngBuffer![3]).toBe(0x47); // 'G'
     });
   });
 });

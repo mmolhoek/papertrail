@@ -10,6 +10,7 @@ import {
 } from "@core/types";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import sharp from "sharp";
 
 const logger = getLogger("MockEpaperService");
 
@@ -32,6 +33,8 @@ export class MockEpaperService implements IEpaperService {
   private partialRefreshCount = 0;
   private lastUpdate: Date | null = null;
   private rotation: 0 | 90 | 180 | 270;
+  private lastBitmap: Bitmap1Bit | null = null;
+  private lastBitmapPng: Buffer | null = null;
 
   constructor(private readonly config: EpaperConfig) {
     this.rotation = config.rotation;
@@ -169,6 +172,10 @@ export class MockEpaperService implements IEpaperService {
       logger.info(
         `Mock E-Paper: Bitmap displayed successfully (${updateMode} update)`,
       );
+
+      // Store the bitmap and convert to PNG for mock display viewing
+      this.lastBitmap = bitmap;
+      await this.convertBitmapToPng(bitmap);
 
       return success(undefined);
     } catch (error) {
@@ -410,6 +417,71 @@ export class MockEpaperService implements IEpaperService {
 
     logger.info("Mock E-Paper: Display reset completed");
     return success(undefined);
+  }
+
+  /**
+   * Get the last displayed image as a PNG buffer
+   * This is only available in MockEpaperService for development/testing
+   * @returns PNG buffer or null if no image has been displayed
+   */
+  getMockDisplayImage(): Buffer | null {
+    return this.lastBitmapPng;
+  }
+
+  /**
+   * Check if a mock display image is available
+   */
+  hasMockDisplayImage(): boolean {
+    return this.lastBitmapPng !== null;
+  }
+
+  /**
+   * Convert 1-bit bitmap to PNG for viewing in web UI
+   * The bitmap is packed 1 bit per pixel (MSB first)
+   */
+  private async convertBitmapToPng(bitmap: Bitmap1Bit): Promise<void> {
+    try {
+      logger.info(
+        `Mock E-Paper: Converting ${bitmap.width}x${bitmap.height} bitmap to PNG...`,
+      );
+
+      // Create a grayscale buffer from the 1-bit bitmap
+      // Each byte in the bitmap contains 8 pixels (MSB first)
+      const grayBuffer = Buffer.alloc(bitmap.width * bitmap.height);
+
+      for (let y = 0; y < bitmap.height; y++) {
+        for (let x = 0; x < bitmap.width; x++) {
+          const pixelIndex = y * bitmap.width + x;
+          const byteIndex = Math.floor(pixelIndex / 8);
+          const bitOffset = 7 - (pixelIndex % 8); // MSB first
+
+          const bit = (bitmap.data[byteIndex] >> bitOffset) & 1;
+          // 1 = white (255), 0 = black (0) for e-paper
+          grayBuffer[pixelIndex] = bit ? 255 : 0;
+        }
+      }
+
+      // Convert to PNG using sharp
+      this.lastBitmapPng = await sharp(grayBuffer, {
+        raw: {
+          width: bitmap.width,
+          height: bitmap.height,
+          channels: 1,
+        },
+      })
+        .png()
+        .toBuffer();
+
+      logger.info(
+        `Mock E-Paper: PNG created (${this.lastBitmapPng.length} bytes)`,
+      );
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(
+        `Mock E-Paper: Failed to convert bitmap to PNG: ${errorMsg}`,
+      );
+      this.lastBitmapPng = null;
+    }
   }
 
   /**

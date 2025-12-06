@@ -1705,4 +1705,62 @@ export class WebController {
       },
     });
   }
+
+  /**
+   * Get mock display image
+   * Returns a PNG image of what would be shown on the e-paper display
+   * Only available when using MockEpaperService (development mode)
+   */
+  async getMockDisplayImage(_req: Request, res: Response): Promise<void> {
+    logger.debug("Mock display image requested");
+
+    if (!this.orchestrator.hasMockDisplayImage()) {
+      logger.debug("No mock display image available");
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "NOT_AVAILABLE",
+          message:
+            "Mock display image not available. Either not using mock e-paper service or no image has been rendered yet.",
+        },
+      });
+      return;
+    }
+
+    const imageBuffer = this.orchestrator.getMockDisplayImage();
+    if (!imageBuffer) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: "NO_IMAGE",
+          message: "No image has been rendered to the mock display yet.",
+        },
+      });
+      return;
+    }
+
+    logger.debug(`Serving mock display image (${imageBuffer.length} bytes)`);
+    res.set("Content-Type", "image/png");
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.send(imageBuffer);
+  }
+
+  /**
+   * Check if mock display is available
+   */
+  async getMockDisplayStatus(_req: Request, res: Response): Promise<void> {
+    logger.debug("Mock display status requested");
+
+    const available = this.orchestrator.hasMockDisplayImage();
+
+    res.json({
+      success: true,
+      data: {
+        available,
+        message: available
+          ? "Mock display image is available"
+          : "Mock display image not available",
+      },
+    });
+  }
 }

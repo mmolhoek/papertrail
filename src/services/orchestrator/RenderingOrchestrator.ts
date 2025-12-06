@@ -1938,6 +1938,27 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Get the mock display image (only available when using MockEpaperService)
+   * Returns a PNG buffer of what would be shown on the e-paper display
+   */
+  getMockDisplayImage(): Buffer | null {
+    if (this.epaperService.getMockDisplayImage) {
+      return this.epaperService.getMockDisplayImage();
+    }
+    return null;
+  }
+
+  /**
+   * Check if mock display image is available
+   */
+  hasMockDisplayImage(): boolean {
+    if (this.epaperService.hasMockDisplayImage) {
+      return this.epaperService.hasMockDisplayImage();
+    }
+    return false;
+  }
+
+  /**
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {

@@ -1910,3 +1910,78 @@ body {
 #drive-tab-address .form-field {
   position: relative;
 }
+
+/* ============================================
+   Mock Display Panel Styles
+   ============================================ */
+
+.mock-display-description {
+  color: var(--color-slate);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+.mock-display-container {
+  background: var(--color-charcoal);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.mock-display-status {
+  color: var(--color-parchment);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  text-align: center;
+  padding: var(--space-lg);
+}
+
+.mock-display-status.error {
+  color: var(--color-danger);
+}
+
+.mock-display-status.success {
+  color: var(--color-success);
+}
+
+.mock-display-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+.mock-display-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.mock-display-actions .btn {
+  flex: 0 0 auto;
+}
+
+.mock-display-actions .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--color-slate);
+  cursor: pointer;
+}
+
+.mock-display-actions .checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-forest);
+}

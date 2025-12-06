@@ -111,6 +111,15 @@
             <span class="nav-item-text">Reset</span>
             <span id="reset-indicator" class="nav-check hidden">✓</span>
           </button>
+          <button
+            id="menu-mock-display"
+            class="nav-item"
+            data-panel="mock-display-panel"
+          >
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Mock Display</span>
+            <span id="mock-display-indicator" class="nav-check hidden">✓</span>
+          </button>
         </div>
       </nav>
 
@@ -696,6 +705,39 @@
               <span class="btn-icon">↺</span>
               Reset All Settings
             </button>
+          </div>
+        </section>
+
+        <!-- Mock Display Panel -->
+        <section class="panel-card hidden" id="mock-display-panel">
+          <div class="section-header">
+            <span class="section-marker">MOCK DISPLAY</span>
+          </div>
+          <div class="panel-content">
+            <p class="mock-display-description">
+              This shows what would be displayed on the e-paper screen. Only
+              available when running in development mode (mock e-paper service).
+            </p>
+            <div id="mock-display-container" class="mock-display-container">
+              <div id="mock-display-status" class="mock-display-status">
+                Checking availability...
+              </div>
+              <img
+                id="mock-display-image"
+                class="mock-display-image hidden"
+                alt="Mock E-Paper Display"
+              />
+            </div>
+            <div class="mock-display-actions">
+              <button id="mock-display-refresh" class="btn btn-primary">
+                <span class="btn-icon">↻</span>
+                Refresh
+              </button>
+              <label class="checkbox-label">
+                <input type="checkbox" id="mock-display-auto-refresh" />
+                <span>Auto-refresh (5s)</span>
+              </label>
+            </div>
           </div>
         </section>
       </main>
