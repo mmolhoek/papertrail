@@ -473,8 +473,8 @@ export class SVGService implements ISVGService {
     const label = this.formatDistance(niceDistance);
 
     // Bar dimensions
-    const barHeight = 4;
-    const capHeight = 10;
+    const barHeight = 8;
+    const capHeight = 20;
 
     // Draw the main horizontal bar
     this.drawHorizontalLine(bitmap, x, y, barWidth, barHeight);
@@ -485,20 +485,20 @@ export class SVGService implements ISVGService {
       x,
       y - Math.floor((capHeight - barHeight) / 2),
       capHeight,
-      2,
+      4,
     );
 
     // Draw right end cap (vertical line)
     this.drawVerticalLine(
       bitmap,
-      x + barWidth - 2,
+      x + barWidth - 4,
       y - Math.floor((capHeight - barHeight) / 2),
       capHeight,
-      2,
+      4,
     );
 
     // Draw the distance label centered above the bar
-    const labelY = y - 12;
+    const labelY = y - 24;
     const labelX =
       x + Math.floor(barWidth / 2) - Math.floor((label.length * 6) / 2);
     this.renderSimpleText(bitmap, labelX, labelY, label);
@@ -680,8 +680,8 @@ export class SVGService implements ISVGService {
       const metersPerPixel =
         (156543.03392 * Math.cos((currentPosition.latitude * Math.PI) / 180)) /
         scale;
-      const scaleBarMaxWidth = 100;
-      const scaleBarPadding = 15;
+      const scaleBarMaxWidth = 200;
+      const scaleBarPadding = 30;
       const scaleBarX = mapWidth - scaleBarMaxWidth - scaleBarPadding;
       const scaleBarY = height - scaleBarPadding;
       this.addScaleBar(
