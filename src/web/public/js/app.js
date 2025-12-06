@@ -911,6 +911,9 @@ class PapertrailClient {
     const select = document.getElementById("track-select");
     const trackInfo = document.getElementById("track-info");
 
+    // Remember current selection before clearing
+    const currentValue = select.value;
+
     // Keep the first option
     select.innerHTML = '<option value="">Select a track...</option>';
 
@@ -939,6 +942,11 @@ class PapertrailClient {
       option.textContent = "No tracks available - upload one!";
       option.disabled = true;
       select.appendChild(option);
+    }
+
+    // Restore previous selection if it still exists
+    if (currentValue) {
+      select.value = currentValue;
     }
 
     // Add change listener to show track info when selected
