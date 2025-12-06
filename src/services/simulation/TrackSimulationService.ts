@@ -329,8 +329,16 @@ export class TrackSimulationService implements ITrackSimulationService {
       this.totalDistance += distance;
     }
 
-    logger.debug(
+    logger.info(
       `Track has ${points.length} points, total distance: ${Math.round(this.totalDistance)}m`,
+    );
+
+    // Log some sample segment distances for debugging
+    const nonZeroSegments = this.segmentDistances.filter((d) => d > 0).length;
+    const avgDistance =
+      nonZeroSegments > 0 ? this.totalDistance / nonZeroSegments : 0;
+    logger.info(
+      `Segment distances: ${nonZeroSegments} non-zero segments, avg ${Math.round(avgDistance)}m per segment`,
     );
   }
 
@@ -425,6 +433,9 @@ export class TrackSimulationService implements ITrackSimulationService {
       !this.currentTrack ||
       !this.currentPosition
     ) {
+      logger.debug(
+        `updatePosition skipped: state=${this.state}, track=${!!this.currentTrack}, pos=${!!this.currentPosition}`,
+      );
       return;
     }
 
@@ -451,9 +462,19 @@ export class TrackSimulationService implements ITrackSimulationService {
 
     if (currentSegmentDistance === 0) {
       // Skip zero-distance segments (duplicate points)
+      logger.debug(
+        `Skipping zero-distance segment at index ${this.currentPointIndex}`,
+      );
       this.currentPointIndex++;
       this.segmentFraction = 0;
       return;
+    }
+
+    // Log progress periodically (every 10th update)
+    if (this.currentPointIndex % 10 === 0) {
+      logger.info(
+        `Simulation progress: point ${this.currentPointIndex}/${totalPoints}, covered ${Math.round(this.coveredDistance)}m/${Math.round(this.totalDistance)}m`,
+      );
     }
 
     // Update segment fraction
