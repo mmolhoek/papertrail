@@ -73,6 +73,7 @@ import { Result } from "../../core/types";
 ```
 
 **Available aliases:**
+
 - `@core/*` → `src/core/*`
 - `@errors/*` → `src/core/errors/*` (prefer `@core/errors` barrel export)
 - `@services/*` → `src/services/*`
@@ -320,6 +321,7 @@ npm install --cpu=wasm32 sharp
 **Current package.json on your system:**
 
 If you've already removed serialport from `package.json`, you can either:
+
 - Keep it removed and manually install sharp with `--cpu=wasm32` flag
 - Restore serialport to `package.json` and use the install script's auto-detection (recommended for portability)
 
@@ -355,5 +357,8 @@ WebSocket events are defined in `IntegratedWebService.subscribeToOrchestratorEve
 - **Logging:** Uses winston logger via `src/utils/logger.ts` - Call `getLogger(name)` for named loggers
 - **Auto-update:** RenderingOrchestrator can run periodic display updates via `startAutoUpdate()`
 - **Systemd service:** `papertrail.service` file for running as system service
-- alway run npm run format after you are done making changes
-- do the commit this way always after making changes. do not mention you as a co auther as this is clear already
+- always run npm run format after you are done making changes
+- always commit your changes. do not mention you as a co auther as this is clear already
+- when adding a service, always use the logger utility and add extensive logging
+- when adding code, always write tests to cover it
+
