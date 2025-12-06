@@ -1030,7 +1030,7 @@ class PapertrailClient {
 
         // Auto-load the uploaded track as active
         if (result.data && result.data.path) {
-          // Immediately add to dropdown and select it (before slow reloadTrackList)
+          // Immediately add to dropdown and select it
           const select = document.getElementById("track-select");
           if (select) {
             // Add new option if it doesn't exist
@@ -1046,15 +1046,8 @@ class PapertrailClient {
             select.value = result.data.path;
           }
 
-          // Set as active track
-          await this.fetchJSON(`${this.apiBase}/map/active`, {
-            method: "POST",
-            body: JSON.stringify({ path: result.data.path }),
-          });
-
-          // Update UI immediately
-          document.getElementById("active-track").textContent = displayName;
-          this.updateSimulationPanel(true);
+          // Load the track using the same method as dropdown selection
+          await this.loadSelectedTrack();
           this.showMessage(
             `Track "${displayName}" uploaded and loaded`,
             "success",
