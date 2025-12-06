@@ -443,6 +443,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getDriveNavigationStatus(req, res),
     );
 
+    this.app.post(`${api}/drive/simulate`, (req, res) =>
+      this.controller.simulateDriveRoute(req, res),
+    );
+
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({

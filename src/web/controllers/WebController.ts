@@ -1554,6 +1554,101 @@ export class WebController {
   }
 
   /**
+   * Simulate driving along a calculated route at 100 km/h
+   * Converts the drive route geometry to a GPX track and runs simulation
+   */
+  async simulateDriveRoute(req: Request, res: Response): Promise<void> {
+    const { route, speed = 100 } = req.body;
+
+    logger.info(`Simulate drive route requested at ${speed} km/h`);
+
+    if (!this.simulationService) {
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Simulation service is not available",
+        },
+      });
+      return;
+    }
+
+    if (!route || !route.geometry || route.geometry.length < 2) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "Route with geometry is required",
+        },
+      });
+      return;
+    }
+
+    try {
+      // Convert drive route geometry to GPX track format
+      // geometry is [[lat, lon], [lat, lon], ...]
+      const gpxTrack = {
+        name: `Drive to ${route.destination || "destination"}`,
+        segments: [
+          {
+            points: route.geometry.map(
+              (coord: [number, number], index: number) => ({
+                latitude: coord[0],
+                longitude: coord[1],
+                altitude: 0,
+                timestamp: new Date(Date.now() + index * 1000),
+              }),
+            ),
+          },
+        ],
+      };
+
+      // Start simulation at drive speed (100 km/h)
+      const result = await this.simulationService.startSimulation(
+        gpxTrack,
+        speed,
+      );
+
+      if (isSuccess(result)) {
+        // Also start drive navigation so it tracks progress
+        if (this.driveNavigationService && this.orchestrator) {
+          await this.orchestrator.startDriveNavigation(route);
+        }
+
+        logger.info(`Drive simulation started at ${speed} km/h`);
+        res.json({
+          success: true,
+          message: `Drive simulation started at ${speed} km/h`,
+          data: {
+            speed,
+            destination: route.destination,
+            totalDistance: route.totalDistance,
+          },
+        });
+      } else {
+        logger.error("Failed to start drive simulation:", result.error);
+        res.status(500).json({
+          success: false,
+          error: {
+            code: "SIMULATION_START_FAILED",
+            message: result.error.message || "Failed to start simulation",
+          },
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error("Error starting drive simulation:", errorMsg);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SIMULATION_ERROR",
+          message: errorMsg,
+        },
+      });
+    }
+  }
+
+  /**
    * Get drive navigation status
    */
   async getDriveNavigationStatus(_req: Request, res: Response): Promise<void> {

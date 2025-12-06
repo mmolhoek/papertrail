@@ -1470,6 +1470,14 @@ class PapertrailClient {
         this.stopDriveNavigation();
       });
     }
+
+    // Simulate drive button
+    const simulateBtn = document.getElementById("drive-simulate-btn");
+    if (simulateBtn) {
+      simulateBtn.addEventListener("click", () => {
+        this.simulateDriveRoute();
+      });
+    }
   }
 
   switchDriveTab(tabName) {
@@ -1961,17 +1969,66 @@ class PapertrailClient {
     }
   }
 
+  async simulateDriveRoute() {
+    if (!this.driveRoute) {
+      this.showMessage("Please calculate a route first", "error");
+      return;
+    }
+
+    const simulateBtn = document.getElementById("drive-simulate-btn");
+    const startBtn = document.getElementById("drive-start-btn");
+    const stopBtn = document.getElementById("drive-stop-btn");
+
+    simulateBtn.disabled = true;
+    startBtn.disabled = true;
+
+    try {
+      // Convert drive route geometry to simulation format
+      // The geometry is an array of [lat, lon] pairs
+      const result = await this.fetchJSON(`${this.apiBase}/drive/simulate`, {
+        method: "POST",
+        body: JSON.stringify({
+          route: this.driveRoute,
+          speed: 100, // 100 km/h drive speed
+        }),
+      });
+
+      if (result.success) {
+        this.isDriveNavigating = true;
+        this.showMessage("Drive simulation started at 100 km/h", "success");
+        // Hide start/simulate, show stop
+        simulateBtn.classList.add("hidden");
+        startBtn.classList.add("hidden");
+        stopBtn.classList.remove("hidden");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to start simulation",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error starting drive simulation:", error);
+      this.showMessage("Failed to start drive simulation", "error");
+    } finally {
+      simulateBtn.disabled = false;
+      startBtn.disabled = false;
+    }
+  }
+
   updateDriveUI() {
     const startBtn = document.getElementById("drive-start-btn");
+    const simulateBtn = document.getElementById("drive-simulate-btn");
     const stopBtn = document.getElementById("drive-stop-btn");
     const navStatus = document.getElementById("drive-nav-status");
 
     if (this.isDriveNavigating) {
       startBtn.classList.add("hidden");
+      simulateBtn.classList.add("hidden");
       stopBtn.classList.remove("hidden");
       navStatus.classList.remove("hidden");
     } else {
       startBtn.classList.remove("hidden");
+      simulateBtn.classList.remove("hidden");
       stopBtn.classList.add("hidden");
       navStatus.classList.add("hidden");
     }
