@@ -339,6 +339,10 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     // Config endpoints
+    this.app.get(`${api}/config/display`, (req, res) =>
+      this.controller.getDisplaySettings(req, res),
+    );
+
     this.app.post(`${api}/config/zoom`, (req, res) =>
       this.controller.setZoom(req, res),
     );

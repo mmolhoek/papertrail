@@ -335,8 +335,45 @@ class PapertrailClient {
       if (positionResponse && positionResponse.data) {
         this.updateGPSPosition(positionResponse.data);
       }
+
+      // Load display settings (zoom, orientation, etc.)
+      const displayResponse = await this.fetchJSON(
+        `${this.apiBase}/config/display`,
+      );
+      if (displayResponse && displayResponse.data) {
+        this.updateDisplaySettings(displayResponse.data);
+      }
     } catch (error) {
       console.error("Error loading initial data:", error);
+    }
+  }
+
+  updateDisplaySettings(settings) {
+    // Update zoom control
+    if (settings.zoomLevel !== undefined) {
+      const control = document.getElementById("zoom-control");
+      const valueDisplay = document.getElementById("zoom-value");
+      if (control) control.value = settings.zoomLevel;
+      if (valueDisplay) valueDisplay.textContent = settings.zoomLevel;
+    }
+
+    // Update orientation button
+    if (settings.rotateWithBearing !== undefined) {
+      const btn = document.getElementById("orientation-btn");
+      const icon = btn?.querySelector(".orientation-icon");
+      const text = btn?.querySelector(".orientation-text");
+
+      if (settings.rotateWithBearing) {
+        this.currentOrientation = "track-up";
+        if (icon) icon.textContent = "⬆";
+        if (text) text.textContent = "Track Up";
+        if (btn) btn.classList.add("track-up");
+      } else {
+        this.currentOrientation = "north-up";
+        if (icon) icon.textContent = "↑";
+        if (text) text.textContent = "North Up";
+        if (btn) btn.classList.remove("track-up");
+      }
     }
   }
 

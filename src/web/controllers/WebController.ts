@@ -338,6 +338,33 @@ export class WebController {
   }
 
   /**
+   * Get current display settings
+   */
+  async getDisplaySettings(_req: Request, res: Response): Promise<void> {
+    logger.debug("Getting display settings");
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        zoomLevel: this.configService.getZoomLevel(),
+        autoCenter: this.configService.getAutoCenter(),
+        rotateWithBearing: this.configService.getRotateWithBearing(),
+      },
+    });
+  }
+
+  /**
    * Set zoom level
    */
   async setZoom(req: Request, res: Response): Promise<void> {
