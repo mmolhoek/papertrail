@@ -82,6 +82,11 @@ body {
   overflow-x: hidden;
 }
 
+/* Utility Classes */
+.hidden {
+  display: none !important;
+}
+
 /* Topographic Background Pattern */
 .topo-bg {
   position: fixed;
