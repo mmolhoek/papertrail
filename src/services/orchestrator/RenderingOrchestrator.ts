@@ -90,6 +90,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isUpdateInProgress: boolean = false;
   private pendingUpdateMode: DisplayUpdateMode | null = null;
 
+  // setActiveGPX queuing (ensures only the last selected track is loaded)
+  private isSetActiveGPXInProgress: boolean = false;
+  private pendingActiveGPXPath: string | null = null;
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -837,6 +841,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
+    // Queue if another setActiveGPX is in progress
+    if (this.isSetActiveGPXInProgress) {
+      this.pendingActiveGPXPath = filePath;
+      logger.info(
+        `setActiveGPX queued for: ${filePath}, another operation in progress`,
+      );
+      return success(undefined);
+    }
+
+    this.isSetActiveGPXInProgress = true;
     logger.info(`Setting active GPX file: ${filePath}`);
 
     try {
@@ -888,6 +902,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.error(`Failed to set active GPX: ${errorMsg}`);
       const err = error instanceof Error ? error : new Error("Unknown error");
       return failure(OrchestratorError.updateFailed("Set active GPX", err));
+    } finally {
+      this.isSetActiveGPXInProgress = false;
+
+      // Process any pending setActiveGPX request
+      if (this.pendingActiveGPXPath !== null) {
+        const pendingPath = this.pendingActiveGPXPath;
+        this.pendingActiveGPXPath = null;
+        logger.info(`Processing queued setActiveGPX for: ${pendingPath}`);
+        setImmediate(() => {
+          void this.setActiveGPX(pendingPath);
+        });
+      }
     }
   }
 
