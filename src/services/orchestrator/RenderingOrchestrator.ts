@@ -179,10 +179,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         this.subscribeToWiFiStateChanges();
       }
 
-      // Subscribe to simulation state changes (if simulation service provided)
+      // Initialize and subscribe to simulation service (if provided)
       if (this.simulationService) {
-        logger.info("Subscribing to simulation state changes...");
-        this.subscribeToSimulationUpdates();
+        logger.info("Initializing TrackSimulationService...");
+        const simResult = await this.simulationService.initialize();
+        if (!simResult.success) {
+          logger.error(
+            "Failed to initialize TrackSimulationService:",
+            simResult.error,
+          );
+          logger.warn("Track simulation will not be available");
+        } else {
+          logger.info("✓ TrackSimulationService initialized");
+          logger.info("Subscribing to simulation state changes...");
+          this.subscribeToSimulationUpdates();
+        }
       }
 
       // Initialize drive navigation service (if provided)
