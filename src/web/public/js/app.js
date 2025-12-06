@@ -398,7 +398,7 @@ class PapertrailClient {
 
       if (result.success) {
         this.showMessage("Track loaded successfully", "success");
-        this.refreshDisplay();
+        // Note: setActiveGPX already does a FULL display update, no need to refresh again
         // Refresh system status to update active track display
         const statusResponse = await this.fetchJSON(
           `${this.apiBase}/system/status`,
