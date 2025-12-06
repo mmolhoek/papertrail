@@ -712,6 +712,15 @@ export class WebController {
         this.mapService.clearCache();
       }
 
+      // Get track name from GPX file if no custom name was provided
+      let trackName = customName;
+      if (!customName && this.mapService) {
+        const trackResult = await this.mapService.getTrack(destPath);
+        if (trackResult.success && trackResult.data.name) {
+          trackName = trackResult.data.name;
+        }
+      }
+
       logger.info(`GPX file uploaded successfully: ${safeFileName}`);
       res.json({
         success: true,
@@ -719,6 +728,7 @@ export class WebController {
         data: {
           fileName: safeFileName,
           path: destPath,
+          trackName: trackName || safeFileName.replace(/\.gpx$/i, ""),
         },
       });
     } catch (error) {

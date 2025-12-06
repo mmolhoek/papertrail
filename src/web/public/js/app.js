@@ -1034,7 +1034,11 @@ class PapertrailClient {
       const result = await response.json();
 
       if (result.success) {
-        const displayName = customName || file.name.replace(/\.gpx$/i, "");
+        // Use track name from response if available, otherwise customName, otherwise filename
+        const displayName =
+          result.data?.trackName ||
+          customName ||
+          file.name.replace(/\.gpx$/i, "");
 
         // Auto-load the uploaded track as active
         if (result.data && result.data.path) {
@@ -1139,20 +1143,17 @@ class PapertrailClient {
         return;
       }
 
-      // Get default name (filename without .gpx extension)
-      const defaultName = file.name.replace(/\.gpx$/i, "");
+      // Check if user wants to use track name from GPX file
+      const useTrackName = document.getElementById("use-track-name").checked;
 
-      // Prompt user for track name
-      const trackName = prompt("Enter a name for this track:", defaultName);
-
-      if (trackName === null) {
-        // User cancelled
-        event.target.value = "";
-        return;
+      if (useTrackName) {
+        // Pass null to let backend use track name from GPX file
+        this.uploadGPXFile(file, null);
+      } else {
+        // Use filename (without .gpx extension)
+        const fileName = file.name.replace(/\.gpx$/i, "");
+        this.uploadGPXFile(file, fileName);
       }
-
-      const finalName = trackName.trim() || defaultName;
-      this.uploadGPXFile(file, finalName);
     }
     // Reset input so same file can be selected again
     event.target.value = "";
