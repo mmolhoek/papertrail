@@ -136,17 +136,8 @@ export class WebController {
         success: true,
         data: {
           files: result.data.map((info) => {
-            // Use filename if track has no meaningful name
-            const hasValidTrackName =
-              info.trackName &&
-              info.trackName !== "Unnamed Track" &&
-              info.trackName.trim() !== "";
-            const displayName = hasValidTrackName
-              ? info.trackName
-              : info.fileName.replace(/\.gpx$/i, "");
-            logger.debug(
-              `Track: "${info.trackName}" -> display: "${displayName}" (valid=${hasValidTrackName})`,
-            );
+            // Always use filename as display name (user controls naming via upload)
+            const displayName = info.fileName.replace(/\.gpx$/i, "");
             return {
               path: info.path,
               fileName: info.fileName,
@@ -660,10 +651,52 @@ export class WebController {
       // Ensure GPX directory exists
       await fs.mkdir(this.gpxDirectory, { recursive: true });
 
-      // Use custom name if provided, otherwise use original filename
-      const baseName = customName
-        ? customName.replace(/[^a-zA-Z0-9._-]/g, "_")
-        : originalName.replace(/\.gpx$/i, "").replace(/[^a-zA-Z0-9._-]/g, "_");
+      // Validate the GPX file first (while still in temp location)
+      if (this.mapService) {
+        const validationResult = await this.mapService.validateGPXFile(
+          file.path,
+        );
+        if (!validationResult.success) {
+          await fs.unlink(file.path);
+          logger.warn(`Invalid GPX file uploaded: ${originalName}`);
+          res.status(400).json({
+            success: false,
+            error: {
+              code: "INVALID_GPX",
+              message: "The uploaded file is not a valid GPX file",
+            },
+          });
+          return;
+        }
+      }
+
+      // Determine the filename to use
+      let baseName: string;
+      if (customName) {
+        // User provided a custom name (or chose to use filename)
+        baseName = customName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      } else if (this.mapService) {
+        // User chose to use track name from GPX file
+        const trackResult = await this.mapService.getTrack(file.path);
+        if (
+          trackResult.success &&
+          trackResult.data.name &&
+          trackResult.data.name !== "Unnamed Track"
+        ) {
+          baseName = trackResult.data.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+        } else {
+          // Fall back to original filename if no track name
+          baseName = originalName
+            .replace(/\.gpx$/i, "")
+            .replace(/[^a-zA-Z0-9._-]/g, "_");
+        }
+      } else {
+        // No mapService, use original filename
+        baseName = originalName
+          .replace(/\.gpx$/i, "")
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+      }
+
       const safeFileName = baseName.endsWith(".gpx")
         ? baseName
         : `${baseName}.gpx`;
@@ -687,38 +720,12 @@ export class WebController {
       }
 
       // Move file from temp location to GPX directory
-      // Use copyFile + unlink instead of rename to handle cross-device moves
       await fs.copyFile(file.path, destPath);
       await fs.unlink(file.path);
 
-      // Validate the GPX file if mapService is available
+      // Clear cache to pick up the new file
       if (this.mapService) {
-        const validationResult =
-          await this.mapService.validateGPXFile(destPath);
-        if (!validationResult.success) {
-          // Invalid GPX - remove the file
-          await fs.unlink(destPath);
-          logger.warn(`Invalid GPX file uploaded: ${originalName}`);
-          res.status(400).json({
-            success: false,
-            error: {
-              code: "INVALID_GPX",
-              message: "The uploaded file is not a valid GPX file",
-            },
-          });
-          return;
-        }
-        // Clear cache to pick up the new file
         this.mapService.clearCache();
-      }
-
-      // Get track name from GPX file if no custom name was provided
-      let trackName = customName;
-      if (!customName && this.mapService) {
-        const trackResult = await this.mapService.getTrack(destPath);
-        if (trackResult.success && trackResult.data.name) {
-          trackName = trackResult.data.name;
-        }
       }
 
       logger.info(`GPX file uploaded successfully: ${safeFileName}`);
@@ -728,7 +735,7 @@ export class WebController {
         data: {
           fileName: safeFileName,
           path: destPath,
-          trackName: trackName || safeFileName.replace(/\.gpx$/i, ""),
+          trackName: baseName,
         },
       });
     } catch (error) {
