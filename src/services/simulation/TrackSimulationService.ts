@@ -528,7 +528,8 @@ export class TrackSimulationService implements ITrackSimulationService {
     );
 
     this.notifyPositionUpdate(this.currentPosition);
-    this.notifyStateChange();
+    // Note: Don't call notifyStateChange() here - state hasn't changed, only position has.
+    // State change notifications should only happen when state actually transitions.
   }
 
   private notifyPositionUpdate(position: GPSCoordinate): void {

@@ -87,6 +87,13 @@ export interface IDriveNavigationService {
   isNavigating(): boolean;
 
   /**
+   * Set simulation mode - when true, off-road detection is skipped
+   * since simulation always follows the route exactly
+   * @param enabled Whether simulation mode is enabled
+   */
+  setSimulationMode(enabled: boolean): void;
+
+  /**
    * Update the current GPS position
    * This should be called by the orchestrator when GPS updates
    * @param position Current GPS position

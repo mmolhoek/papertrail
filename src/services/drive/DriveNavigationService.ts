@@ -35,6 +35,7 @@ export class DriveNavigationService implements IDriveNavigationService {
   private displayMode: DriveDisplayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
   private currentWaypointIndex = 0;
   private currentPosition: GPSCoordinate | null = null;
+  private isSimulationMode = false; // Skip off-road detection in simulation mode
 
   // Callbacks
   private navigationCallbacks: Array<(update: DriveNavigationUpdate) => void> =
@@ -46,6 +47,7 @@ export class DriveNavigationService implements IDriveNavigationService {
   private distanceRemaining = 0;
   private bearingToRoute = 0;
   private distanceToRouteStart = 0;
+  private updateCount = 0;
 
   constructor(routesDir?: string) {
     this.routesDir = routesDir || path.join(process.cwd(), "data", "routes");
@@ -228,6 +230,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     this.currentWaypointIndex = 0;
     this.navigationState = NavigationState.NAVIGATING;
     this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+    this.updateCount = 0;
 
     // Check if we're off-road at start
     if (this.currentPosition) {
@@ -297,10 +300,19 @@ export class DriveNavigationService implements IDriveNavigationService {
   }
 
   isNavigating(): boolean {
-    return (
+    const result =
       this.navigationState === NavigationState.NAVIGATING ||
-      this.navigationState === NavigationState.OFF_ROAD
-    );
+      this.navigationState === NavigationState.OFF_ROAD;
+    return result;
+  }
+
+  /**
+   * Set simulation mode - when true, off-road detection is skipped
+   * since simulation always follows the route exactly
+   */
+  setSimulationMode(enabled: boolean): void {
+    this.isSimulationMode = enabled;
+    logger.info(`Simulation mode: ${enabled}`);
   }
 
   updatePosition(position: GPSCoordinate): void {
@@ -312,11 +324,16 @@ export class DriveNavigationService implements IDriveNavigationService {
 
     // Check if we're off-road
     if (this.checkOffRoad()) {
+      // Still notify with updated off-road bearing/distance
+      this.notifyNavigationUpdate("status");
       return;
     }
 
     // Find the current waypoint and calculate distances
     this.updateNavigationState();
+
+    // Always notify with updated status so web interface gets continuous updates
+    this.notifyNavigationUpdate("status");
   }
 
   onNavigationUpdate(
@@ -357,6 +374,11 @@ export class DriveNavigationService implements IDriveNavigationService {
    * @returns true if off-road
    */
   private checkOffRoad(): boolean {
+    // Skip off-road detection in simulation mode - simulation always follows route exactly
+    if (this.isSimulationMode) {
+      return false;
+    }
+
     if (!this.currentPosition || !this.activeRoute) {
       return false;
     }
@@ -445,7 +467,9 @@ export class DriveNavigationService implements IDriveNavigationService {
 
         // Check if arrived
         if (this.currentWaypointIndex >= waypoints.length) {
-          logger.info("Destination reached!");
+          logger.info(
+            `Destination reached! waypointIndex=${this.currentWaypointIndex}, totalWaypoints=${waypoints.length}`,
+          );
           this.navigationState = NavigationState.ARRIVED;
           this.displayMode = DriveDisplayMode.ARRIVED;
           this.notifyNavigationUpdate("arrived");
@@ -588,11 +612,19 @@ export class DriveNavigationService implements IDriveNavigationService {
    * Notify all navigation update callbacks
    */
   private notifyNavigationUpdate(type: DriveNavigationUpdate["type"]): void {
+    this.updateCount++;
     const update: DriveNavigationUpdate = {
       type,
       status: this.getNavigationStatus(),
       timestamp: new Date(),
     };
+
+    // Log every 10th update or on state changes
+    if (this.updateCount % 10 === 0 || type !== "status") {
+      logger.info(
+        `Nav update #${this.updateCount}: type=${type}, state=${update.status.state}, waypoint=${update.status.currentWaypointIndex}, dist=${Math.round(update.status.distanceToNextTurn)}m, callbacks=${this.navigationCallbacks.length}`,
+      );
+    }
 
     for (const callback of this.navigationCallbacks) {
       try {

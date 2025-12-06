@@ -643,6 +643,9 @@ export class IntegratedWebService implements IWebInterfaceService {
         this.simulationService.onPositionUpdate((position) => {
           // Broadcast simulated GPS position to all clients
           // Mark fixQuality as SIMULATION (8) to indicate this is simulated data
+          logger.debug(
+            `Simulation position update: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
+          );
           this.broadcast("gps:update", {
             latitude: position.latitude,
             longitude: position.longitude,
@@ -666,12 +669,14 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     // Subscribe to drive navigation updates (if drive navigation service provided)
     if (this.driveNavigationService) {
+      logger.info("Subscribing to DriveNavigationService updates");
       this.driveNavigationUnsubscribe =
         this.driveNavigationService.onNavigationUpdate((update) => {
           const status = update.status;
+          const clientCount = this.io?.engine?.clientsCount ?? 0;
           // Broadcast drive navigation updates to all clients
-          logger.debug(
-            `Broadcasting drive navigation: state=${status.state}, waypoint=${status.currentWaypointIndex}`,
+          logger.info(
+            `Broadcasting drive:update to ${clientCount} clients: state=${status.state}, waypoint=${status.currentWaypointIndex}, dist=${Math.round(status.distanceToNextTurn)}m`,
           );
           this.broadcast("drive:update", {
             state: status.state,

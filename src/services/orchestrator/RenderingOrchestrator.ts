@@ -76,6 +76,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // Simulation support
   private simulationPositionUnsubscribe: (() => void) | null = null;
   private simulationDisplayInterval: NodeJS.Timeout | null = null;
+  private lastSimulationState: string | null = null;
   private static readonly SIMULATION_DISPLAY_UPDATE_MS = 5000; // Update e-paper every 5s during simulation
 
   // Drive navigation support
@@ -243,6 +244,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
+      // Skip real GPS updates when simulation is running
+      // to avoid mixing simulated positions with real (often 0,0) positions
+      if (this.simulationService?.isSimulating()) {
+        return;
+      }
+
       // Store latest position for GPS info screen
       this.lastGPSPosition = position;
 
@@ -322,22 +329,56 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     // Subscribe to state changes (start/stop/pause)
-    this.simulationPositionUnsubscribe = this.simulationService.onStateChange(
-      (status) => {
-        logger.info(`Simulation state changed: ${status.state}`);
+    this.simulationService.onStateChange((status) => {
+      // Only act on actual state transitions
+      if (status.state === this.lastSimulationState) {
+        return;
+      }
 
-        if (status.state === "running") {
-          // Start periodic display updates during simulation
-          this.startSimulationDisplayUpdates();
-        } else if (status.state === "stopped") {
-          // Stop periodic display updates when simulation stops
-          this.stopSimulationDisplayUpdates();
+      logger.info(
+        `Simulation state changed: ${this.lastSimulationState} -> ${status.state}`,
+      );
+      this.lastSimulationState = status.state;
+
+      if (status.state === "running") {
+        // Start periodic display updates during simulation
+        this.startSimulationDisplayUpdates();
+      } else if (status.state === "stopped") {
+        // Stop periodic display updates when simulation stops
+        this.stopSimulationDisplayUpdates();
+      }
+      // Note: "paused" state keeps the interval but updateDisplay won't change position
+    });
+
+    // Subscribe to position updates and forward to drive navigation
+    this.simulationPositionUnsubscribe =
+      this.simulationService.onPositionUpdate((position) => {
+        // Store latest position
+        this.lastGPSPosition = position;
+
+        const isNav = this.driveNavigationService?.isNavigating() ?? false;
+        logger.debug(
+          `Sim position: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}, isNavigating=${isNav}`,
+        );
+
+        // Forward to drive navigation service if navigating
+        if (isNav) {
+          this.driveNavigationService!.updatePosition(position);
         }
-        // Note: "paused" state keeps the interval but updateDisplay won't change position
-      },
-    );
 
-    logger.info("Subscribed to simulation state changes");
+        // Notify all GPS update callbacks (web interface uses these)
+        this.gpsUpdateCallbacks.forEach((callback) => {
+          try {
+            callback(position);
+          } catch (error) {
+            const errorMsg =
+              error instanceof Error ? error.message : String(error);
+            logger.error(`Error in simulated GPS update callback: ${errorMsg}`);
+          }
+        });
+      });
+
+    logger.info("Subscribed to simulation state and position changes");
   }
 
   /**
@@ -351,18 +392,29 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       `Starting simulation display updates (every ${RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS}ms)`,
     );
 
+    // Helper to perform the appropriate display update
+    const doDisplayUpdate = () => {
+      // If drive navigation is active, use drive display update instead
+      if (this.driveNavigationService?.isNavigating()) {
+        logger.info("Simulation display update tick (drive mode)");
+        void this.updateDriveDisplay().catch((error) => {
+          logger.error("Drive display update failed:", error);
+        });
+      } else {
+        logger.info("Simulation display update tick (track mode)");
+        void this.updateDisplay().catch((error) => {
+          logger.error("Simulation display update failed:", error);
+        });
+      }
+    };
+
     // Do an immediate update
-    void this.updateDisplay().catch((error) => {
-      logger.error("Simulation display update failed:", error);
-    });
+    doDisplayUpdate();
 
     // Set up periodic updates
     this.simulationDisplayInterval = setInterval(() => {
       if (this.simulationService?.isSimulating()) {
-        logger.info("Simulation display update tick");
-        void this.updateDisplay().catch((error) => {
-          logger.error("Simulation display update failed:", error);
-        });
+        doDisplayUpdate();
       }
     }, RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS);
   }
@@ -485,6 +537,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           }
         }
 
+        // Skip display updates when simulation is running - the simulation
+        // display interval handles display updates during simulation
+        if (this.simulationService?.isSimulating()) {
+          return;
+        }
+
         // Update display based on navigation state
         void this.updateDriveDisplay(update).catch((error) => {
           logger.error("Failed to update drive display:", error);
@@ -498,6 +556,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     this.driveDisplayUnsubscribe = this.driveNavigationService.onDisplayUpdate(
       () => {
+        // Skip display updates when simulation is running - the simulation
+        // display interval handles display updates during simulation
+        if (this.simulationService?.isSimulating()) {
+          return;
+        }
+
         void this.updateDriveDisplay().catch((error) => {
           logger.error("Failed to update drive display:", error);
         });

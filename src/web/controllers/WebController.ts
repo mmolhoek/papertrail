@@ -1533,6 +1533,9 @@ export class WebController {
       return;
     }
 
+    // Disable simulation mode when stopping navigation
+    this.driveNavigationService.setSimulationMode(false);
+
     const result = await this.orchestrator.stopDriveNavigation();
 
     if (isSuccess(result)) {
@@ -1622,7 +1625,12 @@ export class WebController {
       if (isSuccess(result)) {
         // Also start drive navigation so it tracks progress
         if (this.driveNavigationService && this.orchestrator) {
-          logger.info("Starting drive navigation for tracking");
+          // Enable simulation mode to skip off-road detection
+          this.driveNavigationService.setSimulationMode(true);
+
+          logger.info(
+            "Starting drive navigation for tracking (simulation mode)",
+          );
           const navResult = await this.orchestrator.startDriveNavigation(route);
           logger.info(`Drive navigation start result: ${navResult.success}`);
           if (!navResult.success) {
