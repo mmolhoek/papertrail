@@ -4,9 +4,9 @@ import { Result, GPSCoordinate, GPXTrack } from "@core/types";
  * Simulation speed presets in km/h
  */
 export enum SimulationSpeed {
-  WALK = 5, // 5 km/h walking speed
-  BICYCLE = 20, // 20 km/h cycling speed
-  DRIVE = 50, // 50 km/h driving speed
+  WALK = 10, // 10 km/h walking speed
+  BICYCLE = 30, // 30 km/h cycling speed
+  DRIVE = 100, // 100 km/h driving speed
 }
 
 /**
