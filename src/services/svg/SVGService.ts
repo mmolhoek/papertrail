@@ -1318,6 +1318,7 @@ export class SVGService implements ISVGService {
     let x = p1.x;
     let y = p1.y;
 
+    // eslint-disable-next-line no-constant-condition
     while (true) {
       // Draw pixel with width
       if (width === 1) {
@@ -2146,6 +2147,7 @@ export class SVGService implements ISVGService {
     x: number,
     info: DriveNavigationInfo,
     width: number,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     height: number,
   ): void {
     const padding = 10;

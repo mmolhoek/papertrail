@@ -84,7 +84,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private driveNavigationCallbacks: Array<
     (update: DriveNavigationUpdate) => void
   > = [];
-  private static readonly DRIVE_DISPLAY_UPDATE_MS = 2000; // Update e-paper every 2s during navigation
 
   // Display update queuing (prevents dropped updates when display is busy)
   private isUpdateInProgress: boolean = false;
