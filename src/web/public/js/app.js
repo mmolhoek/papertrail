@@ -348,13 +348,17 @@ class PapertrailClient {
     }
   }
 
+  updateZoomControl(zoomLevel) {
+    const control = document.getElementById("zoom-control");
+    const valueDisplay = document.getElementById("zoom-value");
+    if (control) control.value = zoomLevel;
+    if (valueDisplay) valueDisplay.textContent = zoomLevel;
+  }
+
   updateDisplaySettings(settings) {
     // Update zoom control
     if (settings.zoomLevel !== undefined) {
-      const control = document.getElementById("zoom-control");
-      const valueDisplay = document.getElementById("zoom-value");
-      if (control) control.value = settings.zoomLevel;
-      if (valueDisplay) valueDisplay.textContent = settings.zoomLevel;
+      this.updateZoomControl(settings.zoomLevel);
     }
 
     // Update orientation button
@@ -1180,6 +1184,11 @@ class PapertrailClient {
         this.updateSimulationUI();
         this.startSimulationPolling();
         this.showMessage("Simulation started", "success");
+
+        // Sync zoom level from server
+        if (result.data?.zoomLevel !== undefined) {
+          this.updateZoomControl(result.data.zoomLevel);
+        }
       } else {
         this.showMessage(
           result.error?.message || "Failed to start simulation",
@@ -1264,10 +1273,15 @@ class PapertrailClient {
 
   async setSimulationSpeed(speed) {
     try {
-      await this.fetchJSON(`${this.apiBase}/simulation/speed`, {
+      const result = await this.fetchJSON(`${this.apiBase}/simulation/speed`, {
         method: "POST",
         body: JSON.stringify({ speed }),
       });
+
+      // Sync zoom level from server
+      if (result?.data?.zoomLevel !== undefined) {
+        this.updateZoomControl(result.data.zoomLevel);
+      }
     } catch (error) {
       console.error("Error setting simulation speed:", error);
     }

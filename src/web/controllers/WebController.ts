@@ -1021,7 +1021,10 @@ export class WebController {
       res.json({
         success: true,
         message: "Simulation started",
-        data: this.simulationService.getStatus(),
+        data: {
+          ...this.simulationService.getStatus(),
+          zoomLevel,
+        },
       });
     } else {
       logger.error("Failed to start simulation:", startResult.error);
@@ -1177,9 +1180,17 @@ export class WebController {
     }
 
     let result;
+    let speedValue: number;
     if (typeof speed === "number") {
+      speedValue = speed;
       result = await this.simulationService.setSpeed(speed);
     } else if (["walk", "bicycle", "drive"].includes(speed)) {
+      const speedMap: Record<string, number> = {
+        walk: SimulationSpeed.WALK,
+        bicycle: SimulationSpeed.BICYCLE,
+        drive: SimulationSpeed.DRIVE,
+      };
+      speedValue = speedMap[speed];
       result = await this.simulationService.setSpeedPreset(speed);
     } else {
       res.status(400).json({
@@ -1192,12 +1203,29 @@ export class WebController {
       return;
     }
 
+    // Update zoom level based on new speed
+    let zoomLevel: number;
+    if (speedValue <= SimulationSpeed.WALK) {
+      zoomLevel = 18;
+    } else if (speedValue <= SimulationSpeed.BICYCLE) {
+      zoomLevel = 16;
+    } else {
+      zoomLevel = 14;
+    }
+    logger.info(
+      `Updating zoom level to ${zoomLevel} for speed ${speedValue} m/s`,
+    );
+    await this.orchestrator.setZoom(zoomLevel);
+
     if (isSuccess(result)) {
       logger.info("Simulation speed updated");
       res.json({
         success: true,
         message: "Speed updated",
-        data: this.simulationService.getStatus(),
+        data: {
+          ...this.simulationService.getStatus(),
+          zoomLevel,
+        },
       });
     } else {
       res.status(400).json({
