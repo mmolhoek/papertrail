@@ -86,6 +86,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   > = [];
   private static readonly DRIVE_DISPLAY_UPDATE_MS = 2000; // Update e-paper every 2s during navigation
 
+  // Display update queuing (prevents dropped updates when display is busy)
+  private isUpdateInProgress: boolean = false;
+  private pendingUpdateMode: DisplayUpdateMode | null = null;
+
   constructor(
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
@@ -617,6 +621,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
+    // Queue update if one is already in progress
+    if (this.isUpdateInProgress) {
+      // Keep FULL mode if any queued update requests it
+      if (
+        mode === DisplayUpdateMode.FULL ||
+        this.pendingUpdateMode !== DisplayUpdateMode.FULL
+      ) {
+        this.pendingUpdateMode = mode ?? DisplayUpdateMode.AUTO;
+      }
+      logger.info(
+        `Display update queued (mode: ${this.pendingUpdateMode}), current update in progress`,
+      );
+      return success(undefined);
+    }
+
+    this.isUpdateInProgress = true;
     logger.info("Starting display update...");
 
     try {
@@ -792,6 +812,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       const err = error instanceof Error ? error : new Error("Unknown error");
       this.notifyError(err);
       return failure(OrchestratorError.updateFailed("Display update", err));
+    } finally {
+      this.isUpdateInProgress = false;
+
+      // Process any pending update
+      if (this.pendingUpdateMode !== null) {
+        const pendingMode = this.pendingUpdateMode;
+        this.pendingUpdateMode = null;
+        logger.info(`Processing queued display update (mode: ${pendingMode})`);
+        // Use setImmediate to avoid stack overflow on rapid updates
+        setImmediate(() => {
+          void this.updateDisplay(pendingMode);
+        });
+      }
     }
   }
 
