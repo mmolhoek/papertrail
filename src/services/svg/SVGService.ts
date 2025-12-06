@@ -497,11 +497,16 @@ export class SVGService implements ISVGService {
       4,
     );
 
-    // Draw the distance label centered above the bar
-    const labelY = y - 24;
+    // Draw the distance label centered above the bar (2x scale)
+    const labelScale = 2;
+    const labelCharWidth = 6 * labelScale; // 12 pixels per character
+    const labelHeight = 7 * labelScale; // 14 pixels tall
+    const labelY = y - labelHeight - 10; // Position above bar with gap
     const labelX =
-      x + Math.floor(barWidth / 2) - Math.floor((label.length * 6) / 2);
-    this.renderSimpleText(bitmap, labelX, labelY, label);
+      x +
+      Math.floor(barWidth / 2) -
+      Math.floor((label.length * labelCharWidth) / 2);
+    this.renderScaledText(bitmap, labelX, labelY, label, labelScale);
 
     return success(bitmap);
   }
@@ -781,6 +786,25 @@ export class SVGService implements ISVGService {
       const char = text.charAt(i).toUpperCase();
       const charX = x + i * charWidth;
       this.drawChar(bitmap, charX, y, char);
+    }
+  }
+
+  /**
+   * Render scaled text (2x size) for better visibility
+   */
+  private renderScaledText(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    text: string,
+    scale: number = 2,
+  ): void {
+    const charWidth = 6 * scale; // 5 pixels + 1 space, scaled
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charAt(i).toUpperCase();
+      const charX = x + i * charWidth;
+      this.drawScaledChar(bitmap, charX, y, char, scale);
     }
   }
 
