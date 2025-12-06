@@ -32,7 +32,7 @@ class PapertrailClient {
     this.currentPosition = null; // { lat, lon }
 
     // Mock display state
-    this.mockDisplayAutoRefreshInterval = null;
+    this.mockDisplayPanelVisible = false;
 
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
@@ -108,12 +108,12 @@ class PapertrailClient {
       this.initDriveMap();
     }
 
-    // Special handling for Mock Display panel - load image when shown
+    // Special handling for Mock Display panel - track visibility for live updates
     if (panelId === "mock-display-panel") {
+      this.mockDisplayPanelVisible = true;
       this.initMockDisplay();
     } else {
-      // Stop auto-refresh when leaving mock display panel
-      this.stopMockDisplayAutoRefresh();
+      this.mockDisplayPanelVisible = false;
     }
   }
 
@@ -193,6 +193,14 @@ class PapertrailClient {
 
     this.socket.on("drive:off-road", (data) => {
       console.log("Off-road detected:", data);
+    });
+
+    // Display update event - refresh mock display if visible
+    this.socket.on("display:updated", (data) => {
+      console.log("Display updated:", data);
+      if (this.mockDisplayPanelVisible && data.success) {
+        this.refreshMockDisplay();
+      }
     });
 
     // Keep connection alive
@@ -2124,34 +2132,20 @@ class PapertrailClient {
 
   /**
    * Initialize the mock display panel
+   * Uses WebSocket push for live updates when display changes
    */
   initMockDisplay() {
-    // Setup event listeners (only once)
+    // Setup refresh button listener (only once)
     const refreshBtn = document.getElementById("mock-display-refresh");
-    const autoRefreshCheckbox = document.getElementById(
-      "mock-display-auto-refresh",
-    );
 
     // Remove existing listeners to avoid duplicates
     refreshBtn.replaceWith(refreshBtn.cloneNode(true));
-    autoRefreshCheckbox.replaceWith(autoRefreshCheckbox.cloneNode(true));
 
-    // Re-get the elements after cloning
+    // Re-get the element after cloning
     const newRefreshBtn = document.getElementById("mock-display-refresh");
-    const newAutoRefreshCheckbox = document.getElementById(
-      "mock-display-auto-refresh",
-    );
 
     newRefreshBtn.addEventListener("click", () => {
       this.refreshMockDisplay();
-    });
-
-    newAutoRefreshCheckbox.addEventListener("change", (e) => {
-      if (e.target.checked) {
-        this.startMockDisplayAutoRefresh();
-      } else {
-        this.stopMockDisplayAutoRefresh();
-      }
     });
 
     // Load the initial image
@@ -2165,11 +2159,12 @@ class PapertrailClient {
     const statusEl = document.getElementById("mock-display-status");
     const imageEl = document.getElementById("mock-display-image");
 
-    // Show loading state
-    statusEl.textContent = "Loading...";
-    statusEl.className = "mock-display-status";
-    statusEl.classList.remove("hidden");
-    imageEl.classList.add("hidden");
+    // Show loading state (only if no image is shown yet)
+    if (imageEl.classList.contains("hidden")) {
+      statusEl.textContent = "Loading...";
+      statusEl.className = "mock-display-status";
+      statusEl.classList.remove("hidden");
+    }
 
     try {
       // First check if mock display is available
@@ -2178,8 +2173,10 @@ class PapertrailClient {
 
       if (!statusData.success || !statusData.data.available) {
         statusEl.textContent =
-          "Mock display not available. Make sure you are running in development mode with the mock e-paper service.";
+          "Mock display not available. Make sure you are running in development mode with the mock e-paper service, and trigger a display update first.";
         statusEl.className = "mock-display-status error";
+        statusEl.classList.remove("hidden");
+        imageEl.classList.add("hidden");
         return;
       }
 
@@ -2209,27 +2206,8 @@ class PapertrailClient {
       console.error("Failed to load mock display:", error);
       statusEl.textContent = `Error: ${error.message}`;
       statusEl.className = "mock-display-status error";
+      statusEl.classList.remove("hidden");
       imageEl.classList.add("hidden");
-    }
-  }
-
-  /**
-   * Start auto-refreshing the mock display
-   */
-  startMockDisplayAutoRefresh() {
-    this.stopMockDisplayAutoRefresh();
-    this.mockDisplayAutoRefreshInterval = setInterval(() => {
-      this.refreshMockDisplay();
-    }, 5000);
-  }
-
-  /**
-   * Stop auto-refreshing the mock display
-   */
-  stopMockDisplayAutoRefresh() {
-    if (this.mockDisplayAutoRefreshInterval) {
-      clearInterval(this.mockDisplayAutoRefreshInterval);
-      this.mockDisplayAutoRefreshInterval = null;
     }
   }
 }
