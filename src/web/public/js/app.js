@@ -1,6 +1,8 @@
 // Papertrail Web Interface Client
 // Expedition Command - GPS Tracker Control
 
+/* global L */
+
 // Check for required libraries
 if (typeof L === "undefined") {
   console.error(
