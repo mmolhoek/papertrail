@@ -112,8 +112,13 @@ class PapertrailClient {
     if (panelId === "mock-display-panel") {
       this.mockDisplayPanelVisible = true;
       this.initMockDisplay();
+      this.setupMockDisplayFullscreen();
     } else {
       this.mockDisplayPanelVisible = false;
+      // Exit fullscreen when leaving mock display panel
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
     }
   }
 
@@ -2150,6 +2155,42 @@ class PapertrailClient {
 
     // Load the initial image
     this.refreshMockDisplay();
+  }
+
+  /**
+   * Setup fullscreen mode for mock display in landscape
+   */
+  setupMockDisplayFullscreen() {
+    // Check if already in landscape and request fullscreen
+    const checkAndRequestFullscreen = () => {
+      if (!this.mockDisplayPanelVisible) return;
+
+      const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+      const panel = document.getElementById("mock-display-panel");
+
+      if (isLandscape && panel && !panel.classList.contains("hidden")) {
+        // Request fullscreen on the panel
+        if (!document.fullscreenElement && panel.requestFullscreen) {
+          panel.requestFullscreen().catch(() => {
+            // Fullscreen request failed (user gesture required), that's ok
+          });
+        }
+      }
+    };
+
+    // Listen for orientation changes
+    window
+      .matchMedia("(orientation: landscape)")
+      .addEventListener("change", (e) => {
+        if (e.matches && this.mockDisplayPanelVisible) {
+          checkAndRequestFullscreen();
+        } else if (!e.matches && document.fullscreenElement) {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+    // Check immediately
+    checkAndRequestFullscreen();
   }
 
   /**
