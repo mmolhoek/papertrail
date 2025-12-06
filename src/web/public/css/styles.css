@@ -1970,49 +1970,53 @@ body {
 @media (orientation: landscape) {
   #mock-display-panel:not(.hidden) {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
     z-index: 1000;
     margin: 0;
+    padding: 0;
     border-radius: 0;
     background: #000;
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
   }
 
   #mock-display-panel:not(.hidden) .section-header,
   #mock-display-panel:not(.hidden) .mock-display-description,
   #mock-display-panel:not(.hidden) .mock-display-actions {
-    display: none;
+    display: none !important;
   }
 
   #mock-display-panel:not(.hidden) .panel-content {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    height: 100%;
     padding: 0;
     margin: 0;
   }
 
   #mock-display-panel:not(.hidden) .mock-display-container {
-    width: 100%;
-    height: 100%;
-    min-height: 100vh;
+    width: 100vw;
+    height: 100vh;
     margin: 0;
     padding: 0;
     border-radius: 0;
+    background: #000;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   #mock-display-panel:not(.hidden) .mock-display-image {
-    max-width: 100%;
+    max-width: 100vw;
     max-height: 100vh;
     width: auto;
-    height: auto;
+    height: 100vh;
     object-fit: contain;
     border-radius: 0;
+    box-shadow: none;
   }
 
   #mock-display-panel:not(.hidden) .mock-display-status {
