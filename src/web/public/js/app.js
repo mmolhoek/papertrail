@@ -1,6 +1,13 @@
 // Papertrail Web Interface Client
 // Expedition Command - GPS Tracker Control
 
+// Check for required libraries
+if (typeof L === "undefined") {
+  console.error(
+    "Leaflet library not loaded! Drive navigation map will not work.",
+  );
+}
+
 class PapertrailClient {
   constructor() {
     this.socket = null;
@@ -1640,6 +1647,10 @@ class PapertrailClient {
   }
 
   async calculateRoute() {
+    console.log("calculateRoute called");
+    console.log("driveDestination:", this.driveDestination);
+    console.log("currentPosition:", this.currentPosition);
+
     if (!this.driveDestination) {
       this.showMessage("Please set a destination first", "error");
       return;
@@ -1660,21 +1671,40 @@ class PapertrailClient {
       const start = `${this.currentPosition.lon},${this.currentPosition.lat}`;
       const end = `${this.driveDestination.lon},${this.driveDestination.lat}`;
 
-      const response = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson&steps=true`,
+      console.log(
+        `Calculating route from ${start} to ${end} (${this.driveDestination.name})`,
       );
 
-      const data = await response.json();
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson&steps=true`;
+      console.log("OSRM URL:", osrmUrl);
 
-      if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
-        throw new Error("No route found");
+      const response = await fetch(osrmUrl);
+
+      if (!response.ok) {
+        throw new Error(
+          `OSRM request failed: ${response.status} ${response.statusText}`,
+        );
+      }
+
+      const data = await response.json();
+      console.log("OSRM response:", data);
+
+      if (data.code !== "Ok") {
+        throw new Error(
+          `OSRM error: ${data.code} - ${data.message || "Unknown error"}`,
+        );
+      }
+
+      if (!data.routes || data.routes.length === 0) {
+        throw new Error("No route found between the selected points");
       }
 
       const route = data.routes[0];
       this.processOSRMRoute(route, data);
     } catch (error) {
       console.error("Route calculation error:", error);
-      this.showMessage("Failed to calculate route", "error");
+      const errorMessage = error.message || "Unknown error";
+      this.showMessage(`Failed to calculate route: ${errorMessage}`, "error");
     } finally {
       calcBtn.disabled = false;
       if (btnText) btnText.textContent = "Calculate Route";
