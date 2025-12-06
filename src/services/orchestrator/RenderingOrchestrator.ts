@@ -670,31 +670,63 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info("Starting display update...");
 
     try {
-      // Step 1: Get active GPX path first (needed for fallback position)
-      logger.info("Step 1/5: Getting active GPX path...");
-      const gpxPath = this.configService.getActiveGPXPath();
-      if (!gpxPath) {
-        logger.warn("No active GPX file configured");
-        return failure(OrchestratorError.noActiveGPX());
-      }
-      logger.info(`✓ Active GPX: ${gpxPath}`);
+      let track: GPXTrack;
 
-      // Step 2: Load the track (needed early for fallback position)
-      logger.info("Step 2/5: Loading GPX track...");
-      const trackResult = await this.mapService.getTrack(gpxPath);
-      if (!trackResult.success) {
-        logger.error("Failed to load track:", trackResult.error);
-        return failure(
-          OrchestratorError.updateFailed("GPX track", trackResult.error),
+      // Check if drive navigation is active - use route geometry as track
+      if (this.driveNavigationService?.isNavigating()) {
+        const activeRoute = this.driveNavigationService.getActiveRoute();
+        if (activeRoute && activeRoute.geometry) {
+          logger.info("Step 1/5: Using drive route geometry as track...");
+          // Convert drive route geometry to GPXTrack format
+          track = {
+            name: `Drive to ${activeRoute.destination}`,
+            segments: [
+              {
+                points: activeRoute.geometry.map((coord) => ({
+                  latitude: coord[0],
+                  longitude: coord[1],
+                  altitude: 0,
+                  timestamp: new Date(),
+                })),
+              },
+            ],
+          };
+          const pointCount = track.segments[0].points.length;
+          logger.info(
+            `✓ Drive route track: ${pointCount} points to ${activeRoute.destination}`,
+          );
+        } else {
+          logger.warn("Drive navigation active but no route geometry");
+          return failure(OrchestratorError.noActiveGPX());
+        }
+      } else {
+        // Step 1: Get active GPX path first (needed for fallback position)
+        logger.info("Step 1/5: Getting active GPX path...");
+        const gpxPath = this.configService.getActiveGPXPath();
+        if (!gpxPath) {
+          logger.warn("No active GPX file configured");
+          return failure(OrchestratorError.noActiveGPX());
+        }
+        logger.info(`✓ Active GPX: ${gpxPath}`);
+
+        // Step 2: Load the track (needed early for fallback position)
+        logger.info("Step 2/5: Loading GPX track...");
+        const trackResult = await this.mapService.getTrack(gpxPath);
+        if (!trackResult.success) {
+          logger.error("Failed to load track:", trackResult.error);
+          return failure(
+            OrchestratorError.updateFailed("GPX track", trackResult.error),
+          );
+        }
+        track = trackResult.data;
+        const pointCount = track.segments.reduce(
+          (sum, seg) => sum + seg.points.length,
+          0,
+        );
+        logger.info(
+          `✓ GPX track loaded: ${track.segments.length} segments, ${pointCount} points`,
         );
       }
-      const pointCount = trackResult.data.segments.reduce(
-        (sum, seg) => sum + seg.points.length,
-        0,
-      );
-      logger.info(
-        `✓ GPX track loaded: ${trackResult.data.segments.length} segments, ${pointCount} points`,
-      );
 
       // Step 3: Get current position (simulation > GPS > track start)
       logger.info("Step 3/5: Getting current position...");
@@ -727,7 +759,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           );
         } else {
           // Fall back to track's starting point
-          const firstPoint = trackResult.data.segments[0]?.points[0];
+          const firstPoint = track.segments[0]?.points[0];
           if (firstPoint) {
             position = {
               latitude: firstPoint.latitude,
@@ -787,7 +819,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
 
       const bitmapResult = await this.svgService.renderFollowTrackScreen(
-        trackResult.data,
+        track,
         position,
         viewport,
         followTrackInfo,
