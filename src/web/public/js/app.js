@@ -1661,6 +1661,32 @@ class PapertrailClient {
       return;
     }
 
+    // Check for invalid 0,0 coordinates (no GPS fix)
+    if (this.currentPosition.lat === 0 && this.currentPosition.lon === 0) {
+      console.warn(
+        "GPS position is 0,0 - trying browser geolocation as fallback",
+      );
+      try {
+        const browserPos = await this.getBrowserGeolocation();
+        if (browserPos) {
+          this.currentPosition = browserPos;
+          console.log("Using browser geolocation:", this.currentPosition);
+        } else {
+          this.showMessage(
+            "No valid GPS position. Please wait for GPS fix or enable browser location.",
+            "error",
+          );
+          return;
+        }
+      } catch (e) {
+        this.showMessage(
+          "No valid GPS position. Please wait for GPS fix.",
+          "error",
+        );
+        return;
+      }
+    }
+
     const calcBtn = document.getElementById("drive-calc-route");
     const btnText = calcBtn.querySelector(".btn-text");
     calcBtn.disabled = true;
@@ -1780,6 +1806,34 @@ class PapertrailClient {
         padding: [20, 20],
       });
     }
+  }
+
+  /**
+   * Get position from browser's geolocation API as fallback
+   * @returns {Promise<{lat: number, lon: number}|null>}
+   */
+  getBrowserGeolocation() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) {
+        console.warn("Browser geolocation not available");
+        resolve(null);
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            lat: position.coords.latitude,
+            lon: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.warn("Browser geolocation error:", error.message);
+          resolve(null);
+        },
+        { timeout: 10000, enableHighAccuracy: false },
+      );
+    });
   }
 
   osrmManeuverToType(type, modifier) {
