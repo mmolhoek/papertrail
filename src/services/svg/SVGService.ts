@@ -730,25 +730,33 @@ export class SVGService implements ISVGService {
     // Panel layout constants
     const padding = 10;
     const sectionHeight = Math.floor(height / 3);
+    const labelHeight = 14; // 7 rows * scale 2
+    const numberHeight = 21; // 7 rows * scale 3
+    const lineSpacing = 8;
 
     // Section 1: Speed (top)
     const speedY = padding;
     this.renderRotatedMediumText(bitmap, x + padding, speedY, "SPEED");
     this.renderRotatedLargeNumber(
       bitmap,
-      x + padding + 20,
-      speedY + 30,
+      x + padding,
+      speedY + labelHeight + lineSpacing,
       Math.round(info.speed),
     );
-    this.renderRotatedMediumText(bitmap, x + padding, speedY + 100, "KM/H");
+    this.renderRotatedMediumText(
+      bitmap,
+      x + padding,
+      speedY + labelHeight + lineSpacing + numberHeight + lineSpacing,
+      "KM/H",
+    );
 
     // Section 2: Satellites
     const satY = sectionHeight + padding;
     this.renderRotatedMediumText(bitmap, x + padding, satY, "SATS");
     this.renderRotatedLargeNumber(
       bitmap,
-      x + padding + 20,
-      satY + 30,
+      x + padding,
+      satY + labelHeight + lineSpacing,
       info.satellites,
     );
 
@@ -758,13 +766,14 @@ export class SVGService implements ISVGService {
       this.renderRotatedMediumText(bitmap, x + padding, bearY, "BEAR");
       this.renderRotatedLargeNumber(
         bitmap,
-        x + padding + 20,
-        bearY + 30,
+        x + padding,
+        bearY + labelHeight + lineSpacing,
         Math.round(info.bearing),
       );
-      // Draw degree symbol (small circle)
-      const degX = x + padding + 80;
-      const degY = bearY + 50;
+      // Draw degree symbol (small circle) after the number
+      const numDigits = Math.round(info.bearing).toString().length;
+      const degX = x + padding + numDigits * 18 + 5; // 18px per digit (6 * scale 3)
+      const degY = bearY + labelHeight + lineSpacing + 5;
       this.drawCircle(bitmap, { x: degX, y: degY }, 3);
     }
   }
@@ -964,8 +973,7 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render medium-sized text rotated 90 degrees counter-clockwise
-   * Text reads from bottom to top
+   * Render medium-sized text horizontally (left to right)
    */
   private renderRotatedMediumText(
     bitmap: Bitmap1Bit,
@@ -974,13 +982,13 @@ export class SVGService implements ISVGService {
     text: string,
   ): void {
     const scale = 2;
-    const charSpacing = 8 * scale;
+    const charWidth = 6 * scale; // 5 pixels + 1 spacing, scaled
 
     for (let i = 0; i < text.length; i++) {
       const char = text.charAt(i).toUpperCase();
-      // Characters stack vertically (top to bottom)
-      const charOffsetY = i * charSpacing;
-      this.drawRotatedScaledChar(bitmap, x, y + charOffsetY, char, scale);
+      // Characters flow horizontally (left to right)
+      const charOffsetX = i * charWidth;
+      this.drawScaledChar(bitmap, x + charOffsetX, y, char, scale);
     }
   }
 
@@ -1038,12 +1046,14 @@ export class SVGService implements ISVGService {
     const charData = font[char];
     if (!charData) return;
 
-    const charHeight = 7 * scale;
+    const charWidth = 5 * scale;
 
-    for (let row = 0; row < 7; row++) {
-      const rowData = charData[row] || 0;
-      for (let col = 0; col < 8; col++) {
-        if (rowData & (0x80 >> col)) {
+    // Font data is column-based: each array element is a column,
+    // each bit represents a row (MSB = top row)
+    for (let col = 0; col < 5; col++) {
+      const colData = charData[col] || 0;
+      for (let row = 0; row < 7; row++) {
+        if (colData & (0x80 >> row)) {
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
               const localX = col * scale + sx;
@@ -1051,7 +1061,7 @@ export class SVGService implements ISVGService {
 
               // 90° counter-clockwise rotation
               const rotX = localY;
-              const rotY = charHeight - localX;
+              const rotY = charWidth - localX;
 
               this.setPixel(bitmap, x + rotX, y + rotY, true);
             }
@@ -1117,10 +1127,12 @@ export class SVGService implements ISVGService {
     const charData = font[char];
     if (!charData) return;
 
-    for (let row = 0; row < 7; row++) {
-      const rowData = charData[row] || 0;
-      for (let col = 0; col < 8; col++) {
-        if (rowData & (0x80 >> col)) {
+    // Font data is column-based: each array element is a column,
+    // each bit represents a row (MSB = top row)
+    for (let col = 0; col < 5; col++) {
+      const colData = charData[col] || 0;
+      for (let row = 0; row < 7; row++) {
+        if (colData & (0x80 >> row)) {
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
               this.setPixel(
@@ -1137,8 +1149,7 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render a large number rotated 90 degrees counter-clockwise
-   * Text reads from bottom to top
+   * Render a large number horizontally (left to right)
    */
   private renderRotatedLargeNumber(
     bitmap: Bitmap1Bit,
@@ -1148,54 +1159,13 @@ export class SVGService implements ISVGService {
   ): void {
     const text = value.toString();
     const scale = 3;
-    const charHeight = 7 * scale;
-    const charSpacing = 8 * scale;
-
-    const font: Record<string, number[]> = {
-      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
-      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
-      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
-      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
-      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
-      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
-      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
-    };
+    const charWidth = 6 * scale; // 5 pixels + 1 spacing, scaled
 
     for (let i = 0; i < text.length; i++) {
       const char = text.charAt(i);
-      const charData = font[char];
-      if (!charData) continue;
-
-      // For 90° CCW rotation, characters stack vertically (top to bottom)
-      const charOffsetY = i * charSpacing;
-
-      for (let row = 0; row < 7; row++) {
-        const rowData = charData[row] || 0;
-        for (let col = 0; col < 8; col++) {
-          if (rowData & (0x80 >> col)) {
-            // For each pixel in the scaled character
-            for (let sy = 0; sy < scale; sy++) {
-              for (let sx = 0; sx < scale; sx++) {
-                const localX = col * scale + sx;
-                const localY = row * scale + sy;
-
-                // 90° counter-clockwise: (x, y) -> (-y, x) or (y, -x) depending on direction
-                // For CCW: new_x = y, new_y = -x (but we offset to keep positive)
-                const rotX = localY;
-                const rotY = charHeight - localX;
-
-                const finalX = x + rotX;
-                const finalY = y + charOffsetY + rotY;
-
-                this.setPixel(bitmap, finalX, finalY, true);
-              }
-            }
-          }
-        }
-      }
+      // Characters flow horizontally (left to right)
+      const charOffsetX = i * charWidth;
+      this.drawScaledChar(bitmap, x + charOffsetX, y, char, scale);
     }
   }
 
