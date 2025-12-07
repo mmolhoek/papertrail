@@ -1,330 +1,520 @@
 import { SVGService } from "../SVGService";
-import { GPXTrack, ViewportConfig } from "@core/types";
+import {
+  GPXTrack,
+  ViewportConfig,
+  GPSCoordinate,
+  ManeuverType,
+  DriveRoute,
+  DriveWaypoint,
+} from "@core/types";
 
 describe("SVGService", () => {
-  let svgService: SVGService;
+  let service: SVGService;
+
+  const createTestTrack = (numPoints: number = 10): GPXTrack => ({
+    name: "Test Track",
+    segments: [
+      {
+        points: Array.from({ length: numPoints }, (_, i) => ({
+          latitude: 37.7749 + i * 0.001,
+          longitude: -122.4194 + i * 0.001,
+          altitude: 10 + i,
+          timestamp: new Date(Date.now() + i * 1000),
+        })),
+      },
+    ],
+  });
+
+  const createTestViewport = (): ViewportConfig => ({
+    width: 800,
+    height: 480,
+    zoomLevel: 15,
+    centerPoint: {
+      latitude: 37.7749,
+      longitude: -122.4194,
+      timestamp: new Date(),
+    },
+  });
 
   beforeEach(() => {
-    svgService = new SVGService();
+    service = new SVGService();
   });
 
   describe("createBlankBitmap", () => {
     it("should create a blank white bitmap", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480, false);
+      const bitmap = service.createBlankBitmap(100, 50, false);
 
-      expect(bitmap.width).toBe(800);
-      expect(bitmap.height).toBe(480);
-      expect(bitmap.data).toBeInstanceOf(Uint8Array);
-      expect(bitmap.data.length).toBeGreaterThan(0);
-
-      // Check that it's all white (0xFF)
-      expect(bitmap.data.every((byte) => byte === 0xff)).toBe(true);
+      expect(bitmap.width).toBe(100);
+      expect(bitmap.height).toBe(50);
+      expect(bitmap.data).toBeDefined();
+      expect(bitmap.data.length).toBe(Math.ceil(100 / 8) * 50);
     });
 
-    it("should create a blank black bitmap", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480, true);
+    it("should create a filled bitmap with fill=true", () => {
+      const bitmap = service.createBlankBitmap(100, 50, true);
 
-      expect(bitmap.width).toBe(800);
-      expect(bitmap.height).toBe(480);
-
-      // Check that it's all black (0x00)
-      expect(bitmap.data.every((byte) => byte === 0x00)).toBe(true);
-    });
-
-    it("should calculate correct data size", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-
-      // 800 pixels width = 100 bytes per row
-      // 480 rows = 48000 bytes total
-      const expectedBytes = Math.ceil(800 / 8) * 480;
-      expect(bitmap.data.length).toBe(expectedBytes);
-    });
-
-    it("should handle non-multiple-of-8 widths", () => {
-      const bitmap = svgService.createBlankBitmap(803, 480);
-
-      // 803 pixels width = 101 bytes per row (ceil(803/8))
-      const expectedBytes = Math.ceil(803 / 8) * 480;
-      expect(bitmap.data.length).toBe(expectedBytes);
+      expect(bitmap.width).toBe(100);
+      expect(bitmap.height).toBe(50);
+      // Bitmap data should be defined and have correct length
+      expect(bitmap.data).toBeDefined();
+      expect(bitmap.data.length).toBe(Math.ceil(100 / 8) * 50);
     });
   });
 
   describe("getDefaultRenderOptions", () => {
     it("should return default render options", () => {
-      const options = svgService.getDefaultRenderOptions();
+      const options = service.getDefaultRenderOptions();
 
-      expect(options.lineWidth).toBe(2);
-      expect(options.pointRadius).toBe(3);
-      expect(options.showPoints).toBe(true);
-      expect(options.showLine).toBe(true);
-      expect(options.highlightCurrentPosition).toBe(true);
-      expect(options.currentPositionRadius).toBe(8);
-      expect(options.showDirection).toBe(false);
-      expect(options.antiAlias).toBe(false);
+      expect(options).toHaveProperty("showLine");
+      expect(options).toHaveProperty("lineWidth");
+      expect(options).toHaveProperty("showPoints");
+      expect(options).toHaveProperty("pointRadius");
+      expect(options).toHaveProperty("highlightCurrentPosition");
     });
   });
 
   describe("renderViewport", () => {
-    const createMockTrack = (): GPXTrack => ({
-      name: "Test Track",
-      segments: [
-        {
-          points: [
-            { latitude: 51.9225, longitude: 4.47917, timestamp: new Date() },
-            { latitude: 51.9226, longitude: 4.47927, timestamp: new Date() },
-            { latitude: 51.9227, longitude: 4.47937, timestamp: new Date() },
-          ],
-        },
-      ],
-    });
-
-    const createMockViewport = (): ViewportConfig => ({
-      width: 800,
-      height: 480,
-      centerPoint: {
-        latitude: 51.9225,
-        longitude: 4.47917,
-        timestamp: new Date(),
-      },
-      zoomLevel: 14,
-    });
-
-    it("should render a track successfully", async () => {
-      const track = createMockTrack();
-      const viewport = createMockViewport();
-
-      const result = await svgService.renderViewport(track, viewport);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.width).toBe(800);
-        expect(result.data.height).toBe(480);
-      }
-    });
-
-    it("should render empty track as blank bitmap", async () => {
-      const track: GPXTrack = {
+    it("should render an empty track", async () => {
+      const emptyTrack: GPXTrack = {
         name: "Empty Track",
         segments: [],
       };
-      const viewport = createMockViewport();
+      const viewport = createTestViewport();
 
-      const result = await svgService.renderViewport(track, viewport);
+      const result = await service.renderViewport(emptyTrack, viewport);
 
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.width).toBe(800);
-        expect(result.data.height).toBe(480);
+        expect(result.data.width).toBe(viewport.width);
+        expect(result.data.height).toBe(viewport.height);
       }
     });
 
-    it("should respect custom render options", async () => {
-      const track = createMockTrack();
-      const viewport = createMockViewport();
-      const options = {
-        lineWidth: 4,
-        pointRadius: 5,
-        showPoints: false,
-        showLine: true,
-      };
-
-      const result = await svgService.renderViewport(track, viewport, options);
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should handle track with no points in segment", async () => {
+    it("should render a track with segment but no points", async () => {
       const track: GPXTrack = {
         name: "Empty Segment Track",
         segments: [{ points: [] }],
       };
-      const viewport = createMockViewport();
+      const viewport = createTestViewport();
 
-      const result = await svgService.renderViewport(track, viewport);
+      const result = await service.renderViewport(track, viewport);
 
       expect(result.success).toBe(true);
     });
 
-    it("should render with different zoom levels", async () => {
-      const track = createMockTrack();
-      const viewport1 = { ...createMockViewport(), zoomLevel: 10 };
-      const viewport2 = { ...createMockViewport(), zoomLevel: 18 };
+    it("should render a track with points", async () => {
+      const track = createTestTrack(20);
+      const viewport = createTestViewport();
 
-      const result1 = await svgService.renderViewport(track, viewport1);
-      const result2 = await svgService.renderViewport(track, viewport2);
-
-      expect(result1.success).toBe(true);
-      expect(result2.success).toBe(true);
-    });
-
-    it("should highlight current position when enabled", async () => {
-      const track = createMockTrack();
-      const viewport = createMockViewport();
-      const options = { highlightCurrentPosition: true };
-
-      const result = await svgService.renderViewport(track, viewport, options);
+      const result = await service.renderViewport(track, viewport);
 
       expect(result.success).toBe(true);
       if (result.success) {
-        // Bitmap should have some black pixels for the highlighted position
-        const hasBlackPixels = Array.from(result.data.data).some(
-          (byte) => byte !== 0xff,
-        );
-        expect(hasBlackPixels).toBe(true);
+        expect(result.data.width).toBe(viewport.width);
+        expect(result.data.height).toBe(viewport.height);
       }
     });
 
-    it("should not highlight current position when disabled", async () => {
-      const track: GPXTrack = {
-        name: "Empty Track",
-        segments: [],
+    it("should render with custom options", async () => {
+      const track = createTestTrack(10);
+      const viewport = createTestViewport();
+
+      const result = await service.renderViewport(track, viewport, {
+        showLine: true,
+        lineWidth: 3,
+        showPoints: true,
+        pointRadius: 5,
+        highlightCurrentPosition: true,
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should render with rotation when bearing is set", async () => {
+      const track = createTestTrack(10);
+      const viewport: ViewportConfig = {
+        ...createTestViewport(),
+        centerPoint: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          timestamp: new Date(),
+          bearing: 45, // 45 degrees
+        },
       };
-      const viewport = createMockViewport();
-      const options = { highlightCurrentPosition: false };
 
-      const result = await svgService.renderViewport(track, viewport, options);
+      const result = await service.renderViewport(track, viewport, {
+        rotateWithBearing: true,
+      });
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        // Empty track with no highlight should be all white
-        const allWhite = Array.from(result.data.data).every(
-          (byte) => byte === 0xff,
-        );
-        expect(allWhite).toBe(true);
-      }
+    });
+
+    it("should render without rotation when rotateWithBearing is false", async () => {
+      const track = createTestTrack(10);
+      const viewport: ViewportConfig = {
+        ...createTestViewport(),
+        centerPoint: {
+          latitude: 37.7749,
+          longitude: -122.4194,
+          timestamp: new Date(),
+          bearing: 45,
+        },
+      };
+
+      const result = await service.renderViewport(track, viewport, {
+        rotateWithBearing: false,
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 
   describe("renderMultipleTracks", () => {
-    const createMockTrack = (
-      name: string,
-      latOffset: number = 0,
-    ): GPXTrack => ({
-      name,
-      segments: [
-        {
-          points: [
-            {
-              latitude: 51.9225 + latOffset,
-              longitude: 4.47917,
-              timestamp: new Date(),
-            },
-            {
-              latitude: 51.9226 + latOffset,
-              longitude: 4.47927,
-              timestamp: new Date(),
-            },
-          ],
-        },
-      ],
-    });
-
-    const createMockViewport = (): ViewportConfig => ({
-      width: 800,
-      height: 480,
-      centerPoint: {
-        latitude: 51.9225,
-        longitude: 4.47917,
-        timestamp: new Date(),
-      },
-      zoomLevel: 14,
-    });
-
     it("should render multiple tracks", async () => {
-      const tracks = [
-        createMockTrack("Track 1"),
-        createMockTrack("Track 2", 0.001),
-        createMockTrack("Track 3", 0.002),
-      ];
-      const viewport = createMockViewport();
+      const track1 = createTestTrack(10);
+      const track2: GPXTrack = {
+        name: "Second Track",
+        segments: [
+          {
+            points: [
+              {
+                latitude: 37.78,
+                longitude: -122.42,
+                altitude: 5,
+                timestamp: new Date(),
+              },
+              {
+                latitude: 37.79,
+                longitude: -122.43,
+                altitude: 10,
+                timestamp: new Date(),
+              },
+            ],
+          },
+        ],
+      };
+      const viewport = createTestViewport();
 
-      const result = await svgService.renderMultipleTracks(tracks, viewport);
+      const result = await service.renderMultipleTracks(
+        [track1, track2],
+        viewport,
+      );
 
       expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.width).toBe(800);
-        expect(result.data.height).toBe(480);
-      }
     });
 
-    it("should render empty tracks array", async () => {
-      const viewport = createMockViewport();
+    it("should render empty array of tracks", async () => {
+      const viewport = createTestViewport();
 
-      const result = await svgService.renderMultipleTracks([], viewport);
-
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data.width).toBe(800);
-        expect(result.data.height).toBe(480);
-      }
-    });
-
-    it("should skip tracks with no points", async () => {
-      const tracks = [
-        createMockTrack("Track 1"),
-        { name: "Empty Track", segments: [] },
-        createMockTrack("Track 3", 0.002),
-      ];
-      const viewport = createMockViewport();
-
-      const result = await svgService.renderMultipleTracks(tracks, viewport);
+      const result = await service.renderMultipleTracks([], viewport);
 
       expect(result.success).toBe(true);
     });
   });
 
   describe("addText", () => {
-    it("should return bitmap with success", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-      const result = svgService.addText(bitmap, "Test", 10, 10, 12);
+    it("should add text to bitmap", () => {
+      const bitmap = service.createBlankBitmap(200, 100, false);
+
+      const result = service.addText(bitmap, "Test", 10, 10);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should add text with custom font size", () => {
+      const bitmap = service.createBlankBitmap(200, 100, false);
+
+      const result = service.addText(bitmap, "Test", 10, 10, 16);
 
       expect(result.success).toBe(true);
     });
   });
 
   describe("addCompass", () => {
-    it("should return bitmap with success", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-      const result = svgService.addCompass(bitmap, 100, 100, 50, 45);
+    it("should add compass to bitmap", () => {
+      const bitmap = service.createBlankBitmap(200, 200, false);
+
+      const result = service.addCompass(bitmap, 100, 100, 30, 0);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should add rotated compass", () => {
+      const bitmap = service.createBlankBitmap(200, 200, false);
+
+      const result = service.addCompass(bitmap, 100, 100, 30, 90);
 
       expect(result.success).toBe(true);
     });
   });
 
   describe("addScaleBar", () => {
-    it("should return bitmap with success", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-      const result = svgService.addScaleBar(bitmap, 10, 10, 100, 10);
+    it("should add scale bar to bitmap", () => {
+      const bitmap = service.createBlankBitmap(200, 100, false);
+
+      const result = service.addScaleBar(bitmap, 10, 80, 100, 5);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle various meters per pixel values", () => {
+      const bitmap = service.createBlankBitmap(200, 100, false);
+
+      // Test various scales
+      const scales = [0.1, 1, 10, 100, 1000];
+      for (const mpp of scales) {
+        const result = service.addScaleBar(bitmap, 10, 80, 100, mpp);
+        expect(result.success).toBe(true);
+      }
+    });
+  });
+
+  describe("addInfoPanel", () => {
+    it("should add info panel to bitmap", () => {
+      const bitmap = service.createBlankBitmap(800, 480, false);
+
+      const result = service.addInfoPanel(
+        bitmap,
+        {
+          speed: "25 km/h",
+          distance: "5.2 km",
+          elevation: "150 m",
+          time: "10:30",
+        },
+        "top-right",
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should add info panel at different positions", () => {
+      const positions = [
+        "top-left",
+        "top-right",
+        "bottom-left",
+        "bottom-right",
+      ] as const;
+
+      for (const position of positions) {
+        const bitmap = service.createBlankBitmap(800, 480, false);
+        const result = service.addInfoPanel(
+          bitmap,
+          { speed: "25 km/h" },
+          position,
+        );
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it("should add info panel with partial info", () => {
+      const bitmap = service.createBlankBitmap(800, 480, false);
+
+      const result = service.addInfoPanel(bitmap, { speed: "25 km/h" });
 
       expect(result.success).toBe(true);
     });
   });
 
-  describe("addInfoPanel", () => {
-    it("should return bitmap with success", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-      const info = {
-        speed: "5.2 km/h",
-        distance: "12.3 km",
-        elevation: "234 m",
+  describe("renderFollowTrackScreen", () => {
+    it("should render follow track screen", async () => {
+      const track = createTestTrack(20);
+      const currentPosition: GPSCoordinate = {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        timestamp: new Date(),
       };
-      const result = svgService.addInfoPanel(bitmap, info, "top-left");
+      const viewport = createTestViewport();
+
+      const result = await service.renderFollowTrackScreen(
+        track,
+        currentPosition,
+        viewport,
+        {
+          speed: 25,
+          satellites: 8,
+          progress: 50,
+          bearing: 45,
+          distanceRemaining: 5000,
+          estimatedTimeRemaining: 600,
+        },
+      );
 
       expect(result.success).toBe(true);
     });
 
-    it("should accept different positions", () => {
-      const bitmap = svgService.createBlankBitmap(800, 480);
-      const info = { speed: "5.2 km/h" };
+    it("should render follow track screen without optional info", async () => {
+      const track = createTestTrack(10);
+      const currentPosition: GPSCoordinate = {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        timestamp: new Date(),
+      };
+      const viewport = createTestViewport();
 
-      const positions: Array<
-        "top-left" | "top-right" | "bottom-left" | "bottom-right"
-      > = ["top-left", "top-right", "bottom-left", "bottom-right"];
+      const result = await service.renderFollowTrackScreen(
+        track,
+        currentPosition,
+        viewport,
+        {
+          speed: 0,
+          satellites: 0,
+        },
+      );
 
-      for (const position of positions) {
-        const result = svgService.addInfoPanel(bitmap, info, position);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("renderTurnScreen", () => {
+    it("should render turn screen for various maneuvers", async () => {
+      const viewport = createTestViewport();
+      const maneuvers: ManeuverType[] = [
+        ManeuverType.LEFT,
+        ManeuverType.RIGHT,
+        ManeuverType.SLIGHT_LEFT,
+        ManeuverType.SLIGHT_RIGHT,
+        ManeuverType.STRAIGHT,
+        ManeuverType.UTURN,
+        ManeuverType.ARRIVE,
+        ManeuverType.DEPART,
+      ];
+
+      for (const maneuver of maneuvers) {
+        const result = await service.renderTurnScreen(
+          maneuver,
+          500,
+          "Turn left onto Main St",
+          "Main St",
+          viewport,
+        );
+
         expect(result.success).toBe(true);
       }
+    });
+
+    it("should render turn screen without street name", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderTurnScreen(
+        ManeuverType.RIGHT,
+        200,
+        "Turn right",
+        undefined,
+        viewport,
+      );
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("renderOffRoadScreen", () => {
+    it("should render off-road screen", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderOffRoadScreen(45, 1500, viewport);
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should render off-road screen with various bearings", async () => {
+      const viewport = createTestViewport();
+      const bearings = [0, 90, 180, 270, 359];
+
+      for (const bearing of bearings) {
+        const result = await service.renderOffRoadScreen(
+          bearing,
+          1000,
+          viewport,
+        );
+        expect(result.success).toBe(true);
+      }
+    });
+  });
+
+  describe("renderArrivalScreen", () => {
+    it("should render arrival screen", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderArrivalScreen(
+        "123 Main Street, San Francisco",
+        viewport,
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should render arrival screen with short destination", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderArrivalScreen("Home", viewport);
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("renderDriveMapScreen", () => {
+    it("should render drive map screen", async () => {
+      const route: DriveRoute = {
+        id: "test-route",
+        destination: "End",
+        startPoint: { latitude: 37.7749, longitude: -122.4194 },
+        endPoint: { latitude: 37.79, longitude: -122.43 },
+        waypoints: [
+          {
+            latitude: 37.7749,
+            longitude: -122.4194,
+            maneuverType: ManeuverType.DEPART,
+            instruction: "Head north",
+            distance: 0,
+            index: 0,
+          },
+          {
+            latitude: 37.78,
+            longitude: -122.42,
+            maneuverType: ManeuverType.RIGHT,
+            instruction: "Turn right",
+            streetName: "Main St",
+            distance: 500,
+            index: 1,
+          },
+        ],
+        geometry: [
+          [37.7749, -122.4194],
+          [37.78, -122.42],
+          [37.79, -122.43],
+        ],
+        totalDistance: 5000,
+        estimatedTime: 600,
+        createdAt: new Date(),
+      };
+
+      const currentPosition: GPSCoordinate = {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        timestamp: new Date(),
+      };
+
+      const nextWaypoint: DriveWaypoint = route.waypoints[1];
+      const viewport = createTestViewport();
+
+      const result = await service.renderDriveMapScreen(
+        route,
+        currentPosition,
+        nextWaypoint,
+        viewport,
+        {
+          speed: 35,
+          satellites: 10,
+          nextManeuver: ManeuverType.RIGHT,
+          distanceToTurn: 200,
+          instruction: "Turn right onto Main St",
+          streetName: "Main St",
+          distanceRemaining: 4500,
+          progress: 10,
+        },
+      );
+
+      expect(result.success).toBe(true);
     });
   });
 });

@@ -324,4 +324,67 @@ describe("MockGPSService", () => {
       expect(statusCallback).not.toHaveBeenCalled();
     });
   });
+
+  describe("error handling in callbacks", () => {
+    beforeEach(async () => {
+      await mockGPSService.initialize();
+    });
+
+    it("should handle errors in position callbacks gracefully", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Callback error");
+      });
+      const normalCallback = jest.fn();
+
+      mockGPSService.onPositionUpdate(errorCallback);
+      mockGPSService.onPositionUpdate(normalCallback);
+
+      await mockGPSService.startTracking();
+
+      // Wait for at least one update
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      // Both callbacks should have been attempted
+      expect(errorCallback).toHaveBeenCalled();
+      // Normal callback should still be called despite error in first callback
+      expect(normalCallback).toHaveBeenCalled();
+    });
+
+    it("should handle errors in status callbacks gracefully", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Status callback error");
+      });
+      const normalCallback = jest.fn();
+
+      mockGPSService.onStatusChange(errorCallback);
+      mockGPSService.onStatusChange(normalCallback);
+
+      await mockGPSService.startTracking();
+
+      // Both callbacks should have been attempted
+      expect(errorCallback).toHaveBeenCalled();
+      expect(normalCallback).toHaveBeenCalled();
+    });
+
+    it("should handle non-Error objects thrown in callbacks", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw "string error";
+      });
+
+      mockGPSService.onPositionUpdate(errorCallback);
+
+      await mockGPSService.startTracking();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(errorCallback).toHaveBeenCalled();
+    });
+  });
+
+  describe("startTracking when not initialized", () => {
+    it("should fail when starting tracking without initialization", async () => {
+      const result = await mockGPSService.startTracking();
+
+      expect(result.success).toBe(false);
+    });
+  });
 });
