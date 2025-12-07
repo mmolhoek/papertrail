@@ -2,60 +2,69 @@ import { GPSService } from "../GPSService";
 import { GPSFixQuality } from "@core/types/GPSTypes";
 import { GPSError } from "@core/errors";
 
-// Mock serialport module
-jest.mock("serialport", () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const EventEmitter = require("events");
+// Mock serialport module with virtual: true to avoid requiring the actual module
+// This allows tests to run on systems where serialport is not installed (Android/chroot)
+jest.mock(
+  "serialport",
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const EventEmitter = require("events");
 
-  class MockSerialPort extends EventEmitter {
-    path: string;
-    baudRate: number;
-    isOpen: boolean = false;
+    class MockSerialPort extends EventEmitter {
+      path: string;
+      baudRate: number;
+      isOpen: boolean = false;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(options: any) {
-      super();
-      this.path = options.path;
-      this.baudRate = options.baudRate;
-    }
-
-    open(callback: (err?: Error) => void) {
-      // Simulate device not found
-      if (this.path === "/dev/invalid") {
-        callback(new Error("No such file or directory"));
-        return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      constructor(options: any) {
+        super();
+        this.path = options.path;
+        this.baudRate = options.baudRate;
       }
 
-      this.isOpen = true;
-      callback();
+      open(callback: (err?: Error) => void) {
+        // Simulate device not found
+        if (this.path === "/dev/invalid") {
+          callback(new Error("No such file or directory"));
+          return;
+        }
+
+        this.isOpen = true;
+        callback();
+      }
+
+      close(callback: (err?: Error) => void) {
+        this.isOpen = false;
+        callback();
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      pipe(parser: any) {
+        return parser;
+      }
     }
 
-    close(callback: (err?: Error) => void) {
-      this.isOpen = false;
-      callback();
+    return { SerialPort: MockSerialPort };
+  },
+  { virtual: true },
+);
+
+jest.mock(
+  "@serialport/parser-readline",
+  () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const EventEmitter = require("events");
+
+    class MockReadlineParser extends EventEmitter {
+      constructor() {
+        super();
+      }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    pipe(parser: any) {
-      return parser;
-    }
-  }
-
-  return { SerialPort: MockSerialPort };
-});
-
-jest.mock("@serialport/parser-readline", () => {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const EventEmitter = require("events");
-
-  class MockReadlineParser extends EventEmitter {
-    constructor() {
-      super();
-    }
-  }
-
-  return { ReadlineParser: MockReadlineParser };
-});
+    return { ReadlineParser: MockReadlineParser };
+  },
+  { virtual: true },
+);
 
 describe("GPSService", () => {
   let gpsService: GPSService;
