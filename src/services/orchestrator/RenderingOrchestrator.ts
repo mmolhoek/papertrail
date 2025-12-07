@@ -871,11 +871,30 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       const gpsStatus = await this.gpsService.getStatus();
       const satellites = gpsStatus.success ? gpsStatus.data.satellitesInUse : 0;
 
+      // Calculate track progress
+      const totalDistance = this.mapService.calculateDistance(track);
+      const { distanceTraveled, distanceRemaining } =
+        this.calculateTrackProgress(track, position, totalDistance);
+      const progress =
+        totalDistance > 0 ? (distanceTraveled / totalDistance) * 100 : 0;
+
+      // Calculate ETA based on current speed
+      const speedMs = position.speed || 0;
+      const estimatedTimeRemaining =
+        speedMs > 0.5 ? distanceRemaining / speedMs : undefined;
+
+      logger.info(
+        `Track progress: ${progress.toFixed(1)}%, ${(distanceTraveled / 1000).toFixed(2)}km traveled, ${(distanceRemaining / 1000).toFixed(2)}km remaining`,
+      );
+
       // Build info for the right panel
       const followTrackInfo: FollowTrackInfo = {
         speed: position.speed ? position.speed * 3.6 : 0, // Convert m/s to km/h
         satellites: satellites,
         bearing: position.bearing,
+        progress: progress,
+        distanceRemaining: distanceRemaining,
+        estimatedTimeRemaining: estimatedTimeRemaining,
       };
 
       logger.info(
@@ -2452,5 +2471,83 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Fallback to localhost
     logger.warn("No IPv4 address found, using fallback");
     return `http://localhost:${port}`;
+  }
+
+  /**
+   * Calculate progress along a track based on current position
+   * Finds the closest point on track and calculates distance traveled
+   */
+  private calculateTrackProgress(
+    track: GPXTrack,
+    position: GPSCoordinate,
+    totalDistance: number,
+  ): { distanceTraveled: number; distanceRemaining: number } {
+    if (
+      !track.segments.length ||
+      !track.segments[0].points.length ||
+      totalDistance === 0
+    ) {
+      return { distanceTraveled: 0, distanceRemaining: 0 };
+    }
+
+    const points = track.segments[0].points;
+
+    // Find the closest point on the track
+    let closestIndex = 0;
+    let closestDistance = Infinity;
+
+    for (let i = 0; i < points.length; i++) {
+      const dist = this.haversineDistance(
+        position.latitude,
+        position.longitude,
+        points[i].latitude,
+        points[i].longitude,
+      );
+      if (dist < closestDistance) {
+        closestDistance = dist;
+        closestIndex = i;
+      }
+    }
+
+    // Calculate distance traveled (from start to closest point)
+    let distanceTraveled = 0;
+    for (let i = 0; i < closestIndex; i++) {
+      distanceTraveled += this.haversineDistance(
+        points[i].latitude,
+        points[i].longitude,
+        points[i + 1].latitude,
+        points[i + 1].longitude,
+      );
+    }
+
+    const distanceRemaining = totalDistance - distanceTraveled;
+
+    return {
+      distanceTraveled,
+      distanceRemaining: Math.max(0, distanceRemaining),
+    };
+  }
+
+  /**
+   * Calculate distance between two coordinates using Haversine formula
+   * Returns distance in meters
+   */
+  private haversineDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371000; // Earth's radius in meters
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   }
 }
