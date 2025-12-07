@@ -1706,18 +1706,61 @@ class PapertrailClient {
           this.currentPosition = browserPos;
           console.log("Using browser geolocation:", this.currentPosition);
         } else {
+          // Try active track starting point as final fallback
+          console.warn(
+            "Browser geolocation unavailable - trying active track starting point",
+          );
+          const trackStart = await this.getActiveTrackStartPoint();
+          if (trackStart) {
+            this.currentPosition = trackStart;
+            console.log(
+              "Using active track starting point:",
+              this.currentPosition,
+            );
+            this.showMessage(
+              "Using track starting point as origin (no GPS fix)",
+              "info",
+            );
+          } else {
+            this.showMessage(
+              "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
+              "error",
+            );
+            return;
+          }
+        }
+      } catch (error) {
+        // Try active track starting point as final fallback
+        console.warn(
+          "Browser geolocation failed - trying active track starting point",
+        );
+        try {
+          const trackStart = await this.getActiveTrackStartPoint();
+          if (trackStart) {
+            this.currentPosition = trackStart;
+            console.log(
+              "Using active track starting point:",
+              this.currentPosition,
+            );
+            this.showMessage(
+              "Using track starting point as origin (no GPS fix)",
+              "info",
+            );
+          } else {
+            this.showMessage(
+              "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
+              "error",
+            );
+            return;
+          }
+        } catch (trackError) {
+          console.error("Failed to get track starting point:", trackError);
           this.showMessage(
-            "No valid GPS position. Please wait for GPS fix or enable browser location.",
+            "No valid GPS position. Please wait for GPS fix.",
             "error",
           );
           return;
         }
-      } catch (error) {
-        this.showMessage(
-          "No valid GPS position. Please wait for GPS fix.",
-          "error",
-        );
-        return;
       }
     }
 
@@ -1868,6 +1911,41 @@ class PapertrailClient {
         { timeout: 10000, enableHighAccuracy: false },
       );
     });
+  }
+
+  /**
+   * Get starting point of active track as fallback position
+   * @returns {Promise<{lat: number, lon: number}|null>}
+   */
+  async getActiveTrackStartPoint() {
+    try {
+      const response = await fetch(`${this.apiBase}/map/track/start`);
+      if (!response.ok) {
+        console.warn(
+          "Failed to fetch active track start point:",
+          response.status,
+        );
+        return null;
+      }
+
+      const data = await response.json();
+      if (data.success && data.data && data.data.startPoint) {
+        console.log("Active track start point:", data.data.startPoint);
+        return {
+          lat: data.data.startPoint.lat,
+          lon: data.data.startPoint.lon,
+        };
+      }
+
+      console.warn(
+        "No active track start point available:",
+        data.data?.message,
+      );
+      return null;
+    } catch (error) {
+      console.error("Error fetching active track start point:", error);
+      return null;
+    }
   }
 
   osrmManeuverToType(type, modifier) {

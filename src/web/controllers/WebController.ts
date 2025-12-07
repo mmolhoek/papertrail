@@ -191,6 +191,101 @@ export class WebController {
   }
 
   /**
+   * Get starting point of active track
+   * Used as fallback when GPS and browser geolocation are unavailable
+   */
+  async getActiveTrackStart(_req: Request, res: Response): Promise<void> {
+    logger.debug("Active track starting point requested");
+
+    if (!this.mapService) {
+      logger.warn("MapService not available");
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Map service not available",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      logger.warn("ConfigService not available");
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    const activeGPXPath = this.configService.getActiveGPXPath();
+
+    if (!activeGPXPath) {
+      logger.debug("No active track set");
+      res.json({
+        success: true,
+        data: {
+          startPoint: null,
+          message: "No active track set",
+        },
+      });
+      return;
+    }
+
+    const trackResult = await this.mapService.getTrack(activeGPXPath);
+
+    if (!isSuccess(trackResult)) {
+      logger.error("Failed to load track:", trackResult.error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "TRACK_LOAD_FAILED",
+          message: "Failed to load track data",
+        },
+      });
+      return;
+    }
+
+    const track = trackResult.data;
+
+    // Get first point from first segment
+    if (
+      track.segments &&
+      track.segments.length > 0 &&
+      track.segments[0].points &&
+      track.segments[0].points.length > 0
+    ) {
+      const firstPoint = track.segments[0].points[0];
+      logger.debug(
+        `Active track starting point: ${firstPoint.latitude}, ${firstPoint.longitude}`,
+      );
+      res.json({
+        success: true,
+        data: {
+          startPoint: {
+            lat: firstPoint.latitude,
+            lon: firstPoint.longitude,
+            altitude: firstPoint.altitude,
+          },
+          trackName: track.name,
+        },
+      });
+    } else {
+      logger.warn("Active track has no points");
+      res.json({
+        success: true,
+        data: {
+          startPoint: null,
+          message: "Active track has no points",
+        },
+      });
+    }
+  }
+
+  /**
    * Set active GPX file
    */
   async setActiveGPX(req: Request, res: Response): Promise<void> {

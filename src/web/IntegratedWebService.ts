@@ -319,6 +319,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getActiveGPX(req, res),
     );
 
+    this.app.get(`${api}/map/track/start`, (req, res) =>
+      this.controller.getActiveTrackStart(req, res),
+    );
+
     this.app.post(`${api}/map/active`, (req, res) =>
       this.controller.setActiveGPX(req, res),
     );
