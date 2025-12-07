@@ -679,7 +679,8 @@ export class SVGService implements ISVGService {
 
       // Draw compass in top-left corner of map area
       const compassRadius = 50;
-      const compassPadding = 65; // Distance from edges (accounts for "N" label)
+      // Padding accounts for "N" label (2x scale = 14px tall) at radius + 16 from center
+      const compassPadding = 85;
       const compassX = compassPadding;
       const compassY = compassPadding;
       const heading = info.bearing ?? 0;
