@@ -132,10 +132,11 @@ describe("TrackSimulationService", () => {
 
     it("should accept custom numeric speed", async () => {
       const track = createTestTrack();
-      await service.startSimulation(track, 30);
+      // Use a value that doesn't match any preset (WALK=10, BICYCLE=30, DRIVE=100)
+      await service.startSimulation(track, 25);
 
       const status = service.getStatus();
-      expect(status.speed).toBe(30);
+      expect(status.speed).toBe(25);
       expect(status.speedPreset).toBe("custom");
     });
 
@@ -544,8 +545,8 @@ describe("TrackSimulationService", () => {
         await wait(100);
 
         const position = callback.mock.calls[0][0] as GPSCoordinate;
-        // Speed should be in m/s (20 km/h = ~5.56 m/s)
-        expect(position.speed).toBeCloseTo(5.56, 1);
+        // Speed should be in m/s (BICYCLE = 30 km/h = 8.33 m/s)
+        expect(position.speed).toBeCloseTo(8.33, 1);
       });
     });
 
