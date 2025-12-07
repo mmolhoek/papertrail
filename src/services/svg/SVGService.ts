@@ -316,12 +316,17 @@ export class SVGService implements ISVGService {
     // Draw south indicator (opposite direction, smaller)
     this.drawCompassArrow(bitmap, center, radius, northAngle + 180, false);
 
-    // Draw "N" label near the north arrow
-    const labelDistance = radius + 12;
+    // Draw "N" label near the north arrow (scaled 2x for visibility)
+    const labelScale = 2;
+    const labelDistance = radius + 16;
     const northRadians = ((northAngle - 90) * Math.PI) / 180;
-    const labelX = Math.round(x + labelDistance * Math.cos(northRadians)) - 2;
-    const labelY = Math.round(y + labelDistance * Math.sin(northRadians)) - 3;
-    this.drawChar(bitmap, labelX, labelY, "N");
+    const labelX =
+      Math.round(x + labelDistance * Math.cos(northRadians)) -
+      Math.floor((5 * labelScale) / 2);
+    const labelY =
+      Math.round(y + labelDistance * Math.sin(northRadians)) -
+      Math.floor((7 * labelScale) / 2);
+    this.drawScaledChar(bitmap, labelX, labelY, "N", labelScale);
 
     return success(bitmap);
   }
