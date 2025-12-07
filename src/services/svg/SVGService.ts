@@ -895,12 +895,11 @@ export class SVGService implements ISVGService {
     if (!charData) return;
 
     // Font data is column-based: each array element is a column,
-    // each bit represents a row (MSB = top row)
-    // Columns are stored right-to-left, so we reverse the order when drawing
+    // each bit represents a row (LSB = top row)
     for (let col = 0; col < 5; col++) {
-      const colData = charData[4 - col] || 0;
+      const colData = charData[col] || 0;
       for (let row = 0; row < 7; row++) {
-        if (colData & (0x80 >> row)) {
+        if (colData & (0x02 << row)) {
           this.setPixel(bitmap, x + col, y + row, true);
         }
       }
@@ -935,12 +934,11 @@ export class SVGService implements ISVGService {
     const scale = 3;
 
     // Font data is column-based: each array element is a column,
-    // each bit represents a row (MSB = top row)
-    // Columns are stored right-to-left, so we reverse the order when drawing
+    // each bit represents a row (LSB = top row)
     for (let col = 0; col < 5; col++) {
-      const colData = charData[4 - col] || 0;
+      const colData = charData[col] || 0;
       for (let row = 0; row < 7; row++) {
-        if (colData & (0x80 >> row)) {
+        if (colData & (0x02 << row)) {
           // Draw scaled pixel (3x3 block)
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
@@ -1051,12 +1049,11 @@ export class SVGService implements ISVGService {
     const charWidth = 5 * scale;
 
     // Font data is column-based: each array element is a column,
-    // each bit represents a row (MSB = top row)
-    // Columns are stored right-to-left, so we reverse the order when drawing
+    // each bit represents a row (LSB = top row)
     for (let col = 0; col < 5; col++) {
-      const colData = charData[4 - col] || 0;
+      const colData = charData[col] || 0;
       for (let row = 0; row < 7; row++) {
-        if (colData & (0x80 >> row)) {
+        if (colData & (0x02 << row)) {
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
               const localX = col * scale + sx;
@@ -1131,12 +1128,11 @@ export class SVGService implements ISVGService {
     if (!charData) return;
 
     // Font data is column-based: each array element is a column,
-    // each bit represents a row (MSB = top row)
-    // Columns are stored right-to-left, so we reverse the order when drawing
+    // each bit represents a row (LSB = top row)
     for (let col = 0; col < 5; col++) {
-      const colData = charData[4 - col] || 0;
+      const colData = charData[col] || 0;
       for (let row = 0; row < 7; row++) {
-        if (colData & (0x80 >> row)) {
+        if (colData & (0x02 << row)) {
           for (let sy = 0; sy < scale; sy++) {
             for (let sx = 0; sx < scale; sx++) {
               this.setPixel(
