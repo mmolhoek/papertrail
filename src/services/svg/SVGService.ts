@@ -896,8 +896,9 @@ export class SVGService implements ISVGService {
 
     // Font data is column-based: each array element is a column,
     // each bit represents a row (MSB = top row)
+    // Columns are stored right-to-left, so we reverse the order when drawing
     for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
+      const colData = charData[4 - col] || 0;
       for (let row = 0; row < 7; row++) {
         if (colData & (0x80 >> row)) {
           this.setPixel(bitmap, x + col, y + row, true);
@@ -935,8 +936,9 @@ export class SVGService implements ISVGService {
 
     // Font data is column-based: each array element is a column,
     // each bit represents a row (MSB = top row)
+    // Columns are stored right-to-left, so we reverse the order when drawing
     for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
+      const colData = charData[4 - col] || 0;
       for (let row = 0; row < 7; row++) {
         if (colData & (0x80 >> row)) {
           // Draw scaled pixel (3x3 block)
@@ -1050,8 +1052,9 @@ export class SVGService implements ISVGService {
 
     // Font data is column-based: each array element is a column,
     // each bit represents a row (MSB = top row)
+    // Columns are stored right-to-left, so we reverse the order when drawing
     for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
+      const colData = charData[4 - col] || 0;
       for (let row = 0; row < 7; row++) {
         if (colData & (0x80 >> row)) {
           for (let sy = 0; sy < scale; sy++) {
@@ -1129,8 +1132,9 @@ export class SVGService implements ISVGService {
 
     // Font data is column-based: each array element is a column,
     // each bit represents a row (MSB = top row)
+    // Columns are stored right-to-left, so we reverse the order when drawing
     for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
+      const colData = charData[4 - col] || 0;
       for (let row = 0; row < 7; row++) {
         if (colData & (0x80 >> row)) {
           for (let sy = 0; sy < scale; sy++) {
