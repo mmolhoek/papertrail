@@ -19,6 +19,11 @@ import {
 } from "@core/types";
 import { DisplayError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import {
+  renderTextOnBitmap,
+  renderLabeledValueOnBitmap,
+  calculateTextHeight,
+} from "@utils/svgTextRenderer";
 
 const logger = getLogger("SVGService");
 
@@ -284,14 +289,15 @@ export class SVGService implements ISVGService {
 
   /**
    * Add a compass rose to indicate direction
+   * Uses SVG-based text rendering for the "N" label
    */
-  addCompass(
+  async addCompass(
     bitmap: Bitmap1Bit,
     x: number,
     y: number,
     radius: number,
     heading: number,
-  ): Result<Bitmap1Bit> {
+  ): Promise<Result<Bitmap1Bit>> {
     logger.debug(
       `Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`,
     );
@@ -316,17 +322,18 @@ export class SVGService implements ISVGService {
     // Draw south indicator (opposite direction, smaller)
     this.drawCompassArrow(bitmap, center, radius, northAngle + 180, false);
 
-    // Draw "N" label near the north arrow (scaled 2x for visibility)
-    const labelScale = 2;
+    // Draw "N" label near the north arrow using SVG text
+    const labelFontSize = 16;
     const labelDistance = radius + 16;
     const northRadians = ((northAngle - 90) * Math.PI) / 180;
-    const labelX =
-      Math.round(x + labelDistance * Math.cos(northRadians)) -
-      Math.floor((5 * labelScale) / 2);
-    const labelY =
-      Math.round(y + labelDistance * Math.sin(northRadians)) -
-      Math.floor((7 * labelScale) / 2);
-    this.drawScaledChar(bitmap, labelX, labelY, "N", labelScale);
+    const labelX = Math.round(x + labelDistance * Math.cos(northRadians));
+    const labelY = Math.round(y + labelDistance * Math.sin(northRadians));
+
+    await renderTextOnBitmap(bitmap, "N", labelX, labelY - labelFontSize / 2, {
+      fontSize: labelFontSize,
+      fontWeight: "bold",
+      alignment: "center",
+    });
 
     return success(bitmap);
   }
@@ -453,14 +460,15 @@ export class SVGService implements ISVGService {
 
   /**
    * Add a scale bar to the bitmap
+   * Uses SVG-based text rendering for the distance label
    */
-  addScaleBar(
+  async addScaleBar(
     bitmap: Bitmap1Bit,
     x: number,
     y: number,
     maxWidth: number,
     metersPerPixel: number,
-  ): Result<Bitmap1Bit> {
+  ): Promise<Result<Bitmap1Bit>> {
     logger.debug(
       `Adding scale bar at (${x}, ${y}), maxWidth=${maxWidth}, metersPerPixel=${metersPerPixel}`,
     );
@@ -502,16 +510,16 @@ export class SVGService implements ISVGService {
       4,
     );
 
-    // Draw the distance label centered above the bar (2x scale)
-    const labelScale = 2;
-    const labelCharWidth = 6 * labelScale; // 12 pixels per character
-    const labelHeight = 7 * labelScale; // 14 pixels tall
-    const labelY = y - labelHeight - 10; // Position above bar with gap
-    const labelX =
-      x +
-      Math.floor(barWidth / 2) -
-      Math.floor((label.length * labelCharWidth) / 2);
-    this.renderScaledText(bitmap, labelX, labelY, label, labelScale);
+    // Draw the distance label centered above the bar using SVG text
+    const labelFontSize = 14;
+    const labelY = y - labelFontSize - 12; // Position above bar with gap
+    const labelCenterX = x + Math.floor(barWidth / 2);
+
+    await renderTextOnBitmap(bitmap, label, labelCenterX, labelY, {
+      fontSize: labelFontSize,
+      fontWeight: "bold",
+      alignment: "center",
+    });
 
     return success(bitmap);
   }
@@ -679,12 +687,12 @@ export class SVGService implements ISVGService {
 
       // Draw compass in top-left corner of map area
       const compassRadius = 50;
-      // Padding accounts for "N" label (2x scale = 14px tall) at radius + 16 from center
+      // Padding accounts for "N" label at radius + 16 from center
       const compassPadding = 85;
       const compassX = compassPadding;
       const compassY = compassPadding;
       const heading = info.bearing ?? 0;
-      this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
+      await this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
 
       // Draw scale bar in bottom-right of map area
       const scale = Math.pow(2, viewport.zoomLevel);
@@ -695,7 +703,7 @@ export class SVGService implements ISVGService {
       const scaleBarPadding = 30;
       const scaleBarX = mapWidth - scaleBarMaxWidth - scaleBarPadding;
       const scaleBarY = height - scaleBarPadding;
-      this.addScaleBar(
+      await this.addScaleBar(
         bitmap,
         scaleBarX,
         scaleBarY,
@@ -707,7 +715,13 @@ export class SVGService implements ISVGService {
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
 
       // Render info panel (right 20%)
-      this.renderInfoPanel(bitmap, mapWidth + 10, info, infoWidth - 20, height);
+      await this.renderInfoPanel(
+        bitmap,
+        mapWidth + 10,
+        info,
+        infoWidth - 20,
+        height,
+      );
 
       logger.info("Follow Track screen rendered successfully");
       return success(bitmap);
@@ -723,83 +737,82 @@ export class SVGService implements ISVGService {
   /**
    * Render the info panel for the Follow Track screen
    * Displays speed, satellites, progress in a vertical layout
+   * Uses SVG-based text rendering for better font quality
    */
-  private renderInfoPanel(
+  private async renderInfoPanel(
     bitmap: Bitmap1Bit,
     x: number,
     info: FollowTrackInfo,
     width: number,
     height: number,
-  ): void {
+  ): Promise<void> {
     logger.debug(`Rendering info panel at x=${x}, width=${width}`);
 
     // Panel layout constants
     const padding = 10;
     const sectionHeight = Math.floor(height / 3);
-    const labelHeight = 14; // 7 rows * scale 2
-    const numberHeight = 21; // 7 rows * scale 3
-    const lineSpacing = 8;
+    const labelSize = 14;
+    const valueSize = 32;
+    const unitSize = 14;
+    const lineSpacing = 6;
 
     // Section 1: Speed (top)
     const speedY = padding;
-    this.renderRotatedMediumText(bitmap, x + padding, speedY, "SPEED");
-    this.renderRotatedLargeNumber(
+    const speedResult = await renderLabeledValueOnBitmap(
       bitmap,
-      x + padding,
-      speedY + labelHeight + lineSpacing,
+      "SPEED",
       Math.round(info.speed),
-    );
-    this.renderRotatedMediumText(
-      bitmap,
-      x + padding,
-      speedY + labelHeight + lineSpacing + numberHeight + lineSpacing,
       "KM/H",
+      x + padding,
+      speedY,
+      { labelSize, valueSize, unitSize },
     );
 
     // Section 2: Satellites
     const satY = sectionHeight + padding;
-    this.renderRotatedMediumText(bitmap, x + padding, satY, "SATS");
-    this.renderRotatedLargeNumber(
+    await renderLabeledValueOnBitmap(
       bitmap,
-      x + padding,
-      satY + labelHeight + lineSpacing,
+      "SATS",
       info.satellites,
+      "",
+      x + padding,
+      satY,
+      { labelSize, valueSize, unitSize: 1 }, // Minimal unit size since empty
     );
 
     // Section 3: Progress % and Time Left
     const section3Y = sectionHeight * 2 + padding;
+    let currentY = section3Y;
 
     // Progress percentage
     if (info.progress !== undefined) {
-      this.renderRotatedMediumText(bitmap, x + padding, section3Y, "DONE");
-      this.renderRotatedLargeNumber(
-        bitmap,
-        x + padding,
-        section3Y + labelHeight + lineSpacing,
-        Math.round(info.progress),
-      );
-      // Draw % symbol after the number
-      const numDigits = Math.round(info.progress).toString().length;
-      const percentX = x + padding + numDigits * 18 + 5; // 18px per digit (6 * scale 3)
-      this.renderRotatedMediumText(
-        bitmap,
-        percentX,
-        section3Y + labelHeight + lineSpacing + 4,
-        "%",
-      );
+      await renderTextOnBitmap(bitmap, "DONE", x + padding, currentY, {
+        fontSize: labelSize,
+      });
+      currentY += calculateTextHeight(labelSize) + lineSpacing;
+
+      // Value with % symbol
+      const progressText = `${Math.round(info.progress)}%`;
+      await renderTextOnBitmap(bitmap, progressText, x + padding, currentY, {
+        fontSize: valueSize,
+        fontWeight: "bold",
+      });
+      currentY += calculateTextHeight(valueSize) + lineSpacing;
     }
 
     // Time remaining (below progress)
     if (info.estimatedTimeRemaining !== undefined) {
-      const etaY = section3Y + labelHeight + lineSpacing + numberHeight + 20;
-      this.renderRotatedMediumText(bitmap, x + padding, etaY, "ETA");
+      currentY += 10; // Extra spacing before ETA
+      await renderTextOnBitmap(bitmap, "ETA", x + padding, currentY, {
+        fontSize: labelSize,
+      });
+      currentY += calculateTextHeight(labelSize) + lineSpacing;
+
       const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
-      this.renderRotatedMediumText(
-        bitmap,
-        x + padding,
-        etaY + labelHeight + lineSpacing,
-        timeStr,
-      );
+      await renderTextOnBitmap(bitmap, timeStr, x + padding, currentY, {
+        fontSize: 20,
+        fontWeight: "bold",
+      });
     }
   }
 
@@ -818,396 +831,8 @@ export class SVGService implements ISVGService {
     return `${minutes}M`;
   }
 
-  /**
-   * Render simple text using a basic 5x7 pixel font
-   * This is a minimal implementation for e-paper display
-   */
-  private renderSimpleText(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    text: string,
-  ): void {
-    // Basic 5x7 pixel font for uppercase letters, numbers, and some symbols
-    const charWidth = 6; // 5 pixels + 1 space
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i).toUpperCase();
-      const charX = x + i * charWidth;
-      this.drawChar(bitmap, charX, y, char);
-    }
-  }
-
-  /**
-   * Render scaled text (2x size) for better visibility
-   */
-  private renderScaledText(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    text: string,
-    scale: number = 2,
-  ): void {
-    const charWidth = 6 * scale; // 5 pixels + 1 space, scaled
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i).toUpperCase();
-      const charX = x + i * charWidth;
-      this.drawScaledChar(bitmap, charX, y, char, scale);
-    }
-  }
-
-  /**
-   * Render a large number for the info panel
-   */
-  private renderLargeNumber(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    value: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _maxWidth: number,
-  ): void {
-    // Draw larger digits (scale up the basic font)
-    const text = value.toString();
-    const charWidth = 18; // Larger spacing for big numbers
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i);
-      const charX = x + i * charWidth;
-      this.drawLargeChar(bitmap, charX, y, char);
-    }
-  }
-
-  /**
-   * Draw a single character using a 5x7 pixel font
-   */
-  private drawChar(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    char: string,
-  ): void {
-    const font: Record<string, number[]> = {
-      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
-      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
-      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
-      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
-      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
-      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
-      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
-      A: [0xfc, 0x12, 0x12, 0x12, 0xfc, 0x00, 0x00],
-      B: [0xfe, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      C: [0x7c, 0x82, 0x82, 0x82, 0x44, 0x00, 0x00],
-      D: [0xfe, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      E: [0xfe, 0x92, 0x92, 0x92, 0x82, 0x00, 0x00],
-      F: [0xfe, 0x12, 0x12, 0x12, 0x02, 0x00, 0x00],
-      G: [0x7c, 0x82, 0x92, 0x92, 0x74, 0x00, 0x00],
-      H: [0xfe, 0x10, 0x10, 0x10, 0xfe, 0x00, 0x00],
-      I: [0x00, 0x82, 0xfe, 0x82, 0x00, 0x00, 0x00],
-      J: [0x40, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      K: [0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00],
-      L: [0xfe, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00],
-      M: [0xfe, 0x04, 0x08, 0x04, 0xfe, 0x00, 0x00],
-      N: [0xfe, 0x04, 0x08, 0x10, 0xfe, 0x00, 0x00],
-      O: [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      P: [0xfe, 0x12, 0x12, 0x12, 0x0c, 0x00, 0x00],
-      Q: [0x7c, 0x82, 0xa2, 0x42, 0xbc, 0x00, 0x00],
-      R: [0xfe, 0x12, 0x32, 0x52, 0x8c, 0x00, 0x00],
-      S: [0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00],
-      T: [0x02, 0x02, 0xfe, 0x02, 0x02, 0x00, 0x00],
-      U: [0x7e, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      V: [0x3e, 0x40, 0x80, 0x40, 0x3e, 0x00, 0x00],
-      W: [0xfe, 0x40, 0x20, 0x40, 0xfe, 0x00, 0x00],
-      X: [0xc6, 0x28, 0x10, 0x28, 0xc6, 0x00, 0x00],
-      Y: [0x06, 0x08, 0xf0, 0x08, 0x06, 0x00, 0x00],
-      Z: [0xc2, 0xa2, 0x92, 0x8a, 0x86, 0x00, 0x00],
-      " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-      ".": [0x00, 0x00, 0xc0, 0xc0, 0x00, 0x00, 0x00],
-      "/": [0xc0, 0x20, 0x10, 0x08, 0x06, 0x00, 0x00],
-      "%": [0x86, 0x46, 0x20, 0x10, 0xc4, 0xc2, 0x00],
-    };
-
-    const charData = font[char];
-    if (!charData) return;
-
-    // Font data is column-based: each array element is a column,
-    // each bit represents a row (LSB = top row)
-    for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
-      for (let row = 0; row < 7; row++) {
-        if (colData & (0x02 << row)) {
-          this.setPixel(bitmap, x + col, y + row, true);
-        }
-      }
-    }
-  }
-
-  /**
-   * Draw a large character (3x scale)
-   */
-  private drawLargeChar(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    char: string,
-  ): void {
-    const font: Record<string, number[]> = {
-      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
-      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
-      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
-      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
-      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
-      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
-      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
-    };
-
-    const charData = font[char];
-    if (!charData) return;
-
-    const scale = 3;
-
-    // Font data is column-based: each array element is a column,
-    // each bit represents a row (LSB = top row)
-    for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
-      for (let row = 0; row < 7; row++) {
-        if (colData & (0x02 << row)) {
-          // Draw scaled pixel (3x3 block)
-          for (let sy = 0; sy < scale; sy++) {
-            for (let sx = 0; sx < scale; sx++) {
-              this.setPixel(
-                bitmap,
-                x + col * scale + sx,
-                y + row * scale + sy,
-                true,
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Render medium-sized text (2x scale) for headers
-   */
-  private renderMediumText(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    text: string,
-  ): void {
-    const charWidth = 12; // 2x scale: 5*2 + 2 space
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i).toUpperCase();
-      const charX = x + i * charWidth;
-      this.drawScaledChar(bitmap, charX, y, char, 2);
-    }
-  }
-
-  /**
-   * Render medium-sized text horizontally (left to right)
-   */
-  private renderRotatedMediumText(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    text: string,
-  ): void {
-    const scale = 2;
-    const charWidth = 6 * scale; // 5 pixels + 1 spacing, scaled
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i).toUpperCase();
-      // Characters flow horizontally (left to right)
-      const charOffsetX = i * charWidth;
-      this.drawScaledChar(bitmap, x + charOffsetX, y, char, scale);
-    }
-  }
-
-  /**
-   * Draw a character rotated 90 degrees counter-clockwise at specified scale
-   */
-  private drawRotatedScaledChar(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    char: string,
-    scale: number,
-  ): void {
-    const font: Record<string, number[]> = {
-      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
-      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
-      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
-      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
-      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
-      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
-      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
-      A: [0xfc, 0x12, 0x12, 0x12, 0xfc, 0x00, 0x00],
-      B: [0xfe, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      C: [0x7c, 0x82, 0x82, 0x82, 0x44, 0x00, 0x00],
-      D: [0xfe, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      E: [0xfe, 0x92, 0x92, 0x92, 0x82, 0x00, 0x00],
-      F: [0xfe, 0x12, 0x12, 0x12, 0x02, 0x00, 0x00],
-      G: [0x7c, 0x82, 0x92, 0x92, 0x74, 0x00, 0x00],
-      H: [0xfe, 0x10, 0x10, 0x10, 0xfe, 0x00, 0x00],
-      I: [0x00, 0x82, 0xfe, 0x82, 0x00, 0x00, 0x00],
-      J: [0x40, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      K: [0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00],
-      L: [0xfe, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00],
-      M: [0xfe, 0x04, 0x08, 0x04, 0xfe, 0x00, 0x00],
-      N: [0xfe, 0x04, 0x08, 0x10, 0xfe, 0x00, 0x00],
-      O: [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      P: [0xfe, 0x12, 0x12, 0x12, 0x0c, 0x00, 0x00],
-      Q: [0x7c, 0x82, 0xa2, 0x42, 0xbc, 0x00, 0x00],
-      R: [0xfe, 0x12, 0x32, 0x52, 0x8c, 0x00, 0x00],
-      S: [0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00],
-      T: [0x02, 0x02, 0xfe, 0x02, 0x02, 0x00, 0x00],
-      U: [0x7e, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      V: [0x3e, 0x40, 0x80, 0x40, 0x3e, 0x00, 0x00],
-      W: [0xfe, 0x40, 0x20, 0x40, 0xfe, 0x00, 0x00],
-      X: [0xc6, 0x28, 0x10, 0x28, 0xc6, 0x00, 0x00],
-      Y: [0x06, 0x08, 0xf0, 0x08, 0x06, 0x00, 0x00],
-      Z: [0xc2, 0xa2, 0x92, 0x8a, 0x86, 0x00, 0x00],
-      " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-      "/": [0xc0, 0x20, 0x10, 0x08, 0x06, 0x00, 0x00],
-    };
-
-    const charData = font[char];
-    if (!charData) return;
-
-    const charWidth = 5 * scale;
-
-    // Font data is column-based: each array element is a column,
-    // each bit represents a row (LSB = top row)
-    for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
-      for (let row = 0; row < 7; row++) {
-        if (colData & (0x02 << row)) {
-          for (let sy = 0; sy < scale; sy++) {
-            for (let sx = 0; sx < scale; sx++) {
-              const localX = col * scale + sx;
-              const localY = row * scale + sy;
-
-              // 90° counter-clockwise rotation
-              const rotX = localY;
-              const rotY = charWidth - localX;
-
-              this.setPixel(bitmap, x + rotX, y + rotY, true);
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Draw a character at specified scale
-   */
-  private drawScaledChar(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    char: string,
-    scale: number,
-  ): void {
-    const font: Record<string, number[]> = {
-      "0": [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      "1": [0x00, 0x84, 0xfe, 0x80, 0x00, 0x00, 0x00],
-      "2": [0xc4, 0xa2, 0x92, 0x92, 0x8c, 0x00, 0x00],
-      "3": [0x44, 0x82, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "4": [0x30, 0x28, 0x24, 0xfe, 0x20, 0x00, 0x00],
-      "5": [0x4e, 0x8a, 0x8a, 0x8a, 0x72, 0x00, 0x00],
-      "6": [0x78, 0x94, 0x92, 0x92, 0x60, 0x00, 0x00],
-      "7": [0x02, 0xe2, 0x12, 0x0a, 0x06, 0x00, 0x00],
-      "8": [0x6c, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      "9": [0x0c, 0x92, 0x92, 0x52, 0x3c, 0x00, 0x00],
-      A: [0xfc, 0x12, 0x12, 0x12, 0xfc, 0x00, 0x00],
-      B: [0xfe, 0x92, 0x92, 0x92, 0x6c, 0x00, 0x00],
-      C: [0x7c, 0x82, 0x82, 0x82, 0x44, 0x00, 0x00],
-      D: [0xfe, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      E: [0xfe, 0x92, 0x92, 0x92, 0x82, 0x00, 0x00],
-      F: [0xfe, 0x12, 0x12, 0x12, 0x02, 0x00, 0x00],
-      G: [0x7c, 0x82, 0x92, 0x92, 0x74, 0x00, 0x00],
-      H: [0xfe, 0x10, 0x10, 0x10, 0xfe, 0x00, 0x00],
-      I: [0x00, 0x82, 0xfe, 0x82, 0x00, 0x00, 0x00],
-      J: [0x40, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      K: [0xfe, 0x10, 0x28, 0x44, 0x82, 0x00, 0x00],
-      L: [0xfe, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00],
-      M: [0xfe, 0x04, 0x08, 0x04, 0xfe, 0x00, 0x00],
-      N: [0xfe, 0x04, 0x08, 0x10, 0xfe, 0x00, 0x00],
-      O: [0x7c, 0x82, 0x82, 0x82, 0x7c, 0x00, 0x00],
-      P: [0xfe, 0x12, 0x12, 0x12, 0x0c, 0x00, 0x00],
-      Q: [0x7c, 0x82, 0xa2, 0x42, 0xbc, 0x00, 0x00],
-      R: [0xfe, 0x12, 0x32, 0x52, 0x8c, 0x00, 0x00],
-      S: [0x4c, 0x92, 0x92, 0x92, 0x64, 0x00, 0x00],
-      T: [0x02, 0x02, 0xfe, 0x02, 0x02, 0x00, 0x00],
-      U: [0x7e, 0x80, 0x80, 0x80, 0x7e, 0x00, 0x00],
-      V: [0x3e, 0x40, 0x80, 0x40, 0x3e, 0x00, 0x00],
-      W: [0xfe, 0x40, 0x20, 0x40, 0xfe, 0x00, 0x00],
-      X: [0xc6, 0x28, 0x10, 0x28, 0xc6, 0x00, 0x00],
-      Y: [0x06, 0x08, 0xf0, 0x08, 0x06, 0x00, 0x00],
-      Z: [0xc2, 0xa2, 0x92, 0x8a, 0x86, 0x00, 0x00],
-      " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
-      ".": [0x00, 0x00, 0xc0, 0xc0, 0x00, 0x00, 0x00],
-      "/": [0xc0, 0x20, 0x10, 0x08, 0x06, 0x00, 0x00],
-      "%": [0x86, 0x46, 0x20, 0x10, 0xc4, 0xc2, 0x00],
-    };
-
-    const charData = font[char];
-    if (!charData) return;
-
-    // Font data is column-based: each array element is a column,
-    // each bit represents a row (LSB = top row)
-    for (let col = 0; col < 5; col++) {
-      const colData = charData[col] || 0;
-      for (let row = 0; row < 7; row++) {
-        if (colData & (0x02 << row)) {
-          for (let sy = 0; sy < scale; sy++) {
-            for (let sx = 0; sx < scale; sx++) {
-              this.setPixel(
-                bitmap,
-                x + col * scale + sx,
-                y + row * scale + sy,
-                true,
-              );
-            }
-          }
-        }
-      }
-    }
-  }
-
-  /**
-   * Render a large number horizontally (left to right)
-   */
-  private renderRotatedLargeNumber(
-    bitmap: Bitmap1Bit,
-    x: number,
-    y: number,
-    value: number,
-  ): void {
-    const text = value.toString();
-    const scale = 3;
-    const charWidth = 6 * scale; // 5 pixels + 1 spacing, scaled
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i);
-      // Characters flow horizontally (left to right)
-      const charOffsetX = i * charWidth;
-      this.drawScaledChar(bitmap, x + charOffsetX, y, char, scale);
-    }
-  }
+  // Note: Old bitmap font methods (renderSimpleText, drawChar, drawScaledChar, etc.)
+  // have been removed in favor of SVG-based text rendering via svgTextRenderer utility
 
   /**
    * Draw a vertical line
@@ -1429,6 +1054,7 @@ export class SVGService implements ISVGService {
 
   /**
    * Render full-screen turn display for drive navigation
+   * Uses SVG-based text rendering for better font quality
    */
   async renderTurnScreen(
     maneuverType: ManeuverType,
@@ -1449,28 +1075,40 @@ export class SVGService implements ISVGService {
       // Draw the large turn arrow
       this.drawManeuverArrow(bitmap, centerX, centerY, maneuverType, 120);
 
-      // Draw distance text (large)
+      // Draw distance text (large) using SVG
       const distanceText = this.formatDistanceForDisplay(distance);
       const distanceY = Math.floor(height / 2) + 40;
-      this.renderLargeText(bitmap, centerX, distanceY, distanceText);
+      await renderTextOnBitmap(bitmap, distanceText, centerX, distanceY, {
+        fontSize: 48,
+        fontWeight: "bold",
+        alignment: "center",
+      });
 
-      // Draw instruction text
+      // Draw instruction text using SVG
       const instructionY = Math.floor(height * 0.7);
-      this.renderSimpleText(
+      await renderTextOnBitmap(
         bitmap,
-        centerX - Math.floor((instruction.length * 6) / 2),
-        instructionY,
         instruction.toUpperCase(),
+        centerX,
+        instructionY,
+        {
+          fontSize: 16,
+          alignment: "center",
+        },
       );
 
       // Draw street name if provided
       if (streetName) {
-        const streetY = instructionY + 25;
-        this.renderSimpleText(
+        const streetY = instructionY + 30;
+        await renderTextOnBitmap(
           bitmap,
-          centerX - Math.floor((streetName.length * 6) / 2),
-          streetY,
           streetName.toUpperCase(),
+          centerX,
+          streetY,
+          {
+            fontSize: 14,
+            alignment: "center",
+          },
         );
       }
 
@@ -1565,7 +1203,7 @@ export class SVGService implements ISVGService {
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
 
       // Render info panel (right 30%)
-      this.renderDriveInfoPanel(
+      await this.renderDriveInfoPanel(
         bitmap,
         mapWidth + 10,
         info,
@@ -1586,6 +1224,7 @@ export class SVGService implements ISVGService {
 
   /**
    * Render off-road arrow screen for drive navigation
+   * Uses SVG-based text rendering for better font quality
    */
   async renderOffRoadScreen(
     bearing: number,
@@ -1606,31 +1245,31 @@ export class SVGService implements ISVGService {
       // Draw large directional arrow pointing to route
       this.drawDirectionalArrow(bitmap, centerX, centerY, bearing, 100);
 
-      // Draw distance text
+      // Draw distance text using SVG
       const distanceText = this.formatDistanceForDisplay(distance);
       const distanceY = Math.floor(height / 2) + 40;
-      this.renderLargeText(bitmap, centerX, distanceY, distanceText);
+      await renderTextOnBitmap(bitmap, distanceText, centerX, distanceY, {
+        fontSize: 48,
+        fontWeight: "bold",
+        alignment: "center",
+      });
 
-      // Draw "TO ROUTE" text
+      // Draw "TO ROUTE" text using SVG
       const labelY = Math.floor(height / 2) + 100;
-      const label = "TO ROUTE";
-      this.renderSimpleText(
-        bitmap,
-        centerX - Math.floor((label.length * 6) / 2),
-        labelY,
-        label,
-      );
+      await renderTextOnBitmap(bitmap, "TO ROUTE", centerX, labelY, {
+        fontSize: 20,
+        fontWeight: "bold",
+        alignment: "center",
+      });
 
-      // Draw instruction at bottom
+      // Draw instruction at bottom using SVG
       const instructionY = Math.floor(height * 0.8);
       const instruction =
         "HEAD " + this.bearingToDirection(bearing) + " TO REACH PAVED ROAD";
-      this.renderSimpleText(
-        bitmap,
-        centerX - Math.floor((instruction.length * 6) / 2),
-        instructionY,
-        instruction,
-      );
+      await renderTextOnBitmap(bitmap, instruction, centerX, instructionY, {
+        fontSize: 14,
+        alignment: "center",
+      });
 
       logger.info("Off-road screen rendered successfully");
       return success(bitmap);
@@ -1645,6 +1284,7 @@ export class SVGService implements ISVGService {
 
   /**
    * Render arrival screen for drive navigation
+   * Uses SVG-based text rendering for better font quality
    */
   async renderArrivalScreen(
     destination: string,
@@ -1662,23 +1302,30 @@ export class SVGService implements ISVGService {
       const markerY = Math.floor(height / 3);
       this.drawCheckmark(bitmap, centerX, markerY, 80);
 
-      // Draw "ARRIVED" text
+      // Draw "ARRIVED" text using SVG
       const arrivedY = Math.floor(height / 2) + 20;
-      const arrivedText = "ARRIVED";
-      this.renderLargeText(bitmap, centerX, arrivedY, arrivedText);
+      await renderTextOnBitmap(bitmap, "ARRIVED", centerX, arrivedY, {
+        fontSize: 48,
+        fontWeight: "bold",
+        alignment: "center",
+      });
 
-      // Draw destination name
+      // Draw destination name using SVG
       const destY = Math.floor(height * 0.7);
       // Truncate if too long
       const truncatedDest =
         destination.length > 40
           ? destination.substring(0, 37) + "..."
           : destination;
-      this.renderSimpleText(
+      await renderTextOnBitmap(
         bitmap,
-        centerX - Math.floor((truncatedDest.length * 6) / 2),
-        destY,
         truncatedDest.toUpperCase(),
+        centerX,
+        destY,
+        {
+          fontSize: 14,
+          alignment: "center",
+        },
       );
 
       logger.info("Arrival screen rendered successfully");
@@ -2151,20 +1798,23 @@ export class SVGService implements ISVGService {
 
   /**
    * Render the info panel for drive navigation
+   * Uses SVG-based text rendering for better font quality
    */
-  private renderDriveInfoPanel(
+  private async renderDriveInfoPanel(
     bitmap: Bitmap1Bit,
     x: number,
     info: DriveNavigationInfo,
     width: number,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     height: number,
-  ): void {
+  ): Promise<void> {
     const padding = 10;
     let currentY = padding + 20;
 
     // Next turn section
-    this.renderSimpleText(bitmap, x + padding, currentY, "NEXT TURN");
+    await renderTextOnBitmap(bitmap, "NEXT TURN", x + padding, currentY, {
+      fontSize: 12,
+    });
     currentY += 20;
 
     // Small turn arrow
@@ -2179,28 +1829,32 @@ export class SVGService implements ISVGService {
 
     // Distance to turn
     const distText = this.formatDistanceForDisplay(info.distanceToTurn);
-    this.renderSimpleText(bitmap, x + padding, currentY, distText);
+    await renderTextOnBitmap(bitmap, distText, x + padding, currentY, {
+      fontSize: 14,
+      fontWeight: "bold",
+    });
     currentY += 30;
 
     // Divider
     this.drawHorizontalLine(bitmap, x + padding, currentY, width - padding * 2);
     currentY += 20;
 
-    // Speed
-    this.renderSimpleText(bitmap, x + padding, currentY, "SPEED");
-    currentY += 20;
-    this.renderLargeNumber(
+    // Speed section
+    await renderLabeledValueOnBitmap(
       bitmap,
+      "SPEED",
+      Math.round(info.speed),
+      "KM/H",
       x + padding,
       currentY,
-      Math.round(info.speed),
-      width - padding * 2,
+      { labelSize: 12, valueSize: 28, unitSize: 12 },
     );
-    this.renderSimpleText(bitmap, x + padding, currentY + 55, "KM/H");
     currentY += 80;
 
     // Progress
-    this.renderSimpleText(bitmap, x + padding, currentY, "PROGRESS");
+    await renderTextOnBitmap(bitmap, "PROGRESS", x + padding, currentY, {
+      fontSize: 12,
+    });
     currentY += 20;
 
     // Progress bar
@@ -2234,19 +1888,25 @@ export class SVGService implements ISVGService {
     }
     currentY += barHeight + 15;
 
-    this.renderSimpleText(
+    await renderTextOnBitmap(
       bitmap,
+      `${Math.round(info.progress)}%`,
       x + padding,
       currentY,
-      `${Math.round(info.progress)}%`,
+      { fontSize: 14, fontWeight: "bold" },
     );
     currentY += 30;
 
     // Remaining distance
-    this.renderSimpleText(bitmap, x + padding, currentY, "REMAINING");
+    await renderTextOnBitmap(bitmap, "REMAINING", x + padding, currentY, {
+      fontSize: 12,
+    });
     currentY += 20;
     const remainingText = this.formatDistanceForDisplay(info.distanceRemaining);
-    this.renderSimpleText(bitmap, x + padding, currentY, remainingText);
+    await renderTextOnBitmap(bitmap, remainingText, x + padding, currentY, {
+      fontSize: 14,
+      fontWeight: "bold",
+    });
   }
 
   /**
@@ -2270,24 +1930,5 @@ export class SVGService implements ISVGService {
     const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
     const index = Math.round(bearing / 45) % 8;
     return directions[index];
-  }
-
-  /**
-   * Render large text centered at position
-   */
-  private renderLargeText(
-    bitmap: Bitmap1Bit,
-    centerX: number,
-    y: number,
-    text: string,
-  ): void {
-    const charWidth = 18; // Larger spacing
-    const totalWidth = text.length * charWidth;
-    const startX = centerX - totalWidth / 2;
-
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charAt(i);
-      this.drawLargeChar(bitmap, Math.round(startX + i * charWidth), y, char);
-    }
   }
 }

@@ -231,39 +231,39 @@ describe("SVGService", () => {
   });
 
   describe("addCompass", () => {
-    it("should add compass to bitmap", () => {
+    it("should add compass to bitmap", async () => {
       const bitmap = service.createBlankBitmap(200, 200, false);
 
-      const result = service.addCompass(bitmap, 100, 100, 30, 0);
+      const result = await service.addCompass(bitmap, 100, 100, 30, 0);
 
       expect(result.success).toBe(true);
     });
 
-    it("should add rotated compass", () => {
+    it("should add rotated compass", async () => {
       const bitmap = service.createBlankBitmap(200, 200, false);
 
-      const result = service.addCompass(bitmap, 100, 100, 30, 90);
+      const result = await service.addCompass(bitmap, 100, 100, 30, 90);
 
       expect(result.success).toBe(true);
     });
   });
 
   describe("addScaleBar", () => {
-    it("should add scale bar to bitmap", () => {
+    it("should add scale bar to bitmap", async () => {
       const bitmap = service.createBlankBitmap(200, 100, false);
 
-      const result = service.addScaleBar(bitmap, 10, 80, 100, 5);
+      const result = await service.addScaleBar(bitmap, 10, 80, 100, 5);
 
       expect(result.success).toBe(true);
     });
 
-    it("should handle various meters per pixel values", () => {
+    it("should handle various meters per pixel values", async () => {
       const bitmap = service.createBlankBitmap(200, 100, false);
 
       // Test various scales
       const scales = [0.1, 1, 10, 100, 1000];
       for (const mpp of scales) {
-        const result = service.addScaleBar(bitmap, 10, 80, 100, mpp);
+        const result = await service.addScaleBar(bitmap, 10, 80, 100, mpp);
         expect(result.success).toBe(true);
       }
     });

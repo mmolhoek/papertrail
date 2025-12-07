@@ -113,12 +113,13 @@ export interface ISVGService {
 
   /**
    * Add a compass rose to indicate direction
+   * Uses SVG-based text rendering for labels
    * @param bitmap The bitmap to modify
    * @param x X position for center
    * @param y Y position for center
    * @param radius Radius of the compass
    * @param heading Current heading in degrees
-   * @returns Result containing modified bitmap or error
+   * @returns Promise of Result containing modified bitmap or error
    */
   addCompass(
     bitmap: Bitmap1Bit,
@@ -126,16 +127,17 @@ export interface ISVGService {
     y: number,
     radius: number,
     heading: number,
-  ): Result<Bitmap1Bit>;
+  ): Promise<Result<Bitmap1Bit>>;
 
   /**
    * Add a scale bar to the bitmap
+   * Uses SVG-based text rendering for distance labels
    * @param bitmap The bitmap to modify
    * @param x X position
    * @param y Y position
    * @param width Width of the scale bar
    * @param metersPerPixel Meters per pixel at current zoom
-   * @returns Result containing modified bitmap or error
+   * @returns Promise of Result containing modified bitmap or error
    */
   addScaleBar(
     bitmap: Bitmap1Bit,
@@ -143,7 +145,7 @@ export interface ISVGService {
     y: number,
     width: number,
     metersPerPixel: number,
-  ): Result<Bitmap1Bit>;
+  ): Promise<Result<Bitmap1Bit>>;
 
   /**
    * Overlay information panel on the bitmap

@@ -48,16 +48,14 @@ describe("RenderingOrchestrator", () => {
       getCurrentPosition: jest.fn().mockResolvedValue(success(testPosition)),
       startTracking: jest.fn().mockResolvedValue(success(undefined)),
       stopTracking: jest.fn(),
-      getStatus: jest
-        .fn()
-        .mockReturnValue({
-          fixQuality: 1,
-          satellitesInUse: 8,
-          hdop: 1.2,
-          vdop: 1.5,
-          pdop: 1.8,
-          isTracking: true,
-        }),
+      getStatus: jest.fn().mockReturnValue({
+        fixQuality: 1,
+        satellitesInUse: 8,
+        hdop: 1.2,
+        vdop: 1.5,
+        pdop: 1.8,
+        isTracking: true,
+      }),
       onPositionUpdate: jest.fn().mockReturnValue(() => {}),
       onStatusChange: jest.fn().mockReturnValue(() => {}),
     };
