@@ -20,10 +20,12 @@ export interface FollowTrackInfo {
   satellites: number;
   /** Progress percentage (0-100) */
   progress?: number;
-  /** Current bearing/heading in degrees */
+  /** Current bearing/heading in degrees (used for compass rotation) */
   bearing?: number;
   /** Distance remaining in meters */
   distanceRemaining?: number;
+  /** Estimated time remaining in seconds */
+  estimatedTimeRemaining?: number;
 }
 
 /**

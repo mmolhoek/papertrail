@@ -766,22 +766,56 @@ export class SVGService implements ISVGService {
       info.satellites,
     );
 
-    // Section 3: Bearing (if available)
-    if (info.bearing !== undefined) {
-      const bearY = sectionHeight * 2 + padding;
-      this.renderRotatedMediumText(bitmap, x + padding, bearY, "BEAR");
+    // Section 3: Progress % and Time Left
+    const section3Y = sectionHeight * 2 + padding;
+
+    // Progress percentage
+    if (info.progress !== undefined) {
+      this.renderRotatedMediumText(bitmap, x + padding, section3Y, "DONE");
       this.renderRotatedLargeNumber(
         bitmap,
         x + padding,
-        bearY + labelHeight + lineSpacing,
-        Math.round(info.bearing),
+        section3Y + labelHeight + lineSpacing,
+        Math.round(info.progress),
       );
-      // Draw degree symbol (small circle) after the number
-      const numDigits = Math.round(info.bearing).toString().length;
-      const degX = x + padding + numDigits * 18 + 5; // 18px per digit (6 * scale 3)
-      const degY = bearY + labelHeight + lineSpacing + 5;
-      this.drawCircle(bitmap, { x: degX, y: degY }, 3);
+      // Draw % symbol after the number
+      const numDigits = Math.round(info.progress).toString().length;
+      const percentX = x + padding + numDigits * 18 + 5; // 18px per digit (6 * scale 3)
+      this.renderRotatedMediumText(
+        bitmap,
+        percentX,
+        section3Y + labelHeight + lineSpacing + 4,
+        "%",
+      );
     }
+
+    // Time remaining (below progress)
+    if (info.estimatedTimeRemaining !== undefined) {
+      const etaY = section3Y + labelHeight + lineSpacing + numberHeight + 20;
+      this.renderRotatedMediumText(bitmap, x + padding, etaY, "ETA");
+      const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
+      this.renderRotatedMediumText(
+        bitmap,
+        x + padding,
+        etaY + labelHeight + lineSpacing,
+        timeStr,
+      );
+    }
+  }
+
+  /**
+   * Format time remaining in seconds to a readable string (e.g., "1H 23M" or "45M")
+   */
+  private formatTimeRemaining(seconds: number): string {
+    if (seconds < 60) {
+      return "<1M";
+    }
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}H ${minutes}M`;
+    }
+    return `${minutes}M`;
   }
 
   /**
