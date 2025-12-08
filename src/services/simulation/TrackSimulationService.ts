@@ -333,12 +333,20 @@ export class TrackSimulationService implements ITrackSimulationService {
       `Track has ${points.length} points, total distance: ${Math.round(this.totalDistance)}m`,
     );
 
-    // Log some sample segment distances for debugging
-    const nonZeroSegments = this.segmentDistances.filter((d) => d > 0).length;
+    // Log segment distance statistics for debugging
+    const nonZeroSegments = this.segmentDistances.filter((d) => d > 0);
     const avgDistance =
-      nonZeroSegments > 0 ? this.totalDistance / nonZeroSegments : 0;
+      nonZeroSegments.length > 0
+        ? this.totalDistance / nonZeroSegments.length
+        : 0;
+    const minDistance =
+      nonZeroSegments.length > 0 ? Math.min(...nonZeroSegments) : 0;
+    const maxDistance =
+      nonZeroSegments.length > 0 ? Math.max(...nonZeroSegments) : 0;
+    const shortSegments = nonZeroSegments.filter((d) => d < 5).length;
+
     logger.info(
-      `Segment distances: ${nonZeroSegments} non-zero segments, avg ${Math.round(avgDistance)}m per segment`,
+      `Segment stats: ${nonZeroSegments.length} segments, avg=${Math.round(avgDistance)}m, min=${minDistance.toFixed(1)}m, max=${Math.round(maxDistance)}m, short(<5m)=${shortSegments}`,
     );
   }
 
@@ -483,12 +491,18 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.coveredDistance += distanceThisUpdate;
 
     // Check if we've moved past the current segment
+    // Limit to max 5 segment advances per tick to prevent runaway on short segments
+    let segmentsAdvanced = 0;
+    const maxSegmentsPerTick = 5;
+
     while (
       this.segmentFraction >= 1 &&
-      this.currentPointIndex < totalPoints - 1
+      this.currentPointIndex < totalPoints - 1 &&
+      segmentsAdvanced < maxSegmentsPerTick
     ) {
       this.segmentFraction -= 1;
       this.currentPointIndex++;
+      segmentsAdvanced++;
 
       // If we've reached the end
       if (this.currentPointIndex >= totalPoints - 1) {
@@ -501,7 +515,9 @@ export class TrackSimulationService implements ITrackSimulationService {
         };
         this.notifyPositionUpdate(this.currentPosition);
 
-        logger.info("Simulation complete");
+        logger.info(
+          `Simulation complete: reached point ${this.currentPointIndex} of ${totalPoints}, covered ${Math.round(this.coveredDistance)}m`,
+        );
         this.clearUpdateLoop();
         this.state = SimulationState.STOPPED;
         this.notifyStateChange();
@@ -513,9 +529,19 @@ export class TrackSimulationService implements ITrackSimulationService {
       const nextSegmentDistance =
         this.segmentDistances[this.currentPointIndex] || 0;
       if (nextSegmentDistance > 0) {
-        const remainingDistance = this.segmentFraction * currentSegmentDistance;
+        // Convert remaining distance to fraction of next segment
+        const prevSegmentDist =
+          this.segmentDistances[this.currentPointIndex - 1] || 1;
+        const remainingDistance = this.segmentFraction * prevSegmentDist;
         this.segmentFraction = remainingDistance / nextSegmentDistance;
       }
+    }
+
+    // Log if we hit the segment limit (indicates very short segments)
+    if (segmentsAdvanced >= maxSegmentsPerTick) {
+      logger.debug(
+        `Hit max segments per tick limit at point ${this.currentPointIndex}, fraction=${this.segmentFraction.toFixed(2)}`,
+      );
     }
 
     // Interpolate position within current segment
