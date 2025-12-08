@@ -511,7 +511,7 @@ export class SVGService implements ISVGService {
     );
 
     // Draw the distance label centered above the bar using SVG text
-    const labelFontSize = 14;
+    const labelFontSize = 28;
     const labelY = y - labelFontSize - 12; // Position above bar with gap
     const labelCenterX = x + Math.floor(barWidth / 2);
 
