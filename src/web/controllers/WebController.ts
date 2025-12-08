@@ -1656,9 +1656,11 @@ export class WebController {
    * Converts the drive route geometry to a GPX track and runs simulation
    */
   async simulateDriveRoute(req: Request, res: Response): Promise<void> {
-    const { route, speed = 100 } = req.body;
+    const { route, speed = 100, useMapView = false } = req.body;
 
-    logger.info(`Simulate drive route requested at ${speed} km/h`);
+    logger.info(
+      `Simulate drive route requested at ${speed} km/h, useMapView: ${useMapView}`,
+    );
 
     if (!this.simulationService) {
       res.status(503).json({
@@ -1731,6 +1733,10 @@ export class WebController {
         if (this.driveNavigationService && this.orchestrator) {
           // Enable simulation mode to skip off-road detection
           this.driveNavigationService.setSimulationMode(true);
+          // Set map view preference (default to turn-only view for stability)
+          this.driveNavigationService.setUseMapViewInSimulation(
+            Boolean(useMapView),
+          );
 
           logger.info(
             "Starting drive navigation for tracking (simulation mode)",

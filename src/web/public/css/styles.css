@@ -1777,6 +1777,22 @@ body {
   color: var(--color-charcoal);
 }
 
+/* Drive Display Options */
+.drive-display-options {
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-parchment-dark);
+  border-radius: var(--radius-sm);
+}
+
+.drive-display-options.hidden {
+  display: none;
+}
+
+.drive-display-options .checkbox-label {
+  color: var(--color-slate);
+}
+
 /* Drive Navigation Controls */
 .drive-nav-controls {
   display: flex;

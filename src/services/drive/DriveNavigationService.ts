@@ -36,6 +36,7 @@ export class DriveNavigationService implements IDriveNavigationService {
   private currentWaypointIndex = 0;
   private currentPosition: GPSCoordinate | null = null;
   private isSimulationMode = false; // Skip off-road detection in simulation mode
+  private useMapViewInSimulation = false; // When true, allow MAP_WITH_OVERLAY during simulation (may cause freezing)
 
   // Callbacks
   private navigationCallbacks: Array<(update: DriveNavigationUpdate) => void> =
@@ -230,9 +231,11 @@ export class DriveNavigationService implements IDriveNavigationService {
     this.currentWaypointIndex = 0;
     this.navigationState = NavigationState.NAVIGATING;
     // In simulation mode, use TURN_SCREEN to avoid Sharp text rendering issues
-    this.displayMode = this.isSimulationMode
-      ? DriveDisplayMode.TURN_SCREEN
-      : DriveDisplayMode.MAP_WITH_OVERLAY;
+    // (unless user explicitly opted for map view)
+    this.displayMode =
+      this.isSimulationMode && !this.useMapViewInSimulation
+        ? DriveDisplayMode.TURN_SCREEN
+        : DriveDisplayMode.MAP_WITH_OVERLAY;
     this.updateCount = 0;
 
     // Check if we're off-road at start
@@ -318,6 +321,16 @@ export class DriveNavigationService implements IDriveNavigationService {
   setSimulationMode(enabled: boolean): void {
     this.isSimulationMode = enabled;
     logger.info(`Simulation mode: ${enabled}`);
+  }
+
+  /**
+   * Set whether to use map view during simulation
+   * When true, MAP_WITH_OVERLAY will be used (may cause freezing due to Sharp text rendering)
+   * When false, TURN_SCREEN will be used (safer, no freezing)
+   */
+  setUseMapViewInSimulation(enabled: boolean): void {
+    this.useMapViewInSimulation = enabled;
+    logger.info(`Use map view in simulation: ${enabled}`);
   }
 
   updatePosition(position: GPSCoordinate): void {
@@ -521,9 +534,9 @@ export class DriveNavigationService implements IDriveNavigationService {
           );
           this.notifyNavigationUpdate("turn_approaching");
         }
-      } else if (this.isSimulationMode) {
+      } else if (this.isSimulationMode && !this.useMapViewInSimulation) {
         // During simulation, use turn screen even for long distances
-        // to avoid Sharp text rendering issues
+        // to avoid Sharp text rendering issues (unless user opted for map view)
         this.displayMode = DriveDisplayMode.TURN_SCREEN;
       } else {
         this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;

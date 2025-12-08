@@ -1993,6 +1993,7 @@ class PapertrailClient {
   showRoutePreview() {
     const preview = document.getElementById("drive-route-preview");
     const controls = document.getElementById("drive-nav-controls");
+    const displayOptions = document.getElementById("drive-display-options");
 
     // Format distance
     const distanceKm = (this.driveRoute.totalDistance / 1000).toFixed(1);
@@ -2010,6 +2011,7 @@ class PapertrailClient {
     document.getElementById("drive-route-turns").textContent = turns;
 
     preview.classList.remove("hidden");
+    if (displayOptions) displayOptions.classList.remove("hidden");
     controls.classList.remove("hidden");
   }
 
@@ -2080,9 +2082,13 @@ class PapertrailClient {
     const simulateBtn = document.getElementById("drive-simulate-btn");
     const startBtn = document.getElementById("drive-start-btn");
     const stopBtn = document.getElementById("drive-stop-btn");
+    const mapViewCheckbox = document.getElementById("drive-map-view-checkbox");
 
     simulateBtn.disabled = true;
     startBtn.disabled = true;
+
+    // Get the map view preference
+    const useMapView = mapViewCheckbox ? mapViewCheckbox.checked : false;
 
     try {
       // Convert drive route geometry to simulation format
@@ -2092,6 +2098,7 @@ class PapertrailClient {
         body: JSON.stringify({
           route: this.driveRoute,
           speed: 100, // 100 km/h drive speed
+          useMapView: useMapView, // Pass map view preference
         }),
       });
 
