@@ -229,7 +229,10 @@ export class DriveNavigationService implements IDriveNavigationService {
     this.activeRoute = activeRoute;
     this.currentWaypointIndex = 0;
     this.navigationState = NavigationState.NAVIGATING;
-    this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+    // In simulation mode, use TURN_SCREEN to avoid Sharp text rendering issues
+    this.displayMode = this.isSimulationMode
+      ? DriveDisplayMode.TURN_SCREEN
+      : DriveDisplayMode.MAP_WITH_OVERLAY;
     this.updateCount = 0;
 
     // Check if we're off-road at start
@@ -508,6 +511,8 @@ export class DriveNavigationService implements IDriveNavigationService {
       );
 
       // Update display mode based on distance
+      // In simulation mode, prefer TURN_SCREEN to avoid expensive map renders
+      // that can cause Sharp to hang
       if (this.distanceToNextTurn <= DRIVE_THRESHOLDS.TURN_SCREEN_DISTANCE) {
         this.displayMode = DriveDisplayMode.TURN_SCREEN;
         if (prevDisplayMode !== DriveDisplayMode.TURN_SCREEN) {
@@ -516,6 +521,10 @@ export class DriveNavigationService implements IDriveNavigationService {
           );
           this.notifyNavigationUpdate("turn_approaching");
         }
+      } else if (this.isSimulationMode) {
+        // During simulation, use turn screen even for long distances
+        // to avoid Sharp text rendering issues
+        this.displayMode = DriveDisplayMode.TURN_SCREEN;
       } else {
         this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
       }
