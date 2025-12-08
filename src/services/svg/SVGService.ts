@@ -27,7 +27,7 @@ import {
 import {
   renderBitmapText,
   calculateBitmapTextHeight,
-  fontSizeToScale,
+  calculateBitmapTextWidth,
 } from "@utils/bitmapFont";
 
 const logger = getLogger("SVGService");
@@ -327,18 +327,23 @@ export class SVGService implements ISVGService {
     // Draw south indicator (opposite direction, smaller)
     this.drawCompassArrow(bitmap, center, radius, northAngle + 180, false);
 
-    // Draw "N" label near the north arrow using SVG text
-    const labelFontSize = 16;
+    // Draw "N" label near the north arrow using bitmap font (no Sharp)
+    const labelScale = 2; // ~14px height
     const labelDistance = radius + 16;
     const northRadians = ((northAngle - 90) * Math.PI) / 180;
     const labelX = Math.round(x + labelDistance * Math.cos(northRadians));
     const labelY = Math.round(y + labelDistance * Math.sin(northRadians));
 
-    await renderTextOnBitmap(bitmap, "N", labelX, labelY - labelFontSize / 2, {
-      fontSize: labelFontSize,
-      fontWeight: "bold",
-      alignment: "center",
-    });
+    // Center the "N" label
+    const nWidth = calculateBitmapTextWidth("N", labelScale);
+    const nHeight = calculateBitmapTextHeight(labelScale);
+    renderBitmapText(
+      bitmap,
+      "N",
+      labelX - Math.floor(nWidth / 2),
+      labelY - Math.floor(nHeight / 2),
+      { scale: labelScale, bold: true },
+    );
 
     return success(bitmap);
   }
@@ -515,15 +520,16 @@ export class SVGService implements ISVGService {
       4,
     );
 
-    // Draw the distance label centered above the bar using SVG text
-    const labelFontSize = 28;
-    const labelY = y - labelFontSize - 12; // Position above bar with gap
-    const labelCenterX = x + Math.floor(barWidth / 2);
+    // Draw the distance label centered above the bar using bitmap font (no Sharp)
+    const labelScale = 4; // ~28px height
+    const labelHeight = calculateBitmapTextHeight(labelScale);
+    const labelY = y - labelHeight - 12; // Position above bar with gap
+    const labelWidth = calculateBitmapTextWidth(label, labelScale);
+    const labelX = x + Math.floor(barWidth / 2) - Math.floor(labelWidth / 2);
 
-    await renderTextOnBitmap(bitmap, label, labelCenterX, labelY, {
-      fontSize: labelFontSize,
-      fontWeight: "bold",
-      alignment: "center",
+    renderBitmapText(bitmap, label, labelX, labelY, {
+      scale: labelScale,
+      bold: true,
     });
 
     return success(bitmap);
@@ -1218,9 +1224,9 @@ export class SVGService implements ISVGService {
         `renderDriveMapScreen: drew map elements (${Date.now() - methodStart}ms)`,
       );
 
-      // Render info panel (right 30%)
+      // Render info panel (right 30%) - uses bitmap font, no Sharp
       logger.info(`renderDriveMapScreen: starting info panel render...`);
-      await this.renderDriveInfoPanel(
+      this.renderDriveInfoPanel(
         bitmap,
         mapWidth + 10,
         info,
@@ -1820,29 +1826,26 @@ export class SVGService implements ISVGService {
 
   /**
    * Render the info panel for drive navigation
-   * Uses SVG-based text rendering for better font quality
+   * Uses bitmap font rendering (no Sharp) for stability
    */
-  private async renderDriveInfoPanel(
+  private renderDriveInfoPanel(
     bitmap: Bitmap1Bit,
     x: number,
     info: DriveNavigationInfo,
     width: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    height: number,
-  ): Promise<void> {
+    _height: number,
+  ): void {
     const padding = 10;
     let currentY = padding + 20;
-    const startTime = Date.now();
+    const labelScale = 2; // ~14px
+    const valueScale = 3; // ~21px
 
-    logger.info("renderDriveInfoPanel: starting text renders...");
+    logger.debug("renderDriveInfoPanel: using bitmap font (no Sharp)");
 
     // Next turn section
-    await renderTextOnBitmap(bitmap, "NEXT TURN", x + padding, currentY, {
-      fontSize: 12,
+    renderBitmapText(bitmap, "NEXT TURN", x + padding, currentY, {
+      scale: labelScale,
     });
-    logger.info(
-      `renderDriveInfoPanel: text 1/8 done (${Date.now() - startTime}ms)`,
-    );
     currentY += 20;
 
     // Small turn arrow
@@ -1857,41 +1860,36 @@ export class SVGService implements ISVGService {
 
     // Distance to turn
     const distText = this.formatDistanceForDisplay(info.distanceToTurn);
-    await renderTextOnBitmap(bitmap, distText, x + padding, currentY, {
-      fontSize: 14,
-      fontWeight: "bold",
+    renderBitmapText(bitmap, distText, x + padding, currentY, {
+      scale: valueScale,
+      bold: true,
     });
-    logger.info(
-      `renderDriveInfoPanel: text 2/8 done (${Date.now() - startTime}ms)`,
-    );
     currentY += 30;
 
     // Divider
     this.drawHorizontalLine(bitmap, x + padding, currentY, width - padding * 2);
     currentY += 20;
 
-    // Speed section
-    await renderLabeledValueOnBitmap(
+    // Speed section - label
+    renderBitmapText(bitmap, "SPEED", x + padding, currentY, {
+      scale: labelScale,
+    });
+    currentY += calculateBitmapTextHeight(labelScale) + 4;
+
+    // Speed value
+    renderBitmapText(
       bitmap,
-      "SPEED",
-      Math.round(info.speed),
-      "KM/H",
+      `${Math.round(info.speed)} KM/H`,
       x + padding,
       currentY,
-      { labelSize: 12, valueSize: 28, unitSize: 12 },
+      { scale: valueScale, bold: true },
     );
-    logger.info(
-      `renderDriveInfoPanel: text 3/8 (speed) done (${Date.now() - startTime}ms)`,
-    );
-    currentY += 80;
+    currentY += calculateBitmapTextHeight(valueScale) + 20;
 
-    // Progress
-    await renderTextOnBitmap(bitmap, "PROGRESS", x + padding, currentY, {
-      fontSize: 12,
+    // Progress label
+    renderBitmapText(bitmap, "PROGRESS", x + padding, currentY, {
+      scale: labelScale,
     });
-    logger.info(
-      `renderDriveInfoPanel: text 4/8 done (${Date.now() - startTime}ms)`,
-    );
     currentY += 20;
 
     // Progress bar
@@ -1925,34 +1923,31 @@ export class SVGService implements ISVGService {
     }
     currentY += barHeight + 15;
 
-    await renderTextOnBitmap(
+    // Progress percentage
+    renderBitmapText(
       bitmap,
       `${Math.round(info.progress)}%`,
       x + padding,
       currentY,
-      { fontSize: 14, fontWeight: "bold" },
-    );
-    logger.info(
-      `renderDriveInfoPanel: text 5/8 done (${Date.now() - startTime}ms)`,
+      {
+        scale: valueScale,
+        bold: true,
+      },
     );
     currentY += 30;
 
-    // Remaining distance
-    await renderTextOnBitmap(bitmap, "REMAINING", x + padding, currentY, {
-      fontSize: 12,
+    // Remaining distance label
+    renderBitmapText(bitmap, "REMAINING", x + padding, currentY, {
+      scale: labelScale,
     });
-    logger.info(
-      `renderDriveInfoPanel: text 6/8 done (${Date.now() - startTime}ms)`,
-    );
     currentY += 20;
+
+    // Remaining distance value
     const remainingText = this.formatDistanceForDisplay(info.distanceRemaining);
-    await renderTextOnBitmap(bitmap, remainingText, x + padding, currentY, {
-      fontSize: 14,
-      fontWeight: "bold",
+    renderBitmapText(bitmap, remainingText, x + padding, currentY, {
+      scale: valueScale,
+      bold: true,
     });
-    logger.info(
-      `renderDriveInfoPanel: all text done (${Date.now() - startTime}ms)`,
-    );
   }
 
   /**
