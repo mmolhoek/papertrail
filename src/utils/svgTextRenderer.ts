@@ -56,15 +56,28 @@ export function calculateTextWidth(
   fontWeight: "normal" | "bold" = "normal",
 ): number {
   if (text.length === 0) return 0;
-  // Use wider character ratio to prevent right-side clipping
-  // Bold text needs more width than normal text
-  const charWidthRatio = fontWeight === "bold" ? 0.75 : 0.65;
+
+  // Base character width ratio (bold text needs more width)
+  const baseRatio = fontWeight === "bold" ? 0.75 : 0.65;
+
+  // Count wide characters that need extra space
+  // %, W, M, @, etc. are typically 1.5x wider than average
+  const wideChars = "%@WMmw";
+  let wideCharCount = 0;
+  for (const char of text) {
+    if (wideChars.includes(char)) {
+      wideCharCount++;
+    }
+  }
+
+  // Calculate width: base width + extra for wide characters
+  const baseWidth = text.length * fontSize * baseRatio;
+  const extraWidthForWideChars = wideCharCount * fontSize * 0.3;
+
   // Add padding to account for font rendering variations
-  const padding = 4;
-  return Math.max(
-    10,
-    Math.ceil(text.length * fontSize * charWidthRatio) + padding,
-  );
+  const padding = 6;
+
+  return Math.max(10, Math.ceil(baseWidth + extraWidthForWideChars) + padding);
 }
 
 /**

@@ -11,20 +11,34 @@ import { Bitmap1Bit } from "@core/types";
 describe("svgTextRenderer", () => {
   describe("calculateTextWidth", () => {
     it("should calculate text width based on font size for normal weight", () => {
-      // Width is max(10, ceil(length * fontSize * 0.65) + 4)
-      const expected = Math.max(10, Math.ceil(4 * 14 * 0.65) + 4);
+      // Width is max(10, ceil(length * fontSize * 0.65) + 6)
+      const expected = Math.max(10, Math.ceil(4 * 14 * 0.65) + 6);
       expect(calculateTextWidth("TEST", 14)).toBe(expected);
       expect(calculateTextWidth("TEST", 14, "normal")).toBe(expected);
     });
 
     it("should calculate wider text for bold weight", () => {
-      // Width is max(10, ceil(length * fontSize * 0.75) + 4)
-      const expectedBold = Math.max(10, Math.ceil(4 * 14 * 0.75) + 4);
-      const expectedNormal = Math.max(10, Math.ceil(4 * 14 * 0.65) + 4);
+      // Width is max(10, ceil(length * fontSize * 0.75) + 6)
+      const expectedBold = Math.max(10, Math.ceil(4 * 14 * 0.75) + 6);
+      const expectedNormal = Math.max(10, Math.ceil(4 * 14 * 0.65) + 6);
       expect(calculateTextWidth("TEST", 14, "bold")).toBe(expectedBold);
       expect(calculateTextWidth("TEST", 14, "bold")).toBeGreaterThan(
         expectedNormal,
       );
+    });
+
+    it("should add extra width for wide characters like %", () => {
+      // "42%" has 3 chars, but % is wide so gets extra 0.3 * fontSize
+      // Width = ceil(baseWidth + extraForWide) + padding
+      const baseWidth = 3 * 14 * 0.75; // bold
+      const extraForPercent = 1 * 14 * 0.3;
+      const expected = Math.max(10, Math.ceil(baseWidth + extraForPercent) + 6);
+      expect(calculateTextWidth("42%", 14, "bold")).toBe(expected);
+
+      // Compare with text without wide chars
+      const withoutWide = calculateTextWidth("123", 14, "bold");
+      const withWide = calculateTextWidth("12%", 14, "bold");
+      expect(withWide).toBeGreaterThan(withoutWide);
     });
 
     it("should return 0 for empty string", () => {
