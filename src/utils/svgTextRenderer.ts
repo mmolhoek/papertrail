@@ -4,6 +4,38 @@ import { getLogger } from "@utils/logger";
 
 const logger = getLogger("SvgTextRenderer");
 
+// Mutex to serialize Sharp operations (prevents resource exhaustion)
+let sharpOperationInProgress = false;
+let sharpOperationQueue: Array<() => void> = [];
+
+async function waitForSharpAvailable(): Promise<void> {
+  if (!sharpOperationInProgress) {
+    sharpOperationInProgress = true;
+    return;
+  }
+
+  const queueLength = sharpOperationQueue.length;
+  if (queueLength > 0) {
+    logger.warn(`Sharp queue length: ${queueLength + 1}, waiting...`);
+  }
+
+  return new Promise((resolve) => {
+    sharpOperationQueue.push(() => {
+      sharpOperationInProgress = true;
+      resolve();
+    });
+  });
+}
+
+function releaseSharp(): void {
+  if (sharpOperationQueue.length > 0) {
+    const next = sharpOperationQueue.shift();
+    if (next) next();
+  } else {
+    sharpOperationInProgress = false;
+  }
+}
+
 /**
  * Text rendering options for SVG-based text
  */
@@ -132,40 +164,57 @@ function generateTextSvg(
 }
 
 /**
- * Convert SVG string to 1-bit bitmap
+ * Convert SVG string to 1-bit bitmap with timeout and mutex protection
  */
 async function svgToBitmap(
   svgString: string,
   width: number,
   height: number,
 ): Promise<Uint8Array> {
-  const buffer = await sharp(Buffer.from(svgString))
-    .resize(width, height)
-    .greyscale()
-    .threshold(128)
-    .raw()
-    .toBuffer();
+  // Wait for Sharp to be available (serializes operations)
+  await waitForSharpAvailable();
 
-  // Pack into 1-bit format (8 pixels per byte, MSB first)
-  const bytesPerRow = Math.ceil(width / 8);
-  const totalBytes = bytesPerRow * height;
-  const packed = new Uint8Array(totalBytes);
-  packed.fill(0xff); // Start with all white
+  try {
+    // Add timeout to prevent indefinite hangs
+    const timeoutMs = 5000;
+    const sharpPromise = sharp(Buffer.from(svgString))
+      .resize(width, height)
+      .greyscale()
+      .threshold(128)
+      .raw()
+      .toBuffer();
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const pixelIndex = y * width + x;
-      const byteIndex = y * bytesPerRow + Math.floor(x / 8);
-      const bitIndex = 7 - (x % 8);
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Sharp operation timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
 
-      // If pixel is black (value 0 in greyscale)
-      if (buffer[pixelIndex] === 0) {
-        packed[byteIndex] &= ~(1 << bitIndex);
+    const buffer = await Promise.race([sharpPromise, timeoutPromise]);
+
+    // Pack into 1-bit format (8 pixels per byte, MSB first)
+    const bytesPerRow = Math.ceil(width / 8);
+    const totalBytes = bytesPerRow * height;
+    const packed = new Uint8Array(totalBytes);
+    packed.fill(0xff); // Start with all white
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixelIndex = y * width + x;
+        const byteIndex = y * bytesPerRow + Math.floor(x / 8);
+        const bitIndex = 7 - (x % 8);
+
+        // If pixel is black (value 0 in greyscale)
+        if (buffer[pixelIndex] === 0) {
+          packed[byteIndex] &= ~(1 << bitIndex);
+        }
       }
     }
-  }
 
-  return packed;
+    return packed;
+  } finally {
+    releaseSharp();
+  }
 }
 
 /**
