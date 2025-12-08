@@ -1,0 +1,200 @@
+import { Bitmap1Bit } from "@core/types";
+import { getLogger } from "@utils/logger";
+
+const logger = getLogger("BitmapFont");
+
+/**
+ * Simple 5x7 bitmap font for rendering text without Sharp
+ * Each character is defined as a 5-wide by 7-tall bitmap
+ * 1 = black pixel, 0 = white/transparent pixel
+ */
+
+// 5x7 font data - each character is 7 rows of 5 bits
+const FONT_5X7: Record<string, number[]> = {
+  // Numbers
+  "0": [0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e],
+  "1": [0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  "2": [0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f],
+  "3": [0x1f, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0e],
+  "4": [0x02, 0x06, 0x0a, 0x12, 0x1f, 0x02, 0x02],
+  "5": [0x1f, 0x10, 0x1e, 0x01, 0x01, 0x11, 0x0e],
+  "6": [0x06, 0x08, 0x10, 0x1e, 0x11, 0x11, 0x0e],
+  "7": [0x1f, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08],
+  "8": [0x0e, 0x11, 0x11, 0x0e, 0x11, 0x11, 0x0e],
+  "9": [0x0e, 0x11, 0x11, 0x0f, 0x01, 0x02, 0x0c],
+
+  // Uppercase letters
+  A: [0x0e, 0x11, 0x11, 0x11, 0x1f, 0x11, 0x11],
+  B: [0x1e, 0x11, 0x11, 0x1e, 0x11, 0x11, 0x1e],
+  C: [0x0e, 0x11, 0x10, 0x10, 0x10, 0x11, 0x0e],
+  D: [0x1c, 0x12, 0x11, 0x11, 0x11, 0x12, 0x1c],
+  E: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x1f],
+  F: [0x1f, 0x10, 0x10, 0x1e, 0x10, 0x10, 0x10],
+  G: [0x0e, 0x11, 0x10, 0x17, 0x11, 0x11, 0x0f],
+  H: [0x11, 0x11, 0x11, 0x1f, 0x11, 0x11, 0x11],
+  I: [0x0e, 0x04, 0x04, 0x04, 0x04, 0x04, 0x0e],
+  J: [0x07, 0x02, 0x02, 0x02, 0x02, 0x12, 0x0c],
+  K: [0x11, 0x12, 0x14, 0x18, 0x14, 0x12, 0x11],
+  L: [0x10, 0x10, 0x10, 0x10, 0x10, 0x10, 0x1f],
+  M: [0x11, 0x1b, 0x15, 0x15, 0x11, 0x11, 0x11],
+  N: [0x11, 0x11, 0x19, 0x15, 0x13, 0x11, 0x11],
+  O: [0x0e, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  P: [0x1e, 0x11, 0x11, 0x1e, 0x10, 0x10, 0x10],
+  Q: [0x0e, 0x11, 0x11, 0x11, 0x15, 0x12, 0x0d],
+  R: [0x1e, 0x11, 0x11, 0x1e, 0x14, 0x12, 0x11],
+  S: [0x0f, 0x10, 0x10, 0x0e, 0x01, 0x01, 0x1e],
+  T: [0x1f, 0x04, 0x04, 0x04, 0x04, 0x04, 0x04],
+  U: [0x11, 0x11, 0x11, 0x11, 0x11, 0x11, 0x0e],
+  V: [0x11, 0x11, 0x11, 0x11, 0x11, 0x0a, 0x04],
+  W: [0x11, 0x11, 0x11, 0x15, 0x15, 0x15, 0x0a],
+  X: [0x11, 0x11, 0x0a, 0x04, 0x0a, 0x11, 0x11],
+  Y: [0x11, 0x11, 0x11, 0x0a, 0x04, 0x04, 0x04],
+  Z: [0x1f, 0x01, 0x02, 0x04, 0x08, 0x10, 0x1f],
+
+  // Symbols
+  " ": [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00],
+  "/": [0x01, 0x01, 0x02, 0x04, 0x08, 0x10, 0x10],
+  "%": [0x18, 0x19, 0x02, 0x04, 0x08, 0x13, 0x03],
+  ":": [0x00, 0x0c, 0x0c, 0x00, 0x0c, 0x0c, 0x00],
+  "-": [0x00, 0x00, 0x00, 0x1f, 0x00, 0x00, 0x00],
+  ".": [0x00, 0x00, 0x00, 0x00, 0x00, 0x0c, 0x0c],
+  "<": [0x02, 0x04, 0x08, 0x10, 0x08, 0x04, 0x02],
+  ">": [0x08, 0x04, 0x02, 0x01, 0x02, 0x04, 0x08],
+};
+
+const CHAR_WIDTH = 5;
+const CHAR_HEIGHT = 7;
+const CHAR_SPACING = 1;
+
+/**
+ * Set a pixel in a 1-bit bitmap (0 = black, 1 = white)
+ */
+function setPixelBlack(bitmap: Bitmap1Bit, x: number, y: number): void {
+  if (x < 0 || x >= bitmap.width || y < 0 || y >= bitmap.height) {
+    return;
+  }
+  const bytesPerRow = Math.ceil(bitmap.width / 8);
+  const byteIndex = y * bytesPerRow + Math.floor(x / 8);
+  const bitIndex = 7 - (x % 8);
+  bitmap.data[byteIndex] &= ~(1 << bitIndex);
+}
+
+/**
+ * Draw a single character at the specified position with scaling
+ */
+function drawChar(
+  bitmap: Bitmap1Bit,
+  char: string,
+  x: number,
+  y: number,
+  scale: number,
+): number {
+  const charData = FONT_5X7[char.toUpperCase()];
+  if (!charData) {
+    // Unknown character - just skip with space width
+    return CHAR_WIDTH * scale;
+  }
+
+  for (let row = 0; row < CHAR_HEIGHT; row++) {
+    const rowData = charData[row];
+    for (let col = 0; col < CHAR_WIDTH; col++) {
+      // Check if pixel is set (bit 4-col because MSB is leftmost)
+      if (rowData & (1 << (4 - col))) {
+        // Draw scaled pixel
+        for (let sy = 0; sy < scale; sy++) {
+          for (let sx = 0; sx < scale; sx++) {
+            setPixelBlack(bitmap, x + col * scale + sx, y + row * scale + sy);
+          }
+        }
+      }
+    }
+  }
+
+  return CHAR_WIDTH * scale;
+}
+
+/**
+ * Calculate text width for a string at given scale
+ */
+export function calculateBitmapTextWidth(text: string, scale: number): number {
+  if (text.length === 0) return 0;
+  return (
+    text.length * CHAR_WIDTH * scale + (text.length - 1) * CHAR_SPACING * scale
+  );
+}
+
+/**
+ * Calculate text height at given scale
+ */
+export function calculateBitmapTextHeight(scale: number): number {
+  return CHAR_HEIGHT * scale;
+}
+
+/**
+ * Render text directly to a bitmap without using Sharp
+ * This is a simple pixel-based renderer that's always stable
+ */
+export function renderBitmapText(
+  bitmap: Bitmap1Bit,
+  text: string,
+  x: number,
+  y: number,
+  options?: {
+    scale?: number;
+    bold?: boolean;
+  },
+): void {
+  const scale = options?.scale ?? 1;
+  const bold = options?.bold ?? false;
+
+  let currentX = Math.round(x);
+  const currentY = Math.round(y);
+
+  for (const char of text) {
+    const charWidth = drawChar(bitmap, char, currentX, currentY, scale);
+
+    // For bold, draw again offset by 1 pixel
+    if (bold) {
+      drawChar(bitmap, char, currentX + 1, currentY, scale);
+    }
+
+    currentX += charWidth + CHAR_SPACING * scale;
+  }
+}
+
+/**
+ * Text item for batched bitmap rendering
+ */
+export interface BitmapTextItem {
+  text: string;
+  x: number;
+  y: number;
+  scale?: number;
+  bold?: boolean;
+}
+
+/**
+ * Render multiple text items to a bitmap
+ * All coordinates are relative to the bitmap origin
+ */
+export function renderBitmapTextItems(
+  bitmap: Bitmap1Bit,
+  items: BitmapTextItem[],
+): void {
+  logger.debug(`Rendering ${items.length} bitmap text items (no Sharp)`);
+
+  for (const item of items) {
+    renderBitmapText(bitmap, item.text, item.x, item.y, {
+      scale: item.scale,
+      bold: item.bold,
+    });
+  }
+}
+
+/**
+ * Convert font size (in pixels) to scale factor
+ * The base font is 7 pixels tall, so scale = fontSize / 7
+ */
+export function fontSizeToScale(fontSize: number): number {
+  return Math.max(1, Math.round(fontSize / 7));
+}

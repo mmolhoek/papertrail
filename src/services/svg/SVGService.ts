@@ -23,9 +23,12 @@ import {
   renderTextOnBitmap,
   renderLabeledValueOnBitmap,
   calculateTextHeight,
-  renderBatchedTextOnBitmap,
-  BatchedTextItem,
 } from "@utils/svgTextRenderer";
+import {
+  renderBitmapText,
+  calculateBitmapTextHeight,
+  fontSizeToScale,
+} from "@utils/bitmapFont";
 
 const logger = getLogger("SVGService");
 
@@ -716,14 +719,8 @@ export class SVGService implements ISVGService {
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
 
-      // Render info panel (right 20%)
-      await this.renderInfoPanel(
-        bitmap,
-        mapWidth + 10,
-        info,
-        infoWidth - 20,
-        height,
-      );
+      // Render info panel (right 20%) - uses bitmap font, no Sharp
+      this.renderInfoPanel(bitmap, mapWidth + 10, info, infoWidth - 20, height);
 
       logger.info("Follow Track screen rendered successfully");
       return success(bitmap);
@@ -739,109 +736,87 @@ export class SVGService implements ISVGService {
   /**
    * Render the info panel for the Follow Track screen
    * Displays speed, satellites, progress in a vertical layout
-   * Uses SVG-based text rendering for better font quality
+   * Uses bitmap font rendering (no Sharp) for stability
    */
-  private async renderInfoPanel(
+  private renderInfoPanel(
     bitmap: Bitmap1Bit,
     x: number,
     info: FollowTrackInfo,
-    width: number,
-    height: number,
-  ): Promise<void> {
-    logger.debug(`Rendering info panel at x=${x}, width=${width}`);
+    _width: number,
+    _height: number,
+  ): void {
+    logger.debug(`Rendering info panel at x=${x} using bitmap font (no Sharp)`);
 
-    // Panel layout constants
+    // Panel layout constants - using bitmap font scales
     const padding = 10;
-    const labelSize = 28;
-    const valueSize = 32;
-    const lineSpacing = 2;
-    const sectionSpacing = 12;
+    const labelScale = 4; // ~28px
+    const valueScale = 5; // ~35px
+    const lineSpacing = 4;
+    const sectionSpacing = 16;
 
-    // Build all text items for batched rendering (single Sharp call)
-    const textItems: BatchedTextItem[] = [];
     let currentY = padding;
 
-    // Section 1: Speed
-    textItems.push({
-      text: "SPEED",
-      x: padding,
-      y: currentY,
-      fontSize: labelSize,
+    // Section 1: Speed label
+    renderBitmapText(bitmap, "SPEED", x + padding, currentY, {
+      scale: labelScale,
     });
-    currentY += calculateTextHeight(labelSize) + lineSpacing;
+    currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
 
     // Speed value with unit inline (e.g., "42 KM/H")
     const speedText = `${Math.round(info.speed)} KM/H`;
-    textItems.push({
-      text: speedText,
-      x: padding,
-      y: currentY,
-      fontSize: valueSize,
-      fontWeight: "bold",
+    renderBitmapText(bitmap, speedText, x + padding, currentY, {
+      scale: valueScale,
+      bold: true,
     });
-    currentY += calculateTextHeight(valueSize) + sectionSpacing;
+    currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
 
-    // Section 2: Satellites
-    textItems.push({
-      text: "SATS",
-      x: padding,
-      y: currentY,
-      fontSize: labelSize,
+    // Section 2: Satellites label
+    renderBitmapText(bitmap, "SATS", x + padding, currentY, {
+      scale: labelScale,
     });
-    currentY += calculateTextHeight(labelSize) + lineSpacing;
+    currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
 
-    textItems.push({
-      text: info.satellites.toString(),
-      x: padding,
-      y: currentY,
-      fontSize: valueSize,
-      fontWeight: "bold",
-    });
-    currentY += calculateTextHeight(valueSize) + sectionSpacing;
+    // Satellites value
+    renderBitmapText(
+      bitmap,
+      info.satellites.toString(),
+      x + padding,
+      currentY,
+      {
+        scale: valueScale,
+        bold: true,
+      },
+    );
+    currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
 
     // Section 3: Progress percentage
     if (info.progress !== undefined) {
-      textItems.push({
-        text: "DONE",
-        x: padding,
-        y: currentY,
-        fontSize: labelSize,
+      renderBitmapText(bitmap, "DONE", x + padding, currentY, {
+        scale: labelScale,
       });
-      currentY += calculateTextHeight(labelSize) + lineSpacing;
+      currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
 
       const progressText = `${Math.round(info.progress)}%`;
-      textItems.push({
-        text: progressText,
-        x: padding,
-        y: currentY,
-        fontSize: valueSize,
-        fontWeight: "bold",
+      renderBitmapText(bitmap, progressText, x + padding, currentY, {
+        scale: valueScale,
+        bold: true,
       });
-      currentY += calculateTextHeight(valueSize) + sectionSpacing;
+      currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
     }
 
     // Section 4: Time remaining
     if (info.estimatedTimeRemaining !== undefined) {
-      textItems.push({
-        text: "ETA",
-        x: padding,
-        y: currentY,
-        fontSize: labelSize,
+      renderBitmapText(bitmap, "ETA", x + padding, currentY, {
+        scale: labelScale,
       });
-      currentY += calculateTextHeight(labelSize) + lineSpacing;
+      currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
 
       const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
-      textItems.push({
-        text: timeStr,
-        x: padding,
-        y: currentY,
-        fontSize: valueSize,
-        fontWeight: "bold",
+      renderBitmapText(bitmap, timeStr, x + padding, currentY, {
+        scale: valueScale,
+        bold: true,
       });
     }
-
-    // Render all text in a single Sharp operation
-    await renderBatchedTextOnBitmap(bitmap, textItems, x, 0, width, height);
   }
 
   /**
