@@ -751,9 +751,9 @@ export class SVGService implements ISVGService {
     // Panel layout constants
     const padding = 10;
     const sectionHeight = Math.floor(height / 3);
-    const labelSize = 14;
+    const labelSize = 28;
     const valueSize = 32;
-    const unitSize = 14;
+    const unitSize = 28;
     const lineSpacing = 6;
 
     // Section 1: Speed (top)
