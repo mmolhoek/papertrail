@@ -125,10 +125,7 @@ export class EpaperService implements IEpaperService {
 
       // Display the logo using full update mode
       logger.info("Sending logo bitmap to display (FULL update mode)...");
-      const result = await this.displayBitmap(
-        logoBitmap,
-        DisplayUpdateMode.FULL,
-      );
+      const result = await this.displayBitmap(logoBitmap);
 
       if (!result.success) {
         logger.error("Failed to display startup logo:", result.error);
@@ -149,7 +146,7 @@ export class EpaperService implements IEpaperService {
    */
   async displayBitmap(
     bitmap: Bitmap1Bit,
-    mode: DisplayUpdateMode = DisplayUpdateMode.AUTO,
+    mode: DisplayUpdateMode = DisplayUpdateMode.FULL,
   ): Promise<Result<void>> {
     logger.info(`Displaying bitmap on e-paper: ${this.getDisplayModel()}`);
     if (!this.isInitialized || !this.epd) {
@@ -624,7 +621,7 @@ export class EpaperService implements IEpaperService {
     logger.info("Determining display update mode");
     const totalUpdates = this.fullRefreshCount + this.partialRefreshCount;
 
-    // Do a full refresh every 10 updates, but default to PARTIAL for the first update
+    // Do a full refresh every 10 updates, but default to FULL for the first update
     if (totalUpdates > 0 && totalUpdates % 10 === 0) {
       logger.info("Choosing FULL update mode to prevent ghosting");
       return DisplayUpdateMode.FULL;

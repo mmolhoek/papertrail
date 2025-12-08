@@ -1681,7 +1681,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         logger.info(
           "GPS info refresh tick - data changed, updating select track screen",
         );
-        void this.displaySelectTrackScreen(false);
+        void this.displaySelectTrackScreen(true);
       } else {
         logger.debug("GPS info refresh tick - no changes, skipping update");
       }
