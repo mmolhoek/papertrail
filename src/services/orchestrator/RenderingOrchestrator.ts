@@ -245,10 +245,24 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
-      // Skip real GPS updates when simulation is running
+      // Skip real GPS updates when simulation is running or drive nav is in simulation mode
       // to avoid mixing simulated positions with real (often 0,0) positions
       if (this.simulationService?.isSimulating()) {
         return;
+      }
+
+      // Also skip invalid (0,0) positions when drive navigation is active
+      // Real GPS without fix sends (0,0) which would corrupt distance calculations
+      if (this.driveNavigationService?.isNavigating()) {
+        if (
+          Math.abs(position.latitude) < 0.001 &&
+          Math.abs(position.longitude) < 0.001
+        ) {
+          logger.debug(
+            "Skipping invalid (0,0) GPS position during drive navigation",
+          );
+          return;
+        }
       }
 
       // Store latest position for GPS info screen

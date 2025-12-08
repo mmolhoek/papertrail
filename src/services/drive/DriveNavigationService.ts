@@ -316,6 +316,20 @@ export class DriveNavigationService implements IDriveNavigationService {
   }
 
   updatePosition(position: GPSCoordinate): void {
+    // In simulation mode, reject obviously invalid positions (0,0 means no GPS fix)
+    // This prevents real GPS (0,0) from overwriting valid simulated positions
+    if (this.isSimulationMode) {
+      if (
+        Math.abs(position.latitude) < 0.001 &&
+        Math.abs(position.longitude) < 0.001
+      ) {
+        logger.warn(
+          `Rejecting invalid (0,0) position during simulation: ${position.latitude}, ${position.longitude}`,
+        );
+        return;
+      }
+    }
+
     this.currentPosition = position;
 
     if (!this.isNavigating() || !this.activeRoute) {
