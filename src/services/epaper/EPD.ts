@@ -3,6 +3,10 @@ import sharp from "sharp";
 import * as bmp from "bmp-js";
 import { getLogger } from "../../utils/logger";
 import fs from "fs";
+import * as magickProcessor from "../../utils/magickImageProcessor";
+
+// Check if we should use ImageMagick instead of Sharp
+const USE_IMAGEMAGICK = process.env.USE_IMAGEMAGICK === "true";
 
 const epdLogger = getLogger("EPD");
 
@@ -115,6 +119,12 @@ export class EPD {
     epdLogger.timeEnd("epaperReady");
   }
   async loadImageInBuffer(path: string): Promise<Buffer> {
+    // Use ImageMagick if enabled
+    if (USE_IMAGEMAGICK) {
+      epdLogger.info("Loading image using ImageMagick (wasm-imagemagick)");
+      return magickProcessor.loadImageToBuffer(path, this.WIDTH, this.HEIGHT);
+    }
+
     // Load the BMP file using sharp
     const bmpBuffer = fs.readFileSync(path);
     let bitmap;
@@ -338,6 +348,16 @@ export class EPD {
   }
 
   async loadImage(imagePath: string): Promise<Buffer> {
+    // Use ImageMagick if enabled
+    if (USE_IMAGEMAGICK) {
+      epdLogger.info("Loading image using ImageMagick (wasm-imagemagick)");
+      return magickProcessor.loadImageToBuffer(
+        imagePath,
+        this.WIDTH,
+        this.HEIGHT,
+      );
+    }
+
     const bmpBuffer = await sharp(imagePath)
       .resize(this.WIDTH, this.HEIGHT, {
         fit: "contain",

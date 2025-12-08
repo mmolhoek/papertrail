@@ -23,7 +23,7 @@ import {
   renderTextOnBitmap,
   renderLabeledValueOnBitmap,
   calculateTextHeight,
-} from "@utils/svgTextRenderer";
+} from "@utils/unifiedTextRenderer";
 import {
   renderBitmapText,
   calculateBitmapTextHeight,
