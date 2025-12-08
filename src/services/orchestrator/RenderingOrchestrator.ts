@@ -704,7 +704,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       switch (status.displayMode) {
         case DriveDisplayMode.TURN_SCREEN:
           if (status.nextTurn) {
-            logger.debug("Starting turn screen render...");
+            logger.info("Starting turn screen render...");
             renderResult = await this.svgService.renderTurnScreen(
               status.nextTurn.maneuverType,
               status.distanceToNextTurn,
@@ -712,7 +712,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               status.nextTurn.streetName,
               viewport,
             );
-            logger.debug(
+            logger.info(
               `Turn screen render completed in ${Date.now() - renderStartTime}ms`,
             );
           }
@@ -734,7 +734,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               timeRemaining: status.timeRemaining,
             };
 
-            logger.debug(
+            logger.info(
               `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points)...`,
             );
             renderResult = await this.svgService.renderDriveMapScreen(
@@ -744,7 +744,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               viewport,
               info,
             );
-            logger.debug(
+            logger.info(
               `Map screen render completed in ${Date.now() - renderStartTime}ms`,
             );
           }

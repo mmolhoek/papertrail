@@ -1139,7 +1139,7 @@ export class SVGService implements ISVGService {
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
     const methodStart = Date.now();
-    logger.debug("Rendering drive map screen");
+    logger.info("renderDriveMapScreen: starting...");
 
     try {
       const { width, height } = viewport;
@@ -1151,7 +1151,7 @@ export class SVGService implements ISVGService {
 
       // Create main bitmap
       const bitmap = this.createBlankBitmap(width, height, false);
-      logger.debug(
+      logger.info(
         `renderDriveMapScreen: bitmap created (${Date.now() - methodStart}ms)`,
       );
 
@@ -1167,7 +1167,7 @@ export class SVGService implements ISVGService {
         const projectedRoute = route.geometry.map(([lat, lon]) =>
           this.projectToPixels(lat, lon, mapViewport),
         );
-        logger.debug(
+        logger.info(
           `renderDriveMapScreen: projected ${projectedRoute.length} points (${Date.now() - methodStart}ms)`,
         );
 
@@ -1185,7 +1185,7 @@ export class SVGService implements ISVGService {
               );
             }
           }
-          logger.debug(
+          logger.info(
             `renderDriveMapScreen: drew route lines (${Date.now() - methodStart}ms)`,
           );
         }
@@ -1215,12 +1215,12 @@ export class SVGService implements ISVGService {
 
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
-      logger.debug(
+      logger.info(
         `renderDriveMapScreen: drew map elements (${Date.now() - methodStart}ms)`,
       );
 
       // Render info panel (right 30%)
-      logger.debug(`renderDriveMapScreen: starting info panel render...`);
+      logger.info(`renderDriveMapScreen: starting info panel render...`);
       await this.renderDriveInfoPanel(
         bitmap,
         mapWidth + 10,
@@ -1228,7 +1228,7 @@ export class SVGService implements ISVGService {
         infoWidth - 20,
         height,
       );
-      logger.debug(
+      logger.info(
         `renderDriveMapScreen: info panel done (${Date.now() - methodStart}ms)`,
       );
 
@@ -1835,13 +1835,13 @@ export class SVGService implements ISVGService {
     let currentY = padding + 20;
     const startTime = Date.now();
 
-    logger.debug("renderDriveInfoPanel: starting text renders...");
+    logger.info("renderDriveInfoPanel: starting text renders...");
 
     // Next turn section
     await renderTextOnBitmap(bitmap, "NEXT TURN", x + padding, currentY, {
       fontSize: 12,
     });
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 1/8 done (${Date.now() - startTime}ms)`,
     );
     currentY += 20;
@@ -1862,7 +1862,7 @@ export class SVGService implements ISVGService {
       fontSize: 14,
       fontWeight: "bold",
     });
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 2/8 done (${Date.now() - startTime}ms)`,
     );
     currentY += 30;
@@ -1881,7 +1881,7 @@ export class SVGService implements ISVGService {
       currentY,
       { labelSize: 12, valueSize: 28, unitSize: 12 },
     );
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 3/8 (speed) done (${Date.now() - startTime}ms)`,
     );
     currentY += 80;
@@ -1890,7 +1890,7 @@ export class SVGService implements ISVGService {
     await renderTextOnBitmap(bitmap, "PROGRESS", x + padding, currentY, {
       fontSize: 12,
     });
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 4/8 done (${Date.now() - startTime}ms)`,
     );
     currentY += 20;
@@ -1933,7 +1933,7 @@ export class SVGService implements ISVGService {
       currentY,
       { fontSize: 14, fontWeight: "bold" },
     );
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 5/8 done (${Date.now() - startTime}ms)`,
     );
     currentY += 30;
@@ -1942,7 +1942,7 @@ export class SVGService implements ISVGService {
     await renderTextOnBitmap(bitmap, "REMAINING", x + padding, currentY, {
       fontSize: 12,
     });
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: text 6/8 done (${Date.now() - startTime}ms)`,
     );
     currentY += 20;
@@ -1951,7 +1951,7 @@ export class SVGService implements ISVGService {
       fontSize: 14,
       fontWeight: "bold",
     });
-    logger.debug(
+    logger.info(
       `renderDriveInfoPanel: all text done (${Date.now() - startTime}ms)`,
     );
   }
