@@ -1683,6 +1683,12 @@ export class WebController {
     }
 
     try {
+      // Clear any active GPX track to prevent interference with drive simulation
+      if (this.orchestrator) {
+        logger.info("Clearing active GPX track for drive simulation");
+        await this.orchestrator.clearActiveGPX();
+      }
+
       // Convert drive route geometry to GPX track format
       // geometry is [[lat, lon], [lat, lon], ...]
       logger.info(
