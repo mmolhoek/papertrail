@@ -361,6 +361,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       } else if (status.state === "stopped") {
         // Stop periodic display updates when simulation stops
         this.stopSimulationDisplayUpdates();
+
+        // If drive navigation is still active, show final drive display
+        if (this.driveNavigationService?.isNavigating()) {
+          logger.info(
+            "Simulation stopped but drive navigation still active - showing final drive display",
+          );
+          void this.updateDriveDisplay().catch((error) => {
+            logger.error("Failed to show final drive display:", error);
+          });
+        }
       }
       // Note: "paused" state keeps the interval but updateDisplay won't change position
     });
