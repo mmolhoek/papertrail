@@ -10,10 +10,21 @@ import { Bitmap1Bit } from "@core/types";
 
 describe("svgTextRenderer", () => {
   describe("calculateTextWidth", () => {
-    it("should calculate text width based on font size", () => {
-      // Width is max(10, ceil(length * fontSize * 0.6))
-      const expected = Math.max(10, Math.ceil(4 * 14 * 0.6));
+    it("should calculate text width based on font size for normal weight", () => {
+      // Width is max(10, ceil(length * fontSize * 0.65) + 4)
+      const expected = Math.max(10, Math.ceil(4 * 14 * 0.65) + 4);
       expect(calculateTextWidth("TEST", 14)).toBe(expected);
+      expect(calculateTextWidth("TEST", 14, "normal")).toBe(expected);
+    });
+
+    it("should calculate wider text for bold weight", () => {
+      // Width is max(10, ceil(length * fontSize * 0.75) + 4)
+      const expectedBold = Math.max(10, Math.ceil(4 * 14 * 0.75) + 4);
+      const expectedNormal = Math.max(10, Math.ceil(4 * 14 * 0.65) + 4);
+      expect(calculateTextWidth("TEST", 14, "bold")).toBe(expectedBold);
+      expect(calculateTextWidth("TEST", 14, "bold")).toBeGreaterThan(
+        expectedNormal,
+      );
     });
 
     it("should return 0 for empty string", () => {

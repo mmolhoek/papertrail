@@ -48,13 +48,23 @@ function escapeXml(text: string): string {
 
 /**
  * Calculate approximate text width based on font size
- * Uses a more accurate character width ratio
+ * Uses a conservative character width ratio to prevent clipping
  */
-export function calculateTextWidth(text: string, fontSize: number): number {
+export function calculateTextWidth(
+  text: string,
+  fontSize: number,
+  fontWeight: "normal" | "bold" = "normal",
+): number {
   if (text.length === 0) return 0;
-  // Average character width is approximately 0.6 * fontSize for most fonts
-  // Minimum width of 10 pixels to ensure valid rendering
-  return Math.max(10, Math.ceil(text.length * fontSize * 0.6));
+  // Use wider character ratio to prevent right-side clipping
+  // Bold text needs more width than normal text
+  const charWidthRatio = fontWeight === "bold" ? 0.75 : 0.65;
+  // Add padding to account for font rendering variations
+  const padding = 4;
+  return Math.max(
+    10,
+    Math.ceil(text.length * fontSize * charWidthRatio) + padding,
+  );
 }
 
 /**
@@ -226,7 +236,10 @@ export async function renderTextOnBitmap(
   const opts = { ...defaultOptions, ...options };
 
   // Calculate text dimensions with minimum values
-  const textWidth = Math.max(10, calculateTextWidth(text, opts.fontSize));
+  const textWidth = Math.max(
+    10,
+    calculateTextWidth(text, opts.fontSize, opts.fontWeight),
+  );
   const textHeight = Math.max(10, calculateTextHeight(opts.fontSize));
 
   // Adjust position based on alignment
