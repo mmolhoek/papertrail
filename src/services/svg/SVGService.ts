@@ -594,9 +594,9 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render the "Follow Track" screen with 80/20 split layout
-   * Left area (80%): Track map centered on current position
-   * Right area (20%): Speed and satellite information
+   * Render the "Follow Track" screen with 70/30 split layout
+   * Left area (70%): Track map centered on current position
+   * Right area (30%): Speed and satellite information
    */
   async renderFollowTrackScreen(
     track: GPXTrack,
@@ -605,13 +605,13 @@ export class SVGService implements ISVGService {
     info: FollowTrackInfo,
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
-    logger.debug("Rendering Follow Track screen with 80/20 split layout");
+    logger.debug("Rendering Follow Track screen with 70/30 split layout");
 
     try {
       const { width, height } = viewport;
 
-      // Calculate split dimensions (80/20)
-      const mapWidth = Math.floor(width * 0.8);
+      // Calculate split dimensions (70/30)
+      const mapWidth = Math.floor(width * 0.7);
       const infoWidth = width - mapWidth;
 
       // Create main bitmap
