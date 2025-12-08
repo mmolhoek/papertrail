@@ -466,6 +466,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     logger.info(`Starting drive navigation to: ${route.destination}`);
 
+    // Stop GPS info refresh - we don't want select track screen during navigation
+    this.stopGPSInfoRefresh();
+
     // Store route start position for fallback during simulation
     if (route.geometry && route.geometry.length > 0) {
       const startPoint = route.geometry[0];
