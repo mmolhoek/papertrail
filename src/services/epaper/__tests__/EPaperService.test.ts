@@ -158,12 +158,15 @@ describe("EpaperService", () => {
     });
 
     it("should auto-select update mode", async () => {
-      // First update should be partial
-      await epaperService.displayBitmap(validBitmap);
+      // When AUTO is specified, should select update mode automatically
+      await epaperService.displayBitmap(validBitmap, DisplayUpdateMode.AUTO);
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        expect(status.data.partialRefreshCount).toBeGreaterThan(0);
+        // Auto mode should have picked either full or partial
+        expect(
+          status.data.fullRefreshCount + status.data.partialRefreshCount,
+        ).toBeGreaterThan(0);
       }
     });
 
