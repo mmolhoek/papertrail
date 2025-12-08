@@ -91,6 +91,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isUpdateInProgress: boolean = false;
   private pendingUpdateMode: DisplayUpdateMode | null = null;
 
+  // Drive display update queuing (prevents concurrent renders that can freeze the app)
+  private isDriveUpdateInProgress: boolean = false;
+  private pendingDriveUpdate: boolean = false;
+
   // setActiveGPX queuing (ensures only the last selected track is loaded)
   private isSetActiveGPXInProgress: boolean = false;
   private pendingActiveGPXPath: string | null = null;
@@ -647,6 +651,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return success(undefined);
     }
 
+    // Queue update if one is already in progress (prevents concurrent renders that freeze the app)
+    if (this.isDriveUpdateInProgress) {
+      this.pendingDriveUpdate = true;
+      logger.debug("Drive display update queued, current update in progress");
+      return success(undefined);
+    }
+
+    this.isDriveUpdateInProgress = true;
     logger.info(
       `Updating drive display: mode=${status.displayMode}, state=${status.state}`,
     );
@@ -762,6 +774,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           true,
         ),
       );
+    } finally {
+      this.isDriveUpdateInProgress = false;
+
+      // Process any pending update
+      if (this.pendingDriveUpdate) {
+        this.pendingDriveUpdate = false;
+        logger.debug("Processing pending drive display update");
+        // Use setImmediate to avoid stack overflow from recursive calls
+        setImmediate(() => {
+          void this.updateDriveDisplay().catch((err) => {
+            logger.error("Error processing pending drive update:", err);
+          });
+        });
+      }
     }
   }
 
