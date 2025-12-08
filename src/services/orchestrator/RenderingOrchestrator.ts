@@ -85,6 +85,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private driveNavigationCallbacks: Array<
     (update: DriveNavigationUpdate) => void
   > = [];
+  private driveRouteStartPosition: GPSCoordinate | null = null; // Stored at navigation start
 
   // Display update queuing (prevents dropped updates when display is busy)
   private isUpdateInProgress: boolean = false;
@@ -451,6 +452,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     logger.info(`Starting drive navigation to: ${route.destination}`);
 
+    // Store route start position for fallback during simulation
+    if (route.geometry && route.geometry.length > 0) {
+      const startPoint = route.geometry[0];
+      this.driveRouteStartPosition = {
+        latitude: startPoint[0],
+        longitude: startPoint[1],
+        timestamp: new Date(),
+      };
+      logger.info(
+        `Stored drive route start: ${startPoint[0].toFixed(6)}, ${startPoint[1].toFixed(6)}`,
+      );
+    }
+
     // Subscribe to navigation updates
     this.subscribeToDriveNavigation();
 
@@ -474,6 +488,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     logger.info("Stopping drive navigation");
+
+    // Clear stored route start position
+    this.driveRouteStartPosition = null;
 
     // Unsubscribe from GPS updates
     this.unsubscribeGPSFromDriveNavigation();
@@ -616,21 +633,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       zoomLevel = this.calculateFitZoomFromGeometry(status.route.geometry);
     }
 
-    // Use current position, or fall back to route start (not 0,0)
+    // Use current position, or fall back to stored route start (not 0,0)
+    // The stored start position is set when navigation begins and persists
     let centerPoint = this.lastGPSPosition;
-    if (
-      !centerPoint &&
-      status.route?.geometry &&
-      status.route.geometry.length > 0
-    ) {
-      const startPoint = status.route.geometry[0];
-      centerPoint = {
-        latitude: startPoint[0],
-        longitude: startPoint[1],
-        timestamp: new Date(),
-      };
+    if (!centerPoint && this.driveRouteStartPosition) {
+      centerPoint = this.driveRouteStartPosition;
       logger.info(
-        `Using route start as center: ${startPoint[0].toFixed(6)}, ${startPoint[1].toFixed(6)}`,
+        `Using stored route start as center: ${centerPoint.latitude.toFixed(6)}, ${centerPoint.longitude.toFixed(6)}`,
       );
     }
     if (!centerPoint) {
