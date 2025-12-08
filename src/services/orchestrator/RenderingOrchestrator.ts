@@ -1777,6 +1777,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return;
     }
 
+    // Skip if we have an active track, simulation is running, or drive navigation is active
+    // In these cases, the track/navigation display takes priority
+    if (
+      this.configService.getActiveGPXPath() ||
+      this.simulationService?.isSimulating() ||
+      this.driveNavigationService?.isNavigating()
+    ) {
+      logger.info(
+        "Skipping select track screen (active track or navigation in progress)",
+      );
+      return;
+    }
+
     // Build GPS info strings
     const fixQualityStr = this.getFixQualityString();
     const satellitesStr = this.lastGPSStatus
