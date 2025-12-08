@@ -750,59 +750,63 @@ export class SVGService implements ISVGService {
 
     // Panel layout constants
     const padding = 10;
-    const sectionHeight = Math.floor(height / 3);
     const labelSize = 28;
     const valueSize = 32;
-    const unitSize = 28;
-    const lineSpacing = 6;
+    const unitSize = 20;
+    const lineSpacing = 2;
+    const sectionSpacing = 12;
 
-    // Section 1: Speed (top)
-    const speedY = padding;
-    const speedResult = await renderLabeledValueOnBitmap(
-      bitmap,
-      "SPEED",
-      Math.round(info.speed),
-      "KM/H",
-      x + padding,
-      speedY,
-      { labelSize, valueSize, unitSize },
-    );
+    let currentY = padding;
+
+    // Section 1: Speed
+    await renderTextOnBitmap(bitmap, "SPEED", x + padding, currentY, {
+      fontSize: labelSize,
+    });
+    currentY += calculateTextHeight(labelSize) + lineSpacing;
+
+    // Speed value with unit inline (e.g., "42 KM/H")
+    const speedText = `${Math.round(info.speed)} KM/H`;
+    await renderTextOnBitmap(bitmap, speedText, x + padding, currentY, {
+      fontSize: valueSize,
+      fontWeight: "bold",
+    });
+    currentY += calculateTextHeight(valueSize) + sectionSpacing;
 
     // Section 2: Satellites
-    const satY = sectionHeight + padding;
-    await renderLabeledValueOnBitmap(
+    await renderTextOnBitmap(bitmap, "SATS", x + padding, currentY, {
+      fontSize: labelSize,
+    });
+    currentY += calculateTextHeight(labelSize) + lineSpacing;
+
+    await renderTextOnBitmap(
       bitmap,
-      "SATS",
-      info.satellites,
-      "",
+      info.satellites.toString(),
       x + padding,
-      satY,
-      { labelSize, valueSize, unitSize: 1 }, // Minimal unit size since empty
+      currentY,
+      {
+        fontSize: valueSize,
+        fontWeight: "bold",
+      },
     );
+    currentY += calculateTextHeight(valueSize) + sectionSpacing;
 
-    // Section 3: Progress % and Time Left
-    const section3Y = sectionHeight * 2 + padding;
-    let currentY = section3Y;
-
-    // Progress percentage
+    // Section 3: Progress percentage
     if (info.progress !== undefined) {
       await renderTextOnBitmap(bitmap, "DONE", x + padding, currentY, {
         fontSize: labelSize,
       });
       currentY += calculateTextHeight(labelSize) + lineSpacing;
 
-      // Value with % symbol
       const progressText = `${Math.round(info.progress)}%`;
       await renderTextOnBitmap(bitmap, progressText, x + padding, currentY, {
         fontSize: valueSize,
         fontWeight: "bold",
       });
-      currentY += calculateTextHeight(valueSize) + lineSpacing;
+      currentY += calculateTextHeight(valueSize) + sectionSpacing;
     }
 
-    // Time remaining (below progress)
+    // Section 4: Time remaining
     if (info.estimatedTimeRemaining !== undefined) {
-      currentY += 10; // Extra spacing before ETA
       await renderTextOnBitmap(bitmap, "ETA", x + padding, currentY, {
         fontSize: labelSize,
       });
@@ -810,7 +814,7 @@ export class SVGService implements ISVGService {
 
       const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
       await renderTextOnBitmap(bitmap, timeStr, x + padding, currentY, {
-        fontSize: 20,
+        fontSize: valueSize,
         fontWeight: "bold",
       });
     }
