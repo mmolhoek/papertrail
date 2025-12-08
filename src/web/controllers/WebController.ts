@@ -112,6 +112,78 @@ export class WebController {
   }
 
   /**
+   * Set mock GPS position (development only)
+   * Useful for setting GPS to track start before drive simulation
+   */
+  async setMockGPSPosition(req: Request, res: Response): Promise<void> {
+    const { latitude, longitude } = req.body;
+
+    logger.info(`Set mock GPS position requested: ${latitude}, ${longitude}`);
+
+    // Validate parameters
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "latitude and longitude must be numbers",
+        },
+      });
+      return;
+    }
+
+    // Check if mock GPS is available
+    if (!this.orchestrator.isMockGPS()) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "NOT_MOCK_GPS",
+          message: "Mock GPS is not available (using real GPS hardware)",
+        },
+      });
+      return;
+    }
+
+    // Set the position
+    const success = this.orchestrator.setMockGPSPosition(latitude, longitude);
+
+    if (success) {
+      logger.info(
+        `Mock GPS position set to ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      );
+      res.json({
+        success: true,
+        message: "Mock GPS position updated",
+        data: {
+          latitude,
+          longitude,
+        },
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SET_POSITION_FAILED",
+          message: "Failed to set mock GPS position",
+        },
+      });
+    }
+  }
+
+  /**
+   * Check if using mock GPS (development only)
+   */
+  async checkMockGPS(_req: Request, res: Response): Promise<void> {
+    const isMock = this.orchestrator.isMockGPS();
+    res.json({
+      success: true,
+      data: {
+        isMockGPS: isMock,
+      },
+    });
+  }
+
+  /**
    * Get list of available GPX files
    */
   async getGPXFiles(_req: Request, res: Response): Promise<void> {

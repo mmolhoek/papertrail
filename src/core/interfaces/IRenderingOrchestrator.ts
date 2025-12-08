@@ -224,4 +224,19 @@ export interface IRenderingOrchestrator {
    * @returns true if using MockEpaperService and an image is available
    */
   hasMockDisplayImage(): boolean;
+
+  /**
+   * Check if GPS service is a mock (for development)
+   * @returns true if using MockGPSService
+   */
+  isMockGPS(): boolean;
+
+  /**
+   * Set mock GPS position (only works with MockGPSService)
+   * Useful for setting position to track start before drive simulation
+   * @param latitude Latitude in degrees
+   * @param longitude Longitude in degrees
+   * @returns true if position was set, false if not using mock GPS
+   */
+  setMockGPSPosition(latitude: number, longitude: number): boolean;
 }

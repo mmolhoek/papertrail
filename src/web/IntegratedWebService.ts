@@ -310,6 +310,15 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getGPSStatus(req, res),
     );
 
+    // Mock GPS endpoints (development only)
+    this.app.get(`${api}/gps/mock`, (req, res) =>
+      this.controller.checkMockGPS(req, res),
+    );
+
+    this.app.post(`${api}/gps/mock/position`, (req, res) =>
+      this.controller.setMockGPSPosition(req, res),
+    );
+
     // Map endpoints
     this.app.get(`${api}/map/files`, (req, res) =>
       this.controller.getGPXFiles(req, res),

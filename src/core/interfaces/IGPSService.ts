@@ -69,4 +69,18 @@ export interface IGPSService {
    * Clean up resources and close GPS connection
    */
   dispose(): Promise<void>;
+
+  /**
+   * Check if this is a mock GPS service (optional)
+   * @returns true if this is a mock service
+   */
+  isMock?(): boolean;
+
+  /**
+   * Set the GPS position (mock only)
+   * Only available on mock GPS services
+   * @param latitude Latitude in degrees
+   * @param longitude Longitude in degrees
+   */
+  setPosition?(latitude: number, longitude: number): void;
 }

@@ -1695,6 +1695,26 @@ class PapertrailClient {
       return;
     }
 
+    // If using mock GPS, set position to track start point to avoid long distance routes
+    const isMockGPS = await this.checkMockGPS();
+    if (isMockGPS) {
+      console.log("Mock GPS detected - checking for active track start point");
+      const trackStart = await this.getActiveTrackStartPoint();
+      if (trackStart) {
+        console.log(
+          `Setting mock GPS position to track start: ${trackStart.lat}, ${trackStart.lon}`,
+        );
+        const success = await this.setMockGPSPosition(
+          trackStart.lat,
+          trackStart.lon,
+        );
+        if (success) {
+          this.currentPosition = trackStart;
+          this.showMessage("Mock GPS positioned at track start point", "info");
+        }
+      }
+    }
+
     // Check for invalid 0,0 coordinates (no GPS fix)
     if (this.currentPosition.lat === 0 && this.currentPosition.lon === 0) {
       console.warn(
@@ -1945,6 +1965,44 @@ class PapertrailClient {
     } catch (error) {
       console.error("Error fetching active track start point:", error);
       return null;
+    }
+  }
+
+  /**
+   * Check if using mock GPS service
+   * @returns {Promise<boolean>}
+   */
+  async checkMockGPS() {
+    try {
+      const response = await fetch(`${this.apiBase}/gps/mock`);
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.success && data.data?.isMock === true;
+    } catch (error) {
+      console.error("Error checking mock GPS:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Set mock GPS position (only works when using mock GPS service)
+   * @param {number} lat Latitude
+   * @param {number} lon Longitude
+   * @returns {Promise<boolean>} true if position was set successfully
+   */
+  async setMockGPSPosition(lat, lon) {
+    try {
+      const response = await fetch(`${this.apiBase}/gps/mock/position`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude: lat, longitude: lon }),
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.success === true;
+    } catch (error) {
+      console.error("Error setting mock GPS position:", error);
+      return false;
     }
   }
 

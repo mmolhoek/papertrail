@@ -330,4 +330,35 @@ export class MockGPSService implements IGPSService {
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
+
+  /**
+   * Set the mock GPS position
+   * Useful for setting position to track start before drive simulation
+   */
+  setPosition(latitude: number, longitude: number): void {
+    logger.info(
+      `Mock GPS: Setting position to ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+    );
+
+    this.mockLatitude = latitude;
+    this.mockLongitude = longitude;
+
+    this.currentPosition = {
+      latitude: this.mockLatitude,
+      longitude: this.mockLongitude,
+      timestamp: new Date(),
+    };
+
+    // Notify callbacks of the new position
+    if (this.tracking) {
+      this.notifyPositionUpdate(this.currentPosition);
+    }
+  }
+
+  /**
+   * Check if this is a mock GPS service
+   */
+  isMock(): boolean {
+    return true;
+  }
 }

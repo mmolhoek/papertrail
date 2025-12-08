@@ -2146,27 +2146,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Get the mock display image (only available when using MockEpaperService)
-   * Returns a PNG buffer of what would be shown on the e-paper display
-   */
-  getMockDisplayImage(): Buffer | null {
-    if (this.epaperService.getMockDisplayImage) {
-      return this.epaperService.getMockDisplayImage();
-    }
-    return null;
-  }
-
-  /**
-   * Check if mock display image is available
-   */
-  hasMockDisplayImage(): boolean {
-    if (this.epaperService.hasMockDisplayImage) {
-      return this.epaperService.hasMockDisplayImage();
-    }
-    return false;
-  }
-
-  /**
    * Clean up resources and shut down all services
    */
   async dispose(): Promise<void> {
@@ -2738,5 +2717,60 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  /**
+   * Get the mock display image (only available when using MockEpaperService)
+   */
+  getMockDisplayImage(): Buffer | null {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockService = this.epaperService as any;
+    if (mockService && typeof mockService.getLastDisplayBuffer === "function") {
+      return mockService.getLastDisplayBuffer();
+    }
+    return null;
+  }
+
+  /**
+   * Check if mock display image is available
+   */
+  hasMockDisplayImage(): boolean {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockService = this.epaperService as any;
+    return (
+      mockService && typeof mockService.getLastDisplayBuffer === "function"
+    );
+  }
+
+  /**
+   * Check if GPS service is a mock (for development)
+   */
+  isMockGPS(): boolean {
+    return (
+      this.gpsService &&
+      typeof this.gpsService.isMock === "function" &&
+      this.gpsService.isMock()
+    );
+  }
+
+  /**
+   * Set mock GPS position (only works with MockGPSService)
+   * Useful for setting position to track start before drive simulation
+   */
+  setMockGPSPosition(latitude: number, longitude: number): boolean {
+    if (!this.isMockGPS()) {
+      logger.warn("Cannot set mock GPS position: not using mock GPS service");
+      return false;
+    }
+
+    if (typeof this.gpsService.setPosition === "function") {
+      logger.info(
+        `Setting mock GPS position to ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      );
+      this.gpsService.setPosition(latitude, longitude);
+      return true;
+    }
+
+    return false;
   }
 }
