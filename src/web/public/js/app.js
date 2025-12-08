@@ -1977,7 +1977,8 @@ class PapertrailClient {
       const response = await fetch(`${this.apiBase}/gps/mock`);
       if (!response.ok) return false;
       const data = await response.json();
-      return data.success && data.data?.isMock === true;
+      console.log("Mock GPS check response:", data);
+      return data.success && data.data?.isMockGPS === true;
     } catch (error) {
       console.error("Error checking mock GPS:", error);
       return false;
