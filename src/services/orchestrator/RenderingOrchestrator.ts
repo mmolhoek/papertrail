@@ -2725,8 +2725,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   getMockDisplayImage(): Buffer | null {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockService = this.epaperService as any;
-    if (mockService && typeof mockService.getLastDisplayBuffer === "function") {
-      return mockService.getLastDisplayBuffer();
+    if (mockService && typeof mockService.getMockDisplayImage === "function") {
+      return mockService.getMockDisplayImage();
     }
     return null;
   }
@@ -2738,7 +2738,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockService = this.epaperService as any;
     return (
-      mockService && typeof mockService.getLastDisplayBuffer === "function"
+      mockService &&
+      typeof mockService.hasMockDisplayImage === "function" &&
+      mockService.hasMockDisplayImage()
     );
   }
 
