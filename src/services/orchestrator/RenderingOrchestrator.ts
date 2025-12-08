@@ -609,15 +609,39 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     const width = this.configService.getDisplayWidth();
     const height = this.configService.getDisplayHeight();
+
+    // Calculate zoom level from route bounds (not the active track's zoom)
+    let zoomLevel = this.configService.getZoomLevel();
+    if (status.route?.geometry && status.route.geometry.length > 0) {
+      zoomLevel = this.calculateFitZoomFromGeometry(status.route.geometry);
+    }
+
+    // Use current position, or fall back to route start (not 0,0)
+    let centerPoint = this.lastGPSPosition;
+    if (
+      !centerPoint &&
+      status.route?.geometry &&
+      status.route.geometry.length > 0
+    ) {
+      const startPoint = status.route.geometry[0];
+      centerPoint = {
+        latitude: startPoint[0],
+        longitude: startPoint[1],
+        timestamp: new Date(),
+      };
+      logger.info(
+        `Using route start as center: ${startPoint[0].toFixed(6)}, ${startPoint[1].toFixed(6)}`,
+      );
+    }
+    if (!centerPoint) {
+      centerPoint = { latitude: 0, longitude: 0, timestamp: new Date() };
+    }
+
     const viewport = {
       width,
       height,
-      zoomLevel: this.configService.getZoomLevel(),
-      centerPoint: this.lastGPSPosition || {
-        latitude: 0,
-        longitude: 0,
-        timestamp: new Date(),
-      },
+      zoomLevel,
+      centerPoint,
     };
 
     try {
@@ -713,6 +737,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     if (!this.isInitialized) {
       logger.warn("Cannot update display: orchestrator not initialized");
       return failure(OrchestratorError.notInitialized());
+    }
+
+    // During drive simulation, always use drive display instead of track display
+    // This prevents flipping between drive and track screens
+    if (
+      this.simulationService?.isSimulating() &&
+      this.driveNavigationService?.isNavigating()
+    ) {
+      logger.info(
+        "Drive simulation active - redirecting to drive display update",
+      );
+      return this.updateDriveDisplay();
     }
 
     // Queue update if one is already in progress
@@ -1148,6 +1184,68 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     logger.info(
       `Calculated fit zoom: bounds=${latSpan.toFixed(4)}°×${lonSpan.toFixed(4)}°, ` +
+        `display=${displayWidth}×${displayHeight}, zoom=${zoom}`,
+    );
+
+    return zoom;
+  }
+
+  /**
+   * Calculate zoom level that fits a route's geometry bounds on the display
+   * @param geometry Array of [latitude, longitude] coordinates
+   */
+  private calculateFitZoomFromGeometry(geometry: [number, number][]): number {
+    if (geometry.length === 0) {
+      return this.configService.getZoomLevel();
+    }
+
+    // Calculate bounds from geometry
+    let minLat = geometry[0][0];
+    let maxLat = geometry[0][0];
+    let minLon = geometry[0][1];
+    let maxLon = geometry[0][1];
+
+    for (const [lat, lon] of geometry) {
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLon = Math.min(minLon, lon);
+      maxLon = Math.max(maxLon, lon);
+    }
+
+    const displayWidth = this.configService.getDisplayWidth();
+    const displayHeight = this.configService.getDisplayHeight();
+
+    // Calculate the center latitude for mercator projection
+    const centerLat = (minLat + maxLat) / 2;
+
+    // Calculate the span in degrees
+    const latSpan = maxLat - minLat;
+    const lonSpan = maxLon - minLon;
+
+    // Convert to approximate meters (at center latitude)
+    const latMeters = latSpan * 111320; // ~111.32 km per degree latitude
+    const lonMeters = lonSpan * 111320 * Math.cos((centerLat * Math.PI) / 180);
+
+    // Calculate meters per pixel needed (with some padding)
+    const padding = 0.8; // Use 80% of screen for route
+    const metersPerPixelX = lonMeters / (displayWidth * padding);
+    const metersPerPixelY = latMeters / (displayHeight * padding);
+    const metersPerPixel = Math.max(metersPerPixelX, metersPerPixelY);
+
+    // Earth circumference in meters
+    const earthCircumference = 40075016.686;
+
+    // Calculate zoom level
+    const cosLat = Math.cos((centerLat * Math.PI) / 180);
+    const zoomExact = Math.log2(
+      (earthCircumference * cosLat) / (256 * metersPerPixel),
+    );
+
+    // Clamp to valid zoom range and round down for safety
+    const zoom = Math.max(1, Math.min(20, Math.floor(zoomExact)));
+
+    logger.info(
+      `Calculated drive route fit zoom: bounds=${latSpan.toFixed(4)}°×${lonSpan.toFixed(4)}°, ` +
         `display=${displayWidth}×${displayHeight}, zoom=${zoom}`,
     );
 
