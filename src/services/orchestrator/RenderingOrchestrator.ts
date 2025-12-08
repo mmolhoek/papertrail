@@ -360,6 +360,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.lastSimulationState = status.state;
 
       if (status.state === "running") {
+        // Stop auto-update during simulation to prevent concurrent updates
+        if (this.autoUpdateInterval) {
+          logger.info("Stopping auto-update during simulation");
+          this.stopAutoUpdate();
+        }
         // Start periodic display updates during simulation
         this.startSimulationDisplayUpdates();
       } else if (status.state === "stopped") {
@@ -694,16 +699,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     try {
       let renderResult;
+      const renderStartTime = Date.now();
 
       switch (status.displayMode) {
         case DriveDisplayMode.TURN_SCREEN:
           if (status.nextTurn) {
+            logger.debug("Starting turn screen render...");
             renderResult = await this.svgService.renderTurnScreen(
               status.nextTurn.maneuverType,
               status.distanceToNextTurn,
               status.nextTurn.instruction,
               status.nextTurn.streetName,
               viewport,
+            );
+            logger.debug(
+              `Turn screen render completed in ${Date.now() - renderStartTime}ms`,
             );
           }
           break;
@@ -724,12 +734,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               timeRemaining: status.timeRemaining,
             };
 
+            logger.debug(
+              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points)...`,
+            );
             renderResult = await this.svgService.renderDriveMapScreen(
               status.route,
               this.lastGPSPosition,
               status.nextTurn,
               viewport,
               info,
+            );
+            logger.debug(
+              `Map screen render completed in ${Date.now() - renderStartTime}ms`,
             );
           }
           break;

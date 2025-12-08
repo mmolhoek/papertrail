@@ -1138,6 +1138,7 @@ export class SVGService implements ISVGService {
     info: DriveNavigationInfo,
     options?: Partial<RenderOptions>,
   ): Promise<Result<Bitmap1Bit>> {
+    const methodStart = Date.now();
     logger.debug("Rendering drive map screen");
 
     try {
@@ -1150,6 +1151,9 @@ export class SVGService implements ISVGService {
 
       // Create main bitmap
       const bitmap = this.createBlankBitmap(width, height, false);
+      logger.debug(
+        `renderDriveMapScreen: bitmap created (${Date.now() - methodStart}ms)`,
+      );
 
       // Render the route on the map section
       const mapViewport: ViewportConfig = {
@@ -1162,6 +1166,9 @@ export class SVGService implements ISVGService {
       if (route.geometry && route.geometry.length > 1) {
         const projectedRoute = route.geometry.map(([lat, lon]) =>
           this.projectToPixels(lat, lon, mapViewport),
+        );
+        logger.debug(
+          `renderDriveMapScreen: projected ${projectedRoute.length} points (${Date.now() - methodStart}ms)`,
         );
 
         if (renderOpts.showLine) {
@@ -1178,6 +1185,9 @@ export class SVGService implements ISVGService {
               );
             }
           }
+          logger.debug(
+            `renderDriveMapScreen: drew route lines (${Date.now() - methodStart}ms)`,
+          );
         }
       }
 
@@ -1205,8 +1215,12 @@ export class SVGService implements ISVGService {
 
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
+      logger.debug(
+        `renderDriveMapScreen: drew map elements (${Date.now() - methodStart}ms)`,
+      );
 
       // Render info panel (right 30%)
+      logger.debug(`renderDriveMapScreen: starting info panel render...`);
       await this.renderDriveInfoPanel(
         bitmap,
         mapWidth + 10,
@@ -1214,8 +1228,13 @@ export class SVGService implements ISVGService {
         infoWidth - 20,
         height,
       );
+      logger.debug(
+        `renderDriveMapScreen: info panel done (${Date.now() - methodStart}ms)`,
+      );
 
-      logger.info("Drive map screen rendered successfully");
+      logger.info(
+        `Drive map screen rendered successfully in ${Date.now() - methodStart}ms`,
+      );
       return success(bitmap);
     } catch (error) {
       logger.error("Failed to render drive map screen:", error);
@@ -1814,11 +1833,17 @@ export class SVGService implements ISVGService {
   ): Promise<void> {
     const padding = 10;
     let currentY = padding + 20;
+    const startTime = Date.now();
+
+    logger.debug("renderDriveInfoPanel: starting text renders...");
 
     // Next turn section
     await renderTextOnBitmap(bitmap, "NEXT TURN", x + padding, currentY, {
       fontSize: 12,
     });
+    logger.debug(
+      `renderDriveInfoPanel: text 1/8 done (${Date.now() - startTime}ms)`,
+    );
     currentY += 20;
 
     // Small turn arrow
@@ -1837,6 +1862,9 @@ export class SVGService implements ISVGService {
       fontSize: 14,
       fontWeight: "bold",
     });
+    logger.debug(
+      `renderDriveInfoPanel: text 2/8 done (${Date.now() - startTime}ms)`,
+    );
     currentY += 30;
 
     // Divider
@@ -1853,12 +1881,18 @@ export class SVGService implements ISVGService {
       currentY,
       { labelSize: 12, valueSize: 28, unitSize: 12 },
     );
+    logger.debug(
+      `renderDriveInfoPanel: text 3/8 (speed) done (${Date.now() - startTime}ms)`,
+    );
     currentY += 80;
 
     // Progress
     await renderTextOnBitmap(bitmap, "PROGRESS", x + padding, currentY, {
       fontSize: 12,
     });
+    logger.debug(
+      `renderDriveInfoPanel: text 4/8 done (${Date.now() - startTime}ms)`,
+    );
     currentY += 20;
 
     // Progress bar
@@ -1899,18 +1933,27 @@ export class SVGService implements ISVGService {
       currentY,
       { fontSize: 14, fontWeight: "bold" },
     );
+    logger.debug(
+      `renderDriveInfoPanel: text 5/8 done (${Date.now() - startTime}ms)`,
+    );
     currentY += 30;
 
     // Remaining distance
     await renderTextOnBitmap(bitmap, "REMAINING", x + padding, currentY, {
       fontSize: 12,
     });
+    logger.debug(
+      `renderDriveInfoPanel: text 6/8 done (${Date.now() - startTime}ms)`,
+    );
     currentY += 20;
     const remainingText = this.formatDistanceForDisplay(info.distanceRemaining);
     await renderTextOnBitmap(bitmap, remainingText, x + padding, currentY, {
       fontSize: 14,
       fontWeight: "bold",
     });
+    logger.debug(
+      `renderDriveInfoPanel: all text done (${Date.now() - startTime}ms)`,
+    );
   }
 
   /**
