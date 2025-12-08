@@ -421,3 +421,91 @@ export async function renderLabeledValueOnBitmap(
 
   return { height: currentY - y };
 }
+
+/**
+ * A text item for batched rendering
+ */
+export interface BatchedTextItem {
+  /** The text to render */
+  text: string;
+  /** X position relative to the batch area */
+  x: number;
+  /** Y position relative to the batch area */
+  y: number;
+  /** Font size in pixels */
+  fontSize: number;
+  /** Font weight */
+  fontWeight?: "normal" | "bold";
+}
+
+/**
+ * Generate SVG string containing multiple text elements
+ */
+function generateBatchedTextSvg(
+  items: BatchedTextItem[],
+  width: number,
+  height: number,
+  fontFamily: string = "Arial, sans-serif",
+): string {
+  const textElements = items
+    .map((item) => {
+      const weight = item.fontWeight || "normal";
+      // Position text with dominant-baseline for consistent vertical alignment
+      const yPos = item.y + item.fontSize * 0.85;
+      return `<text x="${item.x}" y="${yPos}"
+            font-family="${fontFamily}"
+            font-size="${item.fontSize}"
+            font-weight="${weight}"
+            fill="black">${escapeXml(item.text)}</text>`;
+    })
+    .join("\n    ");
+
+  return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="white"/>
+    ${textElements}
+  </svg>`;
+}
+
+/**
+ * Render multiple text items in a single Sharp operation
+ * This is much more efficient than calling renderTextOnBitmap multiple times
+ */
+export async function renderBatchedTextOnBitmap(
+  bitmap: Bitmap1Bit,
+  items: BatchedTextItem[],
+  targetX: number,
+  targetY: number,
+  width: number,
+  height: number,
+): Promise<void> {
+  if (items.length === 0) {
+    logger.debug("Skipping empty batched text rendering");
+    return;
+  }
+
+  logger.debug(
+    `Rendering batched text: ${items.length} items in single Sharp call`,
+  );
+
+  const svgString = generateBatchedTextSvg(items, width, height);
+  const data = await svgToBitmap(svgString, width, height);
+
+  // Create temporary bitmap for the batched text
+  const textBitmap: Bitmap1Bit = {
+    width,
+    height,
+    data,
+    metadata: {
+      createdAt: new Date(),
+      description: `Batched text: ${items.length} items`,
+    },
+  };
+
+  // Composite onto target bitmap
+  compositeBlackPixels(
+    bitmap,
+    textBitmap,
+    Math.round(targetX),
+    Math.round(targetY),
+  );
+}

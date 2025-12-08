@@ -23,6 +23,8 @@ import {
   renderTextOnBitmap,
   renderLabeledValueOnBitmap,
   calculateTextHeight,
+  renderBatchedTextOnBitmap,
+  BatchedTextItem,
 } from "@utils/svgTextRenderer";
 
 const logger = getLogger("SVGService");
@@ -752,53 +754,66 @@ export class SVGService implements ISVGService {
     const padding = 10;
     const labelSize = 28;
     const valueSize = 32;
-    const unitSize = 20;
     const lineSpacing = 2;
     const sectionSpacing = 12;
 
+    // Build all text items for batched rendering (single Sharp call)
+    const textItems: BatchedTextItem[] = [];
     let currentY = padding;
 
     // Section 1: Speed
-    await renderTextOnBitmap(bitmap, "SPEED", x + padding, currentY, {
+    textItems.push({
+      text: "SPEED",
+      x: padding,
+      y: currentY,
       fontSize: labelSize,
     });
     currentY += calculateTextHeight(labelSize) + lineSpacing;
 
     // Speed value with unit inline (e.g., "42 KM/H")
     const speedText = `${Math.round(info.speed)} KM/H`;
-    await renderTextOnBitmap(bitmap, speedText, x + padding, currentY, {
+    textItems.push({
+      text: speedText,
+      x: padding,
+      y: currentY,
       fontSize: valueSize,
       fontWeight: "bold",
     });
     currentY += calculateTextHeight(valueSize) + sectionSpacing;
 
     // Section 2: Satellites
-    await renderTextOnBitmap(bitmap, "SATS", x + padding, currentY, {
+    textItems.push({
+      text: "SATS",
+      x: padding,
+      y: currentY,
       fontSize: labelSize,
     });
     currentY += calculateTextHeight(labelSize) + lineSpacing;
 
-    await renderTextOnBitmap(
-      bitmap,
-      info.satellites.toString(),
-      x + padding,
-      currentY,
-      {
-        fontSize: valueSize,
-        fontWeight: "bold",
-      },
-    );
+    textItems.push({
+      text: info.satellites.toString(),
+      x: padding,
+      y: currentY,
+      fontSize: valueSize,
+      fontWeight: "bold",
+    });
     currentY += calculateTextHeight(valueSize) + sectionSpacing;
 
     // Section 3: Progress percentage
     if (info.progress !== undefined) {
-      await renderTextOnBitmap(bitmap, "DONE", x + padding, currentY, {
+      textItems.push({
+        text: "DONE",
+        x: padding,
+        y: currentY,
         fontSize: labelSize,
       });
       currentY += calculateTextHeight(labelSize) + lineSpacing;
 
       const progressText = `${Math.round(info.progress)}%`;
-      await renderTextOnBitmap(bitmap, progressText, x + padding, currentY, {
+      textItems.push({
+        text: progressText,
+        x: padding,
+        y: currentY,
         fontSize: valueSize,
         fontWeight: "bold",
       });
@@ -807,17 +822,26 @@ export class SVGService implements ISVGService {
 
     // Section 4: Time remaining
     if (info.estimatedTimeRemaining !== undefined) {
-      await renderTextOnBitmap(bitmap, "ETA", x + padding, currentY, {
+      textItems.push({
+        text: "ETA",
+        x: padding,
+        y: currentY,
         fontSize: labelSize,
       });
       currentY += calculateTextHeight(labelSize) + lineSpacing;
 
       const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
-      await renderTextOnBitmap(bitmap, timeStr, x + padding, currentY, {
+      textItems.push({
+        text: timeStr,
+        x: padding,
+        y: currentY,
         fontSize: valueSize,
         fontWeight: "bold",
       });
     }
+
+    // Render all text in a single Sharp operation
+    await renderBatchedTextOnBitmap(bitmap, textItems, x, 0, width, height);
   }
 
   /**
