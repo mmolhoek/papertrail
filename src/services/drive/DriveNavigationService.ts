@@ -526,7 +526,17 @@ export class DriveNavigationService implements IDriveNavigationService {
       // Update display mode based on distance
       // In simulation mode, prefer TURN_SCREEN to avoid expensive map renders
       // that can cause Sharp to hang
-      if (this.distanceToNextTurn <= DRIVE_THRESHOLDS.TURN_SCREEN_DISTANCE) {
+      if (this.isSimulationMode && this.useMapViewInSimulation) {
+        // User opted for map view in simulation - stay consistently in MAP_WITH_OVERLAY
+        // to avoid mode switching which causes repeated Sharp renders and freezes
+        this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+      } else if (this.isSimulationMode) {
+        // Simulation without map view - always use TURN_SCREEN (safe mode)
+        this.displayMode = DriveDisplayMode.TURN_SCREEN;
+      } else if (
+        this.distanceToNextTurn <= DRIVE_THRESHOLDS.TURN_SCREEN_DISTANCE
+      ) {
+        // Real navigation - switch to turn screen when approaching turn
         this.displayMode = DriveDisplayMode.TURN_SCREEN;
         if (prevDisplayMode !== DriveDisplayMode.TURN_SCREEN) {
           logger.debug(
@@ -534,11 +544,8 @@ export class DriveNavigationService implements IDriveNavigationService {
           );
           this.notifyNavigationUpdate("turn_approaching");
         }
-      } else if (this.isSimulationMode && !this.useMapViewInSimulation) {
-        // During simulation, use turn screen even for long distances
-        // to avoid Sharp text rendering issues (unless user opted for map view)
-        this.displayMode = DriveDisplayMode.TURN_SCREEN;
       } else {
+        // Real navigation - use map with overlay when far from turn
         this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
       }
     }
