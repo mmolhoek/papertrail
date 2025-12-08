@@ -1007,7 +1007,7 @@ describe("DriveNavigationService", () => {
       expect(service.isNavigating()).toBe(false);
     });
 
-    it("should return false after arrival", async () => {
+    it("should return true after arrival (to keep drive display active)", async () => {
       const route = createTestRoute();
       await service.startNavigation(route);
 
@@ -1019,7 +1019,8 @@ describe("DriveNavigationService", () => {
       }
 
       expect(service.getNavigationState()).toBe(NavigationState.ARRIVED);
-      expect(service.isNavigating()).toBe(false);
+      // isNavigating() returns true for ARRIVED so drive display stays active
+      expect(service.isNavigating()).toBe(true);
     });
   });
 

@@ -300,9 +300,11 @@ export class DriveNavigationService implements IDriveNavigationService {
   }
 
   isNavigating(): boolean {
+    // Include ARRIVED state so drive display stays active until user dismisses
     const result =
       this.navigationState === NavigationState.NAVIGATING ||
-      this.navigationState === NavigationState.OFF_ROAD;
+      this.navigationState === NavigationState.OFF_ROAD ||
+      this.navigationState === NavigationState.ARRIVED;
     return result;
   }
 
