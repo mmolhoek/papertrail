@@ -444,7 +444,9 @@ export class TrackSimulationService implements ITrackSimulationService {
 
     if (this.currentPointIndex >= totalPoints - 1) {
       // Reached the end
-      logger.info("Simulation complete");
+      logger.info(
+        `Simulation complete: reached point ${this.currentPointIndex} of ${totalPoints}, covered ${Math.round(this.coveredDistance)}m`,
+      );
       this.clearUpdateLoop();
       this.state = SimulationState.STOPPED;
       this.notifyStateChange();
@@ -462,20 +464,18 @@ export class TrackSimulationService implements ITrackSimulationService {
 
     if (currentSegmentDistance === 0) {
       // Skip zero-distance segments (duplicate points)
-      logger.debug(
-        `Skipping zero-distance segment at index ${this.currentPointIndex}`,
+      logger.info(
+        `Skipping zero-distance segment at index ${this.currentPointIndex}/${totalPoints}`,
       );
       this.currentPointIndex++;
       this.segmentFraction = 0;
       return;
     }
 
-    // Log progress periodically (every 10th update)
-    if (this.currentPointIndex % 10 === 0) {
-      logger.info(
-        `Simulation progress: point ${this.currentPointIndex}/${totalPoints}, covered ${Math.round(this.coveredDistance)}m/${Math.round(this.totalDistance)}m`,
-      );
-    }
+    // Log progress on every update for debugging
+    logger.debug(
+      `Simulation tick: point ${this.currentPointIndex}/${totalPoints}, covered ${Math.round(this.coveredDistance)}m/${Math.round(this.totalDistance)}m, segmentDist=${Math.round(currentSegmentDistance)}m`,
+    );
 
     // Update segment fraction
     const fractionThisUpdate = distanceThisUpdate / currentSegmentDistance;

@@ -1705,8 +1705,11 @@ export class WebController {
         ],
       };
 
+      const pointCount = gpxTrack.segments[0].points.length;
+      const firstPt = gpxTrack.segments[0].points[0];
+      const lastPt = gpxTrack.segments[0].points[pointCount - 1];
       logger.info(
-        `GPX track created with ${gpxTrack.segments[0].points.length} points`,
+        `GPX track created with ${pointCount} points, from (${firstPt.latitude.toFixed(5)}, ${firstPt.longitude.toFixed(5)}) to (${lastPt.latitude.toFixed(5)}, ${lastPt.longitude.toFixed(5)})`,
       );
 
       // Start simulation at drive speed (100 km/h)
