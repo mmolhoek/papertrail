@@ -1106,41 +1106,34 @@ export class SVGService implements ISVGService {
       // Draw the large turn arrow
       this.drawManeuverArrow(bitmap, centerX, centerY, maneuverType, 120);
 
-      // Draw distance text (large) using SVG
+      // Draw distance text (large) using bitmap font
       const distanceText = this.formatDistanceForDisplay(distance);
       const distanceY = Math.floor(height / 2) + 40;
-      await renderTextOnBitmap(bitmap, distanceText, centerX, distanceY, {
-        fontSize: 48,
-        fontWeight: "bold",
-        alignment: "center",
+      const distanceScale = 7; // Large text (~49px)
+      const distanceWidth = calculateBitmapTextWidth(distanceText, distanceScale);
+      renderBitmapText(bitmap, distanceText, centerX - distanceWidth / 2, distanceY, {
+        scale: distanceScale,
+        bold: true,
       });
 
-      // Draw instruction text using SVG
+      // Draw instruction text using bitmap font
       const instructionY = Math.floor(height * 0.7);
-      await renderTextOnBitmap(
-        bitmap,
-        instruction.toUpperCase(),
-        centerX,
-        instructionY,
-        {
-          fontSize: 16,
-          alignment: "center",
-        },
-      );
+      const instructionScale = 2; // ~14px
+      const instructionText = instruction.toUpperCase();
+      const instructionWidth = calculateBitmapTextWidth(instructionText, instructionScale);
+      renderBitmapText(bitmap, instructionText, centerX - instructionWidth / 2, instructionY, {
+        scale: instructionScale,
+      });
 
       // Draw street name if provided
       if (streetName) {
         const streetY = instructionY + 30;
-        await renderTextOnBitmap(
-          bitmap,
-          streetName.toUpperCase(),
-          centerX,
-          streetY,
-          {
-            fontSize: 14,
-            alignment: "center",
-          },
-        );
+        const streetScale = 2; // ~14px
+        const streetText = streetName.toUpperCase();
+        const streetWidth = calculateBitmapTextWidth(streetText, streetScale);
+        renderBitmapText(bitmap, streetText, centerX - streetWidth / 2, streetY, {
+          scale: streetScale,
+        });
       }
 
       logger.info("Turn screen rendered successfully");
@@ -1318,30 +1311,34 @@ export class SVGService implements ISVGService {
       // Draw large directional arrow pointing to route
       this.drawDirectionalArrow(bitmap, centerX, centerY, bearing, 100);
 
-      // Draw distance text using SVG
+      // Draw distance text using bitmap font
       const distanceText = this.formatDistanceForDisplay(distance);
       const distanceY = Math.floor(height / 2) + 40;
-      await renderTextOnBitmap(bitmap, distanceText, centerX, distanceY, {
-        fontSize: 48,
-        fontWeight: "bold",
-        alignment: "center",
+      const distanceScale = 7; // Large text (~49px)
+      const distanceWidth = calculateBitmapTextWidth(distanceText, distanceScale);
+      renderBitmapText(bitmap, distanceText, centerX - distanceWidth / 2, distanceY, {
+        scale: distanceScale,
+        bold: true,
       });
 
-      // Draw "TO ROUTE" text using SVG
+      // Draw "TO ROUTE" text using bitmap font
       const labelY = Math.floor(height / 2) + 100;
-      await renderTextOnBitmap(bitmap, "TO ROUTE", centerX, labelY, {
-        fontSize: 20,
-        fontWeight: "bold",
-        alignment: "center",
+      const labelScale = 3; // ~21px
+      const labelText = "TO ROUTE";
+      const labelWidth = calculateBitmapTextWidth(labelText, labelScale);
+      renderBitmapText(bitmap, labelText, centerX - labelWidth / 2, labelY, {
+        scale: labelScale,
+        bold: true,
       });
 
-      // Draw instruction at bottom using SVG
+      // Draw instruction at bottom using bitmap font
       const instructionY = Math.floor(height * 0.8);
       const instruction =
         "HEAD " + this.bearingToDirection(bearing) + " TO REACH PAVED ROAD";
-      await renderTextOnBitmap(bitmap, instruction, centerX, instructionY, {
-        fontSize: 14,
-        alignment: "center",
+      const instructionScale = 2; // ~14px
+      const instructionWidth = calculateBitmapTextWidth(instruction, instructionScale);
+      renderBitmapText(bitmap, instruction, centerX - instructionWidth / 2, instructionY, {
+        scale: instructionScale,
       });
 
       logger.info("Off-road screen rendered successfully");
@@ -1375,15 +1372,17 @@ export class SVGService implements ISVGService {
       const markerY = Math.floor(height / 8);
       this.drawCheckmark(bitmap, centerX, markerY, 80);
 
-      // Draw "ARRIVED" text using SVG
+      // Draw "ARRIVED" text using bitmap font
       const arrivedY = height - 80;
-      await renderTextOnBitmap(bitmap, "ARRIVED", centerX, arrivedY, {
-        fontSize: 48,
-        fontWeight: "bold",
-        alignment: "center",
+      const arrivedScale = 7; // Large text (~49px)
+      const arrivedText = "ARRIVED";
+      const arrivedWidth = calculateBitmapTextWidth(arrivedText, arrivedScale);
+      renderBitmapText(bitmap, arrivedText, centerX - arrivedWidth / 2, arrivedY, {
+        scale: arrivedScale,
+        bold: true,
       });
 
-      // Draw destination name using SVG - split into lines of 2 words each
+      // Draw destination name using bitmap font - split into lines of 2 words each
       const words = destination.toUpperCase().split(/\s+/);
       const lines: string[] = [];
       for (let i = 0; i < words.length; i += 2) {
@@ -1392,20 +1391,15 @@ export class SVGService implements ISVGService {
       }
 
       const lineHeight = 36; // spacing between lines
+      const destScale = 4; // ~28px
       const startY =
         Math.floor(height * 0.5) -
         Math.floor(((lines.length - 1) * lineHeight) / 2);
       for (let i = 0; i < lines.length; i++) {
-        await renderTextOnBitmap(
-          bitmap,
-          lines[i],
-          centerX,
-          startY + i * lineHeight,
-          {
-            fontSize: 28,
-            alignment: "center",
-          },
-        );
+        const lineWidth = calculateBitmapTextWidth(lines[i], destScale);
+        renderBitmapText(bitmap, lines[i], centerX - lineWidth / 2, startY + i * lineHeight, {
+          scale: destScale,
+        });
       }
 
       logger.info("Arrival screen rendered successfully");
