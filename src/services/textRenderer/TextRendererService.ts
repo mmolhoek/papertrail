@@ -36,7 +36,7 @@ export class TextRendererService implements ITextRendererService {
     try {
       logger.info(`Rendering text template: ${template.title || "Untitled"}`);
 
-      // Generate SVG from template (async for QR code generation)
+      // Generate SVG from template (without QR code - we'll composite it separately)
       const svgString = await this.generateSVG(
         template,
         variables,
@@ -45,7 +45,17 @@ export class TextRendererService implements ITextRendererService {
       );
 
       // Convert SVG to 1-bit bitmap
-      const bitmap = await this.svgToBitmap(svgString, width, height);
+      let bitmap = await this.svgToBitmap(svgString, width, height);
+
+      // If there's a QR code, composite it onto the bitmap separately
+      // This avoids anti-aliasing issues when embedded PNG goes through SVG rendering
+      if (template.qrCode) {
+        bitmap = await this.compositeQRCode(
+          bitmap,
+          template.qrCode,
+          template.layout,
+        );
+      }
 
       logger.info("Text template rendered successfully");
       return success(bitmap);
@@ -113,35 +123,45 @@ export class TextRendererService implements ITextRendererService {
   }
 
   /**
-   * Generate QR code as SVG path data
+   * Composite QR code onto bitmap
+   * Renders QR code as PNG and overlays it on the bitmap to avoid anti-aliasing
    */
-  private async generateQRCodeSVG(
+  private async compositeQRCode(
+    bitmap: Bitmap1Bit,
     config: QRCodeConfig,
-    width: number,
-    height: number,
     layout: TextTemplate["layout"],
-  ): Promise<{ svg: string; yOffset: number }> {
-    const qrSvg = await QRCode.toString(config.content, {
-      type: "svg",
+  ): Promise<Bitmap1Bit> {
+    logger.debug(
+      `Compositing QR code for content: ${config.content.substring(0, 50)}...`,
+    );
+
+    // Generate QR code as PNG buffer at native size (1 pixel per module)
+    const qrBuffer = await QRCode.toBuffer(config.content, {
+      type: "png",
       margin: 1,
+      scale: 1,
       color: {
         dark: layout.textColor === "white" ? "#FFFFFF" : "#000000",
         light: layout.textColor === "white" ? "#000000" : "#FFFFFF",
       },
     });
 
-    // Extract the viewBox from the original SVG to get the coordinate system
-    const viewBoxMatch = qrSvg.match(/viewBox="([^"]*)"/);
-    const viewBox = viewBoxMatch ? viewBoxMatch[1] : "0 0 100 100";
+    // Scale the QR code to target size using nearest-neighbor (no anti-aliasing)
+    const scaledPng = await imagemagick.resizePngNoAntialias(
+      qrBuffer,
+      config.size,
+      config.size,
+    );
 
-    // Extract just the path/rect content from the QR SVG (skip the outer svg tags)
-    const innerContent = qrSvg
-      .replace(/<\?xml[^>]*\?>/g, "")
-      .replace(/<svg[^>]*>/g, "")
-      .replace(/<\/svg>/g, "");
+    // Convert the scaled PNG to packed bitmap
+    const qrBitmap = await imagemagick.pngToPackedBitmap(
+      scaledPng,
+      config.size,
+      config.size,
+    );
 
     // Calculate position based on config.position
-    const xPosition = (width - config.size) / 2; // Always center horizontally
+    const xPosition = Math.floor((bitmap.width - config.size) / 2);
     let yPosition: number;
 
     switch (config.position) {
@@ -149,24 +169,67 @@ export class TextRendererService implements ITextRendererService {
         yPosition = layout.padding.top;
         break;
       case "center":
-        yPosition = (height - config.size) / 2;
+        yPosition = Math.floor((bitmap.height - config.size) / 2);
         break;
       case "bottom":
-        yPosition = height - config.size - layout.padding.bottom;
+        yPosition = bitmap.height - config.size - layout.padding.bottom;
         break;
     }
 
-    // Embed as a nested SVG with proper viewBox to scale correctly
-    const positionedSvg = `<svg x="${xPosition}" y="${yPosition}" width="${config.size}" height="${config.size}" viewBox="${viewBox}">${innerContent}</svg>`;
+    // Composite the QR code onto the bitmap
+    this.compositeBitmaps(bitmap, qrBitmap, config.size, xPosition, yPosition);
 
-    return {
-      svg: positionedSvg,
-      yOffset: config.position === "top" ? config.size + 20 : 0,
-    };
+    logger.debug(
+      `QR code composited: ${config.size}x${config.size} at position (${xPosition}, ${yPosition})`,
+    );
+
+    return bitmap;
+  }
+
+  /**
+   * Composite a source bitmap onto a target bitmap at specified position
+   */
+  private compositeBitmaps(
+    target: Bitmap1Bit,
+    source: Buffer,
+    sourceSize: number,
+    targetX: number,
+    targetY: number,
+  ): void {
+    const targetBytesPerRow = Math.ceil(target.width / 8);
+    const sourceBytesPerRow = Math.ceil(sourceSize / 8);
+
+    for (let sy = 0; sy < sourceSize; sy++) {
+      const ty = targetY + sy;
+      if (ty < 0 || ty >= target.height) continue;
+
+      for (let sx = 0; sx < sourceSize; sx++) {
+        const tx = targetX + sx;
+        if (tx < 0 || tx >= target.width) continue;
+
+        // Read source pixel
+        const sourceByteIndex = sy * sourceBytesPerRow + Math.floor(sx / 8);
+        const sourceBitIndex = 7 - (sx % 8);
+        const sourcePixel = (source[sourceByteIndex] >> sourceBitIndex) & 1;
+
+        // Write to target
+        const targetByteIndex = ty * targetBytesPerRow + Math.floor(tx / 8);
+        const targetBitIndex = 7 - (tx % 8);
+
+        if (sourcePixel === 0) {
+          // Black pixel
+          target.data[targetByteIndex] &= ~(1 << targetBitIndex);
+        } else {
+          // White pixel
+          target.data[targetByteIndex] |= 1 << targetBitIndex;
+        }
+      }
+    }
   }
 
   /**
    * Generate SVG string from template
+   * Note: QR code is composited separately to avoid anti-aliasing
    */
   private async generateSVG(
     template: TextTemplate,
@@ -181,17 +244,11 @@ export class TextRendererService implements ITextRendererService {
     let svgContent = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
     svgContent += `<rect width="100%" height="100%" fill="${bgColor}"/>`;
 
-    // Add QR code if configured
+    // Calculate Y offset for text if QR code is at the top
+    // (QR code is composited separately but we need to leave space)
     let qrYOffset = 0;
-    if (qrCode) {
-      const qrResult = await this.generateQRCodeSVG(
-        qrCode,
-        width,
-        height,
-        layout,
-      );
-      svgContent += qrResult.svg;
-      qrYOffset = qrResult.yOffset;
+    if (qrCode && qrCode.position === "top") {
+      qrYOffset = qrCode.size + 20;
     }
 
     let yPosition = layout.padding.top + qrYOffset;

@@ -170,3 +170,32 @@ export async function rgbaToPackedBitmap(
   buffer.fill(0xff); // All white (1 bits)
   return buffer;
 }
+
+/**
+ * Mock PNG resize with nearest-neighbor
+ * Returns a minimal valid PNG
+ */
+export async function resizePngNoAntialias(
+  _pngBuffer: Buffer,
+  _targetWidth: number,
+  _targetHeight: number,
+): Promise<Buffer> {
+  logger.debug("Mock: resizePngNoAntialias");
+  return Buffer.from(MINIMAL_PNG);
+}
+
+/**
+ * Mock PNG to packed bitmap conversion
+ * Returns a buffer of all white pixels (packed 1-bit)
+ */
+export async function pngToPackedBitmap(
+  _pngBuffer: Buffer,
+  width: number,
+  height: number,
+): Promise<Buffer> {
+  logger.debug(`Mock: pngToPackedBitmap ${width}x${height}`);
+  const bytesPerRow = Math.ceil(width / 8);
+  const buffer = Buffer.alloc(bytesPerRow * height);
+  buffer.fill(0xff); // All white (1 bits)
+  return buffer;
+}

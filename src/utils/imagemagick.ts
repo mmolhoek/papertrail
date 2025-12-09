@@ -363,3 +363,89 @@ export async function rgbaToPackedBitmap(
     await cleanupTempFile(outputPath);
   }
 }
+
+/**
+ * Resize a PNG image using nearest-neighbor interpolation (no anti-aliasing)
+ * This is essential for crisp QR codes and pixel art
+ *
+ * @param pngBuffer Input PNG data
+ * @param targetWidth Target width
+ * @param targetHeight Target height
+ * @returns Buffer containing resized PNG data
+ */
+export async function resizePngNoAntialias(
+  pngBuffer: Buffer,
+  targetWidth: number,
+  targetHeight: number,
+): Promise<Buffer> {
+  const inputPath = getTempFilePath(".png");
+  const outputPath = getTempFilePath(".png");
+  tempFiles.add(inputPath);
+  tempFiles.add(outputPath);
+
+  try {
+    // Write input PNG to temp file
+    fs.writeFileSync(inputPath, pngBuffer);
+
+    // Resize using point filter (nearest-neighbor) to avoid anti-aliasing
+    await convert([
+      inputPath,
+      "-filter",
+      "point",
+      "-resize",
+      `${targetWidth}x${targetHeight}`,
+      outputPath,
+    ]);
+
+    const buffer = fs.readFileSync(outputPath);
+    logger.debug(
+      `Resized PNG with nearest-neighbor: ${targetWidth}x${targetHeight}`,
+    );
+    return buffer;
+  } finally {
+    await cleanupTempFile(inputPath);
+    await cleanupTempFile(outputPath);
+  }
+}
+
+/**
+ * Convert a PNG image to 1-bit packed bitmap
+ *
+ * @param pngBuffer Input PNG data
+ * @param width Image width
+ * @param height Image height
+ * @returns Buffer containing packed 1-bit bitmap (MSB first)
+ */
+export async function pngToPackedBitmap(
+  pngBuffer: Buffer,
+  width: number,
+  height: number,
+): Promise<Buffer> {
+  const inputPath = getTempFilePath(".png");
+  const outputPath = getTempFilePath(".gray");
+  tempFiles.add(inputPath);
+  tempFiles.add(outputPath);
+
+  try {
+    // Write input PNG to temp file
+    fs.writeFileSync(inputPath, pngBuffer);
+
+    // Convert to grayscale with threshold
+    await convert([
+      inputPath,
+      "-colorspace",
+      "Gray",
+      "-threshold",
+      "50%",
+      "-depth",
+      "8",
+      `GRAY:${outputPath}`,
+    ]);
+
+    const grayscale = fs.readFileSync(outputPath);
+    return grayscaleToPackedBitmap(grayscale, width, height);
+  } finally {
+    await cleanupTempFile(inputPath);
+    await cleanupTempFile(outputPath);
+  }
+}
