@@ -1,11 +1,9 @@
 /**
  * ImageMagick-based Image Processor
  *
- * Alternative to Sharp for image processing using wasm-imagemagick.
+ * Image processing using wasm-imagemagick (WebAssembly).
  * This module provides functions for loading images, resizing, and
  * converting to 1-bit bitmap format for e-paper displays.
- *
- * Used when USE_IMAGEMAGICK=true environment variable is set.
  */
 
 import { getLogger } from "@utils/logger";

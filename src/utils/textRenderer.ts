@@ -1,8 +1,17 @@
-import sharp from "sharp";
 import { Result, Bitmap1Bit, success, failure } from "@core/types";
 import { getLogger } from "@utils/logger";
 
 const logger = getLogger("TextRenderer");
+
+// Lazy load wasm-imagemagick only when needed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let wasmImagemagick: any = null;
+async function getWasmImagemagick(): Promise<any> {
+  if (!wasmImagemagick) {
+    wasmImagemagick = await import("wasm-imagemagick");
+  }
+  return wasmImagemagick;
+}
 
 /**
  * Template structure for rendering text screens
@@ -174,22 +183,42 @@ function generateSVG(
 }
 
 /**
- * Convert SVG string to 1-bit bitmap using sharp
+ * Convert SVG string to 1-bit bitmap using ImageMagick
  */
 async function svgToBitmap(
   svgString: string,
   width: number,
   height: number,
 ): Promise<Bitmap1Bit> {
-  logger.debug("Converting SVG to 1-bit bitmap");
+  logger.debug("Converting SVG to 1-bit bitmap using ImageMagick");
 
-  // Convert SVG to raw buffer (greyscale, thresholded to black/white)
-  const buffer = await sharp(Buffer.from(svgString))
-    .resize(width, height)
-    .greyscale()
-    .threshold(128) // Convert to pure black/white
-    .raw()
-    .toBuffer();
+  const { call, buildInputFile } = await getWasmImagemagick();
+
+  // Create input file from SVG
+  const inputFile = await buildInputFile(Buffer.from(svgString), "input.svg");
+
+  // Convert SVG to grayscale, threshold, and output as raw gray
+  const result = await call(
+    [inputFile],
+    [
+      "input.svg",
+      "-resize",
+      `${width}x${height}!`,
+      "-colorspace",
+      "Gray",
+      "-threshold",
+      "50%",
+      "-depth",
+      "8",
+      "gray:output.raw",
+    ],
+  );
+
+  if (!result.outputFiles || result.outputFiles.length === 0) {
+    throw new Error("ImageMagick produced no output");
+  }
+
+  const rawBuffer = new Uint8Array(result.outputFiles[0].buffer);
 
   // Pack into 1-bit format (8 pixels per byte, MSB first)
   const bytesPerRow = Math.ceil(width / 8);
@@ -200,11 +229,11 @@ async function svgToBitmap(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const pixelIndex = y * width + x;
-      const byteIndex = Math.floor((y * width + x) / 8);
+      const byteIndex = y * bytesPerRow + Math.floor(x / 8);
       const bitIndex = 7 - (x % 8);
 
       // If pixel is black (value 0 in greyscale)
-      if (buffer[pixelIndex] === 0) {
+      if (pixelIndex < rawBuffer.length && rawBuffer[pixelIndex] === 0) {
         packed[byteIndex] &= ~(1 << bitIndex);
       }
     }

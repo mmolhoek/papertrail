@@ -236,20 +236,15 @@ step "Installing npm dependencies..."
 if [ "$IS_CHROOT" = true ] || [ "$SKIP_NATIVE_DEPS" = "true" ]; then
   echo -e "${YELLOW}  Chroot environment detected - using special installation${NC}"
   echo -e "${BLUE}  - Skipping serialport (native GPS module)${NC}"
-  echo -e "${BLUE}  - Installing sharp with WASM support${NC}"
 
-  # Create a temporary package.json without serialport and sharp
+  # Create a temporary package.json without serialport
   TEMP_PKG="/tmp/package.json.$$"
-  cat package.json | grep -v '"serialport"' | grep -v '"@serialport/parser-readline"' | grep -v '"sharp"' > "$TEMP_PKG"
+  cat package.json | grep -v '"serialport"' | grep -v '"@serialport/parser-readline"' > "$TEMP_PKG"
   mv package.json package.json.backup
   mv "$TEMP_PKG" package.json
 
   # Install dependencies without native modules
   npm install --production=false
-
-  # Install sharp with WASM support (works in chroot/Android)
-  echo -e "${BLUE}  Installing sharp with WebAssembly support...${NC}"
-  npm install --cpu=wasm32 sharp
 
   # Restore original package.json
   mv package.json.backup package.json

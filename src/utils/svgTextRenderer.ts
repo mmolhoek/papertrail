@@ -1,39 +1,17 @@
-import sharp from "sharp";
 import { Bitmap1Bit } from "@core/types";
 import { getLogger } from "@utils/logger";
 
 const logger = getLogger("SvgTextRenderer");
 
-// Mutex to serialize Sharp operations (prevents resource exhaustion)
-let sharpOperationInProgress = false;
-let sharpOperationQueue: Array<() => void> = [];
+// Lazy load wasm-imagemagick
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let wasmImagemagick: any = null;
 
-async function waitForSharpAvailable(): Promise<void> {
-  if (!sharpOperationInProgress) {
-    sharpOperationInProgress = true;
-    return;
+async function getWasmImagemagick(): Promise<any> {
+  if (!wasmImagemagick) {
+    wasmImagemagick = await import("wasm-imagemagick");
   }
-
-  const queueLength = sharpOperationQueue.length;
-  if (queueLength > 0) {
-    logger.warn(`Sharp queue length: ${queueLength + 1}, waiting...`);
-  }
-
-  return new Promise((resolve) => {
-    sharpOperationQueue.push(() => {
-      sharpOperationInProgress = true;
-      resolve();
-    });
-  });
-}
-
-function releaseSharp(): void {
-  if (sharpOperationQueue.length > 0) {
-    const next = sharpOperationQueue.shift();
-    if (next) next();
-  } else {
-    sharpOperationInProgress = false;
-  }
+  return wasmImagemagick;
 }
 
 /**
@@ -164,33 +142,41 @@ function generateTextSvg(
 }
 
 /**
- * Convert SVG string to 1-bit bitmap with timeout and mutex protection
+ * Convert SVG string to 1-bit bitmap using ImageMagick
  */
 async function svgToBitmap(
   svgString: string,
   width: number,
   height: number,
 ): Promise<Uint8Array> {
-  // Wait for Sharp to be available (serializes operations)
-  await waitForSharpAvailable();
-
   try {
-    // Add timeout to prevent indefinite hangs
-    const timeoutMs = 5000;
-    const sharpPromise = sharp(Buffer.from(svgString))
-      .resize(width, height)
-      .greyscale()
-      .threshold(128)
-      .raw()
-      .toBuffer();
+    const { call, buildInputFile } = await getWasmImagemagick();
 
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        reject(new Error(`Sharp operation timed out after ${timeoutMs}ms`));
-      }, timeoutMs);
-    });
+    // Create input file from SVG
+    const inputFile = await buildInputFile(Buffer.from(svgString), "input.svg");
 
-    const buffer = await Promise.race([sharpPromise, timeoutPromise]);
+    // Convert SVG to grayscale, threshold, and output as raw gray
+    const result = await call(
+      [inputFile],
+      [
+        "input.svg",
+        "-resize",
+        `${width}x${height}!`,
+        "-colorspace",
+        "Gray",
+        "-threshold",
+        "50%",
+        "-depth",
+        "8",
+        "gray:output.raw",
+      ],
+    );
+
+    if (!result.outputFiles || result.outputFiles.length === 0) {
+      throw new Error("ImageMagick produced no output");
+    }
+
+    const grayBuffer = new Uint8Array(result.outputFiles[0].buffer);
 
     // Pack into 1-bit format (8 pixels per byte, MSB first)
     const bytesPerRow = Math.ceil(width / 8);
@@ -205,15 +191,17 @@ async function svgToBitmap(
         const bitIndex = 7 - (x % 8);
 
         // If pixel is black (value 0 in greyscale)
-        if (buffer[pixelIndex] === 0) {
+        if (pixelIndex < grayBuffer.length && grayBuffer[pixelIndex] === 0) {
           packed[byteIndex] &= ~(1 << bitIndex);
         }
       }
     }
 
     return packed;
-  } finally {
-    releaseSharp();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error(`SVG to bitmap conversion failed: ${errorMsg}`);
+    throw error;
   }
 }
 
@@ -467,7 +455,7 @@ function generateBatchedTextSvg(
 }
 
 /**
- * Render multiple text items in a single Sharp operation
+ * Render multiple text items in a single ImageMagick operation
  * This is much more efficient than calling renderTextOnBitmap multiple times
  */
 export async function renderBatchedTextOnBitmap(
@@ -484,7 +472,7 @@ export async function renderBatchedTextOnBitmap(
   }
 
   logger.debug(
-    `Rendering batched text: ${items.length} items in single Sharp call`,
+    `Rendering batched text: ${items.length} items in single ImageMagick call`,
   );
 
   const svgString = generateBatchedTextSvg(items, width, height);

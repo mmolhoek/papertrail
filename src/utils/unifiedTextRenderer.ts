@@ -1,12 +1,15 @@
 /**
  * Unified Text Renderer
  *
- * This module provides a unified interface for text rendering that can switch
- * between Sharp (default) and ImageMagick (wasm-imagemagick) implementations.
+ * This module provides a unified interface for text rendering using
+ * ImageMagick (wasm-imagemagick). It supports two implementations:
  *
- * Set USE_IMAGEMAGICK=true environment variable to use ImageMagick instead of Sharp.
- * This is useful when Sharp causes Node.js to hang or in environments where
- * Sharp's native bindings don't work well.
+ * - SVG-based renderer (default): Uses svgTextRenderer which converts SVG to bitmap
+ * - Direct ImageMagick renderer: Uses magickTextRenderer with direct ImageMagick commands
+ *
+ * Set USE_IMAGEMAGICK=true environment variable to use the direct ImageMagick
+ * renderer instead of the SVG-based renderer. Both run in WebAssembly and
+ * don't block Node's event loop.
  */
 
 import { Bitmap1Bit } from "@core/types";
@@ -19,31 +22,32 @@ export type { TextRenderOptions } from "@utils/magickTextRenderer";
 const logger = getLogger("UnifiedTextRenderer");
 
 // Check environment variable once at module load time
-const USE_IMAGEMAGICK = process.env.USE_IMAGEMAGICK === "true";
+const USE_DIRECT_IMAGEMAGICK = process.env.USE_IMAGEMAGICK === "true";
 
-if (USE_IMAGEMAGICK) {
-  logger.info("Using ImageMagick (wasm-imagemagick) for text rendering");
+if (USE_DIRECT_IMAGEMAGICK) {
+  logger.info("Using direct ImageMagick renderer for text rendering");
 } else {
-  logger.info("Using Sharp for text rendering");
+  logger.info("Using SVG-based ImageMagick renderer for text rendering");
 }
 
 // Dynamically import the appropriate implementation
 // This avoids loading both modules when only one is needed
-let magickModule: typeof import("@utils/magickTextRenderer") | null = null;
-let sharpModule: typeof import("@utils/svgTextRenderer") | null = null;
+let directMagickModule: typeof import("@utils/magickTextRenderer") | null =
+  null;
+let svgMagickModule: typeof import("@utils/svgTextRenderer") | null = null;
 
-async function getMagickModule() {
-  if (!magickModule) {
-    magickModule = await import("@utils/magickTextRenderer");
+async function getDirectMagickModule() {
+  if (!directMagickModule) {
+    directMagickModule = await import("@utils/magickTextRenderer");
   }
-  return magickModule;
+  return directMagickModule;
 }
 
-async function getSharpModule() {
-  if (!sharpModule) {
-    sharpModule = await import("@utils/svgTextRenderer");
+async function getSvgMagickModule() {
+  if (!svgMagickModule) {
+    svgMagickModule = await import("@utils/svgTextRenderer");
   }
-  return sharpModule;
+  return svgMagickModule;
 }
 
 /**
@@ -96,11 +100,11 @@ export async function renderTextOnBitmap(
     backgroundColor?: "transparent" | "white" | "black";
   },
 ): Promise<void> {
-  if (USE_IMAGEMAGICK) {
-    const module = await getMagickModule();
+  if (USE_DIRECT_IMAGEMAGICK) {
+    const module = await getDirectMagickModule();
     return module.renderTextOnBitmap(bitmap, text, x, y, options);
   } else {
-    const module = await getSharpModule();
+    const module = await getSvgMagickModule();
     return module.renderTextOnBitmap(bitmap, text, x, y, options);
   }
 }
@@ -122,8 +126,8 @@ export async function renderLabeledValueOnBitmap(
     alignment?: "left" | "center" | "right";
   },
 ): Promise<{ height: number }> {
-  if (USE_IMAGEMAGICK) {
-    const module = await getMagickModule();
+  if (USE_DIRECT_IMAGEMAGICK) {
+    const module = await getDirectMagickModule();
     return module.renderLabeledValueOnBitmap(
       bitmap,
       label,
@@ -134,7 +138,7 @@ export async function renderLabeledValueOnBitmap(
       options,
     );
   } else {
-    const module = await getSharpModule();
+    const module = await getSvgMagickModule();
     return module.renderLabeledValueOnBitmap(
       bitmap,
       label,
@@ -164,8 +168,8 @@ export async function renderBatchedTextOnBitmap(
   width: number,
   height: number,
 ): Promise<void> {
-  if (USE_IMAGEMAGICK) {
-    const module = await getMagickModule();
+  if (USE_DIRECT_IMAGEMAGICK) {
+    const module = await getDirectMagickModule();
     return module.renderBatchedTextOnBitmap(
       bitmap,
       items,
@@ -175,7 +179,7 @@ export async function renderBatchedTextOnBitmap(
       height,
     );
   } else {
-    const module = await getSharpModule();
+    const module = await getSvgMagickModule();
     return module.renderBatchedTextOnBitmap(
       bitmap,
       items,
@@ -204,11 +208,11 @@ export async function renderMultilineTextOnBitmap(
     backgroundColor?: "transparent" | "white" | "black";
   },
 ): Promise<void> {
-  if (USE_IMAGEMAGICK) {
-    const module = await getMagickModule();
+  if (USE_DIRECT_IMAGEMAGICK) {
+    const module = await getDirectMagickModule();
     return module.renderMultilineTextOnBitmap(bitmap, lines, x, y, options);
   } else {
-    const module = await getSharpModule();
+    const module = await getSvgMagickModule();
     return module.renderMultilineTextOnBitmap(bitmap, lines, x, y, options);
   }
 }
@@ -229,11 +233,11 @@ export async function renderTextToBitmap(
     backgroundColor?: "transparent" | "white" | "black";
   },
 ): Promise<Bitmap1Bit> {
-  if (USE_IMAGEMAGICK) {
-    const module = await getMagickModule();
+  if (USE_DIRECT_IMAGEMAGICK) {
+    const module = await getDirectMagickModule();
     return module.renderTextToBitmap(text, width, height, options);
   } else {
-    const module = await getSharpModule();
+    const module = await getSvgMagickModule();
     return module.renderTextToBitmap(text, width, height, options);
   }
 }
@@ -276,6 +280,6 @@ export function compositeBlackPixels(
 /**
  * Check which renderer is currently being used
  */
-export function getRendererType(): "sharp" | "imagemagick" {
-  return USE_IMAGEMAGICK ? "imagemagick" : "sharp";
+export function getRendererType(): "svg-imagemagick" | "direct-imagemagick" {
+  return USE_DIRECT_IMAGEMAGICK ? "direct-imagemagick" : "svg-imagemagick";
 }

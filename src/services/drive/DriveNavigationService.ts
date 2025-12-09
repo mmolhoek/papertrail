@@ -230,7 +230,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     this.activeRoute = activeRoute;
     this.currentWaypointIndex = 0;
     this.navigationState = NavigationState.NAVIGATING;
-    // In simulation mode, use TURN_SCREEN to avoid Sharp text rendering issues
+    // In simulation mode, use TURN_SCREEN for faster rendering
     // (unless user explicitly opted for map view)
     this.displayMode =
       this.isSimulationMode && !this.useMapViewInSimulation
@@ -325,8 +325,8 @@ export class DriveNavigationService implements IDriveNavigationService {
 
   /**
    * Set whether to use map view during simulation
-   * When true, MAP_WITH_OVERLAY will be used (may cause freezing due to Sharp text rendering)
-   * When false, TURN_SCREEN will be used (safer, no freezing)
+   * When true, MAP_WITH_OVERLAY will be used (slower due to full map rendering)
+   * When false, TURN_SCREEN will be used (faster)
    */
   setUseMapViewInSimulation(enabled: boolean): void {
     this.useMapViewInSimulation = enabled;
@@ -525,10 +525,9 @@ export class DriveNavigationService implements IDriveNavigationService {
 
       // Update display mode based on distance
       // In simulation mode, prefer TURN_SCREEN to avoid expensive map renders
-      // that can cause Sharp to hang
       if (this.isSimulationMode && this.useMapViewInSimulation) {
         // User opted for map view in simulation - stay consistently in MAP_WITH_OVERLAY
-        // to avoid mode switching which causes repeated Sharp renders and freezes
+        // to avoid mode switching which causes repeated map renders
         this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
       } else if (this.isSimulationMode) {
         // Simulation without map view - always use TURN_SCREEN (safe mode)

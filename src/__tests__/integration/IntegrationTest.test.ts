@@ -11,18 +11,6 @@ jest.mock("lgpio", () => ({
   gpioRead: jest.fn(() => false),
 }));
 
-jest.mock("sharp", () => {
-  const mockSharp = jest.fn(() => ({
-    resize: jest.fn().mockReturnThis(),
-    raw: jest.fn().mockReturnThis(),
-    toBuffer: jest.fn().mockResolvedValue(Buffer.alloc(1000)),
-    greyscale: jest.fn().mockReturnThis(),
-    threshold: jest.fn().mockReturnThis(),
-    toColourspace: jest.fn().mockReturnThis(),
-  }));
-  return mockSharp;
-});
-
 jest.mock("bmp-js", () => ({
   encode: jest.fn(() => ({ data: Buffer.alloc(1000) })),
   decode: jest.fn(() => ({

@@ -13,19 +13,8 @@ import { getLogger } from "@utils/logger";
 
 const logger = getLogger("MockEpaperService");
 
-// Check if we should use ImageMagick instead of Sharp
-const USE_IMAGEMAGICK = process.env.USE_IMAGEMAGICK === "true";
-
-// Lazy load Sharp only when needed
-let sharpModule: typeof import("sharp") | null = null;
-async function getSharp(): Promise<typeof import("sharp")> {
-  if (!sharpModule) {
-    sharpModule = (await import("sharp")).default;
-  }
-  return sharpModule;
-}
-
 // Lazy load wasm-imagemagick only when needed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let wasmImagemagick: any = null;
 async function getWasmImagemagick(): Promise<any> {
   if (!wasmImagemagick) {
@@ -462,7 +451,7 @@ export class MockEpaperService implements IEpaperService {
   private async convertBitmapToPng(bitmap: Bitmap1Bit): Promise<void> {
     try {
       logger.info(
-        `Mock E-Paper: Converting ${bitmap.width}x${bitmap.height} bitmap to PNG (using ${USE_IMAGEMAGICK ? "ImageMagick" : "Sharp"})...`,
+        `Mock E-Paper: Converting ${bitmap.width}x${bitmap.height} bitmap to PNG using ImageMagick...`,
       );
 
       // Create a grayscale buffer from the 1-bit bitmap
@@ -481,48 +470,7 @@ export class MockEpaperService implements IEpaperService {
         }
       }
 
-      if (USE_IMAGEMAGICK) {
-        // Convert to PNG using ImageMagick (WebAssembly)
-        this.lastBitmapPng = await this.convertWithImageMagick(
-          grayBuffer,
-          bitmap.width,
-          bitmap.height,
-        );
-      } else {
-        // Convert to PNG using Sharp
-        const sharp = await getSharp();
-        this.lastBitmapPng = await sharp(grayBuffer, {
-          raw: {
-            width: bitmap.width,
-            height: bitmap.height,
-            channels: 1,
-          },
-        })
-          .png()
-          .toBuffer();
-      }
-
-      logger.info(
-        `Mock E-Paper: PNG created (${this.lastBitmapPng?.length || 0} bytes)`,
-      );
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(
-        `Mock E-Paper: Failed to convert bitmap to PNG: ${errorMsg}`,
-      );
-      this.lastBitmapPng = null;
-    }
-  }
-
-  /**
-   * Convert grayscale buffer to PNG using ImageMagick WebAssembly
-   */
-  private async convertWithImageMagick(
-    grayBuffer: Buffer,
-    width: number,
-    height: number,
-  ): Promise<Buffer | null> {
-    try {
+      // Convert to PNG using ImageMagick (WebAssembly)
       const { call, buildInputFile } = await getWasmImagemagick();
 
       // Create input file from raw grayscale data
@@ -533,7 +481,7 @@ export class MockEpaperService implements IEpaperService {
         [inputFile],
         [
           "-size",
-          `${width}x${height}`,
+          `${bitmap.width}x${bitmap.height}`,
           "-depth",
           "8",
           "gray:input.gray",
@@ -542,15 +490,20 @@ export class MockEpaperService implements IEpaperService {
       );
 
       if (result.outputFiles && result.outputFiles.length > 0) {
-        return Buffer.from(result.outputFiles[0].buffer);
+        this.lastBitmapPng = Buffer.from(result.outputFiles[0].buffer);
+        logger.info(
+          `Mock E-Paper: PNG created (${this.lastBitmapPng.length} bytes)`,
+        );
+      } else {
+        logger.error("Mock E-Paper: ImageMagick produced no output");
+        this.lastBitmapPng = null;
       }
-
-      logger.error("Mock E-Paper: ImageMagick produced no output");
-      return null;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(`Mock E-Paper: ImageMagick conversion failed: ${errorMsg}`);
-      return null;
+      logger.error(
+        `Mock E-Paper: Failed to convert bitmap to PNG: ${errorMsg}`,
+      );
+      this.lastBitmapPng = null;
     }
   }
 
