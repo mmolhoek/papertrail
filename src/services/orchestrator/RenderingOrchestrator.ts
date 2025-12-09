@@ -683,11 +683,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     const width = this.configService.getDisplayWidth();
     const height = this.configService.getDisplayHeight();
 
-    // Calculate zoom level from route bounds (not the active track's zoom)
-    let zoomLevel = this.configService.getZoomLevel();
-    if (status.route?.geometry && status.route.geometry.length > 0) {
-      zoomLevel = this.calculateFitZoomFromGeometry(status.route.geometry);
-    }
+    // Use the configured zoom level from display settings
+    const zoomLevel = this.configService.getZoomLevel();
 
     // Use current position, or fall back to stored route start (not 0,0)
     // The stored start position is set when navigation begins and persists
