@@ -1094,6 +1094,9 @@ class PapertrailClient {
             select.value = result.data.path;
           }
 
+          // Update track info display immediately
+          this.updateTrackInfo();
+
           // Load the track using the same method as dropdown selection
           await this.loadSelectedTrack();
           this.showMessage(
@@ -1101,7 +1104,7 @@ class PapertrailClient {
             "success",
           );
 
-          // Reload full track list in background (for point counts, etc.)
+          // Reload full track list in background
           this.reloadTrackList();
         } else {
           this.showMessage(`Track "${displayName}" uploaded`, "success");

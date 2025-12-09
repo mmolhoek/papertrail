@@ -1372,11 +1372,11 @@ export class SVGService implements ISVGService {
       const centerX = Math.floor(width / 2);
 
       // Draw checkmark or destination marker
-      const markerY = Math.floor(height / 4);
+      const markerY = Math.floor(height / 8);
       this.drawCheckmark(bitmap, centerX, markerY, 80);
 
       // Draw "ARRIVED" text using SVG
-      const arrivedY = Math.floor(height / 3);
+      const arrivedY = height - 80;
       await renderTextOnBitmap(bitmap, "ARRIVED", centerX, arrivedY, {
         fontSize: 48,
         fontWeight: "bold",
@@ -1392,7 +1392,9 @@ export class SVGService implements ISVGService {
       }
 
       const lineHeight = 36; // spacing between lines
-      const startY = Math.floor(height * 0.5);
+      const startY =
+        Math.floor(height * 0.5) -
+        Math.floor(((lines.length - 1) * lineHeight) / 2);
       for (let i = 0; i < lines.length; i++) {
         await renderTextOnBitmap(
           bitmap,
