@@ -1372,34 +1372,39 @@ export class SVGService implements ISVGService {
       const centerX = Math.floor(width / 2);
 
       // Draw checkmark or destination marker
-      const markerY = Math.floor(height / 3);
+      const markerY = Math.floor(height / 4);
       this.drawCheckmark(bitmap, centerX, markerY, 80);
 
       // Draw "ARRIVED" text using SVG
-      const arrivedY = Math.floor(height / 2) + 20;
+      const arrivedY = Math.floor(height / 3);
       await renderTextOnBitmap(bitmap, "ARRIVED", centerX, arrivedY, {
         fontSize: 48,
         fontWeight: "bold",
         alignment: "center",
       });
 
-      // Draw destination name using SVG
-      const destY = Math.floor(height * 0.7);
-      // Truncate if too long
-      const truncatedDest =
-        destination.length > 40
-          ? destination.substring(0, 37) + "..."
-          : destination;
-      await renderTextOnBitmap(
-        bitmap,
-        truncatedDest.toUpperCase(),
-        centerX,
-        destY,
-        {
-          fontSize: 28,
-          alignment: "center",
-        },
-      );
+      // Draw destination name using SVG - split into lines of 2 words each
+      const words = destination.toUpperCase().split(/\s+/);
+      const lines: string[] = [];
+      for (let i = 0; i < words.length; i += 2) {
+        const line = words.slice(i, i + 2).join(" ");
+        lines.push(line);
+      }
+
+      const lineHeight = 36; // spacing between lines
+      const startY = Math.floor(height * 0.5);
+      for (let i = 0; i < lines.length; i++) {
+        await renderTextOnBitmap(
+          bitmap,
+          lines[i],
+          centerX,
+          startY + i * lineHeight,
+          {
+            fontSize: 28,
+            alignment: "center",
+          },
+        );
+      }
 
       logger.info("Arrival screen rendered successfully");
       return success(bitmap);
