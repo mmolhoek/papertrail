@@ -239,13 +239,13 @@ export class MockEpaperService implements IEpaperService {
       // Simulate clear operation delay
       await this.delay(2000);
 
-      // Create a white bitmap (0 = white in 1-bit e-paper)
+      // Create a white bitmap (1 = white, 0 = black in packed bitmap format)
       const whiteBitmap: Bitmap1Bit = {
         width: this.config.width,
         height: this.config.height,
         data: new Uint8Array(
           Math.ceil((this.config.width * this.config.height) / 8),
-        ).fill(0x00), // All zeros = all white
+        ).fill(0xff), // All ones = all white
       };
 
       // Store and convert to PNG so mock display shows white screen
