@@ -746,8 +746,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               timeRemaining: status.timeRemaining,
             };
 
+            // Get render options including map orientation (north-up vs track-up)
+            const renderOptions = {
+              ...this.configService.getRenderOptions(),
+              rotateWithBearing: this.configService.getRotateWithBearing(),
+            };
+
             logger.info(
-              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points)...`,
+              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
             );
             renderResult = await this.svgService.renderDriveMapScreen(
               status.route,
@@ -755,6 +761,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               status.nextTurn,
               viewport,
               info,
+              renderOptions,
             );
             logger.info(
               `Map screen render completed in ${Date.now() - renderStartTime}ms`,

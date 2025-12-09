@@ -1191,12 +1191,25 @@ export class SVGService implements ISVGService {
 
       // Draw route line using geometry
       if (route.geometry && route.geometry.length > 1) {
-        const projectedRoute = route.geometry.map(([lat, lon]) =>
+        let projectedRoute = route.geometry.map(([lat, lon]) =>
           this.projectToPixels(lat, lon, mapViewport),
         );
         logger.info(
           `renderDriveMapScreen: projected ${projectedRoute.length} points (${Date.now() - methodStart}ms)`,
         );
+
+        // Apply rotation if rotateWithBearing is enabled (track-up mode)
+        const bearing = currentPosition.bearing;
+        if (renderOpts.rotateWithBearing && bearing !== undefined) {
+          logger.info(
+            `renderDriveMapScreen: rotating map by ${bearing.toFixed(1)}° for track-up view`,
+          );
+          const centerX = mapWidth / 2;
+          const centerY = height / 2;
+          projectedRoute = projectedRoute.map((p) =>
+            this.rotatePoint(p, centerX, centerY, -bearing),
+          );
+        }
 
         if (renderOpts.showLine) {
           for (let i = 0; i < projectedRoute.length - 1; i++) {
@@ -1230,11 +1243,21 @@ export class SVGService implements ISVGService {
       }
 
       // Draw next waypoint marker
-      const waypointPixel = this.projectToPixels(
+      let waypointPixel = this.projectToPixels(
         nextWaypoint.latitude,
         nextWaypoint.longitude,
         mapViewport,
       );
+      // Apply same rotation as route if in track-up mode
+      const bearing = currentPosition.bearing;
+      if (renderOpts.rotateWithBearing && bearing !== undefined) {
+        waypointPixel = this.rotatePoint(
+          waypointPixel,
+          mapWidth / 2,
+          height / 2,
+          -bearing,
+        );
+      }
       if (waypointPixel.x < mapWidth) {
         this.drawCircle(bitmap, waypointPixel, 6);
         this.drawCircle(bitmap, waypointPixel, 8);
