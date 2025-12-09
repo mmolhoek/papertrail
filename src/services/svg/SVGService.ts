@@ -428,8 +428,13 @@ export class SVGService implements ISVGService {
     p2: { x: number; y: number },
     p3: { x: number; y: number },
   ): void {
+    // Round coordinates to integers for proper scan-line fill
+    const rp1 = { x: Math.round(p1.x), y: Math.round(p1.y) };
+    const rp2 = { x: Math.round(p2.x), y: Math.round(p2.y) };
+    const rp3 = { x: Math.round(p3.x), y: Math.round(p3.y) };
+
     // Sort points by y coordinate
-    const points = [p1, p2, p3].sort((a, b) => a.y - b.y);
+    const points = [rp1, rp2, rp3].sort((a, b) => a.y - b.y);
     const [top, mid, bottom] = points;
 
     // Scan line fill
@@ -953,14 +958,21 @@ export class SVGService implements ISVGService {
     p2: Point2D,
     width: number = 1,
   ): void {
-    const dx = Math.abs(p2.x - p1.x);
-    const dy = Math.abs(p2.y - p1.y);
-    const sx = p1.x < p2.x ? 1 : -1;
-    const sy = p1.y < p2.y ? 1 : -1;
+    // Round coordinates to integers - Bresenham requires integer math
+    // Without this, floating point coordinates can cause infinite loops
+    const x1 = Math.round(p1.x);
+    const y1 = Math.round(p1.y);
+    const x2 = Math.round(p2.x);
+    const y2 = Math.round(p2.y);
+
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const sx = x1 < x2 ? 1 : -1;
+    const sy = y1 < y2 ? 1 : -1;
     let err = dx - dy;
 
-    let x = p1.x;
-    let y = p1.y;
+    let x = x1;
+    let y = y1;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -971,7 +983,7 @@ export class SVGService implements ISVGService {
         this.drawFilledCircle(bitmap, { x, y }, Math.floor(width / 2));
       }
 
-      if (x === p2.x && y === p2.y) break;
+      if (x === x2 && y === y2) break;
 
       const e2 = 2 * err;
       if (e2 > -dy) {
@@ -986,26 +998,31 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Draw a circle outline
+   * Draw a circle outline using Midpoint circle algorithm
    */
   private drawCircle(
     bitmap: Bitmap1Bit,
     center: Point2D,
     radius: number,
   ): void {
+    // Round inputs to integers for proper pixel-based rendering
+    const cx = Math.round(center.x);
+    const cy = Math.round(center.y);
+    const r = Math.round(radius);
+
     let x = 0;
-    let y = radius;
-    let d = 3 - 2 * radius;
+    let y = r;
+    let d = 3 - 2 * r;
 
     while (y >= x) {
-      this.setPixel(bitmap, center.x + x, center.y + y);
-      this.setPixel(bitmap, center.x - x, center.y + y);
-      this.setPixel(bitmap, center.x + x, center.y - y);
-      this.setPixel(bitmap, center.x - x, center.y - y);
-      this.setPixel(bitmap, center.x + y, center.y + x);
-      this.setPixel(bitmap, center.x - y, center.y + x);
-      this.setPixel(bitmap, center.x + y, center.y - x);
-      this.setPixel(bitmap, center.x - y, center.y - x);
+      this.setPixel(bitmap, cx + x, cy + y);
+      this.setPixel(bitmap, cx - x, cy + y);
+      this.setPixel(bitmap, cx + x, cy - y);
+      this.setPixel(bitmap, cx - x, cy - y);
+      this.setPixel(bitmap, cx + y, cy + x);
+      this.setPixel(bitmap, cx - y, cy + x);
+      this.setPixel(bitmap, cx + y, cy - x);
+      this.setPixel(bitmap, cx - y, cy - x);
 
       x++;
 
@@ -1026,10 +1043,15 @@ export class SVGService implements ISVGService {
     center: Point2D,
     radius: number,
   ): void {
-    for (let y = -radius; y <= radius; y++) {
-      for (let x = -radius; x <= radius; x++) {
-        if (x * x + y * y <= radius * radius) {
-          this.setPixel(bitmap, center.x + x, center.y + y);
+    // Round inputs to integers for proper pixel-based rendering
+    const cx = Math.round(center.x);
+    const cy = Math.round(center.y);
+    const r = Math.round(radius);
+
+    for (let y = -r; y <= r; y++) {
+      for (let x = -r; x <= r; x++) {
+        if (x * x + y * y <= r * r) {
+          this.setPixel(bitmap, cx + x, cy + y);
         }
       }
     }
