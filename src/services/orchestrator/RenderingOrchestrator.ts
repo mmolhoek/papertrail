@@ -663,6 +663,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return success(undefined);
     }
 
+    // Also check if e-paper display is busy (prevents lgpio native module deadlock)
+    // The lgpio module doesn't handle concurrent GPIO/SPI access well, which can
+    // cause the entire Node.js process to hang if we start rendering while the
+    // display is still processing the previous update
+    if (this.epaperService.isBusy()) {
+      this.pendingDriveUpdate = true;
+      logger.debug(
+        "Drive display update queued, e-paper display is busy with previous update",
+      );
+      return success(undefined);
+    }
+
     this.isDriveUpdateInProgress = true;
     logger.info(
       `Updating drive display: mode=${status.displayMode}, state=${status.state}`,
@@ -840,6 +852,15 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       }
       logger.info(
         `Display update queued (mode: ${this.pendingUpdateMode}), current update in progress`,
+      );
+      return success(undefined);
+    }
+
+    // Also check if e-paper display is busy (prevents lgpio native module deadlock)
+    if (this.epaperService.isBusy()) {
+      this.pendingUpdateMode = mode ?? DisplayUpdateMode.AUTO;
+      logger.info(
+        `Display update queued (mode: ${this.pendingUpdateMode}), e-paper display is busy`,
       );
       return success(undefined);
     }
