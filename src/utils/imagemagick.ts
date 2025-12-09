@@ -167,7 +167,11 @@ export async function svgToGrayscale(
     // Write SVG to temp file
     fs.writeFileSync(inputPath, svgContent);
 
+    // Convert SVG to grayscale bitmap
+    // -background white ensures transparent areas are filled with white
     await convert([
+      "-background",
+      "white",
       inputPath,
       "-resize",
       `${width}x${height}!`,
