@@ -10,18 +10,9 @@ import {
 } from "@core/types";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import * as imagemagick from "@utils/imagemagick";
 
 const logger = getLogger("MockEpaperService");
-
-// Lazy load wasm-imagemagick only when needed
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let wasmImagemagick: any = null;
-async function getWasmImagemagick(): Promise<any> {
-  if (!wasmImagemagick) {
-    wasmImagemagick = await import("wasm-imagemagick");
-  }
-  return wasmImagemagick;
-}
 
 /**
  * Mock E-Paper Service for development and testing
@@ -454,50 +445,16 @@ export class MockEpaperService implements IEpaperService {
         `Mock E-Paper: Converting ${bitmap.width}x${bitmap.height} bitmap to PNG using ImageMagick...`,
       );
 
-      // Create a grayscale buffer from the 1-bit bitmap
-      // Each byte in the bitmap contains 8 pixels (MSB first)
-      const grayBuffer = Buffer.alloc(bitmap.width * bitmap.height);
-
-      for (let y = 0; y < bitmap.height; y++) {
-        for (let x = 0; x < bitmap.width; x++) {
-          const pixelIndex = y * bitmap.width + x;
-          const byteIndex = Math.floor(pixelIndex / 8);
-          const bitOffset = 7 - (pixelIndex % 8); // MSB first
-
-          const bit = (bitmap.data[byteIndex] >> bitOffset) & 1;
-          // 1 = white (255), 0 = black (0) for e-paper
-          grayBuffer[pixelIndex] = bit ? 255 : 0;
-        }
-      }
-
-      // Convert to PNG using ImageMagick (WebAssembly)
-      const { call, buildInputFile } = await getWasmImagemagick();
-
-      // Create input file from raw grayscale data
-      const inputFile = await buildInputFile(grayBuffer, "input.gray");
-
-      // Convert grayscale to PNG
-      const result = await call(
-        [inputFile],
-        [
-          "-size",
-          `${bitmap.width}x${bitmap.height}`,
-          "-depth",
-          "8",
-          "gray:input.gray",
-          "output.png",
-        ],
+      // Convert packed bitmap to PNG using native ImageMagick
+      this.lastBitmapPng = await imagemagick.packedBitmapToPng(
+        bitmap.data,
+        bitmap.width,
+        bitmap.height,
       );
 
-      if (result.outputFiles && result.outputFiles.length > 0) {
-        this.lastBitmapPng = Buffer.from(result.outputFiles[0].buffer);
-        logger.info(
-          `Mock E-Paper: PNG created (${this.lastBitmapPng.length} bytes)`,
-        );
-      } else {
-        logger.error("Mock E-Paper: ImageMagick produced no output");
-        this.lastBitmapPng = null;
-      }
+      logger.info(
+        `Mock E-Paper: PNG created (${this.lastBitmapPng.length} bytes)`,
+      );
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       logger.error(

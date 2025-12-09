@@ -114,7 +114,7 @@ export class EPD {
   }
 
   async loadImageInBuffer(path: string): Promise<Buffer> {
-    epdLogger.info("Loading image using ImageMagick (wasm-imagemagick)");
+    epdLogger.info("Loading image using ImageMagick");
     return magickProcessor.loadImageToBuffer(path, this.WIDTH, this.HEIGHT);
   }
 
@@ -257,7 +257,7 @@ export class EPD {
   }
 
   async loadImage(imagePath: string): Promise<Buffer> {
-    epdLogger.info("Loading image using ImageMagick (wasm-imagemagick)");
+    epdLogger.info("Loading image using ImageMagick");
     return magickProcessor.loadImageToBuffer(
       imagePath,
       this.WIDTH,

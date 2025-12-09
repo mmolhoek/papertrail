@@ -12,8 +12,8 @@ export const moduleNameMapper = {
   "^@di/(.*)$": "<rootDir>/src/di/$1",
   "^@web/(.*)$": "<rootDir>/src/web/$1",
   "^@utils/(.*)$": "<rootDir>/src/utils/$1",
-  // Mock wasm-imagemagick since it uses Web Workers not available in Node.js
-  "^wasm-imagemagick$": "<rootDir>/src/__mocks__/wasm-imagemagick.ts",
+  // Mock imagemagick wrapper since tests run without ImageMagick CLI installed
+  "^@utils/imagemagick$": "<rootDir>/src/__mocks__/imagemagick.ts",
 };
 export const collectCoverageFrom = [
   "src/**/*.ts",

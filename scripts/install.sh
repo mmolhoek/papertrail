@@ -82,7 +82,7 @@ step() {
 # =============================================================================
 if [ "$IS_PI" = true ]; then
   step "Installing system packages..."
-  PACKAGES="nodejs npm screen build-essential python3 gpiod"
+  PACKAGES="nodejs npm screen build-essential python3 gpiod imagemagick"
   MISSING_PACKAGES=""
 
   for pkg in $PACKAGES; do

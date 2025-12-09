@@ -1,18 +1,8 @@
 import { Bitmap1Bit } from "@core/types";
 import { getLogger } from "@utils/logger";
+import * as imagemagick from "@utils/imagemagick";
 
 const logger = getLogger("SvgTextRenderer");
-
-// Lazy load wasm-imagemagick
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let wasmImagemagick: any = null;
-
-async function getWasmImagemagick(): Promise<any> {
-  if (!wasmImagemagick) {
-    wasmImagemagick = await import("wasm-imagemagick");
-  }
-  return wasmImagemagick;
-}
 
 /**
  * Text rendering options for SVG-based text
@@ -150,54 +140,12 @@ async function svgToBitmap(
   height: number,
 ): Promise<Uint8Array> {
   try {
-    const { call, buildInputFile } = await getWasmImagemagick();
-
-    // Create input file from SVG
-    const inputFile = await buildInputFile(Buffer.from(svgString), "input.svg");
-
-    // Convert SVG to grayscale, threshold, and output as raw gray
-    const result = await call(
-      [inputFile],
-      [
-        "input.svg",
-        "-resize",
-        `${width}x${height}!`,
-        "-colorspace",
-        "Gray",
-        "-threshold",
-        "50%",
-        "-depth",
-        "8",
-        "gray:output.raw",
-      ],
+    const packed = await imagemagick.svgToPackedBitmap(
+      svgString,
+      width,
+      height,
     );
-
-    if (!result.outputFiles || result.outputFiles.length === 0) {
-      throw new Error("ImageMagick produced no output");
-    }
-
-    const grayBuffer = new Uint8Array(result.outputFiles[0].buffer);
-
-    // Pack into 1-bit format (8 pixels per byte, MSB first)
-    const bytesPerRow = Math.ceil(width / 8);
-    const totalBytes = bytesPerRow * height;
-    const packed = new Uint8Array(totalBytes);
-    packed.fill(0xff); // Start with all white
-
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const pixelIndex = y * width + x;
-        const byteIndex = y * bytesPerRow + Math.floor(x / 8);
-        const bitIndex = 7 - (x % 8);
-
-        // If pixel is black (value 0 in greyscale)
-        if (pixelIndex < grayBuffer.length && grayBuffer[pixelIndex] === 0) {
-          packed[byteIndex] &= ~(1 << bitIndex);
-        }
-      }
-    }
-
-    return packed;
+    return new Uint8Array(packed);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     logger.error(`SVG to bitmap conversion failed: ${errorMsg}`);

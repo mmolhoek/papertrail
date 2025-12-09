@@ -2,14 +2,13 @@
  * Unified Text Renderer
  *
  * This module provides a unified interface for text rendering using
- * ImageMagick (wasm-imagemagick). It supports two implementations:
+ * native ImageMagick CLI. It supports two implementations:
  *
  * - SVG-based renderer (default): Uses svgTextRenderer which converts SVG to bitmap
  * - Direct ImageMagick renderer: Uses magickTextRenderer with direct ImageMagick commands
  *
  * Set USE_IMAGEMAGICK=true environment variable to use the direct ImageMagick
- * renderer instead of the SVG-based renderer. Both run in WebAssembly and
- * don't block Node's event loop.
+ * renderer instead of the SVG-based renderer.
  */
 
 import { Bitmap1Bit } from "@core/types";
