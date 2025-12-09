@@ -1840,13 +1840,15 @@ export class SVGService implements ISVGService {
     const labelScale = 2; // ~14px
     const valueScale = 3; // ~21px
 
-    logger.debug("renderDriveInfoPanel: using bitmap font (no Sharp)");
+    logger.info("renderDriveInfoPanel: step 1 - NEXT TURN label");
 
     // Next turn section
     renderBitmapText(bitmap, "NEXT TURN", x + padding, currentY, {
       scale: labelScale,
     });
     currentY += 20;
+
+    logger.info("renderDriveInfoPanel: step 2 - maneuver arrow");
 
     // Small turn arrow
     this.drawManeuverArrow(
@@ -1858,6 +1860,8 @@ export class SVGService implements ISVGService {
     );
     currentY += 70;
 
+    logger.info("renderDriveInfoPanel: step 3 - distance to turn");
+
     // Distance to turn
     const distText = this.formatDistanceForDisplay(info.distanceToTurn);
     renderBitmapText(bitmap, distText, x + padding, currentY, {
@@ -1866,15 +1870,21 @@ export class SVGService implements ISVGService {
     });
     currentY += 30;
 
+    logger.info("renderDriveInfoPanel: step 4 - divider");
+
     // Divider
     this.drawHorizontalLine(bitmap, x + padding, currentY, width - padding * 2);
     currentY += 20;
+
+    logger.info("renderDriveInfoPanel: step 5 - speed label");
 
     // Speed section - label
     renderBitmapText(bitmap, "SPEED", x + padding, currentY, {
       scale: labelScale,
     });
     currentY += calculateBitmapTextHeight(labelScale) + 4;
+
+    logger.info("renderDriveInfoPanel: step 6 - speed value");
 
     // Speed value
     renderBitmapText(
@@ -1886,11 +1896,15 @@ export class SVGService implements ISVGService {
     );
     currentY += calculateBitmapTextHeight(valueScale) + 20;
 
+    logger.info("renderDriveInfoPanel: step 7 - progress label");
+
     // Progress label
     renderBitmapText(bitmap, "PROGRESS", x + padding, currentY, {
       scale: labelScale,
     });
     currentY += 20;
+
+    logger.info("renderDriveInfoPanel: step 8 - progress bar");
 
     // Progress bar
     const barWidth = width - padding * 2;
@@ -1911,6 +1925,8 @@ export class SVGService implements ISVGService {
       1,
     );
 
+    logger.info("renderDriveInfoPanel: step 9 - progress bar fill");
+
     const fillWidth = Math.floor((barWidth - 4) * (info.progress / 100));
     for (let row = currentY + 2; row < currentY + barHeight - 2; row++) {
       for (
@@ -1922,6 +1938,8 @@ export class SVGService implements ISVGService {
       }
     }
     currentY += barHeight + 15;
+
+    logger.info("renderDriveInfoPanel: step 10 - progress percentage");
 
     // Progress percentage
     renderBitmapText(
@@ -1936,11 +1954,15 @@ export class SVGService implements ISVGService {
     );
     currentY += 30;
 
+    logger.info("renderDriveInfoPanel: step 11 - remaining label");
+
     // Remaining distance label
     renderBitmapText(bitmap, "REMAINING", x + padding, currentY, {
       scale: labelScale,
     });
     currentY += 20;
+
+    logger.info("renderDriveInfoPanel: step 12 - remaining value");
 
     // Remaining distance value
     const remainingText = this.formatDistanceForDisplay(info.distanceRemaining);
@@ -1948,6 +1970,8 @@ export class SVGService implements ISVGService {
       scale: valueScale,
       bold: true,
     });
+
+    logger.info("renderDriveInfoPanel: completed all steps");
   }
 
   /**
