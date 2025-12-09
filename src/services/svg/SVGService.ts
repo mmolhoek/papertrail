@@ -1373,7 +1373,7 @@ export class SVGService implements ISVGService {
         centerX,
         destY,
         {
-          fontSize: 14,
+          fontSize: 28,
           alignment: "center",
         },
       );
