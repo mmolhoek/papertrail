@@ -49,18 +49,9 @@
           <span class="nav-icon"></span>
         </button>
         <div id="menu-content" class="nav-menu hidden">
-          <button
-            id="menu-position"
-            class="nav-item"
-            data-panel="position-panel"
-          >
-            <span class="nav-item-icon">◎</span>
-            <span class="nav-item-text">Position</span>
-            <span id="position-indicator" class="nav-check hidden">✓</span>
-          </button>
           <button id="menu-status" class="nav-item" data-panel="status-panel">
             <span class="nav-item-icon">◎</span>
-            <span class="nav-item-text">System Status</span>
+            <span class="nav-item-text">Status</span>
             <span id="status-indicator" class="nav-check hidden">✓</span>
           </button>
           <button
@@ -124,10 +115,10 @@
       </nav>
 
       <main class="main-content">
-        <!-- Position Display - Hero Section -->
-        <section class="position-card panel-card hidden" id="position-panel">
+        <!-- Status Panel - Combined Position and System Status -->
+        <section class="status-card panel-card hidden" id="status-panel">
           <div class="position-header">
-            <span class="section-marker">POSITION</span>
+            <span class="section-marker">STATUS</span>
             <div class="position-status">
               <span class="pulse-dot" id="gps-pulse"></span>
               <span id="gps-status-mini">Acquiring</span>
@@ -150,13 +141,6 @@
               <span class="altitude-value" id="altitude">--</span>
               <span class="altitude-unit">m</span>
             </div>
-          </div>
-        </section>
-
-        <!-- System Status Grid -->
-        <section class="status-card panel-card hidden" id="status-panel">
-          <div class="section-header">
-            <span class="section-marker">SYSTEM STATUS</span>
           </div>
           <div class="status-grid">
             <div class="status-tile">
