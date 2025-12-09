@@ -1283,6 +1283,14 @@ export class SVGService implements ISVGService {
         this.drawCircle(bitmap, waypointPixel, 8);
       }
 
+      // Draw compass in top-left corner of map area
+      const compassRadius = 40; // Slightly smaller for drive mode
+      const compassPadding = 60;
+      const compassX = compassPadding;
+      const compassY = compassPadding;
+      const heading = currentPosition.bearing ?? 0;
+      await this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
+
       // Draw vertical divider line
       this.drawVerticalLine(bitmap, mapWidth, 0, height, 2);
       logger.info(
