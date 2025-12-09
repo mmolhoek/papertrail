@@ -792,6 +792,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       if (renderResult?.success) {
         await this.epaperService.displayBitmap(renderResult.data);
         logger.info("Drive display updated successfully");
+        // Notify display update callbacks so mock display refreshes
+        this.notifyDisplayUpdate(true);
       } else if (renderResult) {
         logger.error("Failed to render drive display:", renderResult.error);
       }

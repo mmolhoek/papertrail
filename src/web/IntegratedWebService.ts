@@ -55,6 +55,9 @@ export class IntegratedWebService implements IWebInterfaceService {
   // Client count tracking for WiFi mode awareness
   private connectedClientCount = 0;
 
+  // Track if we've already emitted the arrived event to avoid duplicates
+  private hasEmittedArrived = false;
+
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
     private readonly config: WebConfig = {
@@ -718,12 +721,17 @@ export class IntegratedWebService implements IWebInterfaceService {
           });
 
           // Also emit specific events for key state changes
-          if (status.state === "arrived") {
+          if (status.state === "arrived" && !this.hasEmittedArrived) {
+            this.hasEmittedArrived = true;
             this.broadcast("drive:arrived", {
               destination:
                 this.driveNavigationService?.getActiveRoute()?.destination,
             });
-          } else if (status.state === "off_road") {
+          } else if (status.state !== "arrived") {
+            // Reset the flag when not in arrived state
+            this.hasEmittedArrived = false;
+          }
+          if (status.state === "off_road") {
             this.broadcast("drive:off-road", {
               distance: status.distanceToRoute,
               bearing: status.bearingToRoute,
