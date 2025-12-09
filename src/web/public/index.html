@@ -116,150 +116,59 @@
 
       <main class="main-content">
         <!-- Status Panel - Combined Position and System Status -->
-        <section class="status-card panel-card hidden" id="status-panel">
-          <div class="position-header">
-            <span class="section-marker">STATUS</span>
-            <div class="position-status">
+        <section
+          class="unified-status-panel panel-card hidden"
+          id="status-panel"
+        >
+          <div class="unified-status-header">
+            <span class="unified-status-marker">STATUS</span>
+            <div class="unified-status-indicator">
               <span class="pulse-dot" id="gps-pulse"></span>
               <span id="gps-status-mini">Acquiring</span>
             </div>
           </div>
-          <div class="coordinates">
-            <div class="coord-group">
-              <div class="coord-row">
-                <span class="coord-label">LAT</span>
-                <span class="coord-value" id="latitude">--°</span>
-              </div>
-              <div class="coord-row">
-                <span class="coord-label">LON</span>
-                <span class="coord-value" id="longitude">--°</span>
-              </div>
+          <div class="unified-status-grid">
+            <div class="unified-status-row">
+              <span class="unified-status-label">LAT</span>
+              <span class="unified-status-value" id="latitude">--°</span>
             </div>
-            <div class="coord-divider"></div>
-            <div class="altitude-display">
-              <span class="altitude-label">ELEV</span>
-              <span class="altitude-value" id="altitude">--</span>
-              <span class="altitude-unit">m</span>
+            <div class="unified-status-row">
+              <span class="unified-status-label">LON</span>
+              <span class="unified-status-value" id="longitude">--°</span>
             </div>
-          </div>
-          <div class="status-grid">
-            <div class="status-tile">
-              <div class="status-icon gps-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <circle cx="12" cy="12" r="3" />
-                  <line x1="12" y1="2" x2="12" y2="6" />
-                  <line x1="12" y1="18" x2="12" y2="22" />
-                  <line x1="2" y1="12" x2="6" y2="12" />
-                  <line x1="18" y1="12" x2="22" y2="12" />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">GPS</span>
-                <span class="status-value" id="gps-status">Unknown</span>
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">ELEV</span>
+              <span class="unified-status-value" id="altitude">--</span>
             </div>
-            <div class="status-tile">
-              <div class="status-icon fix-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
-                  />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">Fix Quality</span>
-                <span class="status-value status-unknown" id="gps-fix-status"
-                  >Unknown</span
-                >
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">GPS</span>
+              <span class="unified-status-value" id="gps-status">Unknown</span>
             </div>
-            <div class="status-tile">
-              <div class="status-icon sat-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path
-                    d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10"
-                  />
-                  <circle cx="12" cy="12" r="4" />
-                  <path
-                    d="M16.24 7.76l2.12-2.12M18 12h4M16.24 16.24l2.12 2.12"
-                  />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">Satellites</span>
-                <span class="status-value" id="satellites">0</span>
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">FIX</span>
+              <span class="unified-status-value" id="gps-fix-status"
+                >Unknown</span
+              >
             </div>
-            <div class="status-tile">
-              <div class="status-icon hdop-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <circle cx="12" cy="12" r="6" />
-                  <circle cx="12" cy="12" r="2" />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">HDOP</span>
-                <span class="status-value" id="gps-hdop">--</span>
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">SATS</span>
+              <span class="unified-status-value" id="satellites">0</span>
             </div>
-            <div class="status-tile">
-              <div class="status-icon display-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                  <line x1="8" y1="21" x2="16" y2="21" />
-                  <line x1="12" y1="17" x2="12" y2="21" />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">E-Paper</span>
-                <span class="status-value" id="display-status">Unknown</span>
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">HDOP</span>
+              <span class="unified-status-value" id="gps-hdop">--</span>
             </div>
-            <div class="status-tile">
-              <div class="status-icon track-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M3 17l6-6 4 4 8-8" />
-                  <polyline points="14 7 21 7 21 14" />
-                </svg>
-              </div>
-              <div class="status-info">
-                <span class="status-label">Active Track</span>
-                <span class="status-value truncate" id="active-track"
-                  >None</span
-                >
-              </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">DISPLAY</span>
+              <span class="unified-status-value" id="display-status"
+                >Unknown</span
+              >
+            </div>
+            <div class="unified-status-row">
+              <span class="unified-status-label">TRACK</span>
+              <span class="unified-status-value truncate" id="active-track"
+                >None</span
+              >
             </div>
           </div>
         </section>

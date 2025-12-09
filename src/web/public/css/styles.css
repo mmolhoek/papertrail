@@ -476,7 +476,85 @@ body {
 }
 
 /* ============================================
-   STATUS CARD - System Status Grid
+   UNIFIED STATUS PANEL - Green on White
+   ============================================ */
+.unified-status-panel,
+.unified-status-panel.panel-card {
+  background: var(--color-cream);
+  border: 1px solid var(--color-parchment-dark);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+  box-shadow: var(--shadow-sm);
+  animation: fadeSlideIn 0.6s ease-out 0.1s both;
+}
+
+.unified-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-parchment-dark);
+}
+
+.unified-status-marker {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-forest);
+}
+
+.unified-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-forest);
+}
+
+.unified-status-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm) var(--space-md);
+}
+
+.unified-status-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  background: var(--color-parchment);
+  border-radius: var(--radius-sm);
+}
+
+.unified-status-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-forest-light);
+}
+
+.unified-status-value {
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-forest);
+}
+
+.unified-status-value.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ============================================
+   STATUS CARD - System Status Grid (legacy)
    ============================================ */
 .status-card,
 .status-card.panel-card {
@@ -1316,6 +1394,14 @@ body {
 
   .status-grid {
     grid-template-columns: 1fr;
+  }
+
+  .unified-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .unified-status-panel {
+    padding: var(--space-md);
   }
 
   .action-buttons {
