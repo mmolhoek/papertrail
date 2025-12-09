@@ -52,6 +52,56 @@ if [ "$IS_CHROOT" = true ]; then
 fi
 echo ""
 
+# =============================================================================
+# ALL PLATFORMS: Check for ImageMagick dependency
+# =============================================================================
+check_imagemagick() {
+  if command -v convert &>/dev/null; then
+    echo -e "${GREEN}  ✓ ImageMagick is installed${NC}"
+    return 0
+  else
+    return 1
+  fi
+}
+
+# On non-Pi platforms, ImageMagick must be pre-installed
+if [ "$IS_PI" = false ]; then
+  echo -e "${BLUE}Checking for ImageMagick...${NC}"
+  if ! check_imagemagick; then
+    echo -e "${RED}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  ERROR: ImageMagick is required but not installed         ║${NC}"
+    echo -e "${RED}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+
+    case "$(uname -s)" in
+    Darwin)
+      echo -e "${YELLOW}On macOS, install ImageMagick with Homebrew:${NC}"
+      echo -e "  ${GREEN}brew install imagemagick${NC}"
+      ;;
+    Linux)
+      echo -e "${YELLOW}On Linux, install ImageMagick with your package manager:${NC}"
+      echo -e "  ${GREEN}# Debian/Ubuntu:${NC}"
+      echo -e "  ${GREEN}sudo apt install imagemagick${NC}"
+      echo ""
+      echo -e "  ${GREEN}# Fedora:${NC}"
+      echo -e "  ${GREEN}sudo dnf install ImageMagick${NC}"
+      echo ""
+      echo -e "  ${GREEN}# Arch:${NC}"
+      echo -e "  ${GREEN}sudo pacman -S imagemagick${NC}"
+      ;;
+    *)
+      echo -e "${YELLOW}Please install ImageMagick for your platform:${NC}"
+      echo -e "  ${GREEN}https://imagemagick.org/script/download.php${NC}"
+      ;;
+    esac
+
+    echo ""
+    echo -e "${RED}After installing ImageMagick, run this script again.${NC}"
+    exit 1
+  fi
+  echo ""
+fi
+
 # Check if running as root on Pi (we need sudo for some operations)
 if [ "$IS_PI" = true ] && [ "$EUID" -eq 0 ]; then
   echo -e "${RED}Please run this script as a regular user (not root).${NC}"
@@ -138,7 +188,7 @@ if [ "$IS_PI" = true ]; then
   step "Configuring SPI buffer size..."
   BOOT_CONFIG="/boot/firmware/config.txt"
   if [ ! -f "$BOOT_CONFIG" ]; then
-    BOOT_CONFIG="/boot/config.txt"  # Fallback for older Pi OS
+    BOOT_CONFIG="/boot/config.txt" # Fallback for older Pi OS
   fi
 
   if [ -f "$BOOT_CONFIG" ]; then
@@ -239,7 +289,7 @@ if [ "$IS_CHROOT" = true ] || [ "$SKIP_NATIVE_DEPS" = "true" ]; then
 
   # Create a temporary package.json without serialport
   TEMP_PKG="/tmp/package.json.$$"
-  cat package.json | grep -v '"serialport"' | grep -v '"@serialport/parser-readline"' > "$TEMP_PKG"
+  cat package.json | grep -v '"serialport"' | grep -v '"@serialport/parser-readline"' >"$TEMP_PKG"
   mv package.json package.json.backup
   mv "$TEMP_PKG" package.json
 
@@ -282,7 +332,7 @@ if [ "$IS_PI" = true ]; then
   SERVICE_FILE="/etc/systemd/system/papertrail.service"
   TEMP_SERVICE="/tmp/papertrail.service"
 
-  cat > "$TEMP_SERVICE" << EOF
+  cat >"$TEMP_SERVICE" <<EOF
 [Unit]
 Description=Papertrail GPS Tracker
 After=network.target
