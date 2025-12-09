@@ -1539,6 +1539,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
     }
     logger.info("✓ Display cleared");
+    // Notify display update callbacks so mock display refreshes
+    this.notifyDisplayUpdate(true);
     return success(undefined);
   }
 
