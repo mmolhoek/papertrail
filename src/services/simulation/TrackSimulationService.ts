@@ -108,14 +108,16 @@ export class TrackSimulationService implements ITrackSimulationService {
     // Calculate distances between all points
     this.calculateSegmentDistances();
 
-    // Set initial position
+    // Set initial position with bearing towards second point
     const firstPoint = track.segments[0].points[0];
+    const secondPoint = track.segments[0].points[1];
     this.currentPosition = {
       latitude: firstPoint.latitude,
       longitude: firstPoint.longitude,
       altitude: firstPoint.altitude,
       timestamp: new Date(),
       speed: (speed * 1000) / 3600, // Convert km/h to m/s
+      bearing: this.calculateBearing(firstPoint, secondPoint),
     };
 
     this.state = SimulationState.RUNNING;
@@ -506,12 +508,16 @@ export class TrackSimulationService implements ITrackSimulationService {
 
       // If we've reached the end
       if (this.currentPointIndex >= totalPoints - 1) {
+        // Calculate final bearing from second-to-last to last point
+        const lastPoint = points[totalPoints - 1];
+        const prevPoint = points[totalPoints - 2];
         this.currentPosition = {
-          latitude: points[totalPoints - 1].latitude,
-          longitude: points[totalPoints - 1].longitude,
-          altitude: points[totalPoints - 1].altitude,
+          latitude: lastPoint.latitude,
+          longitude: lastPoint.longitude,
+          altitude: lastPoint.altitude,
           timestamp: new Date(),
           speed: 0,
+          bearing: this.calculateBearing(prevPoint, lastPoint),
         };
         this.notifyPositionUpdate(this.currentPosition);
 
