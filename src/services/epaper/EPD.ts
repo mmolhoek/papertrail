@@ -113,6 +113,36 @@ export class EPD {
     epdLogger.timeEnd("epaperReady");
   }
 
+  /**
+   * Check if the hardware busy GPIO indicates the display is currently busy
+   * This is a synchronous check of the GPIO pin state
+   */
+  isHardwareBusy(): boolean {
+    try {
+      return lgpio.gpioRead(this.chip, this.busyGPIO) === true;
+    } catch {
+      // If we can't read GPIO, assume not busy to avoid blocking
+      return false;
+    }
+  }
+
+  /**
+   * Wait until the hardware is ready (not busy)
+   * Returns after hardware signals ready or timeout
+   */
+  async waitForHardwareReady(timeoutMs: number = 5000): Promise<void> {
+    const startTime = Date.now();
+    while (this.isHardwareBusy()) {
+      if (Date.now() - startTime > timeoutMs) {
+        epdLogger.warn(
+          `Hardware busy timeout after ${timeoutMs}ms - proceeding anyway`,
+        );
+        break;
+      }
+      await this.delay(10);
+    }
+  }
+
   async loadImageInBuffer(path: string): Promise<Buffer> {
     epdLogger.info("Loading image using ImageMagick");
     return magickProcessor.loadImageToBuffer(path, this.WIDTH, this.HEIGHT);

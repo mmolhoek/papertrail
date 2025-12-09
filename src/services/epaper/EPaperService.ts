@@ -166,8 +166,22 @@ export class EpaperService implements IEpaperService {
     }
 
     if (this.busy) {
-      logger.error("Display is busy");
+      logger.error("Display is busy (software flag)");
       return failure(DisplayError.displayBusy());
+    }
+
+    // Check hardware busy state and wait if necessary
+    // This prevents lgpio race conditions that can freeze Node.js
+    if (this.epd.isHardwareBusy()) {
+      logger.info(
+        "Hardware display is busy, waiting for it to become ready...",
+      );
+      await this.epd.waitForHardwareReady(5000);
+      // Re-check after waiting in case another operation started
+      if (this.busy) {
+        logger.error("Display became busy while waiting for hardware");
+        return failure(DisplayError.displayBusy());
+      }
     }
 
     // Validate bitmap dimensions
@@ -474,10 +488,20 @@ export class EpaperService implements IEpaperService {
 
   /**
    * Check if the display is currently busy
+   * Checks both software flag AND hardware GPIO state
    */
   isBusy(): boolean {
-    if (this.busy) logger.info("E-paper display is busy");
-    return this.busy;
+    // Check software flag first
+    if (this.busy) {
+      logger.info("E-paper display is busy (software flag)");
+      return true;
+    }
+    // Also check hardware busy state to prevent lgpio race conditions
+    if (this.epd?.isHardwareBusy()) {
+      logger.info("E-paper display is busy (hardware GPIO)");
+      return true;
+    }
+    return false;
   }
 
   /**
