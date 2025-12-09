@@ -1086,6 +1086,9 @@ class PapertrailClient {
               option = document.createElement("option");
               option.value = result.data.path;
               option.textContent = displayName;
+              // Set data attributes for point count and distance
+              option.dataset.points = result.data.pointCount || 0;
+              option.dataset.distance = result.data.totalDistance || 0;
               select.appendChild(option);
             }
             select.value = result.data.path;

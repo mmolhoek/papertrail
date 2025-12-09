@@ -895,7 +895,20 @@ export class WebController {
         this.mapService.clearCache();
       }
 
-      logger.info(`GPX file uploaded successfully: ${safeFileName}`);
+      // Get track info for point count and distance
+      let pointCount = 0;
+      let totalDistance = 0;
+      if (this.mapService) {
+        const trackResult = await this.mapService.getTrack(destPath);
+        if (trackResult.success && trackResult.data.segments[0]) {
+          pointCount = trackResult.data.segments[0].points.length;
+          totalDistance = this.mapService.calculateDistance(trackResult.data);
+        }
+      }
+
+      logger.info(
+        `GPX file uploaded successfully: ${safeFileName} (${pointCount} points, ${totalDistance.toFixed(0)}m)`,
+      );
       res.json({
         success: true,
         message: "File uploaded successfully",
@@ -903,6 +916,8 @@ export class WebController {
           fileName: safeFileName,
           path: destPath,
           trackName: baseName,
+          pointCount,
+          totalDistance,
         },
       });
     } catch (error) {
