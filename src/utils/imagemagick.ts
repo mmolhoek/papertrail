@@ -388,12 +388,13 @@ export async function resizePngNoAntialias(
     fs.writeFileSync(inputPath, pngBuffer);
 
     // Resize using point filter (nearest-neighbor) to avoid anti-aliasing
+    // Use ! to force exact dimensions (ignore aspect ratio)
     await convert([
       inputPath,
       "-filter",
       "point",
       "-resize",
-      `${targetWidth}x${targetHeight}`,
+      `${targetWidth}x${targetHeight}!`,
       outputPath,
     ]);
 
