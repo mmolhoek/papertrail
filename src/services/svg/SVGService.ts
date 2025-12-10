@@ -1108,7 +1108,7 @@ export class SVGService implements ISVGService {
 
       // Draw distance text (large) using bitmap font
       const distanceText = this.formatDistanceForDisplay(distance);
-      const distanceY = Math.floor(height / 2) + 40;
+      const distanceY = Math.floor(height / 2) + 20;
       const distanceScale = 7; // Large text (~49px)
       const distanceWidth = calculateBitmapTextWidth(
         distanceText,
@@ -1127,7 +1127,7 @@ export class SVGService implements ISVGService {
 
       // Draw instruction text using bitmap font
       const instructionY = Math.floor(height * 0.7);
-      const instructionScale = 2; // ~14px
+      const instructionScale = 3; // ~28px (doubled from 2)
       const instructionText = instruction.toUpperCase();
       const instructionWidth = calculateBitmapTextWidth(
         instructionText,
@@ -1140,13 +1140,14 @@ export class SVGService implements ISVGService {
         instructionY,
         {
           scale: instructionScale,
+          bold: true,
         },
       );
 
       // Draw street name if provided
       if (streetName) {
-        const streetY = instructionY + 30;
-        const streetScale = 2; // ~14px
+        const streetY = Math.floor(height * 0.8);
+        const streetScale = 4; // ~28px (doubled from 2)
         const streetText = streetName.toUpperCase();
         const streetWidth = calculateBitmapTextWidth(streetText, streetScale);
         renderBitmapText(
@@ -1156,6 +1157,7 @@ export class SVGService implements ISVGService {
           streetY,
           {
             scale: streetScale,
+            bold: true,
           },
         );
       }
