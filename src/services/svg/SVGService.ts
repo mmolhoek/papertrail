@@ -1130,6 +1130,7 @@ export class SVGService implements ISVGService {
           distance,
           instruction,
           streetName,
+          progress,
         );
       }
 
@@ -1155,6 +1156,7 @@ export class SVGService implements ISVGService {
     distance: number,
     instruction: string,
     streetName: string | undefined,
+    progress?: number,
   ): void {
     const centerX = Math.floor(width / 2);
     const centerY = Math.floor(height / 3); // Upper third for arrow
@@ -1207,6 +1209,11 @@ export class SVGService implements ISVGService {
         scale: streetScale,
         bold: true,
       });
+    }
+
+    // Draw progress bar at the bottom if progress is provided
+    if (progress !== undefined) {
+      this.drawProgressBar(bitmap, width, height, progress);
     }
   }
 
@@ -1328,66 +1335,78 @@ export class SVGService implements ISVGService {
 
     // Draw progress bar at the bottom if progress is provided
     if (progress !== undefined) {
-      const progressBarY = Math.floor(height * 0.88);
-      const progressBarHeight = 8;
-      const progressBarMarginLeft = 40;
-      const progressBarMarginRight = 80; // Extra space for percentage text
-      const progressBarWidth =
-        width - progressBarMarginLeft - progressBarMarginRight;
-
-      // Draw progress bar outline
-      this.drawHorizontalLine(
-        bitmap,
-        progressBarMarginLeft,
-        progressBarY,
-        progressBarWidth,
-      );
-      this.drawHorizontalLine(
-        bitmap,
-        progressBarMarginLeft,
-        progressBarY + progressBarHeight,
-        progressBarWidth,
-      );
-      this.drawVerticalLine(
-        bitmap,
-        progressBarMarginLeft,
-        progressBarY,
-        progressBarHeight,
-      );
-      this.drawVerticalLine(
-        bitmap,
-        progressBarMarginLeft + progressBarWidth,
-        progressBarY,
-        progressBarHeight,
-      );
-
-      // Draw progress bar fill
-      const fillWidth = Math.floor((progressBarWidth - 2) * (progress / 100));
-      if (fillWidth > 0) {
-        for (
-          let y = progressBarY + 1;
-          y < progressBarY + progressBarHeight;
-          y++
-        ) {
-          this.drawHorizontalLine(
-            bitmap,
-            progressBarMarginLeft + 1,
-            y,
-            fillWidth,
-          );
-        }
-      }
-
-      // Draw percentage text to the right of the bar
-      const percentText = `${Math.round(progress)}%`;
-      const percentScale = 2;
-      const percentX = progressBarMarginLeft + progressBarWidth + 10;
-      const percentY = progressBarY - 2;
-      renderBitmapText(bitmap, percentText, percentX, percentY, {
-        scale: percentScale,
-        bold: true,
-      });
+      this.drawProgressBar(bitmap, width, height, progress);
     }
+  }
+
+  /**
+   * Draw a progress bar at the bottom of the screen
+   */
+  private drawProgressBar(
+    bitmap: Bitmap1Bit,
+    width: number,
+    height: number,
+    progress: number,
+  ): void {
+    const progressBarY = Math.floor(height * 0.88);
+    const progressBarHeight = 8;
+    const progressBarMarginLeft = 40;
+    const progressBarMarginRight = 80; // Extra space for percentage text
+    const progressBarWidth =
+      width - progressBarMarginLeft - progressBarMarginRight;
+
+    // Draw progress bar outline
+    this.drawHorizontalLine(
+      bitmap,
+      progressBarMarginLeft,
+      progressBarY,
+      progressBarWidth,
+    );
+    this.drawHorizontalLine(
+      bitmap,
+      progressBarMarginLeft,
+      progressBarY + progressBarHeight,
+      progressBarWidth,
+    );
+    this.drawVerticalLine(
+      bitmap,
+      progressBarMarginLeft,
+      progressBarY,
+      progressBarHeight,
+    );
+    this.drawVerticalLine(
+      bitmap,
+      progressBarMarginLeft + progressBarWidth,
+      progressBarY,
+      progressBarHeight,
+    );
+
+    // Draw progress bar fill
+    const fillWidth = Math.floor((progressBarWidth - 2) * (progress / 100));
+    if (fillWidth > 0) {
+      for (
+        let y = progressBarY + 1;
+        y < progressBarY + progressBarHeight;
+        y++
+      ) {
+        this.drawHorizontalLine(
+          bitmap,
+          progressBarMarginLeft + 1,
+          y,
+          fillWidth,
+        );
+      }
+    }
+
+    // Draw percentage text to the right of the bar
+    const percentText = `${Math.round(progress)}%`;
+    const percentScale = 2;
+    const percentX = progressBarMarginLeft + progressBarWidth + 10;
+    const percentY = progressBarY - 2;
+    renderBitmapText(bitmap, percentText, percentX, percentY, {
+      scale: percentScale,
+      bold: true,
+    });
   }
 
   /**
