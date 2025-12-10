@@ -1228,9 +1228,10 @@ export class SVGService implements ISVGService {
       streetName?: string;
     },
   ): void {
-    // Layout: [Current Turn (40%)] [THEN (20%)] [Next Turn (40%)]
-    const leftCenterX = Math.floor(width * 0.25);
-    const rightCenterX = Math.floor(width * 0.75);
+    // Layout: 50/50 split - left half for current turn, right half for next turn
+    // "THEN" text displayed in the center between the two turns
+    const leftCenterX = Math.floor(width * 0.25); // Center of left half
+    const rightCenterX = Math.floor(width * 0.75); // Center of right half
     const centerX = Math.floor(width / 2);
 
     // Arrow position - upper portion of screen
