@@ -729,12 +729,44 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         case DriveDisplayMode.TURN_SCREEN:
           if (status.nextTurn) {
             logger.info("Starting turn screen render...");
+
+            // Check if there's a turn after the next one
+            let nextNextTurn:
+              | {
+                  maneuverType: ManeuverType;
+                  distance: number;
+                  instruction: string;
+                  streetName?: string;
+                }
+              | undefined;
+
+            if (
+              status.route &&
+              status.currentWaypointIndex + 1 < status.route.waypoints.length
+            ) {
+              const nextWaypoint =
+                status.route.waypoints[status.currentWaypointIndex + 1];
+              // Only show next-next turn if it's not an arrival
+              if (nextWaypoint.maneuverType !== ManeuverType.ARRIVE) {
+                nextNextTurn = {
+                  maneuverType: nextWaypoint.maneuverType,
+                  distance: nextWaypoint.distance,
+                  instruction: nextWaypoint.instruction,
+                  streetName: nextWaypoint.streetName,
+                };
+                logger.info(
+                  `Including next-next turn: ${nextNextTurn.maneuverType}, ${nextNextTurn.distance}m`,
+                );
+              }
+            }
+
             renderResult = await this.svgService.renderTurnScreen(
               status.nextTurn.maneuverType,
               status.distanceToNextTurn,
               status.nextTurn.instruction,
               status.nextTurn.streetName,
               viewport,
+              nextNextTurn,
             );
             logger.info(
               `Turn screen render completed in ${Date.now() - renderStartTime}ms`,

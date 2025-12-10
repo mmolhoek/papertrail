@@ -405,6 +405,74 @@ describe("SVGService", () => {
 
       expect(result.success).toBe(true);
     });
+
+    it("should render dual turn screen with next turn", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderTurnScreen(
+        ManeuverType.LEFT,
+        300,
+        "Turn left",
+        "Main St",
+        viewport,
+        {
+          maneuverType: ManeuverType.RIGHT,
+          distance: 150,
+          instruction: "Turn right",
+          streetName: "Oak Ave",
+        },
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should render dual turn screen without street names", async () => {
+      const viewport = createTestViewport();
+
+      const result = await service.renderTurnScreen(
+        ManeuverType.SLIGHT_LEFT,
+        200,
+        "Keep left",
+        undefined,
+        viewport,
+        {
+          maneuverType: ManeuverType.SLIGHT_RIGHT,
+          distance: 100,
+          instruction: "Keep right",
+          streetName: undefined,
+        },
+      );
+
+      expect(result.success).toBe(true);
+    });
+
+    it("should render dual turn screen with various maneuver combinations", async () => {
+      const viewport = createTestViewport();
+      const combinations = [
+        { current: ManeuverType.LEFT, next: ManeuverType.RIGHT },
+        { current: ManeuverType.STRAIGHT, next: ManeuverType.UTURN },
+        { current: ManeuverType.SHARP_LEFT, next: ManeuverType.SHARP_RIGHT },
+        { current: ManeuverType.ROUNDABOUT, next: ManeuverType.STRAIGHT },
+      ];
+
+      for (const combo of combinations) {
+        const result = await service.renderTurnScreen(
+          combo.current,
+          500,
+          "First turn",
+          "First St",
+          viewport,
+          {
+            maneuverType: combo.next,
+            distance: 200,
+            instruction: "Second turn",
+            streetName: "Second St",
+          },
+        );
+
+        expect(result.success).toBe(true);
+      }
+    });
   });
 
   describe("renderOffRoadScreen", () => {

@@ -191,13 +191,18 @@ export interface ISVGService {
   ): Promise<Result<Bitmap1Bit>>;
 
   /**
+   * Turn information for rendering
+   */
+  /**
    * Render full-screen turn display for drive navigation
    * Shows large turn arrow, distance countdown, and instruction text
+   * If nextTurn is provided, displays both turns side-by-side with "THEN" between
    * @param maneuverType Type of turn/maneuver
    * @param distance Distance to turn in meters
    * @param instruction Turn instruction text
    * @param streetName Optional street name
    * @param viewport Viewport configuration for dimensions
+   * @param nextTurn Optional next turn info to show after the current turn
    * @returns Result containing 1-bit bitmap or error
    */
   renderTurnScreen(
@@ -206,6 +211,12 @@ export interface ISVGService {
     instruction: string,
     streetName: string | undefined,
     viewport: ViewportConfig,
+    nextTurn?: {
+      maneuverType: ManeuverType;
+      distance: number;
+      instruction: string;
+      streetName?: string;
+    },
   ): Promise<Result<Bitmap1Bit>>;
 
   /**
