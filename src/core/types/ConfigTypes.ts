@@ -166,6 +166,14 @@ export type UserState = {
     createdAt: string;
   }>;
 
+  /** Recent drive destinations */
+  recentDestinations: Array<{
+    name: string;
+    latitude: number;
+    longitude: number;
+    usedAt: string;
+  }>;
+
   /** WiFi fallback network configuration (persisted) */
   wifiFallbackNetwork?: FallbackNetworkConfig;
 

@@ -1468,14 +1468,6 @@ class PapertrailClient {
   // ============================================
 
   setupDriveControls() {
-    // Tab switching
-    const tabs = document.querySelectorAll(".drive-tab");
-    tabs.forEach((tab) => {
-      tab.addEventListener("click", () => {
-        this.switchDriveTab(tab.dataset.tab);
-      });
-    });
-
     // Address search input
     const addressInput = document.getElementById("drive-address-input");
     if (addressInput) {
@@ -1489,14 +1481,6 @@ class PapertrailClient {
         if (!addressInput.contains(e.target) && !results.contains(e.target)) {
           results.classList.add("hidden");
         }
-      });
-    }
-
-    // Coordinate apply button
-    const coordsApply = document.getElementById("drive-coords-apply");
-    if (coordsApply) {
-      coordsApply.addEventListener("click", () => {
-        this.applyCoordinates();
       });
     }
 
@@ -1539,56 +1523,103 @@ class PapertrailClient {
         this.simulateDriveRoute();
       });
     }
+
+    // Load recent destinations on panel show
+    this.loadRecentDestinations();
   }
 
-  switchDriveTab(tabName) {
-    // Update tab buttons
-    const tabs = document.querySelectorAll(".drive-tab");
-    tabs.forEach((tab) => {
-      tab.classList.toggle("active", tab.dataset.tab === tabName);
-    });
+  async loadRecentDestinations() {
+    try {
+      const response = await fetch(`${this.apiBase}/destinations/recent`);
+      const data = await response.json();
 
-    // Update tab content
-    const contents = document.querySelectorAll(".drive-tab-content");
-    contents.forEach((content) => {
-      const contentId = content.id.replace("drive-tab-", "");
-      content.classList.toggle("active", contentId === tabName);
-    });
-
-    // Initialize map if switching to map tab
-    if (tabName === "map") {
-      setTimeout(() => this.initDriveMap(), 100);
+      if (data.success && data.data.length > 0) {
+        this.renderRecentDestinations(data.data);
+      } else {
+        // Hide the recent destinations section if empty
+        const container = document.getElementById("recent-destinations");
+        if (container) {
+          container.classList.add("hidden");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load recent destinations:", error);
     }
   }
 
-  initDriveMap() {
-    if (this.driveMap) {
-      this.driveMap.invalidateSize();
-      return;
-    }
+  renderRecentDestinations(destinations) {
+    const container = document.getElementById("recent-destinations");
+    const list = document.getElementById("recent-destinations-list");
 
-    const mapContainer = document.getElementById("drive-map");
-    if (!mapContainer || typeof L === "undefined") {
-      return;
-    }
+    if (!container || !list) return;
 
-    // Remove placeholder text
-    mapContainer.innerHTML = "";
+    list.innerHTML = "";
 
-    // Default center (will be updated with GPS position)
-    const defaultLat = this.currentPosition?.lat || 52.52;
-    const defaultLon = this.currentPosition?.lon || 13.405;
+    destinations.forEach((dest) => {
+      const item = document.createElement("div");
+      item.className = "recent-dest-item";
 
-    this.driveMap = L.map("drive-map").setView([defaultLat, defaultLon], 13);
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "recent-dest-name";
+      // Truncate long names
+      const displayName =
+        dest.name.length > 40 ? dest.name.substring(0, 40) + "..." : dest.name;
+      nameSpan.textContent = displayName;
+      nameSpan.title = dest.name; // Full name on hover
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(this.driveMap);
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "recent-dest-remove";
+      removeBtn.textContent = "×";
+      removeBtn.title = "Remove from recent";
+      removeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.removeRecentDestination(dest.latitude, dest.longitude);
+      });
 
-    // Click to select destination
-    this.driveMap.on("click", (e) => {
-      this.setDriveDestination(e.latlng.lat, e.latlng.lng, "Map selection");
+      item.appendChild(nameSpan);
+      item.appendChild(removeBtn);
+
+      // Click to select this destination
+      item.addEventListener("click", () => {
+        this.setDriveDestination(dest.latitude, dest.longitude, dest.name);
+      });
+
+      list.appendChild(item);
     });
+
+    container.classList.remove("hidden");
+  }
+
+  async removeRecentDestination(latitude, longitude) {
+    try {
+      const response = await fetch(`${this.apiBase}/destinations/recent`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ latitude, longitude }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        // Reload the list
+        this.loadRecentDestinations();
+      }
+    } catch (error) {
+      console.error("Failed to remove recent destination:", error);
+    }
+  }
+
+  async saveRecentDestination(name, latitude, longitude) {
+    try {
+      await fetch(`${this.apiBase}/destinations/recent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, latitude, longitude }),
+      });
+      // Reload the list to show the updated order
+      this.loadRecentDestinations();
+    } catch (error) {
+      console.error("Failed to save recent destination:", error);
+    }
   }
 
   handleAddressSearch(query) {
@@ -1650,23 +1681,6 @@ class PapertrailClient {
     container.classList.remove("hidden");
   }
 
-  applyCoordinates() {
-    const lat = parseFloat(document.getElementById("drive-lat-input").value);
-    const lon = parseFloat(document.getElementById("drive-lon-input").value);
-
-    if (isNaN(lat) || isNaN(lon)) {
-      this.showMessage("Please enter valid coordinates", "error");
-      return;
-    }
-
-    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      this.showMessage("Coordinates out of range", "error");
-      return;
-    }
-
-    this.setDriveDestination(lat, lon, `${lat.toFixed(4)}, ${lon.toFixed(4)}`);
-  }
-
   setDriveDestination(lat, lon, name) {
     this.driveDestination = { lat, lon, name };
 
@@ -1684,15 +1698,8 @@ class PapertrailClient {
     document.getElementById("drive-nav-controls").classList.add("hidden");
     this.driveRoute = null;
 
-    // Update map marker if map is initialized
-    if (this.driveMap) {
-      if (this.driveMarker) {
-        this.driveMarker.setLatLng([lat, lon]);
-      } else {
-        this.driveMarker = L.marker([lat, lon]).addTo(this.driveMap);
-      }
-      this.driveMap.setView([lat, lon], 14);
-    }
+    // Save to recent destinations
+    this.saveRecentDestination(name, lat, lon);
 
     this.showMessage("Destination set", "success");
   }

@@ -375,6 +375,23 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.setActiveScreen(req, res),
     );
 
+    // Recent destinations endpoints
+    this.app.get(`${api}/destinations/recent`, (req, res) =>
+      this.controller.getRecentDestinations(req, res),
+    );
+
+    this.app.post(`${api}/destinations/recent`, (req, res) =>
+      this.controller.addRecentDestination(req, res),
+    );
+
+    this.app.delete(`${api}/destinations/recent`, (req, res) =>
+      this.controller.removeRecentDestination(req, res),
+    );
+
+    this.app.delete(`${api}/destinations/recent/all`, (req, res) =>
+      this.controller.clearRecentDestinations(req, res),
+    );
+
     // Auto-update endpoints
     this.app.post(`${api}/auto-update/start`, (req, res) =>
       this.controller.startAutoUpdate(req, res),

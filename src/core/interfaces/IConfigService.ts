@@ -180,6 +180,41 @@ export interface IConfigService {
    */
   clearRecentFiles(): void;
 
+  // Recent destinations management
+
+  /**
+   * Get list of recent drive destinations
+   * @returns Array of destination objects
+   */
+  getRecentDestinations(): Array<{
+    name: string;
+    latitude: number;
+    longitude: number;
+    usedAt: string;
+  }>;
+
+  /**
+   * Add a destination to recent destinations list
+   * @param destination Destination to add
+   */
+  addRecentDestination(destination: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  }): void;
+
+  /**
+   * Remove a destination from recent destinations list
+   * @param latitude Latitude of destination
+   * @param longitude Longitude of destination
+   */
+  removeRecentDestination(latitude: number, longitude: number): void;
+
+  /**
+   * Clear recent destinations list
+   */
+  clearRecentDestinations(): void;
+
   // Onboarding management
 
   /**

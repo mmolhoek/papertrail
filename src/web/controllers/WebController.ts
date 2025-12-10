@@ -709,6 +709,145 @@ export class WebController {
     }
   }
 
+  // Recent Destinations Endpoints
+
+  /**
+   * Get recent destinations
+   */
+  async getRecentDestinations(_req: Request, res: Response): Promise<void> {
+    logger.debug("Getting recent destinations");
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: this.configService.getRecentDestinations(),
+    });
+  }
+
+  /**
+   * Add a recent destination
+   */
+  async addRecentDestination(req: Request, res: Response): Promise<void> {
+    const { name, latitude, longitude } = req.body;
+
+    logger.info(
+      `Adding recent destination: ${name} (${latitude}, ${longitude})`,
+    );
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    if (
+      typeof name !== "string" ||
+      typeof latitude !== "number" ||
+      typeof longitude !== "number"
+    ) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message:
+            "name (string), latitude (number), and longitude (number) are required",
+        },
+      });
+      return;
+    }
+
+    this.configService.addRecentDestination({ name, latitude, longitude });
+    await this.configService.save();
+
+    logger.info("Recent destination added and saved");
+    res.json({
+      success: true,
+      message: "Destination added to recent list",
+    });
+  }
+
+  /**
+   * Remove a recent destination
+   */
+  async removeRecentDestination(req: Request, res: Response): Promise<void> {
+    const { latitude, longitude } = req.body;
+
+    logger.info(`Removing recent destination at (${latitude}, ${longitude})`);
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    if (typeof latitude !== "number" || typeof longitude !== "number") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "latitude (number) and longitude (number) are required",
+        },
+      });
+      return;
+    }
+
+    this.configService.removeRecentDestination(latitude, longitude);
+    await this.configService.save();
+
+    logger.info("Recent destination removed");
+    res.json({
+      success: true,
+      message: "Destination removed from recent list",
+    });
+  }
+
+  /**
+   * Clear all recent destinations
+   */
+  async clearRecentDestinations(_req: Request, res: Response): Promise<void> {
+    logger.info("Clearing all recent destinations");
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    this.configService.clearRecentDestinations();
+    await this.configService.save();
+
+    logger.info("Recent destinations cleared");
+    res.json({
+      success: true,
+      message: "Recent destinations cleared",
+    });
+  }
+
   // WiFi Configuration Endpoints
 
   /**

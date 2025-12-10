@@ -301,6 +301,121 @@ describe("ConfigService", () => {
     });
   });
 
+  describe("recent destinations", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return empty recent destinations initially", () => {
+      expect(configService.getRecentDestinations()).toEqual([]);
+    });
+
+    it("should add recent destination", () => {
+      configService.addRecentDestination({
+        name: "Test Location",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      const destinations = configService.getRecentDestinations();
+      expect(destinations.length).toBe(1);
+      expect(destinations[0].name).toBe("Test Location");
+      expect(destinations[0].latitude).toBe(52.52);
+      expect(destinations[0].longitude).toBe(13.405);
+    });
+
+    it("should add usedAt timestamp to destination", () => {
+      configService.addRecentDestination({
+        name: "Test Location",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      const destinations = configService.getRecentDestinations();
+      expect(destinations[0].usedAt).toBeDefined();
+      expect(new Date(destinations[0].usedAt).getTime()).not.toBeNaN();
+    });
+
+    it("should add recent destination to beginning", () => {
+      configService.addRecentDestination({
+        name: "Location 1",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      configService.addRecentDestination({
+        name: "Location 2",
+        latitude: 48.8566,
+        longitude: 2.3522,
+      });
+      expect(configService.getRecentDestinations()[0].name).toBe("Location 2");
+    });
+
+    it("should not duplicate recent destinations by coordinates", () => {
+      configService.addRecentDestination({
+        name: "Location 1",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      configService.addRecentDestination({
+        name: "Same Location Different Name",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      const destinations = configService.getRecentDestinations();
+      expect(destinations.length).toBe(1);
+      expect(destinations[0].name).toBe("Same Location Different Name");
+    });
+
+    it("should limit recent destinations to 10", () => {
+      for (let i = 0; i < 15; i++) {
+        configService.addRecentDestination({
+          name: `Location ${i}`,
+          latitude: 50 + i,
+          longitude: 10 + i,
+        });
+      }
+      expect(configService.getRecentDestinations().length).toBe(10);
+    });
+
+    it("should remove recent destination by coordinates", () => {
+      configService.addRecentDestination({
+        name: "Location 1",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      configService.addRecentDestination({
+        name: "Location 2",
+        latitude: 48.8566,
+        longitude: 2.3522,
+      });
+      configService.removeRecentDestination(52.52, 13.405);
+      const destinations = configService.getRecentDestinations();
+      expect(destinations.length).toBe(1);
+      expect(destinations[0].name).toBe("Location 2");
+    });
+
+    it("should clear recent destinations", () => {
+      configService.addRecentDestination({
+        name: "Test Location",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      configService.clearRecentDestinations();
+      expect(configService.getRecentDestinations()).toEqual([]);
+    });
+
+    it("should return a copy of recent destinations (immutability)", () => {
+      configService.addRecentDestination({
+        name: "Test Location",
+        latitude: 52.52,
+        longitude: 13.405,
+      });
+      const destinations1 = configService.getRecentDestinations();
+      const destinations2 = configService.getRecentDestinations();
+      expect(destinations1).not.toBe(destinations2);
+      expect(destinations1).toEqual(destinations2);
+    });
+  });
+
   describe("persistence", () => {
     beforeEach(async () => {
       mockFs.readFile.mockRejectedValue(new Error("ENOENT"));

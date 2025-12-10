@@ -288,67 +288,28 @@
             <span class="section-marker">DRIVE NAVIGATION</span>
           </div>
           <div class="panel-content">
-            <!-- Destination Input Tabs -->
-            <div class="drive-tabs">
-              <button class="drive-tab active" data-tab="address">
-                Address
-              </button>
-              <button class="drive-tab" data-tab="coords">Coordinates</button>
-              <button class="drive-tab" data-tab="map">Map</button>
-            </div>
-
-            <!-- Address Search Tab -->
-            <div id="drive-tab-address" class="drive-tab-content active">
-              <div class="form-field">
-                <label class="field-label">Search Address</label>
-                <input
-                  type="text"
-                  id="drive-address-input"
-                  class="field-input"
-                  placeholder="Enter destination address..."
-                />
-                <div id="drive-address-results" class="address-results hidden">
-                  <!-- Autocomplete results will be added here -->
-                </div>
+            <!-- Address Search -->
+            <div class="form-field">
+              <label class="field-label">Search Address</label>
+              <input
+                type="text"
+                id="drive-address-input"
+                class="field-input"
+                placeholder="Enter destination address..."
+              />
+              <div id="drive-address-results" class="address-results hidden">
+                <!-- Autocomplete results will be added here -->
               </div>
             </div>
 
-            <!-- Coordinates Tab -->
-            <div id="drive-tab-coords" class="drive-tab-content hidden">
-              <div class="coord-input-row">
-                <div class="form-field">
-                  <label class="field-label">Latitude</label>
-                  <input
-                    type="number"
-                    id="drive-lat-input"
-                    class="field-input"
-                    placeholder="e.g. 52.5200"
-                    step="0.0001"
-                  />
-                </div>
-                <div class="form-field">
-                  <label class="field-label">Longitude</label>
-                  <input
-                    type="number"
-                    id="drive-lon-input"
-                    class="field-input"
-                    placeholder="e.g. 13.4050"
-                    step="0.0001"
-                  />
-                </div>
-              </div>
-              <button
-                id="drive-coords-apply"
-                class="btn btn-secondary btn-full"
+            <!-- Recent Destinations -->
+            <div id="recent-destinations" class="recent-destinations hidden">
+              <label class="field-label">Recent Destinations</label>
+              <div
+                id="recent-destinations-list"
+                class="recent-destinations-list"
               >
-                Apply Coordinates
-              </button>
-            </div>
-
-            <!-- Map Tab -->
-            <div id="drive-tab-map" class="drive-tab-content hidden">
-              <div id="drive-map" class="drive-map">
-                <p class="map-placeholder">Tap to select destination on map</p>
+                <!-- Recent destination items will be added here -->
               </div>
             </div>
 

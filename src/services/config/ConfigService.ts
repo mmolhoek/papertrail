@@ -222,6 +222,66 @@ export class ConfigService implements IConfigService {
     this.userState.recentFiles = [];
   }
 
+  // Recent destinations management
+
+  getRecentDestinations(): Array<{
+    name: string;
+    latitude: number;
+    longitude: number;
+    usedAt: string;
+  }> {
+    // Initialize if missing (for backwards compatibility)
+    if (!this.userState.recentDestinations) {
+      this.userState.recentDestinations = [];
+    }
+    return [...this.userState.recentDestinations];
+  }
+
+  addRecentDestination(destination: {
+    name: string;
+    latitude: number;
+    longitude: number;
+  }): void {
+    // Initialize if missing
+    if (!this.userState.recentDestinations) {
+      this.userState.recentDestinations = [];
+    }
+
+    // Remove if already exists (by coordinates)
+    this.userState.recentDestinations =
+      this.userState.recentDestinations.filter(
+        (d) =>
+          d.latitude !== destination.latitude ||
+          d.longitude !== destination.longitude,
+      );
+
+    // Add to beginning with timestamp
+    this.userState.recentDestinations.unshift({
+      ...destination,
+      usedAt: new Date().toISOString(),
+    });
+
+    // Keep only last 10
+    if (this.userState.recentDestinations.length > 10) {
+      this.userState.recentDestinations =
+        this.userState.recentDestinations.slice(0, 10);
+    }
+  }
+
+  removeRecentDestination(latitude: number, longitude: number): void {
+    if (!this.userState.recentDestinations) {
+      return;
+    }
+    this.userState.recentDestinations =
+      this.userState.recentDestinations.filter(
+        (d) => d.latitude !== latitude || d.longitude !== longitude,
+      );
+  }
+
+  clearRecentDestinations(): void {
+    this.userState.recentDestinations = [];
+  }
+
   // Onboarding management
 
   isOnboardingCompleted(): boolean {
@@ -461,6 +521,7 @@ export class ConfigService implements IConfigService {
       },
       recentFiles: [],
       customWaypoints: [],
+      recentDestinations: [],
       wifiFallbackNetwork: undefined,
       hotspotConfig: undefined,
     };
