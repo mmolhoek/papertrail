@@ -1298,65 +1298,32 @@ export class SVGService implements ISVGService {
       { scale: distanceScale, bold: true },
     );
 
-    // Draw instruction for current turn (left half)
-    const instructionY = Math.floor(height * 0.55);
-    const instructionScale = 2;
-    const currentInstructionText = currentTurn.instruction.toUpperCase();
-    const currentInstructionWidth = calculateBitmapTextWidth(
-      currentInstructionText,
+    // Draw instruction text centered (same size as single turn screen)
+    const instructionY = Math.floor(height * 0.58);
+    const instructionScale = 3; // Same as single turn screen
+    const instructionText = currentTurn.instruction.toUpperCase();
+    const instructionWidth = calculateBitmapTextWidth(
+      instructionText,
       instructionScale,
     );
     renderBitmapText(
       bitmap,
-      currentInstructionText,
-      leftCenterX - currentInstructionWidth / 2,
+      instructionText,
+      centerX - instructionWidth / 2,
       instructionY,
       { scale: instructionScale, bold: true },
     );
 
-    // Draw instruction for next turn (right half)
-    const nextInstructionText = nextTurn.instruction.toUpperCase();
-    const nextInstructionWidth = calculateBitmapTextWidth(
-      nextInstructionText,
-      instructionScale,
-    );
-    renderBitmapText(
-      bitmap,
-      nextInstructionText,
-      rightCenterX - nextInstructionWidth / 2,
-      instructionY,
-      { scale: instructionScale, bold: true },
-    );
-
-    // Draw street name for current turn (left half)
-    const streetY = Math.floor(height * 0.67);
-    const streetScale = 2;
+    // Draw street name centered if provided (same size as single turn screen)
     if (currentTurn.streetName) {
+      const streetY = Math.floor(height * 0.7);
+      const streetScale = 4; // Same as single turn screen
       const streetText = currentTurn.streetName.toUpperCase();
       const streetWidth = calculateBitmapTextWidth(streetText, streetScale);
-      renderBitmapText(
-        bitmap,
-        streetText,
-        leftCenterX - streetWidth / 2,
-        streetY,
-        { scale: streetScale, bold: true },
-      );
-    }
-
-    // Draw street name for next turn (right half)
-    if (nextTurn.streetName) {
-      const nextStreetText = nextTurn.streetName.toUpperCase();
-      const nextStreetWidth = calculateBitmapTextWidth(
-        nextStreetText,
-        streetScale,
-      );
-      renderBitmapText(
-        bitmap,
-        nextStreetText,
-        rightCenterX - nextStreetWidth / 2,
-        streetY,
-        { scale: streetScale, bold: true },
-      );
+      renderBitmapText(bitmap, streetText, centerX - streetWidth / 2, streetY, {
+        scale: streetScale,
+        bold: true,
+      });
     }
 
     // Draw progress bar at the bottom if progress is provided
