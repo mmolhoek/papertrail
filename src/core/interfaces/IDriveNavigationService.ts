@@ -94,14 +94,6 @@ export interface IDriveNavigationService {
   setSimulationMode(enabled: boolean): void;
 
   /**
-   * Set whether to use map view during simulation
-   * When true, MAP_WITH_OVERLAY will be used (may cause freezing due to Sharp text rendering)
-   * When false, TURN_SCREEN will be used (safer, no freezing)
-   * @param enabled Whether to use map view in simulation
-   */
-  setUseMapViewInSimulation(enabled: boolean): void;
-
-  /**
    * Update the current GPS position
    * This should be called by the orchestrator when GPS updates
    * @param position Current GPS position

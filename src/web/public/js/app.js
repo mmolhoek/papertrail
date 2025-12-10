@@ -2178,23 +2178,19 @@ class PapertrailClient {
     const simulateBtn = document.getElementById("drive-simulate-btn");
     const startBtn = document.getElementById("drive-start-btn");
     const stopBtn = document.getElementById("drive-stop-btn");
-    const mapViewCheckbox = document.getElementById("drive-map-view-checkbox");
 
     simulateBtn.disabled = true;
     startBtn.disabled = true;
 
-    // Get the map view preference
-    const useMapView = mapViewCheckbox ? mapViewCheckbox.checked : false;
-
     try {
       // Convert drive route geometry to simulation format
       // The geometry is an array of [lat, lon] pairs
+      // Screen type (track vs turn-by-turn) is controlled by Display Controls setting
       const result = await this.fetchJSON(`${this.apiBase}/drive/simulate`, {
         method: "POST",
         body: JSON.stringify({
           route: this.driveRoute,
           speed: 100, // 100 km/h drive speed
-          useMapView: useMapView, // Pass map view preference
         }),
       });
 
