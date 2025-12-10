@@ -36,6 +36,7 @@ export class DriveNavigationService implements IDriveNavigationService {
   private currentWaypointIndex = 0;
   private currentPosition: GPSCoordinate | null = null;
   private isSimulationMode = false; // Skip off-road detection in simulation mode
+  private turnApproachingNotified = false; // Track if we've notified about approaching turn
 
   // Callbacks
   private navigationCallbacks: Array<(update: DriveNavigationUpdate) => void> =
@@ -232,6 +233,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     // Always start with MAP_WITH_OVERLAY - the orchestrator will check
     // the activeScreen setting and switch to turn-by-turn if configured
     this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+    this.turnApproachingNotified = false;
     this.updateCount = 0;
 
     // Check if we're off-road at start
@@ -509,21 +511,22 @@ export class DriveNavigationService implements IDriveNavigationService {
         nextWaypoint.longitude,
       );
 
-      // Update display mode based on distance to next turn
-      // The orchestrator will check the activeScreen setting and override
-      // to turn-by-turn if that's what the user selected
+      // Always use MAP_WITH_OVERLAY - the orchestrator checks the activeScreen
+      // setting and switches to turn-by-turn display if that's what the user selected
+      this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+
+      // Notify when approaching a turn (for audio/haptic feedback if implemented)
       if (this.distanceToNextTurn <= DRIVE_THRESHOLDS.TURN_SCREEN_DISTANCE) {
-        // Switch to turn screen when approaching turn
-        this.displayMode = DriveDisplayMode.TURN_SCREEN;
-        if (prevDisplayMode !== DriveDisplayMode.TURN_SCREEN) {
+        if (!this.turnApproachingNotified) {
           logger.debug(
-            `Switching to turn screen, ${Math.round(this.distanceToNextTurn)}m to turn`,
+            `Approaching turn, ${Math.round(this.distanceToNextTurn)}m to turn`,
           );
           this.notifyNavigationUpdate("turn_approaching");
+          this.turnApproachingNotified = true;
         }
       } else {
-        // Use map with overlay when far from turn
-        this.displayMode = DriveDisplayMode.MAP_WITH_OVERLAY;
+        // Reset the flag when we're far from the turn again
+        this.turnApproachingNotified = false;
       }
     }
 
