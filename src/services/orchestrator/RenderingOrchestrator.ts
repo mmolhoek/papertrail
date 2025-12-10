@@ -767,6 +767,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
               status.nextTurn.streetName,
               viewport,
               nextNextTurn,
+              status.progress,
             );
             logger.info(
               `Turn screen render completed in ${Date.now() - renderStartTime}ms`,

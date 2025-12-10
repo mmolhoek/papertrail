@@ -1100,6 +1100,7 @@ export class SVGService implements ISVGService {
       instruction: string;
       streetName?: string;
     },
+    progress?: number,
   ): Promise<Result<Bitmap1Bit>> {
     logger.debug(
       `Rendering turn screen: ${maneuverType}, ${distance}m${nextTurn ? `, then ${nextTurn.maneuverType}` : ""}`,
@@ -1117,6 +1118,7 @@ export class SVGService implements ISVGService {
           height,
           { maneuverType, distance, instruction, streetName },
           nextTurn,
+          progress,
         );
       } else {
         // Single turn layout (original behavior)
@@ -1212,6 +1214,7 @@ export class SVGService implements ISVGService {
    * Render dual turn screen with current turn on left half, next turn on right half
    * Each half shows: arrow, distance, instruction, street name
    * "THEN" text displayed between the two halves
+   * Progress bar at the bottom if progress is provided
    */
   private renderDualTurnScreen(
     bitmap: Bitmap1Bit,
@@ -1229,6 +1232,7 @@ export class SVGService implements ISVGService {
       instruction: string;
       streetName?: string;
     },
+    progress?: number,
   ): void {
     // 50/50 split layout - each turn gets half the screen
     const leftCenterX = Math.floor(width * 0.25); // Center of left half
@@ -1236,8 +1240,8 @@ export class SVGService implements ISVGService {
     const centerX = Math.floor(width / 2);
 
     // Arrow position - upper portion of screen
-    const arrowY = Math.floor(height * 0.22);
-    const arrowSize = 90;
+    const arrowY = Math.floor(height * 0.18);
+    const arrowSize = 80;
 
     // Draw current turn arrow (left half)
     this.drawManeuverArrow(
@@ -1258,7 +1262,7 @@ export class SVGService implements ISVGService {
     );
 
     // Draw "THEN" text in the center between the two turns
-    const thenY = Math.floor(height * 0.2);
+    const thenY = Math.floor(height * 0.16);
     const thenScale = 3;
     const thenText = "THEN";
     const thenWidth = calculateBitmapTextWidth(thenText, thenScale);
@@ -1268,7 +1272,7 @@ export class SVGService implements ISVGService {
     });
 
     // Draw distance for current turn (left half)
-    const distanceY = Math.floor(height * 0.45);
+    const distanceY = Math.floor(height * 0.4);
     const distanceScale = 6;
     const distanceText = this.formatDistanceForDisplay(currentTurn.distance);
     const distanceWidth = calculateBitmapTextWidth(distanceText, distanceScale);
@@ -1295,7 +1299,7 @@ export class SVGService implements ISVGService {
     );
 
     // Draw instruction for current turn (left half)
-    const instructionY = Math.floor(height * 0.62);
+    const instructionY = Math.floor(height * 0.55);
     const instructionScale = 2;
     const currentInstructionText = currentTurn.instruction.toUpperCase();
     const currentInstructionWidth = calculateBitmapTextWidth(
@@ -1325,7 +1329,7 @@ export class SVGService implements ISVGService {
     );
 
     // Draw street name for current turn (left half)
-    const streetY = Math.floor(height * 0.75);
+    const streetY = Math.floor(height * 0.67);
     const streetScale = 2;
     if (currentTurn.streetName) {
       const streetText = currentTurn.streetName.toUpperCase();
@@ -1353,6 +1357,62 @@ export class SVGService implements ISVGService {
         streetY,
         { scale: streetScale, bold: true },
       );
+    }
+
+    // Draw progress bar at the bottom if progress is provided
+    if (progress !== undefined) {
+      const progressBarY = Math.floor(height * 0.88);
+      const progressBarHeight = 8;
+      const progressBarMargin = 40;
+      const progressBarWidth = width - progressBarMargin * 2;
+
+      // Draw progress bar outline
+      this.drawHorizontalLine(
+        bitmap,
+        progressBarMargin,
+        progressBarY,
+        progressBarWidth,
+      );
+      this.drawHorizontalLine(
+        bitmap,
+        progressBarMargin,
+        progressBarY + progressBarHeight,
+        progressBarWidth,
+      );
+      this.drawVerticalLine(
+        bitmap,
+        progressBarMargin,
+        progressBarY,
+        progressBarHeight,
+      );
+      this.drawVerticalLine(
+        bitmap,
+        progressBarMargin + progressBarWidth,
+        progressBarY,
+        progressBarHeight,
+      );
+
+      // Draw progress bar fill
+      const fillWidth = Math.floor((progressBarWidth - 2) * (progress / 100));
+      if (fillWidth > 0) {
+        for (
+          let y = progressBarY + 1;
+          y < progressBarY + progressBarHeight;
+          y++
+        ) {
+          this.drawHorizontalLine(bitmap, progressBarMargin + 1, y, fillWidth);
+        }
+      }
+
+      // Draw percentage text to the right of the bar
+      const percentText = `${Math.round(progress)}%`;
+      const percentScale = 2;
+      const percentX = progressBarMargin + progressBarWidth + 10;
+      const percentY = progressBarY - 2;
+      renderBitmapText(bitmap, percentText, percentX, percentY, {
+        scale: percentScale,
+        bold: true,
+      });
     }
   }
 

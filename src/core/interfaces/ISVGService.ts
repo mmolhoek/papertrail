@@ -217,6 +217,7 @@ export interface ISVGService {
       instruction: string;
       streetName?: string;
     },
+    progress?: number,
   ): Promise<Result<Bitmap1Bit>>;
 
   /**
