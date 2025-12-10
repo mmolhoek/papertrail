@@ -21,6 +21,7 @@ import {
   WiFiState,
   GPXTrack,
   DriveRoute,
+  DriveWaypoint,
   DriveNavigationUpdate,
   DriveDisplayMode,
   NavigationState,
@@ -1075,12 +1076,59 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           viewport,
         );
       } else {
-        // Default: Render track screen with 70/30 split
-        bitmapResult = await this.svgService.renderFollowTrackScreen(
-          track,
+        // Default: Render drive-style map screen with 70/30 split
+        // Convert GPXTrack to DriveRoute format for renderDriveMapScreen
+        const trackGeometry: [number, number][] =
+          track.segments[0]?.points.map((p) => [p.latitude, p.longitude]) || [];
+
+        const firstPoint = trackGeometry[0] || [
+          position.latitude,
+          position.longitude,
+        ];
+        const lastPoint = trackGeometry[trackGeometry.length - 1] || [
+          position.latitude,
+          position.longitude,
+        ];
+
+        const driveRoute: DriveRoute = {
+          id: `track-${Date.now()}`,
+          destination: track.name || "Track",
+          createdAt: new Date(),
+          startPoint: { latitude: firstPoint[0], longitude: firstPoint[1] },
+          endPoint: { latitude: lastPoint[0], longitude: lastPoint[1] },
+          waypoints: [],
+          geometry: trackGeometry,
+          totalDistance: distanceRemaining,
+          estimatedTime: 0,
+        };
+
+        // Create a "continue straight" waypoint pointing to next track point
+        const nextWaypoint: DriveWaypoint = {
+          latitude: trackGeometry[1]?.[0] || position.latitude,
+          longitude: trackGeometry[1]?.[1] || position.longitude,
+          instruction: "FOLLOW TRACK",
+          maneuverType: ManeuverType.STRAIGHT,
+          distance: distanceRemaining,
+          index: 0,
+        };
+
+        const driveInfo: DriveNavigationInfo = {
+          speed: followTrackInfo.speed,
+          satellites: followTrackInfo.satellites,
+          nextManeuver: ManeuverType.STRAIGHT,
+          distanceToTurn: distanceRemaining,
+          instruction: "FOLLOW TRACK",
+          streetName: track.name,
+          distanceRemaining: distanceRemaining,
+          progress: followTrackInfo.progress || 0,
+        };
+
+        bitmapResult = await this.svgService.renderDriveMapScreen(
+          driveRoute,
           position,
+          nextWaypoint,
           viewport,
-          followTrackInfo,
+          driveInfo,
           renderOptions,
         );
       }
