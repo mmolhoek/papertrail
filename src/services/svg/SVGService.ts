@@ -1330,31 +1330,33 @@ export class SVGService implements ISVGService {
     if (progress !== undefined) {
       const progressBarY = Math.floor(height * 0.88);
       const progressBarHeight = 8;
-      const progressBarMargin = 40;
-      const progressBarWidth = width - progressBarMargin * 2;
+      const progressBarMarginLeft = 40;
+      const progressBarMarginRight = 80; // Extra space for percentage text
+      const progressBarWidth =
+        width - progressBarMarginLeft - progressBarMarginRight;
 
       // Draw progress bar outline
       this.drawHorizontalLine(
         bitmap,
-        progressBarMargin,
+        progressBarMarginLeft,
         progressBarY,
         progressBarWidth,
       );
       this.drawHorizontalLine(
         bitmap,
-        progressBarMargin,
+        progressBarMarginLeft,
         progressBarY + progressBarHeight,
         progressBarWidth,
       );
       this.drawVerticalLine(
         bitmap,
-        progressBarMargin,
+        progressBarMarginLeft,
         progressBarY,
         progressBarHeight,
       );
       this.drawVerticalLine(
         bitmap,
-        progressBarMargin + progressBarWidth,
+        progressBarMarginLeft + progressBarWidth,
         progressBarY,
         progressBarHeight,
       );
@@ -1367,14 +1369,19 @@ export class SVGService implements ISVGService {
           y < progressBarY + progressBarHeight;
           y++
         ) {
-          this.drawHorizontalLine(bitmap, progressBarMargin + 1, y, fillWidth);
+          this.drawHorizontalLine(
+            bitmap,
+            progressBarMarginLeft + 1,
+            y,
+            fillWidth,
+          );
         }
       }
 
       // Draw percentage text to the right of the bar
       const percentText = `${Math.round(progress)}%`;
       const percentScale = 2;
-      const percentX = progressBarMargin + progressBarWidth + 10;
+      const percentX = progressBarMarginLeft + progressBarWidth + 10;
       const percentY = progressBarY - 2;
       renderBitmapText(bitmap, percentText, percentX, percentY, {
         scale: percentScale,
