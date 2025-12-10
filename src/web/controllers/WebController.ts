@@ -677,20 +677,36 @@ export class WebController {
       return;
     }
 
-    logger.info(`Setting active screen to: ${screenType}`);
-    this.orchestrator.setActiveScreen(screenType);
-    logger.info(`Active screen set to ${screenType}`);
+    try {
+      logger.info(`Setting active screen to: ${screenType}`);
+      this.orchestrator.setActiveScreen(screenType);
+      logger.info(`Active screen set to ${screenType}`);
 
-    // Trigger display refresh to show the change immediately
-    const updateResult = await this.orchestrator.updateDisplay();
-    if (!updateResult.success) {
-      logger.warn("Failed to refresh display after screen change");
+      // Save the setting to persist it
+      if (this.configService) {
+        await this.configService.save();
+      }
+
+      // Trigger display refresh to show the change immediately (if there's an active track)
+      const updateResult = await this.orchestrator.updateDisplay();
+      if (!updateResult.success) {
+        logger.warn("Failed to refresh display after screen change");
+      }
+
+      res.json({
+        success: true,
+        message: `Active screen set to ${screenType}`,
+      });
+    } catch (error) {
+      logger.error("Error setting active screen:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to set active screen",
+        },
+      });
     }
-
-    res.json({
-      success: true,
-      message: `Active screen set to ${screenType}`,
-    });
   }
 
   // WiFi Configuration Endpoints
