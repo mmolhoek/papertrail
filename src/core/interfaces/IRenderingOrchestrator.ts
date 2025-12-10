@@ -126,6 +126,12 @@ export interface IRenderingOrchestrator {
   setRotateWithBearing(enabled: boolean): void;
 
   /**
+   * Set the active screen type for display rendering
+   * @param screenType The screen type to use ('track' or 'turn_by_turn')
+   */
+  setActiveScreen(screenType: string): void;
+
+  /**
    * Register a callback for GPS position updates
    * @param callback Function to call when GPS position changes
    * @returns Unsubscribe function

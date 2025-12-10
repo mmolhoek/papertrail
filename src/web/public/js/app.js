@@ -284,6 +284,14 @@ class PapertrailClient {
       });
     }
 
+    // Screen selection
+    const screenSelect = document.getElementById("screen-select");
+    if (screenSelect) {
+      screenSelect.addEventListener("change", (e) => {
+        this.setActiveScreen(e.target.value);
+      });
+    }
+
     // WiFi settings
     document.getElementById("save-wifi-btn").addEventListener("click", () => {
       this.saveWiFiConfig();
@@ -412,6 +420,14 @@ class PapertrailClient {
         if (icon) icon.textContent = "↑";
         if (text) text.textContent = "North Up";
         if (btn) btn.classList.remove("track-up");
+      }
+    }
+
+    // Update screen selector
+    if (settings.activeScreen !== undefined) {
+      const screenSelect = document.getElementById("screen-select");
+      if (screenSelect) {
+        screenSelect.value = settings.activeScreen;
       }
     }
   }
@@ -578,6 +594,28 @@ class PapertrailClient {
     } catch (error) {
       console.error("Failed to set orientation:", error);
       this.showMessage("Failed to change orientation", "error");
+    }
+  }
+
+  // Set active screen type for display rendering
+  async setActiveScreen(screenType) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/screen`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ screenType }),
+      });
+
+      if (response.ok) {
+        const screenName =
+          screenType === "track" ? "Track (Map + Info)" : "Turn-by-Turn";
+        this.showMessage(`Display screen: ${screenName}`, "success");
+      } else {
+        throw new Error("Failed to set screen type");
+      }
+    } catch (error) {
+      console.error("Failed to set active screen:", error);
+      this.showMessage("Failed to change display screen", "error");
     }
   }
 

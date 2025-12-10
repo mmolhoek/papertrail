@@ -507,6 +507,7 @@ export class WebController {
         zoomLevel: this.configService.getZoomLevel(),
         autoCenter: this.configService.getAutoCenter(),
         rotateWithBearing: this.configService.getRotateWithBearing(),
+        activeScreen: this.configService.getActiveScreen(),
       },
     });
   }
@@ -652,6 +653,43 @@ export class WebController {
     res.json({
       success: true,
       message: `Rotate with bearing ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set active screen type for display rendering
+   */
+  async setActiveScreen(req: Request, res: Response): Promise<void> {
+    const { screenType } = req.body;
+
+    if (
+      typeof screenType !== "string" ||
+      !["track", "turn_by_turn"].includes(screenType)
+    ) {
+      logger.warn("Set active screen called with invalid screenType parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "screenType must be 'track' or 'turn_by_turn'",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting active screen to: ${screenType}`);
+    this.orchestrator.setActiveScreen(screenType);
+    logger.info(`Active screen set to ${screenType}`);
+
+    // Trigger display refresh to show the change immediately
+    const updateResult = await this.orchestrator.updateDisplay();
+    if (!updateResult.success) {
+      logger.warn("Failed to refresh display after screen change");
+    }
+
+    res.json({
+      success: true,
+      message: `Active screen set to ${screenType}`,
     });
   }
 

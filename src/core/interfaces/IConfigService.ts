@@ -5,6 +5,7 @@ import {
   RenderOptions,
   FallbackNetworkConfig,
   HotspotConfig,
+  ScreenType,
 } from "@core/types";
 
 /**
@@ -145,6 +146,20 @@ export interface IConfigService {
    * @param seconds Interval in seconds (0 = disabled)
    */
   setAutoRefreshInterval(seconds: number): void;
+
+  // Active screen management
+
+  /**
+   * Get the active screen type for display rendering
+   * @returns ScreenType (defaults to TRACK if not set)
+   */
+  getActiveScreen(): ScreenType;
+
+  /**
+   * Set the active screen type for display rendering
+   * @param screenType The screen type to use
+   */
+  setActiveScreen(screenType: ScreenType): void;
 
   // Recent files
 

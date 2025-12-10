@@ -8,6 +8,7 @@ import {
   RenderOptions,
   FallbackNetworkConfig,
   HotspotConfig,
+  ScreenType,
   success,
   failure,
 } from "../../core/types";
@@ -183,6 +184,16 @@ export class ConfigService implements IConfigService {
       throw ConfigError.outOfRange("autoRefreshInterval", seconds, 0, 3600);
     }
     this.userState.displayPreferences.autoRefreshInterval = seconds;
+  }
+
+  // Active screen management
+
+  getActiveScreen(): ScreenType {
+    return this.userState.activeScreen ?? ScreenType.TRACK;
+  }
+
+  setActiveScreen(screenType: ScreenType): void {
+    this.userState.activeScreen = screenType;
   }
 
   // Recent files

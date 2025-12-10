@@ -139,6 +139,8 @@ const createMockConfigService = () => ({
   setAutoCenter: jest.fn(),
   getRotateWithBearing: jest.fn().mockReturnValue(false),
   setRotateWithBearing: jest.fn(),
+  getActiveScreen: jest.fn().mockReturnValue("track"),
+  setActiveScreen: jest.fn(),
   getAutoRefreshInterval: jest.fn().mockReturnValue(5),
   setAutoRefreshInterval: jest.fn(),
   getRecentFiles: jest.fn(),

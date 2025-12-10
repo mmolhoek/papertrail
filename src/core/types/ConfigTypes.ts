@@ -1,5 +1,5 @@
 import { GPSConfig } from "./GPSTypes";
-import { EpaperConfig } from "./DisplayTypes";
+import { EpaperConfig, ScreenType } from "./DisplayTypes";
 import { RenderOptions } from "./DisplayTypes";
 import { FallbackNetworkConfig, HotspotConfig } from "./WiFiTypes";
 
@@ -123,6 +123,9 @@ export type UserState = {
 
   /** Current zoom level */
   zoomLevel: number;
+
+  /** Active screen type for display rendering */
+  activeScreen?: ScreenType;
 
   /** Onboarding completion status */
   onboardingCompleted?: boolean;

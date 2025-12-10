@@ -371,6 +371,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.setRotateWithBearing(req, res),
     );
 
+    this.app.post(`${api}/config/screen`, (req, res) =>
+      this.controller.setActiveScreen(req, res),
+    );
+
     // Auto-update endpoints
     this.app.post(`${api}/auto-update/start`, (req, res) =>
       this.controller.startAutoUpdate(req, res),

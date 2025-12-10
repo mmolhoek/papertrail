@@ -24,6 +24,8 @@ import {
   DriveNavigationUpdate,
   DriveDisplayMode,
   NavigationState,
+  ScreenType,
+  ManeuverType,
   success,
   failure,
   DisplayUpdateMode,
@@ -710,7 +712,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       let renderResult;
       const renderStartTime = Date.now();
 
-      switch (status.displayMode) {
+      // Check active screen type - if TURN_BY_TURN, force turn screen mode
+      const activeScreen = this.configService.getActiveScreen();
+      const effectiveDisplayMode =
+        activeScreen === ScreenType.TURN_BY_TURN &&
+        status.displayMode === DriveDisplayMode.MAP_WITH_OVERLAY
+          ? DriveDisplayMode.TURN_SCREEN
+          : status.displayMode;
+
+      logger.info(
+        `Drive display: activeScreen=${activeScreen}, original mode=${status.displayMode}, effective mode=${effectiveDisplayMode}`,
+      );
+
+      switch (effectiveDisplayMode) {
         case DriveDisplayMode.TURN_SCREEN:
           if (status.nextTurn) {
             logger.info("Starting turn screen render...");
@@ -1042,26 +1056,44 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         `Info panel: speed=${followTrackInfo.speed.toFixed(1)} km/h, satellites=${followTrackInfo.satellites}, bearing=${followTrackInfo.bearing || 0}°`,
       );
 
-      const bitmapResult = await this.svgService.renderFollowTrackScreen(
-        track,
-        position,
-        viewport,
-        followTrackInfo,
-        renderOptions,
-      );
+      // Check active screen type and render accordingly
+      const activeScreen = this.configService.getActiveScreen();
+      logger.info(`Active screen type: ${activeScreen}`);
+
+      let bitmapResult;
+
+      if (activeScreen === ScreenType.TURN_BY_TURN) {
+        // Render turn-by-turn screen for track following
+        // Use bearing/direction info to create a "continue straight" style display
+        const instruction =
+          position.bearing !== undefined ? "CONTINUE" : "FOLLOW TRACK";
+        bitmapResult = await this.svgService.renderTurnScreen(
+          ManeuverType.STRAIGHT,
+          distanceRemaining,
+          instruction,
+          track.name || "Track",
+          viewport,
+        );
+      } else {
+        // Default: Render track screen with 70/30 split
+        bitmapResult = await this.svgService.renderFollowTrackScreen(
+          track,
+          position,
+          viewport,
+          followTrackInfo,
+          renderOptions,
+        );
+      }
 
       if (!bitmapResult.success) {
-        logger.error("Failed to render split view:", bitmapResult.error);
+        logger.error("Failed to render screen:", bitmapResult.error);
         this.notifyError(bitmapResult.error);
         return failure(
-          OrchestratorError.updateFailed(
-            "Split view render",
-            bitmapResult.error,
-          ),
+          OrchestratorError.updateFailed("Screen render", bitmapResult.error),
         );
       }
       logger.info(
-        `✓ Split view rendered: ${bitmapResult.data.width}x${bitmapResult.data.height}, ${bitmapResult.data.data.length} bytes`,
+        `✓ Screen rendered: ${bitmapResult.data.width}x${bitmapResult.data.height}, ${bitmapResult.data.data.length} bytes`,
       );
 
       // Step 5: Display on e-paper
@@ -1596,6 +1628,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   setRotateWithBearing(enabled: boolean): void {
     logger.info(`Rotate with bearing ${enabled ? "enabled" : "disabled"}`);
     this.configService.setRotateWithBearing(enabled);
+  }
+
+  /**
+   * Set the active screen type for display rendering
+   */
+  setActiveScreen(screenType: string): void {
+    logger.info(`Setting active screen to: ${screenType}`);
+    // Import ScreenType and validate
+    const validTypes = ["track", "turn_by_turn"];
+    if (validTypes.includes(screenType)) {
+      this.configService.setActiveScreen(screenType as ScreenType);
+    } else {
+      logger.warn(`Invalid screen type: ${screenType}`);
+    }
   }
 
   /**

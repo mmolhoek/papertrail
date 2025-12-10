@@ -189,3 +189,15 @@ export enum DisplayUpdateMode {
   /** Auto-select based on content changes */
   AUTO = "auto",
 }
+
+/**
+ * Screen type for display rendering
+ * Determines which screen layout is used for both track and drive interfaces
+ */
+export enum ScreenType {
+  /** Track screen with 70/30 split (map + info panel) - default */
+  TRACK = "track",
+
+  /** Turn-by-turn screen with large turn arrows and distance countdown */
+  TURN_BY_TURN = "turn_by_turn",
+}
