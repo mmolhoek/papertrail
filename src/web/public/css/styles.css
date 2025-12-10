@@ -767,7 +767,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   background: var(--color-parchment);
   border: 1px solid var(--color-parchment-dark);
   border-radius: var(--radius-md);
@@ -843,8 +843,6 @@ body {
 .track-actions .btn {
   flex: 1;
   min-width: 0;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
 }
 
 /* Track name option checkbox */
@@ -873,7 +871,6 @@ body {
 }
 
 .btn-large {
-  padding: var(--space-sm) var(--space-md);
   flex: 1;
 }
 
@@ -1051,7 +1048,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-sm) var(--space-md);
   margin-top: var(--space-sm);
 }
 
@@ -1591,8 +1588,6 @@ body {
 
 .simulation-actions .btn {
   flex: 1;
-  padding: var(--space-xs) var(--space-sm);
-  font-size: var(--text-xs);
   min-width: 0;
 }
 
