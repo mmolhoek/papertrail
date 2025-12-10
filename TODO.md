@@ -27,7 +27,11 @@
 
 ## Current Progress
 
-**Next item:** 1.1 Split RenderingOrchestrator
+**Next item:** 1.1 Split RenderingOrchestrator - WiFi/onboarding extraction
+
+**Completed:**
+
+- [x] DisplayUpdateQueue extracted and integrated (3,014 → 2,959 lines)
 
 ---
 
@@ -35,17 +39,20 @@
 
 These items address the largest technical debt and will make subsequent improvements easier.
 
-### 1.1 Split RenderingOrchestrator (3,014 lines)
+### 1.1 Split RenderingOrchestrator (started at 3,014 lines, now 2,959 lines)
 
-- [ ] Extract GPS coordination logic into `GPSCoordinator` class
+- [x] Extract display update queuing into `DisplayUpdateQueue` class
 - [ ] Extract WiFi/onboarding flow into `WiFiCoordinator` class
+- [ ] Extract GPS coordination logic into `GPSCoordinator` class
 - [ ] Extract drive navigation logic into `DriveCoordinator` class
-- [ ] Extract display update queuing into `DisplayUpdateQueue` class
-- [ ] Extract simulation handling into existing `TrackSimulationService`
+- [ ] Extract simulation handling into `SimulationCoordinator` class
 - [ ] Keep `RenderingOrchestrator` as thin coordinator delegating to sub-coordinators
 - [ ] Target: <500 lines per file
 
-**Files:** `src/services/orchestrator/RenderingOrchestrator.ts`
+**Files:**
+
+- `src/services/orchestrator/RenderingOrchestrator.ts`
+- `src/services/orchestrator/DisplayUpdateQueue.ts` (new, 272 lines)
 
 ### 1.2 Split SVGService (2,348 lines)
 
