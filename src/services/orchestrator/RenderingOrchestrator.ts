@@ -34,6 +34,11 @@ import {
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import { TrackTurnAnalyzer, TrackTurn } from "@services/map/TrackTurnAnalyzer";
+import {
+  DisplayUpdateQueue,
+  DriveDisplayUpdateQueue,
+  ActiveGPXQueue,
+} from "./DisplayUpdateQueue";
 import * as os from "os";
 import * as path from "path";
 
@@ -92,16 +97,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private driveRouteStartPosition: GPSCoordinate | null = null; // Stored at navigation start
 
   // Display update queuing (prevents dropped updates when display is busy)
-  private isUpdateInProgress: boolean = false;
-  private pendingUpdateMode: DisplayUpdateMode | null = null;
+  private displayUpdateQueue = new DisplayUpdateQueue();
 
   // Drive display update queuing (prevents concurrent renders that can freeze the app)
-  private isDriveUpdateInProgress: boolean = false;
-  private pendingDriveUpdate: boolean = false;
+  private driveDisplayUpdateQueue = new DriveDisplayUpdateQueue();
 
   // setActiveGPX queuing (ensures only the last selected track is loaded)
-  private isSetActiveGPXInProgress: boolean = false;
-  private pendingActiveGPXPath: string | null = null;
+  private activeGPXQueue = new ActiveGPXQueue();
 
   // Track turn analysis for turn-by-turn navigation on GPX tracks
   private trackTurnAnalyzer: TrackTurnAnalyzer = new TrackTurnAnalyzer();
@@ -666,25 +668,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     // Queue update if one is already in progress (prevents concurrent renders that freeze the app)
-    if (this.isDriveUpdateInProgress) {
-      this.pendingDriveUpdate = true;
-      logger.debug("Drive display update queued, current update in progress");
+    if (
+      !this.driveDisplayUpdateQueue.queueUpdate(() =>
+        this.epaperService.isBusy(),
+      )
+    ) {
       return success(undefined);
     }
-
-    // Also check if e-paper display is busy (prevents lgpio native module deadlock)
-    // The lgpio module doesn't handle concurrent GPIO/SPI access well, which can
-    // cause the entire Node.js process to hang if we start rendering while the
-    // display is still processing the previous update
-    if (this.epaperService.isBusy()) {
-      this.pendingDriveUpdate = true;
-      logger.debug(
-        "Drive display update queued, e-paper display is busy with previous update",
-      );
-      return success(undefined);
-    }
-
-    this.isDriveUpdateInProgress = true;
     logger.info(
       `Updating drive display: mode=${status.displayMode}, state=${status.state}`,
     );
@@ -863,19 +853,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         ),
       );
     } finally {
-      this.isDriveUpdateInProgress = false;
-
-      // Process any pending update
-      if (this.pendingDriveUpdate) {
-        this.pendingDriveUpdate = false;
-        logger.debug("Processing pending drive display update");
-        // Use setImmediate to avoid stack overflow from recursive calls
-        setImmediate(() => {
-          void this.updateDriveDisplay().catch((err) => {
-            logger.error("Error processing pending drive update:", err);
-          });
-        });
-      }
+      // Set up handler and complete update (which will process pending if any)
+      this.driveDisplayUpdateQueue.setUpdateHandler(async () => {
+        await this.updateDriveDisplay();
+      });
+      this.driveDisplayUpdateQueue.completeUpdate();
     }
   }
 
@@ -902,30 +884,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     // Queue update if one is already in progress
-    if (this.isUpdateInProgress) {
-      // Keep FULL mode if any queued update requests it
-      if (
-        mode === DisplayUpdateMode.FULL ||
-        this.pendingUpdateMode !== DisplayUpdateMode.FULL
-      ) {
-        this.pendingUpdateMode = mode ?? DisplayUpdateMode.AUTO;
-      }
-      logger.info(
-        `Display update queued (mode: ${this.pendingUpdateMode}), current update in progress`,
-      );
+    const canProceed = await this.displayUpdateQueue.queueUpdate(mode, () =>
+      this.epaperService.isBusy(),
+    );
+    if (!canProceed) {
       return success(undefined);
     }
-
-    // Also check if e-paper display is busy (prevents lgpio native module deadlock)
-    if (this.epaperService.isBusy()) {
-      this.pendingUpdateMode = mode ?? DisplayUpdateMode.AUTO;
-      logger.info(
-        `Display update queued (mode: ${this.pendingUpdateMode}), e-paper display is busy`,
-      );
-      return success(undefined);
-    }
-
-    this.isUpdateInProgress = true;
     logger.info("Starting display update...");
 
     try {
@@ -1283,18 +1247,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.notifyError(err);
       return failure(OrchestratorError.updateFailed("Display update", err));
     } finally {
-      this.isUpdateInProgress = false;
-
-      // Process any pending update
-      if (this.pendingUpdateMode !== null) {
-        const pendingMode = this.pendingUpdateMode;
-        this.pendingUpdateMode = null;
-        logger.info(`Processing queued display update (mode: ${pendingMode})`);
-        // Use setImmediate to avoid stack overflow on rapid updates
-        setImmediate(() => {
-          void this.updateDisplay(pendingMode);
-        });
-      }
+      // Set up handler and complete update (which will process pending if any)
+      this.displayUpdateQueue.setUpdateHandler(async (m) => {
+        await this.updateDisplay(m);
+      });
+      this.displayUpdateQueue.completeUpdate();
     }
   }
 
@@ -1308,15 +1265,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     // Queue if another setActiveGPX is in progress
-    if (this.isSetActiveGPXInProgress) {
-      this.pendingActiveGPXPath = filePath;
-      logger.info(
-        `setActiveGPX queued for: ${filePath}, another operation in progress`,
-      );
+    if (!this.activeGPXQueue.queueOperation(filePath)) {
       return success(undefined);
     }
-
-    this.isSetActiveGPXInProgress = true;
     logger.info(`Setting active GPX file: ${filePath}`);
 
     // Clear turn analysis cache for the new track
@@ -1373,17 +1324,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       const err = error instanceof Error ? error : new Error("Unknown error");
       return failure(OrchestratorError.updateFailed("Set active GPX", err));
     } finally {
-      this.isSetActiveGPXInProgress = false;
-
-      // Process any pending setActiveGPX request
-      if (this.pendingActiveGPXPath !== null) {
-        const pendingPath = this.pendingActiveGPXPath;
-        this.pendingActiveGPXPath = null;
-        logger.info(`Processing queued setActiveGPX for: ${pendingPath}`);
-        setImmediate(() => {
-          void this.setActiveGPX(pendingPath);
-        });
-      }
+      // Set up handler and complete operation (which will process pending if any)
+      this.activeGPXQueue.setOperationHandler(async (p) => {
+        await this.setActiveGPX(p);
+      });
+      this.activeGPXQueue.completeOperation();
     }
   }
 
