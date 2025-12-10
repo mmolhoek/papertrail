@@ -10,6 +10,8 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
 } from "@core/interfaces";
+import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
+import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
 import {
   WebConfig,
   GPSConfig,
@@ -21,6 +23,8 @@ import {
 import { MockGPSService } from "@services/gps/MockGPSService";
 import { MockEpaperService } from "@services/epaper/MockEpaperService";
 import { MockWiFiService } from "@services/wifi/MockWiFiService";
+import { MockAdapter } from "@services/epaper/adapters/MockAdapter";
+import { MockDisplayDriver } from "@services/epaper/drivers/MockDisplayDriver";
 
 // Non-hardware services - safe to import
 import { MapService } from "@services/map/MapService";
@@ -33,6 +37,11 @@ import { DriveNavigationService } from "@services/drive/DriveNavigationService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
+
+/**
+ * Display driver factory function type
+ */
+type DriverFactory = (config: EpaperConfig) => IDisplayDriver;
 
 /**
  * Service Container (Dependency Injection Container)
@@ -56,7 +65,37 @@ export class ServiceContainer {
     driveNavigation?: IDriveNavigationService;
   } = {};
 
-  private constructor() {}
+  /**
+   * Registry of display driver factories
+   * Key: driver name (e.g., 'waveshare_7in5_bw')
+   * Value: factory function that creates the driver
+   */
+  private driverFactories: Map<string, DriverFactory> = new Map();
+
+  private constructor() {
+    // Register default drivers
+    this.registerDefaultDrivers();
+  }
+
+  /**
+   * Register the default display drivers
+   */
+  private registerDefaultDrivers(): void {
+    // Register mock driver (always available)
+    this.registerDisplayDriver(
+      "mock_display",
+      (config) => new MockDisplayDriver(config.width, config.height),
+    );
+
+    // Register Waveshare 7.5" B/W driver (lazy loaded to avoid lgpio on non-Linux)
+    this.registerDisplayDriver("waveshare_7in5_bw", (_config) => {
+      // Lazy import to avoid loading on non-Linux platforms
+      const { Waveshare7in5BWDriver } =
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@services/epaper/drivers/Waveshare7in5BWDriver") as typeof import("@services/epaper/drivers/Waveshare7in5BWDriver");
+      return new Waveshare7in5BWDriver();
+    });
+  }
 
   /**
    * Get singleton instance
@@ -74,6 +113,8 @@ export class ServiceContainer {
   static reset(): void {
     if (ServiceContainer.instance) {
       ServiceContainer.instance.services = {};
+      ServiceContainer.instance.driverFactories.clear();
+      ServiceContainer.instance.registerDefaultDrivers();
     }
   }
 
@@ -135,14 +176,71 @@ export class ServiceContainer {
       ) {
         this.services.epaper = new MockEpaperService(config);
       } else {
+        // Create driver and adapter for real hardware
+        const driverName = config.driver || "waveshare_7in5_bw";
+        const driver = this.createDisplayDriver(driverName, config);
+        const adapter = this.createHardwareAdapter();
+
         // Lazy import to avoid loading lgpio on non-Linux platforms
         const { EpaperService } =
           // eslint-disable-next-line @typescript-eslint/no-require-imports
           require("@services/epaper/EPaperService") as typeof import("@services/epaper/EPaperService");
-        this.services.epaper = new EpaperService(config);
+        this.services.epaper = new EpaperService(config, driver, adapter);
       }
     }
     return this.services.epaper;
+  }
+
+  // Display Driver Management
+
+  /**
+   * Register a display driver factory
+   * @param name Driver identifier (e.g., 'waveshare_7in5_bw')
+   * @param factory Function that creates the driver instance
+   */
+  registerDisplayDriver(name: string, factory: DriverFactory): void {
+    this.driverFactories.set(name, factory);
+  }
+
+  /**
+   * Get list of registered driver names
+   */
+  getRegisteredDrivers(): string[] {
+    return Array.from(this.driverFactories.keys());
+  }
+
+  /**
+   * Create a display driver by name
+   * @param name Driver identifier
+   * @param config E-paper configuration
+   * @returns Display driver instance
+   * @throws Error if driver not found
+   */
+  createDisplayDriver(name: string, config: EpaperConfig): IDisplayDriver {
+    const factory = this.driverFactories.get(name);
+    if (!factory) {
+      const available = this.getRegisteredDrivers().join(", ");
+      throw new Error(
+        `Unknown display driver: '${name}'. Available drivers: ${available}`,
+      );
+    }
+    return factory(config);
+  }
+
+  /**
+   * Create a hardware adapter for the current platform
+   * Returns LgpioAdapter for Linux, MockAdapter for other platforms
+   */
+  createHardwareAdapter(): IHardwareAdapter {
+    if (process.platform !== "linux") {
+      return new MockAdapter();
+    }
+
+    // Lazy import to avoid loading lgpio on non-Linux platforms
+    const { LgpioAdapter } =
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("@services/epaper/adapters/LgpioAdapter") as typeof import("@services/epaper/adapters/LgpioAdapter");
+    return new LgpioAdapter();
   }
 
   /**
@@ -269,6 +367,14 @@ export class ServiceContainer {
         dc: parseInt(process.env.EPAPER_PIN_DC || "25"),
         busy: parseInt(process.env.EPAPER_PIN_BUSY || "24"),
         cs: parseInt(process.env.EPAPER_PIN_CS || "8"),
+        power: process.env.EPAPER_PIN_POWER
+          ? parseInt(process.env.EPAPER_PIN_POWER)
+          : 18,
+      },
+      spi: {
+        bus: parseInt(process.env.EPAPER_SPI_BUS || "0"),
+        device: parseInt(process.env.EPAPER_SPI_DEVICE_NUM || "0"),
+        speed: parseInt(process.env.EPAPER_SPI_SPEED || "256000"),
       },
       refreshMode:
         (process.env.EPAPER_REFRESH_MODE as "full" | "partial") || "full",
@@ -277,6 +383,8 @@ export class ServiceContainer {
         | 90
         | 180
         | 270,
+      driver: process.env.EPAPER_DRIVER || "waveshare_7in5_bw",
+      model: process.env.EPAPER_MODEL,
     };
   }
 

@@ -1,7 +1,45 @@
 import { GPSCoordinate } from "./GPSTypes";
 
 /**
+ * Color depth supported by e-paper displays
+ */
+export type ColorDepth =
+  | "1bit" // Black and white only
+  | "4bit-grayscale" // 16 shades of gray
+  | "3color-bwr" // Black, White, Red
+  | "3color-bwy"; // Black, White, Yellow
+
+/**
+ * Generic display bitmap that supports different color depths
+ */
+export type DisplayBitmap = {
+  /** Width in pixels */
+  width: number;
+
+  /** Height in pixels */
+  height: number;
+
+  /** Color depth of this bitmap */
+  colorDepth: ColorDepth;
+
+  /** Primary channel data (black/white or grayscale) */
+  data: Uint8Array;
+
+  /** Secondary channel data for 3-color displays (red or yellow) */
+  colorData?: Uint8Array;
+
+  /** Optional metadata about the bitmap */
+  metadata?: {
+    /** Creation timestamp */
+    createdAt: Date;
+    /** Description of what's displayed */
+    description?: string;
+  };
+};
+
+/**
  * 1-bit bitmap for e-paper display
+ * @deprecated Use DisplayBitmap with colorDepth: '1bit' instead
  */
 export type Bitmap1Bit = {
   /** Width in pixels */
@@ -116,7 +154,7 @@ export type EpaperConfig = {
   /** Display height in pixels */
   height: number;
 
-  /** SPI device path */
+  /** SPI device path (legacy, use spi config instead) */
   spiDevice: string;
 
   /** GPIO pins for control */
@@ -132,6 +170,21 @@ export type EpaperConfig = {
 
     /** Chip select pin (optional, may be handled by SPI) */
     cs?: number;
+
+    /** Power control pin (optional) */
+    power?: number;
+  };
+
+  /** SPI configuration */
+  spi?: {
+    /** SPI bus number (default: 0) */
+    bus: number;
+
+    /** SPI device number (default: 0) */
+    device: number;
+
+    /** SPI clock speed in Hz (default: 256000) */
+    speed: number;
   };
 
   /** Display refresh mode */
@@ -140,7 +193,10 @@ export type EpaperConfig = {
   /** Whether display is rotated */
   rotation: 0 | 90 | 180 | 270;
 
-  /** Optional model name */
+  /** Display driver name (e.g., 'waveshare_7in5_bw') */
+  driver?: string;
+
+  /** Optional model name (for display purposes) */
   model?: string;
 };
 

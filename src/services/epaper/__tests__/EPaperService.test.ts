@@ -1,32 +1,20 @@
-// Mock hardware dependencies before importing the service
-jest.mock("lgpio", () => ({
-  gpiochipOpen: jest.fn(() => 0),
-  gpiochipClose: jest.fn(),
-  spiOpen: jest.fn(() => 0),
-  spiClose: jest.fn(),
-  spiWrite: jest.fn(),
-  gpioClaimOutput: jest.fn(),
-  gpioClaimInput: jest.fn(),
-  gpioWrite: jest.fn(),
-  gpioRead: jest.fn(() => false),
-}));
+/**
+ * EPaperService Tests
+ *
+ * Tests the e-paper service with mock driver and adapter to avoid hardware dependencies.
+ */
 
-jest.mock("bmp-js", () => ({
-  encode: jest.fn(() => ({ data: Buffer.alloc(1000) })),
-  decode: jest.fn(() => ({
-    width: 800,
-    height: 480,
-    data: Buffer.alloc(800 * 480 * 4),
-  })),
-}));
-
-import { DisplayError, DisplayErrorCode } from "core/errors";
+import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { EpaperService } from "../EPaperService";
+import { MockAdapter } from "../adapters/MockAdapter";
+import { MockDisplayDriver } from "../drivers/MockDisplayDriver";
 import { DisplayUpdateMode, Bitmap1Bit, EpaperConfig } from "@core/types";
 
 describe("EpaperService", () => {
   let epaperService: EpaperService;
   let config: EpaperConfig;
+  let mockDriver: MockDisplayDriver;
+  let mockAdapter: MockAdapter;
 
   beforeEach(() => {
     config = {
@@ -37,11 +25,20 @@ describe("EpaperService", () => {
         reset: 17,
         dc: 25,
         busy: 24,
+        power: 18,
+      },
+      spi: {
+        bus: 0,
+        device: 0,
+        speed: 256000,
       },
       refreshMode: "full",
       rotation: 0,
     };
-    epaperService = new EpaperService(config);
+
+    mockDriver = new MockDisplayDriver(config.width, config.height);
+    mockAdapter = new MockAdapter();
+    epaperService = new EpaperService(config, mockDriver, mockAdapter);
   });
 
   afterEach(async () => {
@@ -64,6 +61,15 @@ describe("EpaperService", () => {
       await epaperService.initialize();
       expect(epaperService.isBusy()).toBe(false);
     });
+
+    it("should initialize adapter with correct pins", async () => {
+      await epaperService.initialize();
+      expect(mockAdapter.isInitialized()).toBe(true);
+      const pins = mockAdapter.getPins();
+      expect(pins.reset).toBe(17);
+      expect(pins.dc).toBe(25);
+      expect(pins.busy).toBe(24);
+    });
   });
 
   describe("displayBitmap", () => {
@@ -82,7 +88,13 @@ describe("EpaperService", () => {
     });
 
     it("should return error if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.displayBitmap(validBitmap);
 
       expect(result.success).toBe(false);
@@ -124,7 +136,6 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 1: 1 from this call (no logo during initialization)
         expect(status.data.fullRefreshCount).toBe(1);
         expect(status.data.partialRefreshCount).toBe(0);
       }
@@ -139,19 +150,16 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 0 full, 1 partial (no logo during initialization)
         expect(status.data.fullRefreshCount).toBe(0);
         expect(status.data.partialRefreshCount).toBe(1);
       }
     });
 
     it("should auto-select update mode", async () => {
-      // When AUTO is specified, should select update mode automatically
       await epaperService.displayBitmap(validBitmap, DisplayUpdateMode.AUTO);
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Auto mode should have picked either full or partial
         expect(
           status.data.fullRefreshCount + status.data.partialRefreshCount,
         ).toBeGreaterThan(0);
@@ -171,23 +179,14 @@ describe("EpaperService", () => {
     });
 
     it("should not allow display while busy", async () => {
-      // Start first display (simulate a long-running operation)
-      const firstDisplay = epaperService.displayBitmap(
-        validBitmap,
-        DisplayUpdateMode.FULL,
-      );
-      epaperService["busy"] = true; // Force busy state
-      // Try to display while the first operation is still in progress
+      epaperService["busy"] = true;
       const result = await epaperService.displayBitmap(validBitmap);
-      epaperService["busy"] = false; // Reset busy state
+      epaperService["busy"] = false;
 
       expect(result.success).toBe(false);
       if (!result.success) {
         expect((result.error as DisplayError).code).toBe("DISPLAY_BUSY");
       }
-
-      // Wait for the first display to complete
-      await firstDisplay;
     });
 
     it("should not allow display while sleeping", async () => {
@@ -216,13 +215,18 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 1: 1 from clear (no logo during initialization)
         expect(status.data.fullRefreshCount).toBe(1);
       }
     });
 
     it("should return error if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.clear();
 
       expect(result.success).toBe(false);
@@ -249,13 +253,18 @@ describe("EpaperService", () => {
 
       const status = await epaperService.getStatus();
       if (status.success) {
-        // Expect 1: 1 from fullRefresh (no logo during initialization)
         expect(status.data.fullRefreshCount).toBe(1);
       }
     });
 
     it("should return error if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.fullRefresh();
 
       expect(result.success).toBe(false);
@@ -302,14 +311,26 @@ describe("EpaperService", () => {
     });
 
     it("should return error for sleep if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.sleep();
 
       expect(result.success).toBe(false);
     });
 
     it("should return error for wake if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.wake();
 
       expect(result.success).toBe(false);
@@ -341,17 +362,30 @@ describe("EpaperService", () => {
         expect(result.data.initialized).toBe(true);
         expect(result.data.busy).toBe(false);
         expect(result.data.sleeping).toBe(false);
-        // Expect 0: no logo during initialization
         expect(result.data.fullRefreshCount).toBe(0);
         expect(result.data.partialRefreshCount).toBe(0);
       }
     });
 
     it("should return error if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.getStatus();
 
       expect(result.success).toBe(false);
+    });
+
+    it("should return driver name as model", async () => {
+      const result = await epaperService.getStatus();
+
+      if (result.success) {
+        expect(result.data.model).toBe("mock_display");
+      }
     });
   });
 
@@ -376,8 +410,6 @@ describe("EpaperService", () => {
     });
 
     it("should timeout if display stays busy", async () => {
-      // This test would need to mock the busy state staying true
-      // For now, just test the success case
       const result = await epaperService.waitUntilReady(100);
       expect(result.success).toBe(true);
     }, 10000);
@@ -442,7 +474,13 @@ describe("EpaperService", () => {
     });
 
     it("should return error if not initialized", async () => {
-      const uninitializedService = new EpaperService(config);
+      const uninitializedDriver = new MockDisplayDriver(800, 480);
+      const uninitializedAdapter = new MockAdapter();
+      const uninitializedService = new EpaperService(
+        config,
+        uninitializedDriver,
+        uninitializedAdapter,
+      );
       const result = await uninitializedService.reset();
 
       expect(result.success).toBe(false);

@@ -10,13 +10,16 @@ import {
 } from "@core/types";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
-import * as imagemagick from "@utils/imagemagick";
+import { MockAdapter } from "./adapters/MockAdapter";
+import { MockDisplayDriver } from "./drivers/MockDisplayDriver";
 
 const logger = getLogger("MockEpaperService");
 
 /**
  * Mock E-Paper Service for development and testing
- * Simulates e-paper display operations without requiring actual hardware
+ *
+ * Simulates e-paper display operations without requiring actual hardware.
+ * Uses MockAdapter and MockDisplayDriver internally.
  *
  * Provides realistic mock behavior including:
  * - Display update simulation with delays
@@ -24,8 +27,11 @@ const logger = getLogger("MockEpaperService");
  * - Sleep/wake state tracking
  * - Refresh count tracking (full vs partial)
  * - Bitmap validation
+ * - PNG conversion for web UI viewing
  */
 export class MockEpaperService implements IEpaperService {
+  private readonly adapter: MockAdapter;
+  private readonly driver: MockDisplayDriver;
   private initialized = false;
   private sleeping = false;
   private busy = false;
@@ -33,13 +39,14 @@ export class MockEpaperService implements IEpaperService {
   private partialRefreshCount = 0;
   private lastUpdate: Date | null = null;
   private rotation: 0 | 90 | 180 | 270;
-  private lastBitmap: Bitmap1Bit | null = null;
-  private lastBitmapPng: Buffer | null = null;
 
   constructor(private readonly config: EpaperConfig) {
     this.rotation = config.rotation;
+    this.adapter = new MockAdapter();
+    this.driver = new MockDisplayDriver(config.width, config.height);
+
     logger.info("Mock E-Paper Service created (for development/testing)");
-    logger.info(`Mock E-Paper: Display model ${this.getDisplayModel()}`);
+    logger.info(`Mock E-Paper: Display size ${config.width}x${config.height}`);
   }
 
   async initialize(): Promise<Result<void>> {
@@ -47,18 +54,38 @@ export class MockEpaperService implements IEpaperService {
       return success(undefined);
     }
 
-    logger.info(
-      `Initializing Mock E-Paper Service (${this.getDisplayModel()})...`,
-    );
-    await this.delay(100);
+    logger.info("Initializing Mock E-Paper Service...");
 
-    this.initialized = true;
-    this.sleeping = false;
-    this.busy = false;
+    try {
+      // Initialize adapter with config
+      this.adapter.init(
+        {
+          reset: this.config.pins.reset,
+          dc: this.config.pins.dc,
+          busy: this.config.pins.busy,
+          power: this.config.pins.power,
+        },
+        this.config.spi || { bus: 0, device: 0, speed: 256000 },
+      );
 
-    logger.info("Mock E-Paper Service initialized");
-    return success(undefined);
+      // Initialize driver with adapter
+      await this.driver.init(this.adapter);
+
+      this.initialized = true;
+      this.sleeping = false;
+      this.busy = false;
+
+      logger.info("Mock E-Paper Service initialized");
+      return success(undefined);
+    } catch (error) {
+      logger.error("Failed to initialize Mock E-Paper Service:", error);
+      if (error instanceof Error) {
+        return failure(DisplayError.initFailed(error.message, error));
+      }
+      return failure(DisplayError.initFailed("Unknown error"));
+    }
   }
+
   async displayLogo(
     mode: DisplayUpdateMode = DisplayUpdateMode.FULL,
   ): Promise<Result<void>> {
@@ -103,6 +130,9 @@ export class MockEpaperService implements IEpaperService {
       logger.info("Mock E-Paper: Putting display to sleep before disposing");
       await this.sleep();
     }
+
+    await this.driver.dispose();
+    this.adapter.dispose();
 
     this.initialized = false;
     this.busy = false;
@@ -157,9 +187,10 @@ export class MockEpaperService implements IEpaperService {
         `Mock E-Paper: Displaying bitmap (${bitmap.width}x${bitmap.height}, ${bitmap.data.length} bytes, ${updateMode} mode)`,
       );
 
-      // Simulate display update delay
-      const updateDelay = updateMode === DisplayUpdateMode.FULL ? 2000 : 500;
-      await this.delay(updateDelay);
+      // Use driver to display
+      const buffer = Buffer.from(bitmap.data);
+      const useFastMode = updateMode !== DisplayUpdateMode.FULL;
+      await this.driver.display(buffer, useFastMode);
 
       // Update statistics
       if (updateMode === DisplayUpdateMode.FULL) {
@@ -172,10 +203,6 @@ export class MockEpaperService implements IEpaperService {
       logger.info(
         `Mock E-Paper: Bitmap displayed successfully (${updateMode} update)`,
       );
-
-      // Store the bitmap and convert to PNG for mock display viewing
-      this.lastBitmap = bitmap;
-      await this.convertBitmapToPng(bitmap);
 
       return success(undefined);
     } catch (error) {
@@ -200,20 +227,17 @@ export class MockEpaperService implements IEpaperService {
     logger.info(`Mock E-Paper: Loading and displaying image from: ${filePath}`);
 
     try {
-      // Simulate file loading delay
-      await this.delay(200);
-
-      // Create a mock bitmap
-      const mockBitmap: Bitmap1Bit = {
+      // For mock service, create a simulated bitmap instead of loading the file
+      // This allows testing without requiring actual image files
+      const dataSize = Math.ceil((this.config.width * this.config.height) / 8);
+      const bitmap: Bitmap1Bit = {
         width: this.config.width,
         height: this.config.height,
-        data: new Uint8Array(
-          Math.ceil((this.config.width * this.config.height) / 8),
-        ),
+        data: new Uint8Array(dataSize),
       };
+      logger.info(`Mock E-Paper: Created simulated ${dataSize} byte bitmap`);
 
-      // Display the mock bitmap
-      return await this.displayBitmap(mockBitmap, mode);
+      return await this.displayBitmap(bitmap, mode);
     } catch (error) {
       logger.error(
         `Mock E-Paper: Failed to load and display image from ${filePath}:`,
@@ -236,21 +260,7 @@ export class MockEpaperService implements IEpaperService {
     try {
       this.busy = true;
 
-      // Simulate clear operation delay
-      await this.delay(2000);
-
-      // Create a white bitmap (1 = white, 0 = black in packed bitmap format)
-      const whiteBitmap: Bitmap1Bit = {
-        width: this.config.width,
-        height: this.config.height,
-        data: new Uint8Array(
-          Math.ceil((this.config.width * this.config.height) / 8),
-        ).fill(0xff), // All ones = all white
-      };
-
-      // Store and convert to PNG so mock display shows white screen
-      this.lastBitmap = whiteBitmap;
-      await this.convertBitmapToPng(whiteBitmap);
+      await this.driver.clear(false);
 
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
@@ -278,8 +288,7 @@ export class MockEpaperService implements IEpaperService {
     try {
       this.busy = true;
 
-      // Simulate full refresh delay
-      await this.delay(2000);
+      await this.driver.clear(false);
 
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
@@ -320,7 +329,7 @@ export class MockEpaperService implements IEpaperService {
     }
 
     logger.info("Mock E-Paper: Putting display to sleep...");
-    await this.delay(100);
+    await this.driver.sleep();
 
     this.sleeping = true;
     this.busy = false;
@@ -340,7 +349,7 @@ export class MockEpaperService implements IEpaperService {
     }
 
     logger.info("Mock E-Paper: Waking display...");
-    await this.delay(100);
+    await this.driver.wake();
 
     this.sleeping = false;
 
@@ -423,7 +432,8 @@ export class MockEpaperService implements IEpaperService {
     }
 
     logger.info("Mock E-Paper: Resetting display...");
-    await this.delay(100);
+    await this.adapter.reset();
+    await this.driver.wake();
 
     this.busy = false;
     this.sleeping = false;
@@ -438,43 +448,14 @@ export class MockEpaperService implements IEpaperService {
    * @returns PNG buffer or null if no image has been displayed
    */
   getMockDisplayImage(): Buffer | null {
-    return this.lastBitmapPng;
+    return this.driver.getDisplayPng();
   }
 
   /**
    * Check if a mock display image is available
    */
   hasMockDisplayImage(): boolean {
-    return this.lastBitmapPng !== null;
-  }
-
-  /**
-   * Convert 1-bit bitmap to PNG for viewing in web UI
-   * The bitmap is packed 1 bit per pixel (MSB first)
-   */
-  private async convertBitmapToPng(bitmap: Bitmap1Bit): Promise<void> {
-    try {
-      logger.info(
-        `Mock E-Paper: Converting ${bitmap.width}x${bitmap.height} bitmap to PNG using ImageMagick...`,
-      );
-
-      // Convert packed bitmap to PNG using native ImageMagick
-      this.lastBitmapPng = await imagemagick.packedBitmapToPng(
-        bitmap.data,
-        bitmap.width,
-        bitmap.height,
-      );
-
-      logger.info(
-        `Mock E-Paper: PNG created (${this.lastBitmapPng.length} bytes)`,
-      );
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(
-        `Mock E-Paper: Failed to convert bitmap to PNG: ${errorMsg}`,
-      );
-      this.lastBitmapPng = null;
-    }
+    return this.driver.hasDisplayContent();
   }
 
   /**
@@ -484,7 +465,7 @@ export class MockEpaperService implements IEpaperService {
     if (this.config.model) {
       return this.config.model;
     }
-    return `${this.config.width}×${this.config.height}`;
+    return `Mock ${this.config.width}×${this.config.height}`;
   }
 
   /**

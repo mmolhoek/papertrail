@@ -1,4 +1,10 @@
 import { IEpaperService } from "@core/interfaces";
+import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
+import {
+  IHardwareAdapter,
+  PinConfig,
+  SPIConfig,
+} from "@core/interfaces/IHardwareAdapter";
 import {
   Result,
   Bitmap1Bit,
@@ -7,10 +13,9 @@ import {
   DisplayUpdateMode,
   success,
   failure,
-} from "../../core/types";
-import { DisplayError, DisplayErrorCode } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
-import { EPD } from "./EPD";
+} from "@core/types";
+import { DisplayError, DisplayErrorCode } from "@core/errors";
+import { getLogger } from "@utils/logger";
 import path from "path";
 import fs from "fs";
 
@@ -19,10 +24,11 @@ const logger = getLogger("EPaperService");
 /**
  * E-Paper Service Implementation
  *
- * Manages the e-paper display hardware using the EPD class.
+ * Orchestrates display operations using a pluggable driver and hardware adapter.
+ * This service maintains the same IEpaperService interface while delegating
+ * actual hardware operations to the driver/adapter combination.
  */
 export class EpaperService implements IEpaperService {
-  private epd: EPD | null = null;
   private isInitialized: boolean = false;
   private isSleeping: boolean = false;
   private busy: boolean = false;
@@ -31,8 +37,16 @@ export class EpaperService implements IEpaperService {
   private lastUpdate: Date | null = null;
   private rotation: 0 | 90 | 180 | 270;
 
-  constructor(private readonly config: EpaperConfig) {
+  constructor(
+    private readonly config: EpaperConfig,
+    private readonly driver: IDisplayDriver,
+    private readonly adapter: IHardwareAdapter,
+  ) {
     this.rotation = config.rotation;
+    logger.info(`EPaperService created with driver: ${driver.name}`);
+    logger.info(
+      `  Display: ${driver.capabilities.width}x${driver.capabilities.height}, ${driver.capabilities.colorDepth}`,
+    );
   }
 
   /**
@@ -45,14 +59,24 @@ export class EpaperService implements IEpaperService {
     }
 
     try {
-      // Create EPD instance with config
-      this.epd = new EPD({
-        width: this.config.width,
-        height: this.config.height,
-      });
+      // Initialize hardware adapter
+      const pins: PinConfig = {
+        reset: this.config.pins.reset,
+        dc: this.config.pins.dc,
+        busy: this.config.pins.busy,
+        power: this.config.pins.power,
+      };
 
-      // Initialize the display
-      await this.epd.init();
+      const spi: SPIConfig = this.config.spi || {
+        bus: 0,
+        device: 0,
+        speed: 256000,
+      };
+
+      this.adapter.init(pins, spi);
+
+      // Initialize display driver
+      await this.driver.init(this.adapter);
 
       this.isInitialized = true;
       this.isSleeping = false;
@@ -61,13 +85,10 @@ export class EpaperService implements IEpaperService {
       // Wait a moment for hardware to stabilize after init
       await this.sleepDelay(100);
 
-      // Display startup logo
-      // await this.sendLogoToDisplay();
-
-      logger.info("Initializing e-paper display finished");
+      logger.info("E-paper display initialized successfully");
       return success(undefined);
     } catch (error) {
-      logger.error("Initializing e-paper display failed");
+      logger.error("Initializing e-paper display failed:", error);
       if (error instanceof Error) {
         return failure(DisplayError.initFailed(error.message, error));
       }
@@ -85,7 +106,7 @@ export class EpaperService implements IEpaperService {
     try {
       logger.info("Loading startup logo...");
 
-      // Construct path to logo file (works in both dev and production)
+      // Construct path to logo file
       const logoPath = path.join(
         process.cwd(),
         "onboarding-screens",
@@ -99,29 +120,24 @@ export class EpaperService implements IEpaperService {
         );
         return success(undefined);
       }
-      logger.info("  Logo file exists");
 
-      if (!this.epd) {
-        logger.error("EPD not initialized - cannot display logo");
+      if (!this.isInitialized) {
+        logger.error("Display not initialized - cannot display logo");
         return failure(DisplayError.notInitialized());
       }
-      logger.info("  EPD is initialized");
 
-      // Use EPD's loadImageInBuffer method which handles conversion properly
+      // Load image using driver
       logger.info(`Loading image from ${logoPath}...`);
-      const imageBuffer = await this.epd.loadImageInBuffer(logoPath);
+      const imageBuffer = await this.driver.loadImage(logoPath);
       logger.info(
         `Image loaded successfully, buffer size: ${imageBuffer.length} bytes`,
       );
 
       const logoBitmap: Bitmap1Bit = {
-        width: this.config.width,
-        height: this.config.height,
+        width: this.driver.capabilities.width,
+        height: this.driver.capabilities.height,
         data: imageBuffer,
       };
-      logger.info(
-        `  Bitmap dimensions: ${logoBitmap.width}x${logoBitmap.height}`,
-      );
 
       // Display the logo using full update mode
       logger.info("Sending logo bitmap to display (FULL update mode)...");
@@ -136,7 +152,6 @@ export class EpaperService implements IEpaperService {
       return result;
     } catch (error) {
       logger.error("Error loading or displaying startup logo:", error);
-      // Don't throw - logo display failure shouldn't prevent initialization
       return success(undefined);
     }
   }
@@ -149,7 +164,8 @@ export class EpaperService implements IEpaperService {
     mode: DisplayUpdateMode = DisplayUpdateMode.FULL,
   ): Promise<Result<void>> {
     logger.info(`Displaying bitmap on e-paper: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
@@ -170,14 +186,18 @@ export class EpaperService implements IEpaperService {
       return failure(DisplayError.displayBusy());
     }
 
-    // Check hardware busy state and wait if necessary
-    // This prevents lgpio race conditions that can freeze Node.js
-    if (this.epd.isHardwareBusy()) {
+    // Check hardware busy state
+    if (!this.driver.isReady()) {
       logger.info(
         "Hardware display is busy, waiting for it to become ready...",
       );
-      await this.epd.waitForHardwareReady(5000);
-      // Re-check after waiting in case another operation started
+      try {
+        await this.driver.waitUntilReady(5000);
+      } catch {
+        logger.error("Display busy timeout");
+        return failure(DisplayError.displayBusy());
+      }
+
       if (this.busy) {
         logger.error("Display became busy while waiting for hardware");
         return failure(DisplayError.displayBusy());
@@ -185,18 +205,11 @@ export class EpaperService implements IEpaperService {
     }
 
     // Validate bitmap dimensions
-    if (
-      bitmap.width !== this.config.width ||
-      bitmap.height !== this.config.height
-    ) {
+    const { width, height } = this.driver.capabilities;
+    if (bitmap.width !== width || bitmap.height !== height) {
       logger.error("Bitmap size mismatch");
       return failure(
-        DisplayError.sizeMismatch(
-          bitmap.width,
-          bitmap.height,
-          this.config.width,
-          this.config.height,
-        ),
+        DisplayError.sizeMismatch(bitmap.width, bitmap.height, width, height),
       );
     }
 
@@ -214,8 +227,9 @@ export class EpaperService implements IEpaperService {
       const useFastMode = updateMode !== DisplayUpdateMode.FULL;
 
       // Send bitmap to display
-      await this.epd.display(buffer, useFastMode);
+      await this.driver.display(buffer, useFastMode);
       logger.info(`Bitmap displayed using ${updateMode} update`);
+
       // Update statistics
       if (updateMode === DisplayUpdateMode.FULL) {
         this.fullRefreshCount++;
@@ -245,13 +259,12 @@ export class EpaperService implements IEpaperService {
   ): Promise<Result<void>> {
     logger.info(`Loading and displaying image from: ${filePath}`);
 
-    if (!this.isInitialized || !this.epd) {
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     try {
-      // Check if file exists
       if (!fs.existsSync(filePath)) {
         logger.error(`Image file not found: ${filePath}`);
         return failure(
@@ -263,20 +276,18 @@ export class EpaperService implements IEpaperService {
         );
       }
 
-      // Use EPD's loadImageInBuffer method which handles BMP conversion
-      const imageBuffer = await this.epd.loadImageInBuffer(filePath);
+      // Load image using driver
+      const imageBuffer = await this.driver.loadImage(filePath);
       logger.info(
         `Image loaded successfully, buffer size: ${imageBuffer.length} bytes`,
       );
 
-      // Create bitmap object
       const bitmap: Bitmap1Bit = {
-        width: this.config.width,
-        height: this.config.height,
+        width: this.driver.capabilities.width,
+        height: this.driver.capabilities.height,
         data: imageBuffer,
       };
 
-      // Display the bitmap
       return await this.displayBitmap(bitmap, mode);
     } catch (error) {
       logger.error(`Failed to load and display image from ${filePath}:`, error);
@@ -292,14 +303,15 @@ export class EpaperService implements IEpaperService {
    */
   async clear(): Promise<Result<void>> {
     logger.info(`Clearing e-paper display: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     try {
       this.busy = true;
-      await this.epd.clear(false);
+      await this.driver.clear(false);
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
       logger.info("E-paper display cleared");
@@ -322,17 +334,15 @@ export class EpaperService implements IEpaperService {
     logger.info(
       `Performing full refresh on e-paper: ${this.getDisplayModel()}`,
     );
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     try {
       this.busy = true;
-
-      // Full refresh using slow mode
-      await this.epd.clear(false);
-
+      await this.driver.clear(false);
       this.fullRefreshCount++;
       this.lastUpdate = new Date();
       logger.info("Full refresh completed");
@@ -365,7 +375,8 @@ export class EpaperService implements IEpaperService {
    */
   async sleep(): Promise<Result<void>> {
     logger.info(`Putting e-paper display to sleep: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
@@ -376,10 +387,9 @@ export class EpaperService implements IEpaperService {
     }
 
     try {
-      await this.epd.sleep();
+      await this.driver.sleep();
       this.isSleeping = true;
       this.busy = false;
-
       logger.info("E-paper display is now sleeping");
       return success(undefined);
     } catch (error) {
@@ -408,7 +418,8 @@ export class EpaperService implements IEpaperService {
    */
   async wake(): Promise<Result<void>> {
     logger.info(`Waking e-paper display: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
@@ -419,8 +430,7 @@ export class EpaperService implements IEpaperService {
     }
 
     try {
-      // Reinitialize the display to wake it up
-      await this.epd.init();
+      await this.driver.wake();
       this.isSleeping = false;
       logger.info("E-paper display is now awake");
       return success(undefined);
@@ -450,6 +460,7 @@ export class EpaperService implements IEpaperService {
    */
   async getStatus(): Promise<Result<EpaperStatus>> {
     logger.info(`Getting e-paper display status: ${this.getDisplayModel()}`);
+
     if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
@@ -460,45 +471,37 @@ export class EpaperService implements IEpaperService {
       busy: this.busy,
       sleeping: this.isSleeping,
       model: this.getDisplayModel(),
-      width: this.config.width,
-      height: this.config.height,
+      width: this.driver.capabilities.width,
+      height: this.driver.capabilities.height,
       lastUpdate: this.lastUpdate || undefined,
       fullRefreshCount: this.fullRefreshCount,
       partialRefreshCount: this.partialRefreshCount,
     };
+
     logger.info("E-paper display status retrieved", status);
     return success(status);
   }
 
   /**
    * Get the display model name
-   * Uses config.model if provided, otherwise detects based on dimensions
    */
   private getDisplayModel(): string {
-    // If model is explicitly set in config, use that
     if (this.config.model) {
       return this.config.model;
     }
-
-    // Otherwise, detect based on dimensions
-    const { width, height } = this.config;
-
-    return `${width}×${height}`;
+    return this.driver.name;
   }
 
   /**
    * Check if the display is currently busy
-   * Checks both software flag AND hardware GPIO state
    */
   isBusy(): boolean {
-    // Check software flag first
     if (this.busy) {
       logger.info("E-paper display is busy (software flag)");
       return true;
     }
-    // Also check hardware busy state to prevent lgpio race conditions
-    if (this.epd?.isHardwareBusy()) {
-      logger.info("E-paper display is busy (hardware GPIO)");
+    if (!this.driver.isReady()) {
+      logger.info("E-paper display is busy (hardware)");
       return true;
     }
     return false;
@@ -511,6 +514,7 @@ export class EpaperService implements IEpaperService {
     logger.info(
       `Waiting for e-paper display to become ready: ${this.getDisplayModel()}`,
     );
+
     if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
@@ -526,6 +530,7 @@ export class EpaperService implements IEpaperService {
       logger.error("Timeout waiting for display to become ready");
       return failure(DisplayError.timeout("waitUntilReady", timeoutMs));
     }
+
     logger.info("E-paper display is now ready");
     return success(undefined);
   }
@@ -545,28 +550,20 @@ export class EpaperService implements IEpaperService {
    * Get display dimensions
    */
   getDimensions(): { width: number; height: number } {
-    logger.info("Getting e-paper display dimensions");
+    const { width, height } = this.driver.capabilities;
+
     // Account for rotation
     if (this.rotation === 90 || this.rotation === 270) {
       logger.info(
         "Display is rotated, swapping width and height",
-        this.config.width,
-        this.config.height,
+        width,
+        height,
       );
-      return {
-        width: this.config.height,
-        height: this.config.width,
-      };
+      return { width: height, height: width };
     }
-    logger.info(
-      "Display is not rotated, returning original dimensions",
-      this.config.width,
-      this.config.height,
-    );
-    return {
-      width: this.config.width,
-      height: this.config.height,
-    };
+
+    logger.info("Display dimensions", width, height);
+    return { width, height };
   }
 
   /**
@@ -574,14 +571,16 @@ export class EpaperService implements IEpaperService {
    */
   async reset(): Promise<Result<void>> {
     logger.info(`Resetting e-paper display: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.error("Display not initialized");
       return failure(DisplayError.notInitialized());
     }
 
     try {
-      // Reinitialize the display
-      await this.epd.init();
+      // Reset via adapter and reinitialize driver
+      await this.adapter.reset();
+      await this.driver.wake();
 
       this.busy = false;
       this.isSleeping = false;
@@ -613,7 +612,8 @@ export class EpaperService implements IEpaperService {
    */
   async dispose(): Promise<void> {
     logger.info(`Disposing e-paper service: ${this.getDisplayModel()}`);
-    if (!this.isInitialized || !this.epd) {
+
+    if (!this.isInitialized) {
       logger.info("E-paper service already disposed");
       return;
     }
@@ -625,12 +625,12 @@ export class EpaperService implements IEpaperService {
         await this.sleep();
       }
 
-      // Cleanup hardware resources
-      this.epd.cleanup();
+      // Dispose driver and adapter
+      await this.driver.dispose();
+      this.adapter.dispose();
 
       this.isInitialized = false;
       this.busy = false;
-      this.epd = null;
       logger.info("E-paper service disposed successfully");
     } catch (error) {
       logger.error("Error disposing e-paper service:", error);
@@ -639,23 +639,22 @@ export class EpaperService implements IEpaperService {
 
   /**
    * Determine whether to use full or partial update
-   * Full refresh every 10 updates to prevent ghosting
    */
   private determineUpdateMode(): DisplayUpdateMode {
     logger.info("Determining display update mode");
     const totalUpdates = this.fullRefreshCount + this.partialRefreshCount;
 
-    // Do a full refresh every 10 updates, but default to FULL for the first update
     if (totalUpdates > 0 && totalUpdates % 10 === 0) {
       logger.info("Choosing FULL update mode to prevent ghosting");
       return DisplayUpdateMode.FULL;
     }
+
     logger.info("Choosing PARTIAL update mode");
     return DisplayUpdateMode.PARTIAL;
   }
 
   /**
-   * Helper method for async sleep (renamed to avoid conflict with sleep())
+   * Helper method for async sleep
    */
   private sleepDelay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
