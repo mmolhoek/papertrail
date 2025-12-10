@@ -1209,7 +1209,8 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render dual turn screen with current turn on left, "THEN", and next turn on right
+   * Render dual turn screen with current turn on left, next turn preview on right
+   * Layout: [Current arrow + distance] [Instruction/Street centered] [THEN + Next arrow + distance]
    */
   private renderDualTurnScreen(
     bitmap: Bitmap1Bit,
@@ -1228,15 +1229,14 @@ export class SVGService implements ISVGService {
       streetName?: string;
     },
   ): void {
-    // Layout: 50/50 split - left half for current turn, right half for next turn
-    // "THEN" text displayed in the center between the two turns
-    const leftCenterX = Math.floor(width * 0.25); // Center of left half
-    const rightCenterX = Math.floor(width * 0.75); // Center of right half
+    // Layout: left side for current turn arrow/distance, center for instruction/street, right for next turn preview
+    const leftCenterX = Math.floor(width * 0.25); // Center of left quarter
+    const rightCenterX = Math.floor(width * 0.75); // Center of right quarter
     const centerX = Math.floor(width / 2);
 
     // Arrow position - upper portion of screen
-    const arrowY = Math.floor(height * 0.25);
-    const arrowSize = 80; // Smaller arrows for dual layout
+    const arrowY = Math.floor(height / 3);
+    const arrowSize = 100; // Good size for arrows
 
     // Draw current turn arrow (left side)
     this.drawManeuverArrow(
@@ -1256,20 +1256,20 @@ export class SVGService implements ISVGService {
       arrowSize,
     );
 
-    // Draw "THEN" text in the middle
-    const thenY = Math.floor(height * 0.25);
+    // Draw "THEN" text above the right arrow
+    const thenY = Math.floor(height * 0.08);
     const thenScale = 3;
     const thenText = "THEN";
     const thenWidth = calculateBitmapTextWidth(thenText, thenScale);
-    renderBitmapText(bitmap, thenText, centerX - thenWidth / 2, thenY, {
+    renderBitmapText(bitmap, thenText, rightCenterX - thenWidth / 2, thenY, {
       scale: thenScale,
       bold: true,
     });
 
     // Draw distance text for current turn (left side)
     const distanceText = this.formatDistanceForDisplay(currentTurn.distance);
-    const distanceY = Math.floor(height * 0.45);
-    const distanceScale = 5; // Slightly smaller for dual layout
+    const distanceY = Math.floor(height / 2) + 20;
+    const distanceScale = 7; // Same large size as single turn screen
     const distanceWidth = calculateBitmapTextWidth(distanceText, distanceScale);
     renderBitmapText(
       bitmap,
@@ -1282,11 +1282,12 @@ export class SVGService implements ISVGService {
       },
     );
 
-    // Draw distance text for next turn (right side) - showing distance of that leg
+    // Draw distance text for next turn (right side)
     const nextDistanceText = this.formatDistanceForDisplay(nextTurn.distance);
+    const nextDistanceScale = 5; // Slightly smaller for next turn
     const nextDistanceWidth = calculateBitmapTextWidth(
       nextDistanceText,
-      distanceScale,
+      nextDistanceScale,
     );
     renderBitmapText(
       bitmap,
@@ -1294,73 +1295,37 @@ export class SVGService implements ISVGService {
       rightCenterX - nextDistanceWidth / 2,
       distanceY,
       {
-        scale: distanceScale,
+        scale: nextDistanceScale,
         bold: true,
       },
     );
 
-    // Draw instruction text for current turn (left side)
-    const instructionY = Math.floor(height * 0.65);
-    const instructionScale = 2;
-    const currentInstructionText = currentTurn.instruction.toUpperCase();
-    const currentInstructionWidth = calculateBitmapTextWidth(
-      currentInstructionText,
+    // Draw instruction text centered (same size as single turn screen)
+    const instructionY = Math.floor(height * 0.7);
+    const instructionScale = 3; // Same as single turn screen
+    const instructionText = currentTurn.instruction.toUpperCase();
+    const instructionWidth = calculateBitmapTextWidth(
+      instructionText,
       instructionScale,
     );
     renderBitmapText(
       bitmap,
-      currentInstructionText,
-      leftCenterX - currentInstructionWidth / 2,
+      instructionText,
+      centerX - instructionWidth / 2,
       instructionY,
       { scale: instructionScale, bold: true },
     );
 
-    // Draw instruction text for next turn (right side)
-    const nextInstructionText = nextTurn.instruction.toUpperCase();
-    const nextInstructionWidth = calculateBitmapTextWidth(
-      nextInstructionText,
-      instructionScale,
-    );
-    renderBitmapText(
-      bitmap,
-      nextInstructionText,
-      rightCenterX - nextInstructionWidth / 2,
-      instructionY,
-      { scale: instructionScale, bold: true },
-    );
-
-    // Draw street names if provided
-    const streetY = Math.floor(height * 0.78);
-    const streetScale = 2;
-
+    // Draw street name centered if provided (same size as single turn screen)
     if (currentTurn.streetName) {
+      const streetY = Math.floor(height * 0.8);
+      const streetScale = 4; // Same as single turn screen
       const streetText = currentTurn.streetName.toUpperCase();
       const streetWidth = calculateBitmapTextWidth(streetText, streetScale);
-      renderBitmapText(
-        bitmap,
-        streetText,
-        leftCenterX - streetWidth / 2,
-        streetY,
-        {
-          scale: streetScale,
-          bold: true,
-        },
-      );
-    }
-
-    if (nextTurn.streetName) {
-      const streetText = nextTurn.streetName.toUpperCase();
-      const streetWidth = calculateBitmapTextWidth(streetText, streetScale);
-      renderBitmapText(
-        bitmap,
-        streetText,
-        rightCenterX - streetWidth / 2,
-        streetY,
-        {
-          scale: streetScale,
-          bold: true,
-        },
-      );
+      renderBitmapText(bitmap, streetText, centerX - streetWidth / 2, streetY, {
+        scale: streetScale,
+        bold: true,
+      });
     }
   }
 
