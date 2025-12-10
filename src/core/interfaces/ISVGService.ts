@@ -26,6 +26,26 @@ export interface FollowTrackInfo {
   distanceRemaining?: number;
   /** Estimated time remaining in seconds */
   estimatedTimeRemaining?: number;
+  /** Next turn information (calculated from track coordinates) */
+  nextTurn?: {
+    /** Maneuver type for the next turn */
+    maneuverType: ManeuverType;
+    /** Distance to the next turn in meters */
+    distanceToTurn: number;
+    /** Turn instruction text */
+    instruction: string;
+    /** Bearing after the turn in degrees */
+    bearingAfter?: number;
+  };
+  /** Turn after next (for "then turn..." display) */
+  turnAfterNext?: {
+    /** Maneuver type */
+    maneuverType: ManeuverType;
+    /** Distance from next turn to this turn in meters */
+    distanceFromPrevious: number;
+    /** Turn instruction text */
+    instruction: string;
+  };
 }
 
 /**

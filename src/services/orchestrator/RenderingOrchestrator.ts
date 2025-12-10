@@ -33,6 +33,7 @@ import {
 } from "@core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { TrackTurnAnalyzer, TrackTurn } from "@services/map/TrackTurnAnalyzer";
 import * as os from "os";
 import * as path from "path";
 
@@ -101,6 +102,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // setActiveGPX queuing (ensures only the last selected track is loaded)
   private isSetActiveGPXInProgress: boolean = false;
   private pendingActiveGPXPath: string | null = null;
+
+  // Track turn analysis for turn-by-turn navigation on GPX tracks
+  private trackTurnAnalyzer: TrackTurnAnalyzer = new TrackTurnAnalyzer();
+  private cachedTrackTurns: TrackTurn[] = [];
+  private cachedTrackPath: string | null = null;
 
   constructor(
     private readonly gpsService: IGPSService,
@@ -1076,6 +1082,38 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         `Track progress: ${progress.toFixed(1)}%, ${(distanceTraveled / 1000).toFixed(2)}km traveled, ${(distanceRemaining / 1000).toFixed(2)}km remaining`,
       );
 
+      // Analyze turns from the track (cache for performance)
+      const gpxPath = this.configService.getActiveGPXPath();
+      if (gpxPath && gpxPath !== this.cachedTrackPath) {
+        logger.info("Analyzing track turns...");
+        this.cachedTrackTurns = this.trackTurnAnalyzer.analyzeTurns(track);
+        this.cachedTrackPath = gpxPath;
+        logger.info(`Detected ${this.cachedTrackTurns.length} turns in track`);
+      }
+
+      // Find the next upcoming turn based on current progress
+      const nextTurn = this.trackTurnAnalyzer.findNextTurn(
+        this.cachedTrackTurns,
+        distanceTraveled,
+      );
+      const turnAfterNext = this.trackTurnAnalyzer.findTurnAfterNext(
+        this.cachedTrackTurns,
+        distanceTraveled,
+      );
+
+      // Calculate distance to next turn
+      const distanceToNextTurn = nextTurn
+        ? nextTurn.distanceFromStart - distanceTraveled
+        : distanceRemaining;
+
+      if (nextTurn) {
+        logger.info(
+          `Next turn: ${nextTurn.maneuverType} in ${(distanceToNextTurn / 1000).toFixed(2)}km - "${nextTurn.instruction}"`,
+        );
+      } else {
+        logger.info("No upcoming turns, continue to destination");
+      }
+
       // Build info for the right panel
       const followTrackInfo: FollowTrackInfo = {
         speed: position.speed ? position.speed * 3.6 : 0, // Convert m/s to km/h
@@ -1084,6 +1122,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         progress: progress,
         distanceRemaining: distanceRemaining,
         estimatedTimeRemaining: estimatedTimeRemaining,
+        nextTurn: nextTurn
+          ? {
+              maneuverType: nextTurn.maneuverType,
+              distanceToTurn: distanceToNextTurn,
+              instruction: nextTurn.instruction,
+              bearingAfter: nextTurn.bearingAfter,
+            }
+          : undefined,
+        turnAfterNext: turnAfterNext
+          ? {
+              maneuverType: turnAfterNext.maneuverType,
+              distanceFromPrevious: turnAfterNext.distanceToNextTurn,
+              instruction: turnAfterNext.instruction,
+            }
+          : undefined,
       };
 
       logger.info(
@@ -1096,17 +1149,32 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
       let bitmapResult;
 
+      // Determine the maneuver to display
+      const displayManeuver = nextTurn?.maneuverType ?? ManeuverType.STRAIGHT;
+      const displayInstruction = nextTurn?.instruction ?? "Continue";
+      const displayDistance = distanceToNextTurn;
+
       if (activeScreen === ScreenType.TURN_BY_TURN) {
-        // Render turn-by-turn screen for track following
-        // Use bearing/direction info to create a "continue straight" style display
-        const instruction =
-          position.bearing !== undefined ? "CONTINUE" : "FOLLOW TRACK";
+        // Render turn-by-turn screen with real turn info from track analysis
+        const nextTurnInfo = turnAfterNext
+          ? {
+              maneuverType: turnAfterNext.maneuverType,
+              distance:
+                turnAfterNext.distanceFromStart -
+                (nextTurn?.distanceFromStart ?? 0),
+              instruction: turnAfterNext.instruction,
+              streetName: undefined,
+            }
+          : undefined;
+
         bitmapResult = await this.svgService.renderTurnScreen(
-          ManeuverType.STRAIGHT,
-          distanceRemaining,
-          instruction,
+          displayManeuver,
+          displayDistance,
+          displayInstruction,
           track.name || "Track",
           viewport,
+          nextTurnInfo,
+          progress,
         );
       } else {
         // Default: Render drive-style map screen with 70/30 split
@@ -1135,22 +1203,25 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           estimatedTime: 0,
         };
 
-        // Create a "continue straight" waypoint pointing to next track point
+        // Create waypoint with real turn info from track analysis
         const nextWaypoint: DriveWaypoint = {
-          latitude: trackGeometry[1]?.[0] || position.latitude,
-          longitude: trackGeometry[1]?.[1] || position.longitude,
-          instruction: "FOLLOW TRACK",
-          maneuverType: ManeuverType.STRAIGHT,
-          distance: distanceRemaining,
+          latitude:
+            nextTurn?.latitude ?? trackGeometry[1]?.[0] ?? position.latitude,
+          longitude:
+            nextTurn?.longitude ?? trackGeometry[1]?.[1] ?? position.longitude,
+          instruction: displayInstruction,
+          maneuverType: displayManeuver,
+          distance: displayDistance,
+          bearingAfter: nextTurn?.bearingAfter,
           index: 0,
         };
 
         const driveInfo: DriveNavigationInfo = {
           speed: followTrackInfo.speed,
           satellites: followTrackInfo.satellites,
-          nextManeuver: ManeuverType.STRAIGHT,
-          distanceToTurn: distanceRemaining,
-          instruction: "FOLLOW TRACK",
+          nextManeuver: displayManeuver,
+          distanceToTurn: displayDistance,
+          instruction: displayInstruction,
           streetName: track.name,
           distanceRemaining: distanceRemaining,
           progress: followTrackInfo.progress || 0,
@@ -1248,6 +1319,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     this.isSetActiveGPXInProgress = true;
     logger.info(`Setting active GPX file: ${filePath}`);
 
+    // Clear turn analysis cache for the new track
+    this.cachedTrackTurns = [];
+    this.cachedTrackPath = null;
+
     try {
       // Validate the GPX file
       logger.info("Validating GPX file...");
@@ -1318,6 +1393,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   async clearActiveGPX(): Promise<Result<void>> {
     logger.info("Clearing active GPX file");
     this.configService.setActiveGPXPath(null);
+
+    // Clear turn analysis cache
+    this.cachedTrackTurns = [];
+    this.cachedTrackPath = null;
+
     await this.configService.save();
     logger.info("✓ Active GPX cleared");
     return success(undefined);
