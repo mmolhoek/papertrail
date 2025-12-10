@@ -1027,24 +1027,17 @@ class PapertrailClient {
     }
   }
 
-  // Update simulation panel based on whether a track is loaded
+  // Update simulation controls visibility based on whether a track is loaded
   updateSimulationPanel(hasActiveTrack) {
     const simulationControls = document.getElementById("simulation-controls");
-    const simulationMessage = document.getElementById("simulation-no-track");
 
     if (hasActiveTrack) {
       if (simulationControls) {
         simulationControls.classList.remove("hidden");
       }
-      if (simulationMessage) {
-        simulationMessage.classList.add("hidden");
-      }
     } else {
       if (simulationControls) {
         simulationControls.classList.add("hidden");
-      }
-      if (simulationMessage) {
-        simulationMessage.classList.remove("hidden");
       }
     }
   }
