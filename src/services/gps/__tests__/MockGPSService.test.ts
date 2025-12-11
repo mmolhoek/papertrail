@@ -1,4 +1,4 @@
-import { MockGPSService } from "../MockGPSService";
+import { MockGPSService } from "@services/gps/MockGPSService";
 import { GPSFixQuality, GPSCoordinate } from "@core/types/GPSTypes";
 import { GPSError } from "@core/errors";
 

@@ -19,6 +19,23 @@ export default [
         ...globals.node,
       },
     },
+    rules: {
+      // Enforce path alias usage - disallow deep relative imports
+      // Allows: "./" and "../" for sibling/parent within same module
+      // Disallows: "../../" and deeper to force path alias usage
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/../../*"],
+              message:
+                "Use path aliases (@core/*, @services/*, @di/*, @web/*, @utils/*, @errors/*) instead of deep relative imports.",
+            },
+          ],
+        },
+      ],
+    },
   },
 
   // Frontend JavaScript (Browser)

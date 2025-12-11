@@ -1,6 +1,6 @@
-import { WebInterfaceService } from "../WebInterfaceService";
+import { WebInterfaceService } from "@services/web/WebInterfaceService";
 import { WebConfig } from "@core/types";
-import { WebError } from "core/errors";
+import { WebError } from "@core/errors";
 import http from "http";
 
 describe("WebInterfaceService", () => {

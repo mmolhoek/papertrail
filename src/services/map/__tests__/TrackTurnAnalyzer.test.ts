@@ -3,7 +3,7 @@ import {
   TrackTurn,
   TurnDetectionConfig,
   getTrackTurnAnalyzer,
-} from "../TrackTurnAnalyzer";
+} from "@services/map/TrackTurnAnalyzer";
 import { GPXTrack, ManeuverType } from "@core/types";
 
 describe("TrackTurnAnalyzer", () => {

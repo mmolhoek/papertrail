@@ -20,8 +20,8 @@ jest.mock("bmp-js", () => ({
   })),
 }));
 
-import { ServiceContainer } from "../../../src/di/ServiceContainer";
-import { IntegratedWebService } from "../../../src/web/IntegratedWebService";
+import { ServiceContainer } from "@di/ServiceContainer";
+import { IntegratedWebService } from "@web/IntegratedWebService";
 import {
   IRenderingOrchestrator,
   IGPSService,

@@ -1,6 +1,6 @@
-import { MapService } from "../MapService";
+import { MapService } from "@services/map/MapService";
 import { GPXTrack } from "@core/types";
-import { MapError } from "core/errors";
+import { MapError } from "@core/errors";
 import * as fs from "fs/promises";
 import * as path from "path";
 

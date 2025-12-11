@@ -1,4 +1,4 @@
-import { MockEpaperService } from "../MockEpaperService";
+import { MockEpaperService } from "@services/epaper/MockEpaperService";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { DisplayUpdateMode, Bitmap1Bit, EpaperConfig } from "@core/types";
 

@@ -1,4 +1,4 @@
-import { GPSService } from "../GPSService";
+import { GPSService } from "@services/gps/GPSService";
 import { GPSFixQuality } from "@core/types/GPSTypes";
 import { GPSError } from "@core/errors";
 

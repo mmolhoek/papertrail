@@ -1,4 +1,4 @@
-import { TextRendererService } from "../TextRendererService";
+import { TextRendererService } from "@services/textRenderer/TextRendererService";
 import { TextTemplate, TemplateVariables } from "@core/interfaces";
 
 describe("TextRendererService", () => {

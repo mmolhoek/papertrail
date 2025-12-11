@@ -1,4 +1,7 @@
-import { OrchestratorError, OrchestratorErrorCode } from "../OrchestratorError";
+import {
+  OrchestratorError,
+  OrchestratorErrorCode,
+} from "@errors/OrchestratorError";
 
 describe("OrchestratorError", () => {
   describe("constructor", () => {

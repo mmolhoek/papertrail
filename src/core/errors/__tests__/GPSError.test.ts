@@ -1,4 +1,4 @@
-import { GPSError, GPSErrorCode } from "../GPSError";
+import { GPSError, GPSErrorCode } from "@errors/GPSError";
 
 describe("GPSError", () => {
   describe("constructor", () => {

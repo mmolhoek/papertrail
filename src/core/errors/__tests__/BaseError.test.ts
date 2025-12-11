@@ -1,4 +1,4 @@
-import { BaseError } from "../BaseError";
+import { BaseError } from "@errors/BaseError";
 
 // Create a concrete implementation for testing
 class TestError extends BaseError {

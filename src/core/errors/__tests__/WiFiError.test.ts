@@ -1,4 +1,4 @@
-import { WiFiError, WiFiErrorCode } from "../WiFiError";
+import { WiFiError, WiFiErrorCode } from "@errors/WiFiError";
 
 describe("WiFiError", () => {
   describe("constructor", () => {

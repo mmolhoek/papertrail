@@ -1,4 +1,4 @@
-import { ConfigError, ConfigErrorCode } from "../ConfigError";
+import { ConfigError, ConfigErrorCode } from "@errors/ConfigError";
 
 describe("ConfigError", () => {
   describe("constructor", () => {

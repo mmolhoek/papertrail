@@ -10,6 +10,7 @@ export const moduleNameMapper = {
   "^@core/errors$": "<rootDir>/src/core/errors",
   "^@core/constants$": "<rootDir>/src/core/constants",
   "^@core/constants/(.*)$": "<rootDir>/src/core/constants/$1",
+  "^@errors/(.*)$": "<rootDir>/src/core/errors/$1",
   "^@services/(.*)$": "<rootDir>/src/services/$1",
   "^@di/(.*)$": "<rootDir>/src/di/$1",
   "^@web/(.*)$": "<rootDir>/src/web/$1",

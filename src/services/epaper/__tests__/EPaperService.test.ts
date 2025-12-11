@@ -5,9 +5,9 @@
  */
 
 import { DisplayError, DisplayErrorCode } from "@core/errors";
-import { EpaperService } from "../EPaperService";
-import { MockAdapter } from "../adapters/MockAdapter";
-import { MockDisplayDriver } from "../drivers/MockDisplayDriver";
+import { EpaperService } from "@services/epaper/EPaperService";
+import { MockAdapter } from "@services/epaper/adapters/MockAdapter";
+import { MockDisplayDriver } from "@services/epaper/drivers/MockDisplayDriver";
 import { DisplayUpdateMode, Bitmap1Bit, EpaperConfig } from "@core/types";
 
 describe("EpaperService", () => {

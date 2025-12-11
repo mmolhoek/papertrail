@@ -1,4 +1,4 @@
-import { WebError, WebErrorCode } from "../WebError";
+import { WebError, WebErrorCode } from "@errors/WebError";
 
 describe("WebError", () => {
   describe("constructor", () => {

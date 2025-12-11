@@ -1,4 +1,4 @@
-import { MapError, MapErrorCode } from "../MapError";
+import { MapError, MapErrorCode } from "@errors/MapError";
 
 describe("MapError", () => {
   describe("constructor", () => {

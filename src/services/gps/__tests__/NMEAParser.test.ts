@@ -1,4 +1,4 @@
-import { NMEAParser } from "../NMEAParser";
+import { NMEAParser } from "@services/gps/NMEAParser";
 import { GPSFixQuality } from "@core/types";
 
 describe("NMEAParser", () => {

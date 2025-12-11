@@ -1,4 +1,4 @@
-import { DisplayError, DisplayErrorCode } from "../DisplayError";
+import { DisplayError, DisplayErrorCode } from "@errors/DisplayError";
 
 describe("DisplayError", () => {
   describe("constructor", () => {

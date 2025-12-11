@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { RenderingOrchestrator } from "../../RenderingOrchestrator";
+import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
 import {
   success,
   GPSCoordinate,

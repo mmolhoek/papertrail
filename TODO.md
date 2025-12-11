@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 3.3 Standardize Test Imports
+**Next item:** 3.4 Add Input Validation Layer
 
 **Completed:**
 
@@ -207,13 +207,19 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `src/core/constants/index.ts` (6 lines) - Barrel export
 - `src/di/ServiceContainer.ts` (updated to use constants)
 
-### 3.3 Standardize Test Imports
+### 3.3 Standardize Test Imports ✓
 
-- [ ] Update `IntegrationTest.test.ts` to use path aliases instead of relative paths
-- [ ] Update all test files to use `@core/`, `@services/`, etc.
-- [ ] Add lint rule to enforce path alias usage
+- [x] Update `IntegrationTest.test.ts` to use path aliases instead of relative paths
+- [x] Update all test files to use `@core/`, `@services/`, etc.
+- [x] Add lint rule to enforce path alias usage
 
-**Files:** `src/__tests__/integration/IntegrationTest.test.ts:23-24`
+**Files updated:**
+- `src/__tests__/integration/IntegrationTest.test.ts`
+- All error test files (`src/core/errors/__tests__/*.test.ts`)
+- All service test files (`src/services/*/__tests__/*.test.ts`)
+- All orchestrator integration tests (`src/services/orchestrator/__tests__/integration/*.test.ts`)
+- `eslint.config.mjs` (added `no-restricted-imports` rule)
+- `jest.config.js` (added `@errors/*` path alias mapping)
 
 ### 3.4 Add Input Validation Layer
 

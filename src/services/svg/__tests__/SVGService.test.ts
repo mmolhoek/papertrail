@@ -1,4 +1,4 @@
-import { SVGService } from "../SVGService";
+import { SVGService } from "@services/svg/SVGService";
 import {
   GPXTrack,
   ViewportConfig,

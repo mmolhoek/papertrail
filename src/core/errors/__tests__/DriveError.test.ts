@@ -1,4 +1,4 @@
-import { DriveError, DriveErrorCode } from "../DriveError";
+import { DriveError, DriveErrorCode } from "@errors/DriveError";
 
 describe("DriveError", () => {
   describe("constructor", () => {

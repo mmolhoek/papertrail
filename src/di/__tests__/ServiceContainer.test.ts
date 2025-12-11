@@ -1,4 +1,4 @@
-import { ServiceContainer } from "../ServiceContainer";
+import { ServiceContainer } from "@di/ServiceContainer";
 
 describe("ServiceContainer", () => {
   beforeEach(() => {

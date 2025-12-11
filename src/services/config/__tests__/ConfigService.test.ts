@@ -1,4 +1,4 @@
-import { ConfigService } from "../ConfigService";
+import { ConfigService } from "@services/config/ConfigService";
 import * as fs from "fs/promises";
 
 // Mock fs module
