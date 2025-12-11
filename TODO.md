@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 5.2 Improve Error Messages
+**Next item:** 5.3 Add JSDoc to Large Services
 
 **Completed:**
 
@@ -296,12 +296,18 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `.husky/pre-push` - runs full test suite
 - `package.json` - lint-staged configuration
 
-### 5.2 Improve Error Messages
+### 5.2 Improve Error Messages ✓
 
-- [ ] Extract error message switch statements to mapping objects
-- [ ] Create `ErrorMessages.ts` constants file
-- [ ] Add i18n-ready structure for future localization
-- [ ] Ensure all errors have helpful user messages
+- [x] Extract error message switch statements to mapping objects
+- [x] Create `ErrorMessages.ts` constants file
+- [x] Add i18n-ready structure for future localization
+- [x] Ensure all errors have helpful user messages
+- [x] Add getUserMessage() to WiFiError (was previously missing)
+
+**Files:**
+- `src/core/errors/ErrorMessages.ts` (313 lines) - Centralized error messages
+- `src/core/errors/__tests__/ErrorMessages.test.ts` (407 lines) - 33 tests
+- Updated all error classes to use getUserMessage() from central registry
 
 ### 5.3 Add JSDoc to Large Services
 
