@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 1.2 Split SVGService
+**Next item:** 1.3 Split WebController
 
 **Completed:**
 
@@ -37,6 +37,11 @@
 - [x] DriveCoordinator extracted and integrated (2,002 → 1,681 lines)
 - [x] SimulationCoordinator extracted and integrated (1,681 → 1,586 lines)
 - [x] TrackDisplayCoordinator extracted and integrated (1,586 → 1,156 lines)
+- [x] BitmapUtils extracted (SVGService 2,348 → 2,189 lines)
+- [x] ProjectionService extracted (SVGService 2,189 → 2,154 lines)
+- [x] TrackRenderer extracted (SVGService 2,154 → 2,004 lines)
+- [x] UIRenderer extracted (SVGService 2,004 → 1,654 lines)
+- [x] ManeuverRenderer extracted (SVGService 1,654 → 1,246 lines)
 
 ---
 
@@ -65,16 +70,23 @@ These items address the largest technical debt and will make subsequent improvem
 - `src/services/orchestrator/SimulationCoordinator.ts` (215 lines)
 - `src/services/orchestrator/TrackDisplayCoordinator.ts` (685 lines)
 
-### 1.2 Split SVGService (2,348 lines)
+### 1.2 Split SVGService (started at 2,348 lines, now 1,246 lines) ✓
 
-- [ ] Extract bitmap manipulation into `BitmapUtils` class
-- [ ] Extract coordinate projection logic into `ProjectionService`
-- [ ] Extract track rendering into `TrackRenderer` class
-- [ ] Extract UI rendering (progress bars, info panels) into `UIRenderer` class
-- [ ] Extract maneuver icon rendering into `ManeuverRenderer` class
-- [ ] Keep `SVGService` as facade coordinating renderers
+- [x] Extract bitmap manipulation into `BitmapUtils` class
+- [x] Extract coordinate projection logic into `ProjectionService`
+- [x] Extract track rendering into `TrackRenderer` class
+- [x] Extract UI rendering (progress bars, info panels) into `UIRenderer` class
+- [x] Extract maneuver icon rendering into `ManeuverRenderer` class
+- [x] Keep `SVGService` as facade coordinating renderers
 
-**Files:** `src/services/svg/SVGService.ts`
+**Files:**
+
+- `src/services/svg/SVGService.ts` (1,246 lines - facade)
+- `src/services/svg/BitmapUtils.ts` (262 lines)
+- `src/services/svg/ProjectionService.ts` (173 lines)
+- `src/services/svg/TrackRenderer.ts` (303 lines)
+- `src/services/svg/UIRenderer.ts` (511 lines)
+- `src/services/svg/ManeuverRenderer.ts` (533 lines)
 
 ### 1.3 Split WebController (2,150 lines)
 
