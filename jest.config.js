@@ -25,8 +25,16 @@ export const collectCoverageFrom = [
   // Unused scaffold code
   "!src/utils/textRenderer.ts",
   "!src/core/interfaces/IProjectionInterface.ts",
-  // Hardware service requiring nmcli on Linux - tested via MockWiFiService
+  // Hardware services requiring nmcli on Linux - tested via MockWiFiService
   "!src/services/wifi/WiFiService.ts",
+  "!src/services/wifi/ConnectionManager.ts",
+  "!src/services/wifi/HotspotManager.ts",
+  "!src/services/wifi/NetworkScanner.ts",
+  "!src/services/wifi/WiFiStateMachine.ts",
+  // ImageMagick-dependent utilities - require ImageMagick CLI
+  "!src/utils/magickTextRenderer.ts",
+  "!src/utils/magickImageProcessor.ts",
+  "!src/utils/unifiedTextRenderer.ts",
   // Hardware services requiring physical devices - tested via mocks
   "!src/services/gps/GPSService.ts",
   "!src/services/epaper/EPD.ts",
@@ -34,13 +42,10 @@ export const collectCoverageFrom = [
 ];
 export const coverageThreshold = {
   global: {
-    // Note: Thresholds temporarily lowered after adding RenderingOrchestrator.ts to coverage
-    // (integration tests use mocks that don't increase line coverage)
-    // TODO: Raise thresholds back after completing 2.2 (hardware services tests)
-    branches: 52,
-    functions: 70,
-    lines: 65,
-    statements: 65,
+    branches: 58,
+    functions: 75,
+    lines: 73,
+    statements: 73,
   },
 };
 export const testTimeout = 10000;
