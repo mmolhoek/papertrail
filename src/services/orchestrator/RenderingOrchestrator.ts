@@ -39,6 +39,7 @@ import {
   ActiveGPXQueue,
 } from "./DisplayUpdateQueue";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
+import { GPSCoordinator } from "./GPSCoordinator";
 import * as path from "path";
 
 const logger = getLogger("RenderingOrchestrator");
@@ -52,19 +53,14 @@ const logger = getLogger("RenderingOrchestrator");
 export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isInitialized: boolean = false;
   private autoUpdateInterval: NodeJS.Timeout | null = null;
-  private gpsUpdateCallbacks: Array<(position: GPSCoordinate) => void> = [];
-  private gpsStatusCallbacks: Array<(status: GPSStatus) => void> = [];
   private displayUpdateCallbacks: Array<(success: boolean) => void> = [];
   private errorCallbacks: Array<(error: Error) => void> = [];
-  private gpsUnsubscribe: (() => void) | null = null;
-  private gpsStatusUnsubscribe: (() => void) | null = null;
+
+  // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
+  private gpsCoordinator: GPSCoordinator | null = null;
 
   // Onboarding coordinator (handles WiFi/onboarding screen flow)
   private onboardingCoordinator: OnboardingCoordinator | null = null;
-
-  // GPS position/status for display centering and drive navigation
-  private lastGPSPosition: GPSCoordinate | null = null;
-  private lastGPSStatus: GPSStatus | null = null;
 
   // Simulation support
   private simulationPositionUnsubscribe: (() => void) | null = null;
@@ -116,6 +112,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
     // Wire up error callback
     this.onboardingCoordinator.setErrorCallback((error) => {
+      this.notifyError(error);
+    });
+
+    // Initialize GPS coordinator
+    this.gpsCoordinator = new GPSCoordinator(
+      gpsService,
+      simulationService ?? null,
+      driveNavigationService ?? null,
+      this.onboardingCoordinator,
+    );
+    // Wire up error callback
+    this.gpsCoordinator.setErrorCallback((error) => {
       this.notifyError(error);
     });
   }
@@ -180,13 +188,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       await this.gpsService.startTracking();
       logger.info("✓ GPS tracking started");
 
-      // Subscribe to GPS position updates from the GPS service
-      logger.info("Subscribing to GPS position updates...");
-      this.subscribeToGPSUpdates();
-
-      // Subscribe to GPS status changes from the GPS service
-      logger.info("Subscribing to GPS status changes...");
-      this.subscribeToGPSStatusChanges();
+      // Subscribe to GPS position and status updates via GPS coordinator
+      if (this.gpsCoordinator) {
+        logger.info("Subscribing to GPS position updates...");
+        this.gpsCoordinator.subscribeToGPSUpdates();
+        logger.info("Subscribing to GPS status changes...");
+        this.gpsCoordinator.subscribeToGPSStatusChanges();
+      }
 
       // Subscribe to WiFi state changes via onboarding coordinator
       if (this.wifiService && this.onboardingCoordinator) {
@@ -248,117 +256,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Subscribe to GPS position updates from the GPS service
-   * and forward them to all registered callbacks
-   */
-  private subscribeToGPSUpdates(): void {
-    if (this.gpsUnsubscribe) {
-      logger.info("Unsubscribing from existing GPS updates");
-      this.gpsUnsubscribe();
-    }
-
-    this.gpsUnsubscribe = this.gpsService.onPositionUpdate((position) => {
-      // Skip real GPS updates when simulation is running or drive nav is in simulation mode
-      // to avoid mixing simulated positions with real (often 0,0) positions
-      if (this.simulationService?.isSimulating()) {
-        return;
-      }
-
-      // Also skip invalid (0,0) positions when drive navigation is active
-      // Real GPS without fix sends (0,0) which would corrupt distance calculations
-      if (this.driveNavigationService?.isNavigating()) {
-        if (
-          Math.abs(position.latitude) < 0.001 &&
-          Math.abs(position.longitude) < 0.001
-        ) {
-          logger.debug(
-            "Skipping invalid (0,0) GPS position during drive navigation",
-          );
-          return;
-        }
-      }
-
-      // Store latest position for GPS info screen and drive navigation
-      this.lastGPSPosition = position;
-
-      // Forward to onboarding coordinator for select track screen
-      if (this.onboardingCoordinator) {
-        this.onboardingCoordinator.updateGPSPosition(position);
-      }
-
-      // Forward to drive navigation service if navigating
-      if (this.driveNavigationService?.isNavigating()) {
-        this.driveNavigationService.updatePosition(position);
-      }
-
-      // Notify all GPS update callbacks
-      this.gpsUpdateCallbacks.forEach((callback) => {
-        try {
-          callback(position);
-        } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
-          logger.error(`Error in GPS update callback: ${errorMsg}`);
-          this.notifyError(
-            error instanceof Error
-              ? error
-              : new Error("Unknown error in GPS update callback"),
-          );
-        }
-      });
-    });
-
-    logger.info(
-      `Subscribed to GPS position updates (${this.gpsUpdateCallbacks.length} callbacks registered)`,
-    );
-  }
-
-  /**
-   * Subscribe to GPS status changes from the GPS service
-   * and forward them to all registered callbacks
-   */
-  private subscribeToGPSStatusChanges(): void {
-    if (this.gpsStatusUnsubscribe) {
-      logger.info("Unsubscribing from existing GPS status changes");
-      this.gpsStatusUnsubscribe();
-    }
-
-    this.gpsStatusUnsubscribe = this.gpsService.onStatusChange((status) => {
-      // Store latest status for GPS info screen
-      this.lastGPSStatus = status;
-
-      // Forward to onboarding coordinator for select track screen
-      if (this.onboardingCoordinator) {
-        this.onboardingCoordinator.updateGPSStatus(status);
-      }
-
-      logger.info(
-        `GPS status changed: ${status.fixQuality} (${status.satellitesInUse} satellites)`,
-      );
-
-      // Notify all GPS status callbacks
-      this.gpsStatusCallbacks.forEach((callback) => {
-        try {
-          callback(status);
-        } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
-          logger.error(`Error in GPS status callback: ${errorMsg}`);
-          this.notifyError(
-            error instanceof Error
-              ? error
-              : new Error("Unknown error in GPS status callback"),
-          );
-        }
-      });
-    });
-
-    logger.info(
-      `Subscribed to GPS status changes (${this.gpsStatusCallbacks.length} callbacks registered)`,
-    );
-  }
-
-  /**
    * Subscribe to simulation state changes to trigger display updates
    */
   private subscribeToSimulationUpdates(): void {
@@ -403,32 +300,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       // Note: "paused" state keeps the interval but updateDisplay won't change position
     });
 
-    // Subscribe to position updates and forward to drive navigation
+    // Subscribe to position updates and forward via GPS coordinator
     this.simulationPositionUnsubscribe =
       this.simulationService.onPositionUpdate((position) => {
-        // Store latest position
-        this.lastGPSPosition = position;
-
         const isNav = this.driveNavigationService?.isNavigating() ?? false;
         logger.debug(
           `Sim position: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}, isNavigating=${isNav}`,
         );
 
-        // Forward to drive navigation service if navigating
-        if (isNav) {
-          this.driveNavigationService!.updatePosition(position);
+        // Update position via GPS coordinator (stores position, forwards to drive nav, notifies callbacks)
+        if (this.gpsCoordinator) {
+          this.gpsCoordinator.updatePosition(position);
         }
-
-        // Notify all GPS update callbacks (web interface uses these)
-        this.gpsUpdateCallbacks.forEach((callback) => {
-          try {
-            callback(position);
-          } catch (error) {
-            const errorMsg =
-              error instanceof Error ? error.message : String(error);
-            logger.error(`Error in simulated GPS update callback: ${errorMsg}`);
-          }
-        });
       });
 
     logger.info("Subscribed to simulation state and position changes");
@@ -697,7 +580,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     // Use current position, or fall back to stored route start (not 0,0)
     // The stored start position is set when navigation begins and persists
-    let centerPoint = this.lastGPSPosition;
+    let centerPoint = this.gpsCoordinator?.getLastPosition() ?? null;
     if (!centerPoint && this.driveRouteStartPosition) {
       centerPoint = this.driveRouteStartPosition;
       logger.info(
@@ -782,12 +665,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           break;
 
         case DriveDisplayMode.MAP_WITH_OVERLAY:
-          if (status.route && status.nextTurn && this.lastGPSPosition) {
+          const lastPosition = this.gpsCoordinator?.getLastPosition();
+          const lastStatus = this.gpsCoordinator?.getLastStatus();
+          if (status.route && status.nextTurn && lastPosition) {
             const info: DriveNavigationInfo = {
-              speed: this.lastGPSPosition.speed
-                ? this.lastGPSPosition.speed * 3.6
-                : 0, // m/s to km/h
-              satellites: this.lastGPSStatus?.satellitesInUse ?? 0,
+              speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0, // m/s to km/h
+              satellites: lastStatus?.satellitesInUse ?? 0,
               nextManeuver: status.nextTurn.maneuverType,
               distanceToTurn: status.distanceToNextTurn,
               instruction: status.nextTurn.instruction,
@@ -808,7 +691,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             );
             renderResult = await this.svgService.renderDriveMapScreen(
               status.route,
-              this.lastGPSPosition,
+              lastPosition,
               status.nextTurn,
               viewport,
               info,
@@ -1584,8 +1467,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    logger.info("Getting current GPS position");
-    return await this.gpsService.getCurrentPosition();
+    if (!this.gpsCoordinator) {
+      logger.warn("GPS coordinator not available");
+      return failure(OrchestratorError.notInitialized());
+    }
+
+    return this.gpsCoordinator.getCurrentPosition();
   }
 
   /**
@@ -1764,42 +1651,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    * Register a callback for GPS position updates
    */
   onGPSUpdate(callback: (position: GPSCoordinate) => void): () => void {
-    this.gpsUpdateCallbacks.push(callback);
-    logger.info(
-      `GPS update callback registered (total: ${this.gpsUpdateCallbacks.length})`,
-    );
-
-    // Return unsubscribe function
-    return () => {
-      const index = this.gpsUpdateCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.gpsUpdateCallbacks.splice(index, 1);
-        logger.info(
-          `GPS update callback unregistered (total: ${this.gpsUpdateCallbacks.length})`,
-        );
-      }
-    };
+    if (!this.gpsCoordinator) {
+      logger.warn("GPS coordinator not available for GPS update callback");
+      return () => {};
+    }
+    return this.gpsCoordinator.onGPSUpdate(callback);
   }
 
   /**
    * Register a callback for GPS status changes
    */
   onGPSStatusChange(callback: (status: GPSStatus) => void): () => void {
-    this.gpsStatusCallbacks.push(callback);
-    logger.info(
-      `GPS status callback registered (total: ${this.gpsStatusCallbacks.length})`,
-    );
-
-    // Return unsubscribe function
-    return () => {
-      const index = this.gpsStatusCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.gpsStatusCallbacks.splice(index, 1);
-        logger.info(
-          `GPS status callback unregistered (total: ${this.gpsStatusCallbacks.length})`,
-        );
-      }
-    };
+    if (!this.gpsCoordinator) {
+      logger.warn("GPS coordinator not available for GPS status callback");
+      return () => {};
+    }
+    return this.gpsCoordinator.onGPSStatusChange(callback);
   }
 
   /**
@@ -1921,18 +1788,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("✓ OnboardingCoordinator disposed");
     }
 
-    // Unsubscribe from GPS updates
-    if (this.gpsUnsubscribe) {
-      logger.info("Unsubscribing from GPS updates");
-      this.gpsUnsubscribe();
-      this.gpsUnsubscribe = null;
-    }
-
-    // Unsubscribe from GPS status changes
-    if (this.gpsStatusUnsubscribe) {
-      logger.info("Unsubscribing from GPS status changes");
-      this.gpsStatusUnsubscribe();
-      this.gpsStatusUnsubscribe = null;
+    // Dispose GPS coordinator (stops GPS subscriptions, clears callbacks)
+    if (this.gpsCoordinator) {
+      logger.info("Disposing GPSCoordinator...");
+      this.gpsCoordinator.dispose();
+      this.gpsCoordinator = null;
+      logger.info("✓ GPSCoordinator disposed");
     }
 
     // Unsubscribe from simulation state changes and stop display updates
@@ -1947,15 +1808,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info("Stopping auto-update if running");
     this.stopAutoUpdate();
 
-    // Clear all callbacks
+    // Clear remaining callbacks
     const totalCallbacks =
-      this.gpsUpdateCallbacks.length +
-      this.gpsStatusCallbacks.length +
-      this.displayUpdateCallbacks.length +
-      this.errorCallbacks.length;
+      this.displayUpdateCallbacks.length + this.errorCallbacks.length;
     logger.info(`Clearing ${totalCallbacks} registered callbacks`);
-    this.gpsUpdateCallbacks = [];
-    this.gpsStatusCallbacks = [];
     this.displayUpdateCallbacks = [];
     this.errorCallbacks = [];
 
