@@ -4,6 +4,7 @@ import * as path from "path";
 import { IMapService, IConfigService } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
+import { validateUploadedFile } from "@web/validation";
 
 const logger = getLogger("TrackController");
 
@@ -190,9 +191,17 @@ export class TrackController {
     const originalName = file.originalname;
     const customName = req.body.trackName as string | undefined;
 
-    // Validate file extension
-    if (!originalName.toLowerCase().endsWith(".gpx")) {
-      logger.warn(`Invalid file type: ${originalName}`);
+    // Validate file using comprehensive validation (extension + magic bytes)
+    const fileValidation = await validateUploadedFile(
+      file,
+      [".gpx"],
+      10 * 1024 * 1024, // 10 MB max (matches multer config)
+    );
+
+    if (!fileValidation.valid) {
+      logger.warn(
+        `File validation failed for ${originalName}: ${fileValidation.error}`,
+      );
       // Clean up uploaded file
       try {
         await fs.unlink(file.path);
@@ -203,7 +212,8 @@ export class TrackController {
         success: false,
         error: {
           code: "INVALID_FILE_TYPE",
-          message: "Only .gpx files are allowed",
+          message: fileValidation.error || "Invalid file type",
+          detectedType: fileValidation.detectedType,
         },
       });
       return;

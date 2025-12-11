@@ -16,6 +16,26 @@ import {
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 import { getLogger } from "../utils/logger";
+import {
+  validateBody,
+  validateParams,
+  setMockPositionSchema,
+  setZoomSchema,
+  setAutoCenterSchema,
+  setRotateWithBearingSchema,
+  setActiveScreenSchema,
+  addRecentDestinationSchema,
+  removeRecentDestinationSchema,
+  setHotspotConfigSchema,
+  startSimulationSchema,
+  setSimulationSpeedSchema,
+  saveDriveRouteSchema,
+  startDriveNavigationSchema,
+  simulateDriveRouteSchema,
+  setActiveMapSchema,
+  deleteGPXFileParamsSchema,
+  deleteDriveRouteParamsSchema,
+} from "@web/validation";
 
 const logger = getLogger("IntegratedWebService");
 
@@ -318,8 +338,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.checkMockGPS(req, res),
     );
 
-    this.app.post(`${api}/gps/mock/position`, (req, res) =>
-      this.controller.setMockGPSPosition(req, res),
+    this.app.post(
+      `${api}/gps/mock/position`,
+      validateBody(setMockPositionSchema),
+      (req, res) => this.controller.setMockGPSPosition(req, res),
     );
 
     // Map endpoints
@@ -335,8 +357,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getActiveTrackStart(req, res),
     );
 
-    this.app.post(`${api}/map/active`, (req, res) =>
-      this.controller.setActiveGPX(req, res),
+    this.app.post(
+      `${api}/map/active`,
+      validateBody(setActiveMapSchema),
+      (req, res) => this.controller.setActiveGPX(req, res),
     );
 
     // Display endpoints
@@ -359,20 +383,28 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getDisplaySettings(req, res),
     );
 
-    this.app.post(`${api}/config/zoom`, (req, res) =>
-      this.controller.setZoom(req, res),
+    this.app.post(
+      `${api}/config/zoom`,
+      validateBody(setZoomSchema),
+      (req, res) => this.controller.setZoom(req, res),
     );
 
-    this.app.post(`${api}/config/auto-center`, (req, res) =>
-      this.controller.setAutoCenter(req, res),
+    this.app.post(
+      `${api}/config/auto-center`,
+      validateBody(setAutoCenterSchema),
+      (req, res) => this.controller.setAutoCenter(req, res),
     );
 
-    this.app.post(`${api}/config/rotate-bearing`, (req, res) =>
-      this.controller.setRotateWithBearing(req, res),
+    this.app.post(
+      `${api}/config/rotate-bearing`,
+      validateBody(setRotateWithBearingSchema),
+      (req, res) => this.controller.setRotateWithBearing(req, res),
     );
 
-    this.app.post(`${api}/config/screen`, (req, res) =>
-      this.controller.setActiveScreen(req, res),
+    this.app.post(
+      `${api}/config/screen`,
+      validateBody(setActiveScreenSchema),
+      (req, res) => this.controller.setActiveScreen(req, res),
     );
 
     // Recent destinations endpoints
@@ -380,12 +412,16 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getRecentDestinations(req, res),
     );
 
-    this.app.post(`${api}/destinations/recent`, (req, res) =>
-      this.controller.addRecentDestination(req, res),
+    this.app.post(
+      `${api}/destinations/recent`,
+      validateBody(addRecentDestinationSchema),
+      (req, res) => this.controller.addRecentDestination(req, res),
     );
 
-    this.app.delete(`${api}/destinations/recent`, (req, res) =>
-      this.controller.removeRecentDestination(req, res),
+    this.app.delete(
+      `${api}/destinations/recent`,
+      validateBody(removeRecentDestinationSchema),
+      (req, res) => this.controller.removeRecentDestination(req, res),
     );
 
     this.app.delete(`${api}/destinations/recent/all`, (req, res) =>
@@ -406,8 +442,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getHotspotConfig(req, res),
     );
 
-    this.app.post(`${api}/wifi/hotspot`, (req, res) =>
-      this.controller.setHotspotConfig(req, res),
+    this.app.post(
+      `${api}/wifi/hotspot`,
+      validateBody(setHotspotConfigSchema),
+      (req, res) => this.controller.setHotspotConfig(req, res),
     );
 
     // GPX file management endpoints
@@ -417,8 +455,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       (req, res) => this.controller.uploadGPXFile(req, res),
     );
 
-    this.app.delete(`${api}/map/files/:fileName`, (req, res) =>
-      this.controller.deleteGPXFile(req, res),
+    this.app.delete(
+      `${api}/map/files/:fileName`,
+      validateParams(deleteGPXFileParamsSchema),
+      (req, res) => this.controller.deleteGPXFile(req, res),
     );
 
     // System reset endpoint
@@ -427,8 +467,10 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     // Track simulation endpoints
-    this.app.post(`${api}/simulation/start`, (req, res) =>
-      this.controller.startSimulation(req, res),
+    this.app.post(
+      `${api}/simulation/start`,
+      validateBody(startSimulationSchema),
+      (req, res) => this.controller.startSimulation(req, res),
     );
 
     this.app.post(`${api}/simulation/stop`, (req, res) =>
@@ -443,8 +485,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.resumeSimulation(req, res),
     );
 
-    this.app.post(`${api}/simulation/speed`, (req, res) =>
-      this.controller.setSimulationSpeed(req, res),
+    this.app.post(
+      `${api}/simulation/speed`,
+      validateBody(setSimulationSpeedSchema),
+      (req, res) => this.controller.setSimulationSpeed(req, res),
     );
 
     this.app.get(`${api}/simulation/status`, (req, res) =>
@@ -452,8 +496,10 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     // Drive navigation endpoints
-    this.app.post(`${api}/drive/route`, (req, res) =>
-      this.controller.saveDriveRoute(req, res),
+    this.app.post(
+      `${api}/drive/route`,
+      validateBody(saveDriveRouteSchema),
+      (req, res) => this.controller.saveDriveRoute(req, res),
     );
 
     this.app.get(`${api}/drive/route`, (req, res) =>
@@ -464,12 +510,16 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.listDriveRoutes(req, res),
     );
 
-    this.app.delete(`${api}/drive/route/:routeId`, (req, res) =>
-      this.controller.deleteDriveRoute(req, res),
+    this.app.delete(
+      `${api}/drive/route/:routeId`,
+      validateParams(deleteDriveRouteParamsSchema),
+      (req, res) => this.controller.deleteDriveRoute(req, res),
     );
 
-    this.app.post(`${api}/drive/start`, (req, res) =>
-      this.controller.startDriveNavigation(req, res),
+    this.app.post(
+      `${api}/drive/start`,
+      validateBody(startDriveNavigationSchema),
+      (req, res) => this.controller.startDriveNavigation(req, res),
     );
 
     this.app.post(`${api}/drive/stop`, (req, res) =>
@@ -480,8 +530,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getDriveNavigationStatus(req, res),
     );
 
-    this.app.post(`${api}/drive/simulate`, (req, res) =>
-      this.controller.simulateDriveRoute(req, res),
+    this.app.post(
+      `${api}/drive/simulate`,
+      validateBody(simulateDriveRouteSchema),
+      (req, res) => this.controller.simulateDriveRoute(req, res),
     );
 
     // Mock display endpoints (for development)
