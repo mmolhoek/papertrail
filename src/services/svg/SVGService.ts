@@ -26,6 +26,7 @@ import {
 } from "@utils/bitmapFont";
 import { BitmapUtils } from "./BitmapUtils";
 import { ProjectionService } from "./ProjectionService";
+import { TrackRenderer } from "./TrackRenderer";
 
 const logger = getLogger("SVGService");
 
@@ -59,94 +60,40 @@ export class SVGService implements ISVGService {
         false,
       );
 
-      // Check if track has points
-      if (
-        track.segments.length === 0 ||
-        track.segments[0].points.length === 0
-      ) {
+      // Render the track
+      const totalPoints = TrackRenderer.renderTrack(
+        bitmap,
+        track,
+        viewport,
+        renderOpts,
+      );
+
+      if (totalPoints === 0) {
         logger.debug("Track has no points, returning blank bitmap");
-        return success(bitmap); // Return blank bitmap
-      }
-
-      const totalPoints = track.segments[0].points.length;
-      logger.info(`Rendering track with ${totalPoints} points`);
-      logger.info(
-        `Render options: showLine=${renderOpts.showLine}, lineWidth=${renderOpts.lineWidth}, showPoints=${renderOpts.showPoints}`,
-      );
-
-      // Log first track point for debugging
-      const firstTrackPoint = track.segments[0].points[0];
-      logger.info(
-        `First track point: ${firstTrackPoint.latitude.toFixed(6)}, ${firstTrackPoint.longitude.toFixed(6)}`,
-      );
-
-      // Project all track points to pixel coordinates
-      let projectedPoints = track.segments[0].points.map((point) =>
-        this.projectToPixels(point.latitude, point.longitude, viewport),
-      );
-
-      // Apply rotation if rotateWithBearing is enabled and bearing is available
-      const bearing = viewport.centerPoint.bearing;
-      if (renderOpts.rotateWithBearing && bearing !== undefined) {
-        logger.info(`Rotating map by ${bearing.toFixed(1)}° for track-up view`);
-        const centerX = viewport.width / 2;
-        const centerY = viewport.height / 2;
-        projectedPoints = projectedPoints.map((p) =>
-          this.rotatePoint(p, centerX, centerY, -bearing),
-        );
-      }
-
-      // Debug: Log first few projected points to see where they end up
-      logger.info(
-        `Track projection: centerPoint=${viewport.centerPoint.latitude.toFixed(6)},${viewport.centerPoint.longitude.toFixed(6)}, zoom=${viewport.zoomLevel}`,
-      );
-      const firstFew = projectedPoints.slice(0, 5);
-      logger.info(
-        `First ${firstFew.length} projected points: ${firstFew.map((p) => `(${p.x},${p.y})`).join(", ")}`,
-      );
-
-      // Count how many points are within viewport bounds
-      const inViewport = projectedPoints.filter(
-        (p) =>
-          p.x >= 0 && p.x < viewport.width && p.y >= 0 && p.y < viewport.height,
-      );
-      logger.info(
-        `Points in viewport: ${inViewport.length}/${projectedPoints.length}`,
-      );
-
-      // Draw connecting lines if enabled
-      if (renderOpts.showLine && projectedPoints.length > 1) {
-        for (let i = 0; i < projectedPoints.length - 1; i++) {
-          this.drawLine(
-            bitmap,
-            projectedPoints[i],
-            projectedPoints[i + 1],
-            renderOpts.lineWidth,
-          );
-        }
-      }
-
-      // Draw points if enabled
-      if (renderOpts.showPoints) {
-        for (const point of projectedPoints) {
-          this.drawCircle(bitmap, point, renderOpts.pointRadius);
-        }
+        return success(bitmap);
       }
 
       // Highlight current position if enabled
       if (renderOpts.highlightCurrentPosition) {
-        const centerPoint = this.projectToPixels(
+        let centerPoint = this.projectToPixels(
           viewport.centerPoint.latitude,
           viewport.centerPoint.longitude,
           viewport,
         );
 
-        const radius = renderOpts.currentPositionRadius || 8;
+        // Apply rotation if needed
+        const bearing = viewport.centerPoint.bearing;
+        if (renderOpts.rotateWithBearing && bearing !== undefined) {
+          centerPoint = this.rotatePoint(
+            centerPoint,
+            viewport.width / 2,
+            viewport.height / 2,
+            -bearing,
+          );
+        }
 
-        // Draw outer circle
-        this.drawCircle(bitmap, centerPoint, radius);
-        // Draw inner filled circle
-        this.drawFilledCircle(bitmap, centerPoint, radius - 2);
+        const radius = renderOpts.currentPositionRadius || 8;
+        TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
       logger.info(`Viewport rendered successfully: ${totalPoints} points`);
@@ -182,40 +129,17 @@ export class SVGService implements ISVGService {
       let renderedTracks = 0;
       let totalPoints = 0;
 
-      // Render each track
+      // Render each track using TrackRenderer
       for (const track of tracks) {
-        if (
-          track.segments.length === 0 ||
-          track.segments[0].points.length === 0
-        ) {
-          continue;
-        }
-
-        const trackPoints = track.segments[0].points.length;
-        totalPoints += trackPoints;
-        renderedTracks++;
-
-        const projectedPoints = track.segments[0].points.map((point) =>
-          this.projectToPixels(point.latitude, point.longitude, viewport),
+        const points = TrackRenderer.renderTrack(
+          bitmap,
+          track,
+          viewport,
+          renderOpts,
         );
-
-        // Draw lines
-        if (renderOpts.showLine && projectedPoints.length > 1) {
-          for (let i = 0; i < projectedPoints.length - 1; i++) {
-            this.drawLine(
-              bitmap,
-              projectedPoints[i],
-              projectedPoints[i + 1],
-              renderOpts.lineWidth,
-            );
-          }
-        }
-
-        // Draw points
-        if (renderOpts.showPoints) {
-          for (const point of projectedPoints) {
-            this.drawCircle(bitmap, point, renderOpts.pointRadius);
-          }
+        if (points > 0) {
+          renderedTracks++;
+          totalPoints += points;
         }
       }
 
@@ -228,8 +152,7 @@ export class SVGService implements ISVGService {
         );
 
         const radius = renderOpts.currentPositionRadius || 8;
-        this.drawCircle(bitmap, centerPoint, radius);
-        this.drawFilledCircle(bitmap, centerPoint, radius - 2);
+        TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
       logger.info(
@@ -581,53 +504,14 @@ export class SVGService implements ISVGService {
 
       const renderOpts = { ...this.getDefaultRenderOptions(), ...options };
 
-      // Render track on left portion
-      if (track.segments.length > 0 && track.segments[0].points.length > 0) {
-        // Project all track points to pixel coordinates
-        let projectedPoints = track.segments[0].points.map((point) =>
-          this.projectToPixels(point.latitude, point.longitude, mapViewport),
-        );
-
-        // Apply rotation if rotateWithBearing is enabled and bearing is available
-        const bearing = info.bearing;
-        if (renderOpts.rotateWithBearing && bearing !== undefined) {
-          logger.info(
-            `Rotating map by ${bearing.toFixed(1)}° for track-up view`,
-          );
-          const centerX = mapWidth / 2;
-          const centerY = height / 2;
-          projectedPoints = projectedPoints.map((p) =>
-            this.rotatePoint(p, centerX, centerY, -bearing),
-          );
-        }
-
-        // Draw connecting lines if enabled
-        if (renderOpts.showLine && projectedPoints.length > 1) {
-          for (let i = 0; i < projectedPoints.length - 1; i++) {
-            // Only draw if at least one point is in the map area
-            if (
-              projectedPoints[i].x < mapWidth ||
-              projectedPoints[i + 1].x < mapWidth
-            ) {
-              this.drawLine(
-                bitmap,
-                projectedPoints[i],
-                projectedPoints[i + 1],
-                renderOpts.lineWidth,
-              );
-            }
-          }
-        }
-
-        // Draw points if enabled
-        if (renderOpts.showPoints) {
-          for (const point of projectedPoints) {
-            if (point.x < mapWidth) {
-              this.drawCircle(bitmap, point, renderOpts.pointRadius);
-            }
-          }
-        }
-      }
+      // Render track on left portion using TrackRenderer with area constraint
+      TrackRenderer.renderTrackInArea(
+        bitmap,
+        track,
+        mapViewport,
+        renderOpts,
+        mapWidth,
+      );
 
       // Highlight current position (center of map area)
       if (renderOpts.highlightCurrentPosition) {
@@ -636,8 +520,7 @@ export class SVGService implements ISVGService {
           y: Math.floor(height / 2),
         };
         const radius = renderOpts.currentPositionRadius || 8;
-        this.drawCircle(bitmap, centerPoint, radius);
-        this.drawFilledCircle(bitmap, centerPoint, radius - 2);
+        TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
       // Draw compass in top-left corner of map area
@@ -1250,49 +1133,18 @@ export class SVGService implements ISVGService {
         centerPoint: currentPosition,
       };
 
-      // Draw route line using geometry
+      // Draw route line using geometry via TrackRenderer
       if (route.geometry && route.geometry.length > 1) {
-        let projectedRoute = route.geometry.map(([lat, lon]) =>
-          this.projectToPixels(lat, lon, mapViewport),
+        const pointCount = TrackRenderer.renderRouteGeometry(
+          bitmap,
+          route.geometry,
+          mapViewport,
+          renderOpts,
+          mapWidth,
         );
         logger.info(
-          `renderDriveMapScreen: projected ${projectedRoute.length} points (${Date.now() - methodStart}ms)`,
+          `renderDriveMapScreen: rendered ${pointCount} route points (${Date.now() - methodStart}ms)`,
         );
-
-        // Apply rotation if rotateWithBearing is enabled (track-up mode)
-        const bearing = currentPosition.bearing;
-        logger.info(
-          `renderDriveMapScreen: rotateWithBearing=${renderOpts.rotateWithBearing}, bearing=${bearing !== undefined ? bearing.toFixed(1) : "undefined"}`,
-        );
-        if (renderOpts.rotateWithBearing && bearing !== undefined) {
-          logger.info(
-            `renderDriveMapScreen: rotating map by ${bearing.toFixed(1)}° for track-up view`,
-          );
-          const centerX = mapWidth / 2;
-          const centerY = height / 2;
-          projectedRoute = projectedRoute.map((p) =>
-            this.rotatePoint(p, centerX, centerY, -bearing),
-          );
-        }
-
-        if (renderOpts.showLine) {
-          for (let i = 0; i < projectedRoute.length - 1; i++) {
-            if (
-              projectedRoute[i].x < mapWidth ||
-              projectedRoute[i + 1].x < mapWidth
-            ) {
-              this.drawLine(
-                bitmap,
-                projectedRoute[i],
-                projectedRoute[i + 1],
-                renderOpts.lineWidth,
-              );
-            }
-          }
-          logger.info(
-            `renderDriveMapScreen: drew route lines (${Date.now() - methodStart}ms)`,
-          );
-        }
       }
 
       // Highlight current position
@@ -1302,8 +1154,7 @@ export class SVGService implements ISVGService {
           y: Math.floor(height / 2),
         };
         const radius = renderOpts.currentPositionRadius || 8;
-        this.drawCircle(bitmap, centerPoint, radius);
-        this.drawFilledCircle(bitmap, centerPoint, radius - 2);
+        TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
       // Draw next waypoint marker
@@ -1323,8 +1174,7 @@ export class SVGService implements ISVGService {
         );
       }
       if (waypointPixel.x < mapWidth) {
-        this.drawCircle(bitmap, waypointPixel, 6);
-        this.drawCircle(bitmap, waypointPixel, 8);
+        TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 6, 8);
       }
 
       // Draw compass in top-left corner of map area
