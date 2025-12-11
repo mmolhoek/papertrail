@@ -164,7 +164,7 @@ export class ProjectionCache {
    */
   private evictOldestEntry(): void {
     let oldestKey: string | null = null;
-    let oldestTime = Date.now();
+    let oldestTime = Infinity;
 
     for (const [key, value] of this.trackCache) {
       if (value.timestamp < oldestTime) {
