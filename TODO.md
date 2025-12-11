@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 1.3 Split WebController
+**Next item:** 1.4 Split WiFiService
 
 **Completed:**
 
@@ -42,6 +42,7 @@
 - [x] TrackRenderer extracted (SVGService 2,154 → 2,004 lines)
 - [x] UIRenderer extracted (SVGService 2,004 → 1,654 lines)
 - [x] ManeuverRenderer extracted (SVGService 1,654 → 1,246 lines)
+- [x] WebController split into sub-controllers (2,150 → 459 lines)
 
 ---
 
@@ -88,17 +89,25 @@ These items address the largest technical debt and will make subsequent improvem
 - `src/services/svg/UIRenderer.ts` (511 lines)
 - `src/services/svg/ManeuverRenderer.ts` (533 lines)
 
-### 1.3 Split WebController (2,150 lines)
+### 1.3 Split WebController (started at 2,150 lines, now 459 lines) ✓
 
-- [ ] Extract GPS endpoints into `GPSController`
-- [ ] Extract track/GPX endpoints into `TrackController`
-- [ ] Extract WiFi endpoints into `WiFiController`
-- [ ] Extract drive navigation endpoints into `DriveController`
-- [ ] Extract simulation endpoints into `SimulationController`
-- [ ] Extract config endpoints into `ConfigController`
-- [ ] Keep shared utilities in base controller or utils
+- [x] Extract GPS endpoints into `GPSController`
+- [x] Extract track/GPX endpoints into `TrackController`
+- [x] Extract WiFi endpoints into `WiFiController`
+- [x] Extract drive navigation endpoints into `DriveController`
+- [x] Extract simulation endpoints into `SimulationController`
+- [x] Extract config endpoints into `ConfigController`
+- [x] Keep shared utilities in base controller or utils
 
-**Files:** `src/web/controllers/WebController.ts`
+**Files:**
+
+- `src/web/controllers/WebController.ts` (459 lines - main coordinator)
+- `src/web/controllers/GPSController.ts` (156 lines)
+- `src/web/controllers/TrackController.ts` (409 lines)
+- `src/web/controllers/WiFiController.ts` (128 lines)
+- `src/web/controllers/DriveController.ts` (511 lines)
+- `src/web/controllers/SimulationController.ts` (351 lines)
+- `src/web/controllers/ConfigController.ts` (462 lines)
 
 ### 1.4 Split WiFiService (1,542 lines)
 
