@@ -9,8 +9,6 @@ import {
   ITextRendererService,
   ITrackSimulationService,
   IDriveNavigationService,
-  DriveNavigationInfo,
-  FollowTrackInfo,
 } from "@core/interfaces";
 import {
   Result,
@@ -20,22 +18,20 @@ import {
   WiFiState,
   GPXTrack,
   DriveRoute,
-  DriveWaypoint,
   DriveNavigationUpdate,
   ScreenType,
-  ManeuverType,
   success,
   failure,
   DisplayUpdateMode,
 } from "@core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
-import { TrackTurnAnalyzer, TrackTurn } from "@services/map/TrackTurnAnalyzer";
-import { DisplayUpdateQueue, ActiveGPXQueue } from "./DisplayUpdateQueue";
+import { ActiveGPXQueue } from "./DisplayUpdateQueue";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 import { GPSCoordinator } from "./GPSCoordinator";
 import { DriveCoordinator } from "./DriveCoordinator";
 import { SimulationCoordinator } from "./SimulationCoordinator";
+import { TrackDisplayCoordinator } from "./TrackDisplayCoordinator";
 import * as path from "path";
 
 const logger = getLogger("RenderingOrchestrator");
@@ -64,16 +60,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // Simulation coordinator (handles simulation display updates)
   private simulationCoordinator: SimulationCoordinator | null = null;
 
-  // Display update queuing (prevents dropped updates when display is busy)
-  private displayUpdateQueue = new DisplayUpdateQueue();
+  // Track display coordinator (handles track rendering and display)
+  private trackDisplayCoordinator: TrackDisplayCoordinator | null = null;
 
   // setActiveGPX queuing (ensures only the last selected track is loaded)
   private activeGPXQueue = new ActiveGPXQueue();
-
-  // Track turn analysis for turn-by-turn navigation on GPX tracks
-  private trackTurnAnalyzer: TrackTurnAnalyzer = new TrackTurnAnalyzer();
-  private cachedTrackTurns: TrackTurn[] = [];
-  private cachedTrackPath: string | null = null;
 
   constructor(
     private readonly gpsService: IGPSService,
@@ -139,6 +130,25 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     });
     this.simulationCoordinator.setUpdateDisplayCallback(() => {
       return this.updateDisplay();
+    });
+
+    // Initialize track display coordinator
+    this.trackDisplayCoordinator = new TrackDisplayCoordinator(
+      gpsService,
+      mapService,
+      svgService,
+      epaperService,
+      configService,
+      driveNavigationService ?? null,
+      this.simulationCoordinator,
+      this.driveCoordinator,
+    );
+    // Wire up callbacks
+    this.trackDisplayCoordinator.setDisplayUpdateCallback((success) => {
+      this.notifyDisplayUpdate(success);
+    });
+    this.trackDisplayCoordinator.setErrorCallback((error) => {
+      this.notifyError(error);
     });
   }
 
@@ -259,6 +269,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         this.driveCoordinator.setInitialized(true);
       }
 
+      // Set track display coordinator as initialized
+      if (this.trackDisplayCoordinator) {
+        this.trackDisplayCoordinator.setInitialized(true);
+      }
+
       logger.info("✓ RenderingOrchestrator initialization complete");
       return success(undefined);
     } catch (error) {
@@ -339,389 +354,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    // During drive simulation, always use drive display instead of track display
-    // This prevents flipping between drive and track screens
-    if (
-      this.simulationCoordinator?.isSimulating() &&
-      this.driveCoordinator?.isDriveNavigating()
-    ) {
-      logger.info(
-        "Drive simulation active - redirecting to drive display update",
-      );
-      return this.driveCoordinator.updateDriveDisplay();
+    if (!this.trackDisplayCoordinator) {
+      logger.error("Track display coordinator not available");
+      return failure(OrchestratorError.notInitialized());
     }
 
-    // Queue update if one is already in progress
-    const canProceed = await this.displayUpdateQueue.queueUpdate(mode, () =>
-      this.epaperService.isBusy(),
-    );
-    if (!canProceed) {
-      return success(undefined);
-    }
-    logger.info("Starting display update...");
-
-    try {
-      let track: GPXTrack;
-
-      // Check if drive navigation is active - use route geometry as track
-      if (this.driveNavigationService?.isNavigating()) {
-        const activeRoute = this.driveNavigationService.getActiveRoute();
-        if (activeRoute && activeRoute.geometry) {
-          logger.info("Step 1/5: Using drive route geometry as track...");
-          // Convert drive route geometry to GPXTrack format
-          track = {
-            name: `Drive to ${activeRoute.destination}`,
-            segments: [
-              {
-                points: activeRoute.geometry.map((coord) => ({
-                  latitude: coord[0],
-                  longitude: coord[1],
-                  altitude: 0,
-                  timestamp: new Date(),
-                })),
-              },
-            ],
-          };
-          const pointCount = track.segments[0].points.length;
-          logger.info(
-            `✓ Drive route track: ${pointCount} points to ${activeRoute.destination}`,
-          );
-        } else {
-          logger.warn("Drive navigation active but no route geometry");
-          return failure(OrchestratorError.noActiveGPX());
-        }
-      } else {
-        // Step 1: Get active GPX path first (needed for fallback position)
-        logger.info("Step 1/5: Getting active GPX path...");
-        const gpxPath = this.configService.getActiveGPXPath();
-        if (!gpxPath) {
-          logger.warn("No active GPX file configured");
-          return failure(OrchestratorError.noActiveGPX());
-        }
-        logger.info(`✓ Active GPX: ${gpxPath}`);
-
-        // Step 2: Load the track (needed early for fallback position)
-        logger.info("Step 2/5: Loading GPX track...");
-        const trackResult = await this.mapService.getTrack(gpxPath);
-        if (!trackResult.success) {
-          logger.error("Failed to load track:", trackResult.error);
-          return failure(
-            OrchestratorError.updateFailed("GPX track", trackResult.error),
-          );
-        }
-        track = trackResult.data;
-        const pointCount = track.segments.reduce(
-          (sum, seg) => sum + seg.points.length,
-          0,
-        );
-        logger.info(
-          `✓ GPX track loaded: ${track.segments.length} segments, ${pointCount} points`,
-        );
-      }
-
-      // Step 3: Get current position (simulation > GPS > track start)
-      logger.info("Step 3/5: Getting current position...");
-      let position: GPSCoordinate;
-
-      const simService = this.simulationCoordinator?.getSimulationService();
-      if (simService?.isSimulating()) {
-        // Use simulated position
-        const simStatus = simService.getStatus();
-        if (simStatus.currentPosition) {
-          position = simStatus.currentPosition;
-          logger.info(
-            `✓ Simulated position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-          );
-        } else {
-          logger.warn("Simulation running but no position available");
-          return failure(
-            OrchestratorError.updateFailed(
-              "GPS position",
-              new Error("No simulated position available"),
-            ),
-          );
-        }
-      } else {
-        // Try real GPS position
-        const positionResult = await this.gpsService.getCurrentPosition();
-        if (positionResult.success && positionResult.data.latitude !== 0) {
-          position = positionResult.data;
-          logger.info(
-            `✓ GPS position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-          );
-        } else {
-          // Fall back to track's starting point
-          const firstPoint = track.segments[0]?.points[0];
-          if (firstPoint) {
-            position = {
-              latitude: firstPoint.latitude,
-              longitude: firstPoint.longitude,
-              altitude: firstPoint.altitude,
-              timestamp: new Date(),
-            };
-            logger.info(
-              `✓ Using track start position: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
-            );
-          } else {
-            logger.error("No GPS and track has no points");
-            return failure(
-              OrchestratorError.updateFailed(
-                "GPS position",
-                new Error("No position available"),
-              ),
-            );
-          }
-        }
-      }
-
-      // Step 4: Render split view (80% map, 20% info panel)
-      logger.info("Step 4/5: Rendering split view to bitmap...");
-      const viewport = {
-        width: this.configService.getDisplayWidth(),
-        height: this.configService.getDisplayHeight(),
-        centerPoint: position,
-        zoomLevel: this.configService.getZoomLevel(),
-      };
-
-      logger.info(
-        `Viewport: ${viewport.width}x${viewport.height}, zoom ${viewport.zoomLevel}, center: ${viewport.centerPoint.latitude.toFixed(6)}, ${viewport.centerPoint.longitude.toFixed(6)}`,
-      );
-
-      const renderOptions = {
-        ...this.configService.getRenderOptions(),
-        rotateWithBearing: this.configService.getRotateWithBearing(),
-      };
-      logger.info(
-        `Render options: lineWidth=${renderOptions.lineWidth}, showPoints=${renderOptions.showPoints}, rotateWithBearing=${renderOptions.rotateWithBearing}`,
-      );
-
-      // Get satellite count from GPS status
-      const gpsStatus = await this.gpsService.getStatus();
-      const satellites = gpsStatus.success ? gpsStatus.data.satellitesInUse : 0;
-
-      // Calculate track progress
-      const totalDistance = this.mapService.calculateDistance(track);
-      const { distanceTraveled, distanceRemaining } =
-        this.calculateTrackProgress(track, position, totalDistance);
-      const progress =
-        totalDistance > 0 ? (distanceTraveled / totalDistance) * 100 : 0;
-
-      // Calculate ETA based on current speed
-      const speedMs = position.speed || 0;
-      const estimatedTimeRemaining =
-        speedMs > 0.5 ? distanceRemaining / speedMs : undefined;
-
-      logger.info(
-        `Track progress: ${progress.toFixed(1)}%, ${(distanceTraveled / 1000).toFixed(2)}km traveled, ${(distanceRemaining / 1000).toFixed(2)}km remaining`,
-      );
-
-      // Analyze turns from the track (cache for performance)
-      const gpxPath = this.configService.getActiveGPXPath();
-      if (gpxPath && gpxPath !== this.cachedTrackPath) {
-        logger.info("Analyzing track turns...");
-        this.cachedTrackTurns = this.trackTurnAnalyzer.analyzeTurns(track);
-        this.cachedTrackPath = gpxPath;
-        logger.info(`Detected ${this.cachedTrackTurns.length} turns in track`);
-      }
-
-      // Find the next upcoming turn based on current progress
-      const nextTurn = this.trackTurnAnalyzer.findNextTurn(
-        this.cachedTrackTurns,
-        distanceTraveled,
-      );
-      const turnAfterNext = this.trackTurnAnalyzer.findTurnAfterNext(
-        this.cachedTrackTurns,
-        distanceTraveled,
-      );
-
-      // Calculate distance to next turn
-      const distanceToNextTurn = nextTurn
-        ? nextTurn.distanceFromStart - distanceTraveled
-        : distanceRemaining;
-
-      if (nextTurn) {
-        logger.info(
-          `Next turn: ${nextTurn.maneuverType} in ${(distanceToNextTurn / 1000).toFixed(2)}km - "${nextTurn.instruction}"`,
-        );
-      } else {
-        logger.info("No upcoming turns, continue to destination");
-      }
-
-      // Build info for the right panel
-      const followTrackInfo: FollowTrackInfo = {
-        speed: position.speed ? position.speed * 3.6 : 0, // Convert m/s to km/h
-        satellites: satellites,
-        bearing: position.bearing,
-        progress: progress,
-        distanceRemaining: distanceRemaining,
-        estimatedTimeRemaining: estimatedTimeRemaining,
-        nextTurn: nextTurn
-          ? {
-              maneuverType: nextTurn.maneuverType,
-              distanceToTurn: distanceToNextTurn,
-              instruction: nextTurn.instruction,
-              bearingAfter: nextTurn.bearingAfter,
-            }
-          : undefined,
-        turnAfterNext: turnAfterNext
-          ? {
-              maneuverType: turnAfterNext.maneuverType,
-              distanceFromPrevious: turnAfterNext.distanceToNextTurn,
-              instruction: turnAfterNext.instruction,
-            }
-          : undefined,
-      };
-
-      logger.info(
-        `Info panel: speed=${followTrackInfo.speed.toFixed(1)} km/h, satellites=${followTrackInfo.satellites}, bearing=${followTrackInfo.bearing || 0}°`,
-      );
-
-      // Check active screen type and render accordingly
-      const activeScreen = this.configService.getActiveScreen();
-      logger.info(`Active screen type: ${activeScreen}`);
-
-      let bitmapResult;
-
-      // Determine the maneuver to display
-      const displayManeuver = nextTurn?.maneuverType ?? ManeuverType.STRAIGHT;
-      const displayInstruction = nextTurn?.instruction ?? "Continue";
-      const displayDistance = distanceToNextTurn;
-
-      if (activeScreen === ScreenType.TURN_BY_TURN) {
-        // Render turn-by-turn screen with real turn info from track analysis
-        const nextTurnInfo = turnAfterNext
-          ? {
-              maneuverType: turnAfterNext.maneuverType,
-              distance:
-                turnAfterNext.distanceFromStart -
-                (nextTurn?.distanceFromStart ?? 0),
-              instruction: turnAfterNext.instruction,
-              streetName: undefined,
-            }
-          : undefined;
-
-        bitmapResult = await this.svgService.renderTurnScreen(
-          displayManeuver,
-          displayDistance,
-          displayInstruction,
-          track.name || "Track",
-          viewport,
-          nextTurnInfo,
-          progress,
-        );
-      } else {
-        // Default: Render drive-style map screen with 70/30 split
-        // Convert GPXTrack to DriveRoute format for renderDriveMapScreen
-        const trackGeometry: [number, number][] =
-          track.segments[0]?.points.map((p) => [p.latitude, p.longitude]) || [];
-
-        const firstPoint = trackGeometry[0] || [
-          position.latitude,
-          position.longitude,
-        ];
-        const lastPoint = trackGeometry[trackGeometry.length - 1] || [
-          position.latitude,
-          position.longitude,
-        ];
-
-        const driveRoute: DriveRoute = {
-          id: `track-${Date.now()}`,
-          destination: track.name || "Track",
-          createdAt: new Date(),
-          startPoint: { latitude: firstPoint[0], longitude: firstPoint[1] },
-          endPoint: { latitude: lastPoint[0], longitude: lastPoint[1] },
-          waypoints: [],
-          geometry: trackGeometry,
-          totalDistance: distanceRemaining,
-          estimatedTime: 0,
-        };
-
-        // Create waypoint with real turn info from track analysis
-        const nextWaypoint: DriveWaypoint = {
-          latitude:
-            nextTurn?.latitude ?? trackGeometry[1]?.[0] ?? position.latitude,
-          longitude:
-            nextTurn?.longitude ?? trackGeometry[1]?.[1] ?? position.longitude,
-          instruction: displayInstruction,
-          maneuverType: displayManeuver,
-          distance: displayDistance,
-          bearingAfter: nextTurn?.bearingAfter,
-          index: 0,
-        };
-
-        const driveInfo: DriveNavigationInfo = {
-          speed: followTrackInfo.speed,
-          satellites: followTrackInfo.satellites,
-          nextManeuver: displayManeuver,
-          distanceToTurn: displayDistance,
-          instruction: displayInstruction,
-          streetName: track.name,
-          distanceRemaining: distanceRemaining,
-          progress: followTrackInfo.progress || 0,
-        };
-
-        bitmapResult = await this.svgService.renderDriveMapScreen(
-          driveRoute,
-          position,
-          nextWaypoint,
-          viewport,
-          driveInfo,
-          renderOptions,
-        );
-      }
-
-      if (!bitmapResult.success) {
-        logger.error("Failed to render screen:", bitmapResult.error);
-        this.notifyError(bitmapResult.error);
-        return failure(
-          OrchestratorError.updateFailed("Screen render", bitmapResult.error),
-        );
-      }
-      logger.info(
-        `✓ Screen rendered: ${bitmapResult.data.width}x${bitmapResult.data.height}, ${bitmapResult.data.data.length} bytes`,
-      );
-
-      // Step 5: Display on e-paper
-      logger.info(
-        `Step 5/5: Sending bitmap to e-paper display (mode: ${mode || "default"})...`,
-      );
-      const displayResult = await this.epaperService.displayBitmap(
-        bitmapResult.data,
-        mode,
-      );
-
-      if (!displayResult.success) {
-        logger.error("Failed to display on e-paper:", displayResult.error);
-        this.notifyError(displayResult.error);
-        return failure(
-          OrchestratorError.updateFailed(
-            "E-paper display",
-            displayResult.error,
-          ),
-        );
-      }
-      logger.info("✓ Display updated successfully");
-
-      // Notify display update callbacks
-      logger.info(
-        `Notifying ${this.displayUpdateCallbacks.length} display update callbacks`,
-      );
-      this.notifyDisplayUpdate(true);
-
-      return success(undefined);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(`Display update failed with exception: ${errorMsg}`);
-      const err = error instanceof Error ? error : new Error("Unknown error");
-      this.notifyError(err);
-      return failure(OrchestratorError.updateFailed("Display update", err));
-    } finally {
-      // Set up handler and complete update (which will process pending if any)
-      this.displayUpdateQueue.setUpdateHandler(async (m) => {
-        await this.updateDisplay(m);
-      });
-      this.displayUpdateQueue.completeUpdate();
-    }
+    return this.trackDisplayCoordinator.updateDisplay(mode);
   }
 
   /**
@@ -740,8 +378,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     logger.info(`Setting active GPX file: ${filePath}`);
 
     // Clear turn analysis cache for the new track
-    this.cachedTrackTurns = [];
-    this.cachedTrackPath = null;
+    if (this.trackDisplayCoordinator) {
+      this.trackDisplayCoordinator.clearTurnCache();
+    }
 
     try {
       // Validate the GPX file
@@ -809,8 +448,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     this.configService.setActiveGPXPath(null);
 
     // Clear turn analysis cache
-    this.cachedTrackTurns = [];
-    this.cachedTrackPath = null;
+    if (this.trackDisplayCoordinator) {
+      this.trackDisplayCoordinator.clearTurnCache();
+    }
 
     await this.configService.save();
     logger.info("✓ Active GPX cleared");
@@ -1388,6 +1028,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("✓ SimulationCoordinator disposed");
     }
 
+    // Dispose track display coordinator (clears turn cache)
+    if (this.trackDisplayCoordinator) {
+      logger.info("Disposing TrackDisplayCoordinator...");
+      this.trackDisplayCoordinator.dispose();
+      this.trackDisplayCoordinator = null;
+      logger.info("✓ TrackDisplayCoordinator disposed");
+    }
+
     // Stop auto-update if running
     logger.info("Stopping auto-update if running");
     this.stopAutoUpdate();
@@ -1447,84 +1095,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         logger.error("Error in error callback:", err);
       }
     });
-  }
-
-  /**
-   * Calculate progress along a track based on current position
-   * Finds the closest point on track and calculates distance traveled
-   */
-  private calculateTrackProgress(
-    track: GPXTrack,
-    position: GPSCoordinate,
-    totalDistance: number,
-  ): { distanceTraveled: number; distanceRemaining: number } {
-    if (
-      !track.segments.length ||
-      !track.segments[0].points.length ||
-      totalDistance === 0
-    ) {
-      return { distanceTraveled: 0, distanceRemaining: 0 };
-    }
-
-    const points = track.segments[0].points;
-
-    // Find the closest point on the track
-    let closestIndex = 0;
-    let closestDistance = Infinity;
-
-    for (let i = 0; i < points.length; i++) {
-      const dist = this.haversineDistance(
-        position.latitude,
-        position.longitude,
-        points[i].latitude,
-        points[i].longitude,
-      );
-      if (dist < closestDistance) {
-        closestDistance = dist;
-        closestIndex = i;
-      }
-    }
-
-    // Calculate distance traveled (from start to closest point)
-    let distanceTraveled = 0;
-    for (let i = 0; i < closestIndex; i++) {
-      distanceTraveled += this.haversineDistance(
-        points[i].latitude,
-        points[i].longitude,
-        points[i + 1].latitude,
-        points[i + 1].longitude,
-      );
-    }
-
-    const distanceRemaining = totalDistance - distanceTraveled;
-
-    return {
-      distanceTraveled,
-      distanceRemaining: Math.max(0, distanceRemaining),
-    };
-  }
-
-  /**
-   * Calculate distance between two coordinates using Haversine formula
-   * Returns distance in meters
-   */
-  private haversineDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   }
 
   /**
