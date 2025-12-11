@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 3.2 Extract Configuration Constants
+**Next item:** 3.3 Standardize Test Imports
 
 **Completed:**
 
@@ -191,18 +191,21 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `src/services/gps/GPSService.ts` (updated to use NMEAParser)
 - `src/services/gps/__tests__/NMEAParser.test.ts` (38 tests)
 
-### 3.2 Extract Configuration Constants
+### 3.2 Extract Configuration Constants ✓
 
-- [ ] Create `src/core/constants/defaults.ts` for default values
-- [ ] Move magic numbers from `ServiceContainer.ts:334-431`:
+- [x] Create `src/core/constants/defaults.ts` for default values
+- [x] Move magic numbers from `ServiceContainer.ts:334-431`:
   - GPS defaults (9600 baud, 1000ms interval)
   - Map defaults (10MB max file size, zoom levels)
   - E-paper defaults (800x480, pin numbers)
   - Web defaults (port 3000)
   - WiFi defaults (30s scan interval)
-- [ ] Document each constant with JSDoc
+- [x] Document each constant with JSDoc
 
-**Files:** `src/di/ServiceContainer.ts:328-431`
+**Files:**
+- `src/core/constants/defaults.ts` (182 lines) - All configuration constants
+- `src/core/constants/index.ts` (6 lines) - Barrel export
+- `src/di/ServiceContainer.ts` (updated to use constants)
 
 ### 3.3 Standardize Test Imports
 

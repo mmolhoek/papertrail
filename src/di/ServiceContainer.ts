@@ -19,6 +19,42 @@ import {
   MapConfig,
   WiFiConfig,
 } from "@core/types";
+import {
+  GPS_DEFAULT_DEVICE_PATH,
+  GPS_DEFAULT_BAUD_RATE,
+  GPS_DEFAULT_UPDATE_INTERVAL_MS,
+  GPS_DEFAULT_MIN_ACCURACY_METERS,
+  MAP_DEFAULT_GPX_DIRECTORY,
+  MAP_DEFAULT_MAX_FILE_SIZE_BYTES,
+  MAP_DEFAULT_CACHE_DIRECTORY,
+  MAP_DEFAULT_ZOOM_LEVEL,
+  MAP_MIN_ZOOM_LEVEL,
+  MAP_MAX_ZOOM_LEVEL,
+  EPAPER_DEFAULT_WIDTH,
+  EPAPER_DEFAULT_HEIGHT,
+  EPAPER_DEFAULT_SPI_DEVICE,
+  EPAPER_DEFAULT_PIN_RESET,
+  EPAPER_DEFAULT_PIN_DC,
+  EPAPER_DEFAULT_PIN_BUSY,
+  EPAPER_DEFAULT_PIN_CS,
+  EPAPER_DEFAULT_PIN_POWER,
+  EPAPER_DEFAULT_SPI_BUS,
+  EPAPER_DEFAULT_SPI_DEVICE_NUM,
+  EPAPER_DEFAULT_SPI_SPEED_HZ,
+  EPAPER_DEFAULT_REFRESH_MODE,
+  EPAPER_DEFAULT_ROTATION,
+  EPAPER_DEFAULT_DRIVER,
+  WEB_DEFAULT_PORT,
+  WEB_DEFAULT_HOST,
+  WEB_DEFAULT_API_BASE_PATH,
+  WEB_DEFAULT_STATIC_DIRECTORY,
+  WEB_DEFAULT_AUTH_USERNAME,
+  WEB_DEFAULT_AUTH_PASSWORD,
+  WIFI_DEFAULT_PRIMARY_SSID,
+  WIFI_DEFAULT_PRIMARY_PASSWORD,
+  WIFI_DEFAULT_SCAN_INTERVAL_MS,
+  WIFI_DEFAULT_CONNECTION_TIMEOUT_MS,
+} from "@core/constants";
 // Mock services - safe to import (no hardware dependencies)
 import { MockGPSService } from "@services/gps/MockGPSService";
 import { MockEpaperService } from "@services/epaper/MockEpaperService";
@@ -332,10 +368,17 @@ export class ServiceContainer {
    */
   getGPSConfig(): GPSConfig {
     return {
-      devicePath: process.env.GPS_DEVICE_PATH || "/dev/ttyAMA0",
-      baudRate: parseInt(process.env.GPS_BAUD_RATE || "9600"),
-      updateInterval: parseInt(process.env.GPS_UPDATE_INTERVAL || "1000"),
-      minAccuracy: parseInt(process.env.GPS_MIN_ACCURACY || "10"),
+      devicePath: process.env.GPS_DEVICE_PATH || GPS_DEFAULT_DEVICE_PATH,
+      baudRate: parseInt(
+        process.env.GPS_BAUD_RATE || String(GPS_DEFAULT_BAUD_RATE),
+      ),
+      updateInterval: parseInt(
+        process.env.GPS_UPDATE_INTERVAL ||
+          String(GPS_DEFAULT_UPDATE_INTERVAL_MS),
+      ),
+      minAccuracy: parseInt(
+        process.env.GPS_MIN_ACCURACY || String(GPS_DEFAULT_MIN_ACCURACY_METERS),
+      ),
     };
   }
 
@@ -344,13 +387,23 @@ export class ServiceContainer {
    */
   getMapConfig(): MapConfig {
     return {
-      gpxDirectory: process.env.GPX_DIRECTORY || "./data/gpx-files",
-      maxFileSize: parseInt(process.env.GPX_MAX_FILE_SIZE || "10485760"), // 10MB
+      gpxDirectory: process.env.GPX_DIRECTORY || MAP_DEFAULT_GPX_DIRECTORY,
+      maxFileSize: parseInt(
+        process.env.GPX_MAX_FILE_SIZE ||
+          String(MAP_DEFAULT_MAX_FILE_SIZE_BYTES),
+      ),
       enableCache: process.env.GPX_ENABLE_CACHE !== "false",
-      cacheDirectory: process.env.GPX_CACHE_DIRECTORY || "./data/cache",
-      defaultZoomLevel: parseInt(process.env.DEFAULT_ZOOM || "14"),
-      minZoomLevel: parseInt(process.env.MIN_ZOOM || "1"),
-      maxZoomLevel: parseInt(process.env.MAX_ZOOM || "20"),
+      cacheDirectory:
+        process.env.GPX_CACHE_DIRECTORY || MAP_DEFAULT_CACHE_DIRECTORY,
+      defaultZoomLevel: parseInt(
+        process.env.DEFAULT_ZOOM || String(MAP_DEFAULT_ZOOM_LEVEL),
+      ),
+      minZoomLevel: parseInt(
+        process.env.MIN_ZOOM || String(MAP_MIN_ZOOM_LEVEL),
+      ),
+      maxZoomLevel: parseInt(
+        process.env.MAX_ZOOM || String(MAP_MAX_ZOOM_LEVEL),
+      ),
     };
   }
 
@@ -359,31 +412,47 @@ export class ServiceContainer {
    */
   getEpaperConfig(): EpaperConfig {
     return {
-      width: parseInt(process.env.EPAPER_WIDTH || "800"),
-      height: parseInt(process.env.EPAPER_HEIGHT || "480"),
-      spiDevice: process.env.EPAPER_SPI_DEVICE || "/dev/spidev0.0",
+      width: parseInt(process.env.EPAPER_WIDTH || String(EPAPER_DEFAULT_WIDTH)),
+      height: parseInt(
+        process.env.EPAPER_HEIGHT || String(EPAPER_DEFAULT_HEIGHT),
+      ),
+      spiDevice: process.env.EPAPER_SPI_DEVICE || EPAPER_DEFAULT_SPI_DEVICE,
       pins: {
-        reset: parseInt(process.env.EPAPER_PIN_RESET || "17"),
-        dc: parseInt(process.env.EPAPER_PIN_DC || "25"),
-        busy: parseInt(process.env.EPAPER_PIN_BUSY || "24"),
-        cs: parseInt(process.env.EPAPER_PIN_CS || "8"),
+        reset: parseInt(
+          process.env.EPAPER_PIN_RESET || String(EPAPER_DEFAULT_PIN_RESET),
+        ),
+        dc: parseInt(
+          process.env.EPAPER_PIN_DC || String(EPAPER_DEFAULT_PIN_DC),
+        ),
+        busy: parseInt(
+          process.env.EPAPER_PIN_BUSY || String(EPAPER_DEFAULT_PIN_BUSY),
+        ),
+        cs: parseInt(
+          process.env.EPAPER_PIN_CS || String(EPAPER_DEFAULT_PIN_CS),
+        ),
         power: process.env.EPAPER_PIN_POWER
           ? parseInt(process.env.EPAPER_PIN_POWER)
-          : 18,
+          : EPAPER_DEFAULT_PIN_POWER,
       },
       spi: {
-        bus: parseInt(process.env.EPAPER_SPI_BUS || "0"),
-        device: parseInt(process.env.EPAPER_SPI_DEVICE_NUM || "0"),
-        speed: parseInt(process.env.EPAPER_SPI_SPEED || "256000"),
+        bus: parseInt(
+          process.env.EPAPER_SPI_BUS || String(EPAPER_DEFAULT_SPI_BUS),
+        ),
+        device: parseInt(
+          process.env.EPAPER_SPI_DEVICE_NUM ||
+            String(EPAPER_DEFAULT_SPI_DEVICE_NUM),
+        ),
+        speed: parseInt(
+          process.env.EPAPER_SPI_SPEED || String(EPAPER_DEFAULT_SPI_SPEED_HZ),
+        ),
       },
       refreshMode:
-        (process.env.EPAPER_REFRESH_MODE as "full" | "partial") || "full",
-      rotation: parseInt(process.env.EPAPER_ROTATION || "0") as
-        | 0
-        | 90
-        | 180
-        | 270,
-      driver: process.env.EPAPER_DRIVER || "waveshare_7in5_bw",
+        (process.env.EPAPER_REFRESH_MODE as "full" | "partial") ||
+        EPAPER_DEFAULT_REFRESH_MODE,
+      rotation: (parseInt(
+        process.env.EPAPER_ROTATION || String(EPAPER_DEFAULT_ROTATION),
+      ) || EPAPER_DEFAULT_ROTATION) as 0 | 90 | 180 | 270,
+      driver: process.env.EPAPER_DRIVER || EPAPER_DEFAULT_DRIVER,
       model: process.env.EPAPER_MODEL,
     };
   }
@@ -393,11 +462,12 @@ export class ServiceContainer {
    */
   getWebConfig(): WebConfig {
     return {
-      port: parseInt(process.env.WEB_PORT || "3000"),
-      host: process.env.WEB_HOST || "0.0.0.0",
+      port: parseInt(process.env.WEB_PORT || String(WEB_DEFAULT_PORT)),
+      host: process.env.WEB_HOST || WEB_DEFAULT_HOST,
       cors: process.env.WEB_CORS !== "false",
-      apiBasePath: process.env.WEB_API_BASE || "/api",
-      staticDirectory: process.env.WEB_STATIC_DIR || "./src/web/public",
+      apiBasePath: process.env.WEB_API_BASE || WEB_DEFAULT_API_BASE_PATH,
+      staticDirectory:
+        process.env.WEB_STATIC_DIR || WEB_DEFAULT_STATIC_DIRECTORY,
       websocket: {
         enabled: process.env.WEB_WEBSOCKET !== "false",
         port: process.env.WEB_WEBSOCKET_PORT
@@ -408,8 +478,10 @@ export class ServiceContainer {
         process.env.WEB_AUTH_ENABLED === "true"
           ? {
               enabled: true,
-              username: process.env.WEB_AUTH_USERNAME || "admin",
-              password: process.env.WEB_AUTH_PASSWORD || "papertrail",
+              username:
+                process.env.WEB_AUTH_USERNAME || WEB_DEFAULT_AUTH_USERNAME,
+              password:
+                process.env.WEB_AUTH_PASSWORD || WEB_DEFAULT_AUTH_PASSWORD,
             }
           : undefined,
     };
@@ -421,11 +493,16 @@ export class ServiceContainer {
   getWiFiConfig(): WiFiConfig {
     return {
       enabled: process.env.WIFI_ENABLED !== "false",
-      primarySSID: process.env.WIFI_PRIMARY_SSID || "Papertrail-Setup",
-      primaryPassword: process.env.WIFI_PRIMARY_PASSWORD || "papertrail123",
-      scanIntervalMs: parseInt(process.env.WIFI_SCAN_INTERVAL_MS || "30000"),
+      primarySSID: process.env.WIFI_PRIMARY_SSID || WIFI_DEFAULT_PRIMARY_SSID,
+      primaryPassword:
+        process.env.WIFI_PRIMARY_PASSWORD || WIFI_DEFAULT_PRIMARY_PASSWORD,
+      scanIntervalMs: parseInt(
+        process.env.WIFI_SCAN_INTERVAL_MS ||
+          String(WIFI_DEFAULT_SCAN_INTERVAL_MS),
+      ),
       connectionTimeoutMs: parseInt(
-        process.env.WIFI_CONNECTION_TIMEOUT_MS || "60000",
+        process.env.WIFI_CONNECTION_TIMEOUT_MS ||
+          String(WIFI_DEFAULT_CONNECTION_TIMEOUT_MS),
       ),
     };
   }
