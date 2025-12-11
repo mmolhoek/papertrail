@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 4.2 Secure Default Credentials
+**Next item:** 4.3 Review CORS Configuration
 
 **Completed:**
 
@@ -251,17 +251,21 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `src/web/validation/fileValidation.ts` (magic bytes validation)
 - `src/core/constants/defaults.ts` (upload configuration constants)
 
-### 4.2 Secure Default Credentials
+### 4.2 Secure Default Credentials ✓
 
-- [ ] Change default WiFi password from `papertrail123` to require user setup
-- [ ] Change default web auth password from `papertrail` to random generated
-- [ ] Add startup warning if using default credentials
-- [ ] Document security requirements in README
+- [x] Change default WiFi password from `papertrail123` to require user setup
+- [x] Change default web auth password from `papertrail` to random generated
+- [x] Add startup warning if using default credentials
+- [x] Document security requirements in README
 
 **Files:**
 
-- `src/di/ServiceContainer.ts:411-413` (web auth)
-- `src/di/ServiceContainer.ts:425` (WiFi password)
+- `src/utils/crypto.ts` (secure password generation)
+- `src/utils/__tests__/crypto.test.ts` (18 tests)
+- `src/core/constants/defaults.ts` (marker constants)
+- `src/di/ServiceContainer.ts` (password generation and security warnings)
+- `src/index.ts` (startup security warnings display)
+- `README.md` (security documentation section)
 
 ### 4.3 Review CORS Configuration
 
