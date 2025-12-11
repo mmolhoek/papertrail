@@ -508,4 +508,85 @@ export class DriveController {
       },
     });
   }
+
+  /**
+   * Proxy route calculation to OSRM API
+   * This avoids CORS issues when calling OSRM from the browser
+   */
+  async calculateRoute(req: Request, res: Response): Promise<void> {
+    const { startLon, startLat, endLon, endLat } = req.query;
+
+    if (!startLon || !startLat || !endLon || !endLat) {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message:
+            "Missing required parameters: startLon, startLat, endLon, endLat",
+        },
+      });
+      return;
+    }
+
+    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+
+    logger.info(
+      `Proxying OSRM request: ${startLon},${startLat} -> ${endLon},${endLat}`,
+    );
+
+    try {
+      const response = await fetch(osrmUrl);
+
+      if (!response.ok) {
+        logger.error(
+          `OSRM request failed: ${response.status} ${response.statusText}`,
+        );
+        res.status(response.status).json({
+          success: false,
+          error: {
+            code: "OSRM_ERROR",
+            message: `OSRM request failed: ${response.status} ${response.statusText}`,
+          },
+        });
+        return;
+      }
+
+      const data = (await response.json()) as {
+        code: string;
+        message?: string;
+        routes?: unknown[];
+      };
+
+      if (data.code !== "Ok") {
+        logger.warn(
+          `OSRM returned error: ${data.code} - ${data.message || "Unknown"}`,
+        );
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "OSRM_ROUTING_ERROR",
+            message: data.message || `OSRM error: ${data.code}`,
+          },
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: data,
+      });
+    } catch (error) {
+      logger.error("Failed to proxy OSRM request:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "PROXY_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Failed to calculate route",
+        },
+      });
+    }
+  }
 }

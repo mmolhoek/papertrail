@@ -1793,7 +1793,7 @@ class PapertrailClient {
             return;
           }
         }
-      } catch (error) {
+      } catch {
         // Try active track starting point as final fallback
         console.warn(
           "Browser geolocation failed - trying active track starting point",
@@ -1834,40 +1834,35 @@ class PapertrailClient {
     if (btnText) btnText.textContent = "Calculating...";
 
     try {
-      // Use OSRM for routing
-      const start = `${this.currentPosition.lon},${this.currentPosition.lat}`;
-      const end = `${this.driveDestination.lon},${this.driveDestination.lat}`;
+      // Use backend proxy for OSRM routing (avoids CORS issues)
+      const startLon = this.currentPosition.lon;
+      const startLat = this.currentPosition.lat;
+      const endLon = this.driveDestination.lon;
+      const endLat = this.driveDestination.lat;
 
       console.log(
-        `Calculating route from ${start} to ${end} (${this.driveDestination.name})`,
+        `Calculating route from ${startLon},${startLat} to ${endLon},${endLat} (${this.driveDestination.name})`,
       );
 
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson&steps=true`;
-      console.log("OSRM URL:", osrmUrl);
+      const proxyUrl = `${this.apiBase}/drive/calculate?startLon=${startLon}&startLat=${startLat}&endLon=${endLon}&endLat=${endLat}`;
+      console.log("Proxy URL:", proxyUrl);
 
-      const response = await fetch(osrmUrl);
+      const response = await fetch(proxyUrl);
+      const result = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          `OSRM request failed: ${response.status} ${response.statusText}`,
-        );
+      if (!result.success) {
+        throw new Error(result.error?.message || "Route calculation failed");
       }
 
-      const data = await response.json();
+      const data = result.data;
       console.log("OSRM response:", data);
-
-      if (data.code !== "Ok") {
-        throw new Error(
-          `OSRM error: ${data.code} - ${data.message || "Unknown error"}`,
-        );
-      }
 
       if (!data.routes || data.routes.length === 0) {
         throw new Error("No route found between the selected points");
       }
 
       const route = data.routes[0];
-      this.processOSRMRoute(route, data);
+      this.processOSRMRoute(route);
     } catch (error) {
       console.error("Route calculation error:", error);
       const errorMessage = error.message || "Unknown error";
@@ -1878,13 +1873,13 @@ class PapertrailClient {
     }
   }
 
-  processOSRMRoute(route, data) {
+  processOSRMRoute(route) {
     // Extract waypoints with turn instructions
     const waypoints = [];
     let waypointIndex = 0;
 
     route.legs.forEach((leg) => {
-      leg.steps.forEach((step, stepIndex) => {
+      leg.steps.forEach((step) => {
         const maneuver = step.maneuver;
         const maneuverType = this.osrmManeuverToType(
           maneuver.type,
@@ -2125,7 +2120,6 @@ class PapertrailClient {
     }
 
     const startBtn = document.getElementById("drive-start-btn");
-    const stopBtn = document.getElementById("drive-stop-btn");
 
     startBtn.disabled = true;
 

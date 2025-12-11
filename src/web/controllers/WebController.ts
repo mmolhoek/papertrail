@@ -459,6 +459,11 @@ export class WebController {
     return this.drive.getDriveNavigationStatus(req, res);
   }
 
+  /** @see DriveController.calculateRoute */
+  async calculateRoute(req: Request, res: Response): Promise<void> {
+    return this.drive.calculateRoute(req, res);
+  }
+
   /** @see SimulationController.startSimulation */
   async startSimulation(req: Request, res: Response): Promise<void> {
     return this.simulation.startSimulation(req, res);

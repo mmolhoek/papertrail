@@ -583,6 +583,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.getDriveNavigationStatus(req, res),
     );
 
+    this.app.get(`${api}/drive/calculate`, (req, res) =>
+      this.controller.calculateRoute(req, res),
+    );
+
     this.app.post(
       `${api}/drive/simulate`,
       validateBody(simulateDriveRouteSchema),
