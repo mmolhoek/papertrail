@@ -27,6 +27,7 @@ import {
 import { BitmapUtils } from "./BitmapUtils";
 import { ProjectionService } from "./ProjectionService";
 import { TrackRenderer } from "./TrackRenderer";
+import { UIRenderer } from "./UIRenderer";
 
 const logger = getLogger("SVGService");
 
@@ -198,7 +199,6 @@ export class SVGService implements ISVGService {
 
   /**
    * Add a compass rose to indicate direction
-   * Uses SVG-based text rendering for the "N" label
    */
   async addCompass(
     bitmap: Bitmap1Bit,
@@ -207,120 +207,7 @@ export class SVGService implements ISVGService {
     radius: number,
     heading: number,
   ): Promise<Result<Bitmap1Bit>> {
-    logger.debug(
-      `Adding compass at (${x}, ${y}), radius=${radius}, heading=${heading}°`,
-    );
-
-    const center = { x, y };
-
-    // Draw outer circle
-    this.drawCircle(bitmap, center, radius);
-    this.drawCircle(bitmap, center, radius - 1);
-
-    // Draw inner circle (smaller)
-    this.drawCircle(bitmap, center, Math.floor(radius * 0.3));
-
-    // Calculate north direction (adjusted by heading)
-    // When heading is 0, north is up. As heading increases, north rotates clockwise
-    // So we need to rotate the north indicator counter-clockwise by heading
-    const northAngle = -heading; // degrees
-
-    // Draw north arrow/triangle
-    this.drawCompassArrow(bitmap, center, radius, northAngle, true);
-
-    // Draw south indicator (opposite direction, smaller)
-    this.drawCompassArrow(bitmap, center, radius, northAngle + 180, false);
-
-    // Draw "N" label near the north arrow using bitmap font (no Sharp)
-    const labelScale = 2; // ~14px height
-    const labelDistance = radius + 16;
-    const northRadians = ((northAngle - 90) * Math.PI) / 180;
-    const labelX = Math.round(x + labelDistance * Math.cos(northRadians));
-    const labelY = Math.round(y + labelDistance * Math.sin(northRadians));
-
-    // Center the "N" label
-    const nWidth = calculateBitmapTextWidth("N", labelScale);
-    const nHeight = calculateBitmapTextHeight(labelScale);
-    renderBitmapText(
-      bitmap,
-      "N",
-      labelX - Math.floor(nWidth / 2),
-      labelY - Math.floor(nHeight / 2),
-      { scale: labelScale, bold: true },
-    );
-
-    return success(bitmap);
-  }
-
-  /**
-   * Draw a compass arrow pointing in a direction
-   */
-  private drawCompassArrow(
-    bitmap: Bitmap1Bit,
-    center: { x: number; y: number },
-    radius: number,
-    angleDegrees: number,
-    isNorth: boolean,
-  ): void {
-    const angleRadians = ((angleDegrees - 90) * Math.PI) / 180; // -90 to make 0 degrees point up
-
-    // Arrow tip at the edge of the compass
-    const tipDistance = radius - 3;
-    const tipX = Math.round(center.x + tipDistance * Math.cos(angleRadians));
-    const tipY = Math.round(center.y + tipDistance * Math.sin(angleRadians));
-
-    // Arrow base (closer to center)
-    const baseDistance = isNorth ? radius * 0.35 : radius * 0.5;
-    const baseX = Math.round(center.x + baseDistance * Math.cos(angleRadians));
-    const baseY = Math.round(center.y + baseDistance * Math.sin(angleRadians));
-
-    // Draw the main arrow line
-    this.drawLine(bitmap, { x: baseX, y: baseY }, { x: tipX, y: tipY }, 2);
-
-    if (isNorth) {
-      // Draw arrowhead for north
-      const headSize = Math.max(4, Math.floor(radius * 0.25));
-      const perpAngle = angleRadians + Math.PI / 2;
-
-      const leftX = Math.round(
-        tipX -
-          headSize * Math.cos(angleRadians) +
-          (headSize / 2) * Math.cos(perpAngle),
-      );
-      const leftY = Math.round(
-        tipY -
-          headSize * Math.sin(angleRadians) +
-          (headSize / 2) * Math.sin(perpAngle),
-      );
-
-      const rightX = Math.round(
-        tipX -
-          headSize * Math.cos(angleRadians) -
-          (headSize / 2) * Math.cos(perpAngle),
-      );
-      const rightY = Math.round(
-        tipY -
-          headSize * Math.sin(angleRadians) -
-          (headSize / 2) * Math.sin(perpAngle),
-      );
-
-      this.drawLine(bitmap, { x: tipX, y: tipY }, { x: leftX, y: leftY }, 2);
-      this.drawLine(bitmap, { x: tipX, y: tipY }, { x: rightX, y: rightY }, 2);
-      this.drawLine(
-        bitmap,
-        { x: leftX, y: leftY },
-        { x: rightX, y: rightY },
-        1,
-      );
-
-      // Fill the arrowhead
-      this.fillTriangle(
-        bitmap,
-        { x: tipX, y: tipY },
-        { x: leftX, y: leftY },
-        { x: rightX, y: rightY },
-      );
-    }
+    return UIRenderer.addCompass(bitmap, x, y, radius, heading);
   }
 
   /**
@@ -337,7 +224,6 @@ export class SVGService implements ISVGService {
 
   /**
    * Add a scale bar to the bitmap
-   * Uses SVG-based text rendering for the distance label
    */
   async addScaleBar(
     bitmap: Bitmap1Bit,
@@ -346,90 +232,7 @@ export class SVGService implements ISVGService {
     maxWidth: number,
     metersPerPixel: number,
   ): Promise<Result<Bitmap1Bit>> {
-    logger.debug(
-      `Adding scale bar at (${x}, ${y}), maxWidth=${maxWidth}, metersPerPixel=${metersPerPixel}`,
-    );
-
-    // Calculate max distance the bar could represent
-    const maxDistance = maxWidth * metersPerPixel;
-
-    // Find a nice round distance that fits within maxWidth
-    const niceDistance = this.getNiceScaleDistance(maxDistance);
-
-    // Calculate actual bar width for this nice distance
-    const barWidth = Math.round(niceDistance / metersPerPixel);
-
-    // Format the distance label
-    const label = this.formatDistance(niceDistance);
-
-    // Bar dimensions
-    const barHeight = 8;
-    const capHeight = 20;
-
-    // Draw the main horizontal bar
-    this.drawHorizontalLine(bitmap, x, y, barWidth, barHeight);
-
-    // Draw left end cap (vertical line)
-    this.drawVerticalLine(
-      bitmap,
-      x,
-      y - Math.floor((capHeight - barHeight) / 2),
-      capHeight,
-      4,
-    );
-
-    // Draw right end cap (vertical line)
-    this.drawVerticalLine(
-      bitmap,
-      x + barWidth - 4,
-      y - Math.floor((capHeight - barHeight) / 2),
-      capHeight,
-      4,
-    );
-
-    // Draw the distance label centered above the bar using bitmap font (no Sharp)
-    const labelScale = 4; // ~28px height
-    const labelHeight = calculateBitmapTextHeight(labelScale);
-    const labelY = y - labelHeight - 12; // Position above bar with gap
-    const labelWidth = calculateBitmapTextWidth(label, labelScale);
-    const labelX = x + Math.floor(barWidth / 2) - Math.floor(labelWidth / 2);
-
-    renderBitmapText(bitmap, label, labelX, labelY, {
-      scale: labelScale,
-      bold: true,
-    });
-
-    return success(bitmap);
-  }
-
-  /**
-   * Get a nice round distance for scale bar
-   */
-  private getNiceScaleDistance(maxDistance: number): number {
-    // Nice distances in meters
-    const niceDistances = [
-      10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000,
-    ];
-
-    // Find the largest nice distance that fits
-    for (let i = niceDistances.length - 1; i >= 0; i--) {
-      if (niceDistances[i] <= maxDistance) {
-        return niceDistances[i];
-      }
-    }
-
-    return niceDistances[0];
-  }
-
-  /**
-   * Format distance for display (m or km)
-   */
-  private formatDistance(meters: number): string {
-    if (meters >= 1000) {
-      const km = meters / 1000;
-      return km % 1 === 0 ? `${km} KM` : `${km.toFixed(1)} KM`;
-    }
-    return `${meters} M`;
+    return UIRenderer.addScaleBar(bitmap, x, y, maxWidth, metersPerPixel);
   }
 
   /**
@@ -575,96 +378,10 @@ export class SVGService implements ISVGService {
     bitmap: Bitmap1Bit,
     x: number,
     info: FollowTrackInfo,
-    _width: number,
-    _height: number,
+    width: number,
+    height: number,
   ): void {
-    logger.debug(`Rendering info panel at x=${x} using bitmap font (no Sharp)`);
-
-    // Panel layout constants - using bitmap font scales
-    const padding = 10;
-    const labelScale = 4; // ~28px
-    const valueScale = 5; // ~35px
-    const lineSpacing = 4;
-    const sectionSpacing = 16;
-
-    let currentY = padding;
-
-    // Section 1: Speed label
-    renderBitmapText(bitmap, "SPEED", x + padding, currentY, {
-      scale: labelScale,
-    });
-    currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
-
-    // Speed value with unit inline (e.g., "42 KM/H")
-    const speedText = `${Math.round(info.speed)} KM/H`;
-    renderBitmapText(bitmap, speedText, x + padding, currentY, {
-      scale: valueScale,
-      bold: true,
-    });
-    currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
-
-    // Section 2: Satellites label
-    renderBitmapText(bitmap, "SATS", x + padding, currentY, {
-      scale: labelScale,
-    });
-    currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
-
-    // Satellites value
-    renderBitmapText(
-      bitmap,
-      info.satellites.toString(),
-      x + padding,
-      currentY,
-      {
-        scale: valueScale,
-        bold: true,
-      },
-    );
-    currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
-
-    // Section 3: Progress percentage
-    if (info.progress !== undefined) {
-      renderBitmapText(bitmap, "DONE", x + padding, currentY, {
-        scale: labelScale,
-      });
-      currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
-
-      const progressText = `${Math.round(info.progress)}%`;
-      renderBitmapText(bitmap, progressText, x + padding, currentY, {
-        scale: valueScale,
-        bold: true,
-      });
-      currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
-    }
-
-    // Section 4: Time remaining
-    if (info.estimatedTimeRemaining !== undefined) {
-      renderBitmapText(bitmap, "ETA", x + padding, currentY, {
-        scale: labelScale,
-      });
-      currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
-
-      const timeStr = this.formatTimeRemaining(info.estimatedTimeRemaining);
-      renderBitmapText(bitmap, timeStr, x + padding, currentY, {
-        scale: valueScale,
-        bold: true,
-      });
-    }
-  }
-
-  /**
-   * Format time remaining in seconds to a readable string (e.g., "1H 23M" or "45M")
-   */
-  private formatTimeRemaining(seconds: number): string {
-    if (seconds < 60) {
-      return "<1M";
-    }
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}H ${minutes}M`;
-    }
-    return `${minutes}M`;
+    UIRenderer.renderFollowTrackInfoPanel(bitmap, x, info, width, height);
   }
 
   // Note: Old bitmap font methods (renderSimpleText, drawChar, drawScaledChar, etc.)
@@ -1037,65 +754,7 @@ export class SVGService implements ISVGService {
     height: number,
     progress: number,
   ): void {
-    const progressBarY = Math.floor(height * 0.88);
-    const progressBarHeight = 8;
-    const progressBarMarginLeft = 40;
-    const progressBarMarginRight = 80; // Extra space for percentage text
-    const progressBarWidth =
-      width - progressBarMarginLeft - progressBarMarginRight;
-
-    // Draw progress bar outline
-    this.drawHorizontalLine(
-      bitmap,
-      progressBarMarginLeft,
-      progressBarY,
-      progressBarWidth,
-    );
-    this.drawHorizontalLine(
-      bitmap,
-      progressBarMarginLeft,
-      progressBarY + progressBarHeight,
-      progressBarWidth,
-    );
-    this.drawVerticalLine(
-      bitmap,
-      progressBarMarginLeft,
-      progressBarY,
-      progressBarHeight,
-    );
-    this.drawVerticalLine(
-      bitmap,
-      progressBarMarginLeft + progressBarWidth,
-      progressBarY,
-      progressBarHeight,
-    );
-
-    // Draw progress bar fill
-    const fillWidth = Math.floor((progressBarWidth - 2) * (progress / 100));
-    if (fillWidth > 0) {
-      for (
-        let y = progressBarY + 1;
-        y < progressBarY + progressBarHeight;
-        y++
-      ) {
-        this.drawHorizontalLine(
-          bitmap,
-          progressBarMarginLeft + 1,
-          y,
-          fillWidth,
-        );
-      }
-    }
-
-    // Draw percentage text to the right of the bar
-    const percentText = `${Math.round(progress)}%`;
-    const percentScale = 2;
-    const percentX = progressBarMarginLeft + progressBarWidth + 10;
-    const percentY = progressBarY - 2;
-    renderBitmapText(bitmap, percentText, percentX, percentY, {
-      scale: percentScale,
-      bold: true,
-    });
+    UIRenderer.drawProgressBar(bitmap, width, height, progress);
   }
 
   /**
@@ -1983,22 +1642,13 @@ export class SVGService implements ISVGService {
    * Format distance for display (m or km)
    */
   private formatDistanceForDisplay(meters: number): string {
-    if (meters >= 1000) {
-      const km = meters / 1000;
-      if (km >= 10) {
-        return `${Math.round(km)} KM`;
-      }
-      return `${km.toFixed(1)} KM`;
-    }
-    return `${Math.round(meters)} M`;
+    return UIRenderer.formatDistanceForDisplay(meters);
   }
 
   /**
    * Convert bearing to cardinal direction
    */
   private bearingToDirection(bearing: number): string {
-    const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
-    const index = Math.round(bearing / 45) % 8;
-    return directions[index];
+    return UIRenderer.bearingToDirection(bearing);
   }
 }
