@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 5.4 Create Architecture Documentation
+**Next item:** 6.1 Optimize Rendering Pipeline
 
 **Completed:**
 
@@ -321,12 +321,20 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `src/services/orchestrator/RenderingOrchestrator.ts` - Class overview, all public methods documented
 - `src/web/controllers/WebController.ts` - Class overview, route annotations, @see references
 
-### 5.4 Create Architecture Documentation
+### 5.4 Create Architecture Documentation ✓
 
-- [ ] Add sequence diagrams for main flows (GPS update, track selection)
-- [ ] Document state machine for WiFi/onboarding flow
-- [ ] Add component diagram showing service dependencies
-- [ ] Place in `docs/` directory (only if requested)
+- [x] Add sequence diagrams for main flows (GPS update, track selection)
+- [x] Document state machine for WiFi/onboarding flow
+- [x] Add component diagram showing service dependencies
+- [x] Place in `docs/` directory (only if requested)
+
+**Files:**
+- `docs/architecture.md` - Comprehensive architecture documentation with:
+  - Service component diagram showing all services and dependencies
+  - GPS update flow sequence diagram (hardware → service → web)
+  - Track selection flow sequence diagram
+  - WiFi/onboarding state machine diagram with all states and transitions
+  - Drive navigation flow sequence diagram
 
 ---
 
