@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 1.4 Split WiFiService
+**Next item:** 2.1 Add Integration Tests for Orchestrator
 
 **Completed:**
 
@@ -43,6 +43,7 @@
 - [x] UIRenderer extracted (SVGService 2,004 → 1,654 lines)
 - [x] ManeuverRenderer extracted (SVGService 1,654 → 1,246 lines)
 - [x] WebController split into sub-controllers (2,150 → 459 lines)
+- [x] WiFiService split into sub-classes (1,542 → 241 lines)
 
 ---
 
@@ -109,14 +110,20 @@ These items address the largest technical debt and will make subsequent improvem
 - `src/web/controllers/SimulationController.ts` (351 lines)
 - `src/web/controllers/ConfigController.ts` (462 lines)
 
-### 1.4 Split WiFiService (1,542 lines)
+### 1.4 Split WiFiService (started at 1,542 lines, now 241 lines) ✓
 
-- [ ] Extract network scanning into `NetworkScanner` class
-- [ ] Extract connection management into `ConnectionManager` class
-- [ ] Extract AP mode handling into `AccessPointManager` class
-- [ ] Extract state machine into dedicated `WiFiStateMachine` class
+- [x] Extract network scanning into `NetworkScanner` class
+- [x] Extract connection management into `ConnectionManager` class
+- [x] Extract AP mode handling into `HotspotManager` class
+- [x] Extract state machine into dedicated `WiFiStateMachine` class
 
-**Files:** `src/services/wifi/WiFiService.ts`
+**Files:**
+
+- `src/services/wifi/WiFiService.ts` (241 lines - facade)
+- `src/services/wifi/NetworkScanner.ts` (137 lines)
+- `src/services/wifi/ConnectionManager.ts` (523 lines)
+- `src/services/wifi/HotspotManager.ts` (550 lines)
+- `src/services/wifi/WiFiStateMachine.ts` (492 lines)
 
 ---
 
@@ -323,10 +330,10 @@ After all phases:
 **File Size Reference (lines of code):**
 | File | Lines | Priority |
 |------|-------|----------|
-| RenderingOrchestrator.ts | 3,014 | HIGH |
-| SVGService.ts | 2,348 | HIGH |
-| WebController.ts | 2,150 | HIGH |
-| WiFiService.ts | 1,542 | MEDIUM |
+| RenderingOrchestrator.ts | 1,156 | DONE |
+| SVGService.ts | 1,246 | DONE |
+| WebController.ts | 459 | DONE |
+| WiFiService.ts | 241 | DONE |
 | IntegratedWebService.ts | 809 | LOW |
 | DriveNavigationService.ts | 677 | LOW |
 | EPaperService.ts | 662 | LOW |
