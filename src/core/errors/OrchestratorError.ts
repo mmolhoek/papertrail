@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Orchestrator-related error codes
@@ -143,21 +144,6 @@ export class OrchestratorError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case OrchestratorErrorCode.SERVICE_INIT_FAILED:
-        return "Failed to start application services. Please restart.";
-      case OrchestratorErrorCode.NO_ACTIVE_GPX:
-        return "No track selected. Please select a GPX file.";
-      case OrchestratorErrorCode.UPDATE_FAILED:
-        return "Failed to update display. Please try again.";
-      case OrchestratorErrorCode.MULTIPLE_ERRORS:
-        return "Multiple errors occurred. Please check system status.";
-      case OrchestratorErrorCode.ALREADY_RUNNING:
-        return "Auto-update is already active.";
-      case OrchestratorErrorCode.NOT_RUNNING:
-        return "Auto-update is not active.";
-      default:
-        return "System error occurred. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }

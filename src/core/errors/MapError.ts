@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Map-related error codes
@@ -172,21 +173,6 @@ export class MapError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case MapErrorCode.FILE_NOT_FOUND:
-        return "GPX file not found. Please check the file path.";
-      case MapErrorCode.INVALID_GPX:
-        return "Invalid GPX file format. Please use a valid GPX file.";
-      case MapErrorCode.NO_TRACKS:
-        return "This GPX file contains no tracks.";
-      case MapErrorCode.NO_TRACK_POINTS:
-        return "This track has no points to display.";
-      case MapErrorCode.FILE_TOO_LARGE:
-        return "GPX file is too large. Please use a smaller file.";
-      case MapErrorCode.NO_GPX_FILES:
-        return "No GPX files found. Please add GPX files to the directory.";
-      default:
-        return "Error loading map data. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }

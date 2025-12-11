@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * WiFi error codes
@@ -165,5 +166,9 @@ export class WiFiError extends BaseError {
    */
   static unknown(message: string): WiFiError {
     return new WiFiError(message, WiFiErrorCode.UNKNOWN, true);
+  }
+
+  getUserMessage(): string {
+    return getUserMessage(this.code);
   }
 }

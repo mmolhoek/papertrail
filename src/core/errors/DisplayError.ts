@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Display-related error codes
@@ -199,21 +200,6 @@ export class DisplayError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case DisplayErrorCode.DEVICE_NOT_FOUND:
-        return "E-paper display not found. Please check hardware connections.";
-      case DisplayErrorCode.DEVICE_INIT_FAILED:
-        return "Failed to initialize display. Please restart the device.";
-      case DisplayErrorCode.DISPLAY_BUSY:
-        return "Display is busy. Please wait.";
-      case DisplayErrorCode.DISPLAY_TIMEOUT:
-        return "Display operation timed out. Please try again.";
-      case DisplayErrorCode.BITMAP_SIZE_MISMATCH:
-        return "Image size does not match display. Please check configuration.";
-      case DisplayErrorCode.RENDER_FAILED:
-        return "Failed to render map. Please try again.";
-      default:
-        return "Display error occurred. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }

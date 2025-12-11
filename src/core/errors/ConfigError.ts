@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Config-related error codes
@@ -157,23 +158,6 @@ export class ConfigError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case ConfigErrorCode.FILE_NOT_FOUND:
-        return "Configuration file not found. Using default settings.";
-      case ConfigErrorCode.FILE_READ_ERROR:
-        return "Failed to read configuration. Using default settings.";
-      case ConfigErrorCode.FILE_WRITE_ERROR:
-        return "Failed to save configuration. Changes may not persist.";
-      case ConfigErrorCode.INVALID_JSON:
-        return "Configuration file is corrupted. Using default settings.";
-      case ConfigErrorCode.MISSING_REQUIRED_FIELD:
-        return "Configuration is incomplete. Using default settings.";
-      case ConfigErrorCode.INVALID_VALUE:
-        return "Configuration contains invalid values. Using defaults.";
-      case ConfigErrorCode.OUT_OF_RANGE:
-        return "Configuration values are out of acceptable range.";
-      default:
-        return "Configuration error occurred. Using default settings.";
-    }
+    return getUserMessage(this.code);
   }
 }

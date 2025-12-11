@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * GPS-related error codes
@@ -115,17 +116,6 @@ export class GPSError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case GPSErrorCode.DEVICE_NOT_FOUND:
-        return "GPS device not found. Please check connections.";
-      case GPSErrorCode.NO_FIX:
-        return "No GPS signal. Please wait for satellite lock.";
-      case GPSErrorCode.FIX_TIMEOUT:
-        return "GPS is taking longer than expected. Please ensure clear sky view.";
-      case GPSErrorCode.WEAK_SIGNAL:
-        return "Weak GPS signal. Position may be inaccurate.";
-      default:
-        return "GPS error occurred. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }

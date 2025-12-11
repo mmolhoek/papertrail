@@ -7,6 +7,11 @@
  * - Context data
  * - Recoverable flag
  * - User-friendly messages
+ *
+ * Error messages are centralized in ErrorMessages.ts for:
+ * - Easy maintenance
+ * - Future i18n support
+ * - Consistent user experience
  */
 
 export * from "./BaseError";
@@ -18,3 +23,4 @@ export * from "./OrchestratorError";
 export * from "./WebError";
 export * from "./WiFiError";
 export * from "./DriveError";
+export * from "./ErrorMessages";

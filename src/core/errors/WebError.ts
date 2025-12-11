@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Web-related error codes
@@ -201,25 +202,6 @@ export class WebError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case WebErrorCode.SERVER_START_FAILED:
-        return "Failed to start web interface. Please check configuration.";
-      case WebErrorCode.PORT_IN_USE:
-        return "Web interface port is already in use. Please change the port.";
-      case WebErrorCode.SERVER_NOT_RUNNING:
-        return "Web interface is not running.";
-      case WebErrorCode.INVALID_REQUEST:
-        return "Invalid request. Please check your input.";
-      case WebErrorCode.MISSING_PARAMETER:
-        return "Missing required information. Please check your input.";
-      case WebErrorCode.UNAUTHORIZED:
-        return "Authentication required. Please log in.";
-      case WebErrorCode.FORBIDDEN:
-        return "You do not have permission to access this resource.";
-      case WebErrorCode.NOT_FOUND:
-        return "Resource not found.";
-      default:
-        return "Web interface error occurred. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }

@@ -1,4 +1,5 @@
 import { BaseError } from "./BaseError";
+import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Drive navigation error codes
@@ -129,19 +130,6 @@ export class DriveError extends BaseError {
   }
 
   getUserMessage(): string {
-    switch (this.code) {
-      case DriveErrorCode.ROUTE_NOT_FOUND:
-        return "Route not found. Please calculate a new route.";
-      case DriveErrorCode.ROUTE_INVALID:
-        return "Invalid route data. Please calculate a new route.";
-      case DriveErrorCode.NAVIGATION_NOT_STARTED:
-        return "No navigation is active.";
-      case DriveErrorCode.NAVIGATION_ALREADY_ACTIVE:
-        return "Navigation is already running. Stop it first.";
-      case DriveErrorCode.NO_GPS_POSITION:
-        return "Waiting for GPS position...";
-      default:
-        return "Navigation error occurred. Please try again.";
-    }
+    return getUserMessage(this.code);
   }
 }
