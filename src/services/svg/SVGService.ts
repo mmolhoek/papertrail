@@ -25,6 +25,7 @@ import {
   calculateBitmapTextWidth,
 } from "@utils/bitmapFont";
 import { BitmapUtils } from "./BitmapUtils";
+import { ProjectionService } from "./ProjectionService";
 
 const logger = getLogger("SVGService");
 
@@ -649,10 +650,10 @@ export class SVGService implements ISVGService {
       await this.addCompass(bitmap, compassX, compassY, compassRadius, heading);
 
       // Draw scale bar in bottom-right of map area
-      const scale = Math.pow(2, viewport.zoomLevel);
-      const metersPerPixel =
-        (156543.03392 * Math.cos((currentPosition.latitude * Math.PI) / 180)) /
-        scale;
+      const metersPerPixel = ProjectionService.calculateMetersPerPixel(
+        currentPosition.latitude,
+        viewport.zoomLevel,
+      );
       const scaleBarMaxWidth = 200;
       const scaleBarPadding = 30;
       const scaleBarX = mapWidth - scaleBarMaxWidth - scaleBarPadding;
@@ -823,33 +824,7 @@ export class SVGService implements ISVGService {
     lon: number,
     viewport: ViewportConfig,
   ): Point2D {
-    const { centerPoint, zoomLevel, width, height } = viewport;
-
-    // Zoom factor (exponential scale)
-    const scale = Math.pow(2, zoomLevel);
-
-    // Meters per pixel at this zoom level (approximate)
-    const metersPerPixel =
-      (156543.03392 * Math.cos((centerPoint.latitude * Math.PI) / 180)) / scale;
-
-    // Calculate offset from center in meters
-    const latDiff = lat - centerPoint.latitude;
-    const lonDiff = lon - centerPoint.longitude;
-
-    // Convert to meters (approximate)
-    const yMeters = latDiff * 111320; // 1 degree latitude ≈ 111.32 km
-    const xMeters =
-      lonDiff * 111320 * Math.cos((centerPoint.latitude * Math.PI) / 180);
-
-    // Convert to pixels from center
-    const xOffset = xMeters / metersPerPixel;
-    const yOffset = -yMeters / metersPerPixel; // Negative because y increases downward
-
-    // Calculate final pixel position
-    const x = Math.round(width / 2 + xOffset);
-    const y = Math.round(height / 2 + yOffset);
-
-    return { x, y };
+    return ProjectionService.projectToPixels(lat, lon, viewport);
   }
 
   /**
@@ -907,17 +882,7 @@ export class SVGService implements ISVGService {
     centerY: number,
     angleDegrees: number,
   ): Point2D {
-    const angleRadians = (angleDegrees * Math.PI) / 180;
-    const cos = Math.cos(angleRadians);
-    const sin = Math.sin(angleRadians);
-
-    const dx = point.x - centerX;
-    const dy = point.y - centerY;
-
-    return {
-      x: Math.round(centerX + dx * cos - dy * sin),
-      y: Math.round(centerY + dx * sin + dy * cos),
-    };
+    return ProjectionService.rotatePoint(point, centerX, centerY, angleDegrees);
   }
 
   // ============================================
