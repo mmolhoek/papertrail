@@ -12,6 +12,12 @@ const logger = getLogger("BitmapUtils");
  * - Line drawing (Bresenham's algorithm)
  * - Circle drawing (Midpoint algorithm)
  * - Shape filling
+ *
+ * Performance optimizations:
+ * - Typed arrays (Uint8Array) for efficient memory access
+ * - Pre-computed bytesPerRow for batch operations
+ * - Bitwise operations for pixel manipulation
+ * - Horizontal line optimization using byte-level fills
  */
 export class BitmapUtils {
   /**
@@ -42,6 +48,13 @@ export class BitmapUtils {
   }
 
   /**
+   * Get pre-computed bytes per row for a bitmap (optimization helper)
+   */
+  static getBytesPerRow(bitmap: Bitmap1Bit): number {
+    return Math.ceil(bitmap.width / 8);
+  }
+
+  /**
    * Set a pixel in the bitmap (1 = black, 0 = white in the bit)
    */
   static setPixel(
@@ -50,14 +63,24 @@ export class BitmapUtils {
     y: number,
     value: boolean = true,
   ): void {
-    // Bounds check
-    if (x < 0 || x >= bitmap.width || y < 0 || y >= bitmap.height) {
-      return;
+    // Bounds check using bitwise operations for slight speedup
+    if (
+      (x | 0) !== x ||
+      x < 0 ||
+      x >= bitmap.width ||
+      (y | 0) !== y ||
+      y < 0 ||
+      y >= bitmap.height
+    ) {
+      // Fallback for non-integer or out of bounds
+      if (x < 0 || x >= bitmap.width || y < 0 || y >= bitmap.height) {
+        return;
+      }
     }
 
     const bytesPerRow = Math.ceil(bitmap.width / 8);
-    const byteIndex = y * bytesPerRow + Math.floor(x / 8);
-    const bitIndex = 7 - (x % 8); // MSB first
+    const byteIndex = y * bytesPerRow + (x >> 3); // x >> 3 is faster than Math.floor(x / 8)
+    const bitIndex = 7 - (x & 7); // x & 7 is faster than x % 8
 
     if (value) {
       // Set bit to 0 (black)
@@ -69,7 +92,36 @@ export class BitmapUtils {
   }
 
   /**
+   * Set a pixel with pre-computed bytesPerRow (optimized for loops)
+   * @internal Use in tight loops where bytesPerRow is known
+   */
+  static setPixelFast(
+    data: Uint8Array,
+    bytesPerRow: number,
+    width: number,
+    height: number,
+    x: number,
+    y: number,
+    value: boolean = true,
+  ): void {
+    // Bounds check
+    if (x < 0 || x >= width || y < 0 || y >= height) {
+      return;
+    }
+
+    const byteIndex = y * bytesPerRow + (x >> 3);
+    const bitIndex = 7 - (x & 7);
+
+    if (value) {
+      data[byteIndex] &= ~(1 << bitIndex);
+    } else {
+      data[byteIndex] |= 1 << bitIndex;
+    }
+  }
+
+  /**
    * Draw a line between two points using Bresenham's algorithm
+   * Optimized with pre-computed bytesPerRow for better performance
    */
   static drawLine(
     bitmap: Bitmap1Bit,
@@ -93,13 +145,35 @@ export class BitmapUtils {
     let x = x1;
     let y = y1;
 
+    // Pre-compute for faster pixel access in loop
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const data = bitmap.data;
+    const bitmapWidth = bitmap.width;
+    const bitmapHeight = bitmap.height;
+
     // eslint-disable-next-line no-constant-condition
     while (true) {
       // Draw pixel with width
       if (width === 1) {
-        BitmapUtils.setPixel(bitmap, x, y);
+        BitmapUtils.setPixelFast(
+          data,
+          bytesPerRow,
+          bitmapWidth,
+          bitmapHeight,
+          x,
+          y,
+          true,
+        );
       } else {
-        BitmapUtils.drawFilledCircle(bitmap, { x, y }, Math.floor(width / 2));
+        BitmapUtils.drawFilledCircleFast(
+          data,
+          bytesPerRow,
+          bitmapWidth,
+          bitmapHeight,
+          x,
+          y,
+          Math.floor(width / 2),
+        );
       }
 
       if (x === x2 && y === y2) break;
@@ -118,6 +192,7 @@ export class BitmapUtils {
 
   /**
    * Draw a circle outline using Midpoint circle algorithm
+   * Optimized with pre-computed bytesPerRow
    */
   static drawCircle(bitmap: Bitmap1Bit, center: Point2D, radius: number): void {
     // Round inputs to integers for proper pixel-based rendering
@@ -125,19 +200,89 @@ export class BitmapUtils {
     const cy = Math.round(center.y);
     const r = Math.round(radius);
 
+    // Pre-compute for faster pixel access
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const data = bitmap.data;
+    const width = bitmap.width;
+    const height = bitmap.height;
+
     let x = 0;
     let y = r;
     let d = 3 - 2 * r;
 
     while (y >= x) {
-      BitmapUtils.setPixel(bitmap, cx + x, cy + y);
-      BitmapUtils.setPixel(bitmap, cx - x, cy + y);
-      BitmapUtils.setPixel(bitmap, cx + x, cy - y);
-      BitmapUtils.setPixel(bitmap, cx - x, cy - y);
-      BitmapUtils.setPixel(bitmap, cx + y, cy + x);
-      BitmapUtils.setPixel(bitmap, cx - y, cy + x);
-      BitmapUtils.setPixel(bitmap, cx + y, cy - x);
-      BitmapUtils.setPixel(bitmap, cx - y, cy - x);
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx + x,
+        cy + y,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx - x,
+        cy + y,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx + x,
+        cy - y,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx - x,
+        cy - y,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx + y,
+        cy + x,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx - y,
+        cy + x,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx + y,
+        cy - x,
+        true,
+      );
+      BitmapUtils.setPixelFast(
+        data,
+        bytesPerRow,
+        width,
+        height,
+        cx - y,
+        cy - x,
+        true,
+      );
 
       x++;
 
@@ -163,17 +308,61 @@ export class BitmapUtils {
     const cy = Math.round(center.y);
     const r = Math.round(radius);
 
-    for (let y = -r; y <= r; y++) {
-      for (let x = -r; x <= r; x++) {
-        if (x * x + y * y <= r * r) {
-          BitmapUtils.setPixel(bitmap, cx + x, cy + y);
-        }
+    // Pre-compute for faster pixel access
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const data = bitmap.data;
+    const width = bitmap.width;
+    const height = bitmap.height;
+
+    BitmapUtils.drawFilledCircleFast(
+      data,
+      bytesPerRow,
+      width,
+      height,
+      cx,
+      cy,
+      r,
+    );
+  }
+
+  /**
+   * Draw a filled circle with pre-computed bitmap parameters (optimized for loops)
+   * @internal
+   */
+  static drawFilledCircleFast(
+    data: Uint8Array,
+    bytesPerRow: number,
+    width: number,
+    height: number,
+    cx: number,
+    cy: number,
+    radius: number,
+  ): void {
+    const r = Math.round(radius);
+    const rSquared = r * r;
+
+    for (let dy = -r; dy <= r; dy++) {
+      const y = cy + dy;
+      if (y < 0 || y >= height) continue;
+
+      // Calculate x range for this row using circle equation
+      const dySquared = dy * dy;
+      const xRange = Math.sqrt(rSquared - dySquared);
+      const xStart = Math.max(0, Math.ceil(cx - xRange));
+      const xEnd = Math.min(width - 1, Math.floor(cx + xRange));
+
+      // Fill the row
+      for (let x = xStart; x <= xEnd; x++) {
+        const byteIndex = y * bytesPerRow + (x >> 3);
+        const bitIndex = 7 - (x & 7);
+        data[byteIndex] &= ~(1 << bitIndex);
       }
     }
   }
 
   /**
    * Draw a vertical line
+   * Optimized with pre-computed bytesPerRow
    */
   static drawVerticalLine(
     bitmap: Bitmap1Bit,
@@ -182,15 +371,37 @@ export class BitmapUtils {
     height: number,
     width: number = 1,
   ): void {
-    for (let row = y; row < y + height; row++) {
-      for (let w = 0; w < width; w++) {
-        BitmapUtils.setPixel(bitmap, x + w, row, true);
+    // Bounds check early
+    if (x < 0 || x >= bitmap.width || y >= bitmap.height || height <= 0) {
+      return;
+    }
+
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const data = bitmap.data;
+    const bitmapWidth = bitmap.width;
+    const bitmapHeight = bitmap.height;
+    const endY = Math.min(y + height, bitmapHeight);
+    const startY = Math.max(y, 0);
+    const endX = Math.min(x + width, bitmapWidth);
+
+    for (let row = startY; row < endY; row++) {
+      for (let col = x; col < endX; col++) {
+        BitmapUtils.setPixelFast(
+          data,
+          bytesPerRow,
+          bitmapWidth,
+          bitmapHeight,
+          col,
+          row,
+          true,
+        );
       }
     }
   }
 
   /**
    * Draw a horizontal line
+   * Optimized to set entire bytes when possible for better performance
    */
   static drawHorizontalLine(
     bitmap: Bitmap1Bit,
@@ -199,15 +410,99 @@ export class BitmapUtils {
     width: number,
     thickness: number = 1,
   ): void {
-    for (let col = x; col < x + width; col++) {
-      for (let t = 0; t < thickness; t++) {
-        BitmapUtils.setPixel(bitmap, col, y + t, true);
+    // Bounds check early
+    if (y < 0 || y >= bitmap.height || x >= bitmap.width || width <= 0) {
+      return;
+    }
+
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const endX = Math.min(x + width, bitmap.width);
+    const startX = Math.max(x, 0);
+
+    for (let t = 0; t < thickness; t++) {
+      const currentY = y + t;
+      if (currentY >= bitmap.height) break;
+
+      // Use optimized byte-level fill for single-thickness lines
+      if (endX - startX >= 8) {
+        BitmapUtils.fillHorizontalSpan(
+          bitmap.data,
+          bytesPerRow,
+          bitmap.width,
+          startX,
+          endX,
+          currentY,
+        );
+      } else {
+        // Fall back to pixel-by-pixel for short lines
+        for (let col = startX; col < endX; col++) {
+          BitmapUtils.setPixelFast(
+            bitmap.data,
+            bytesPerRow,
+            bitmap.width,
+            bitmap.height,
+            col,
+            currentY,
+            true,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Fill a horizontal span efficiently using byte-level operations
+   * @internal
+   */
+  static fillHorizontalSpan(
+    data: Uint8Array,
+    bytesPerRow: number,
+    bitmapWidth: number,
+    startX: number,
+    endX: number,
+    y: number,
+  ): void {
+    const rowOffset = y * bytesPerRow;
+
+    // First partial byte (if start is not byte-aligned)
+    const startByte = startX >> 3;
+    const startBit = startX & 7;
+
+    // Last partial byte (if end is not byte-aligned)
+    const endByte = (endX - 1) >> 3;
+    const endBit = (endX - 1) & 7;
+
+    if (startByte === endByte) {
+      // All pixels in the same byte
+      const mask = ((1 << (8 - startBit)) - 1) & ~((1 << (7 - endBit)) - 1);
+      data[rowOffset + startByte] &= ~mask;
+    } else {
+      // First partial byte
+      if (startBit > 0) {
+        const mask = (1 << (8 - startBit)) - 1;
+        data[rowOffset + startByte] &= ~mask;
+      } else {
+        data[rowOffset + startByte] = 0x00;
+      }
+
+      // Full bytes in between (set to 0x00 for black)
+      for (let b = startByte + (startBit > 0 ? 1 : 0); b < endByte; b++) {
+        data[rowOffset + b] = 0x00;
+      }
+
+      // Last partial byte
+      if (endBit < 7) {
+        const mask = ~((1 << (7 - endBit)) - 1) & 0xff;
+        data[rowOffset + endByte] &= ~mask;
+      } else {
+        data[rowOffset + endByte] = 0x00;
       }
     }
   }
 
   /**
    * Fill a triangle defined by three points
+   * Optimized with pre-computed bytesPerRow and bounds checking
    */
   static fillTriangle(
     bitmap: Bitmap1Bit,
@@ -224,8 +519,18 @@ export class BitmapUtils {
     const points = [rp1, rp2, rp3].sort((a, b) => a.y - b.y);
     const [top, mid, bottom] = points;
 
+    // Pre-compute for faster pixel access
+    const bytesPerRow = BitmapUtils.getBytesPerRow(bitmap);
+    const data = bitmap.data;
+    const width = bitmap.width;
+    const height = bitmap.height;
+
+    // Clamp y range to bitmap bounds
+    const startY = Math.max(top.y, 0);
+    const endY = Math.min(bottom.y, height - 1);
+
     // Scan line fill
-    for (let y = top.y; y <= bottom.y; y++) {
+    for (let y = startY; y <= endY; y++) {
       let xStart: number, xEnd: number;
 
       if (y < mid.y) {
@@ -242,8 +547,14 @@ export class BitmapUtils {
         [xStart, xEnd] = [xEnd, xStart];
       }
 
-      for (let x = Math.floor(xStart); x <= Math.ceil(xEnd); x++) {
-        BitmapUtils.setPixel(bitmap, x, y, true);
+      // Clamp x range to bitmap bounds
+      const rowStart = Math.max(Math.floor(xStart), 0);
+      const rowEnd = Math.min(Math.ceil(xEnd), width - 1);
+
+      for (let x = rowStart; x <= rowEnd; x++) {
+        const byteIndex = y * bytesPerRow + (x >> 3);
+        const bitIndex = 7 - (x & 7);
+        data[byteIndex] &= ~(1 << bitIndex);
       }
     }
   }
