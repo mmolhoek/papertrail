@@ -35,6 +35,7 @@ import { DisplayUpdateQueue, ActiveGPXQueue } from "./DisplayUpdateQueue";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 import { GPSCoordinator } from "./GPSCoordinator";
 import { DriveCoordinator } from "./DriveCoordinator";
+import { SimulationCoordinator } from "./SimulationCoordinator";
 import * as path from "path";
 
 const logger = getLogger("RenderingOrchestrator");
@@ -60,11 +61,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // Drive coordinator (handles drive navigation display and updates)
   private driveCoordinator: DriveCoordinator | null = null;
 
-  // Simulation support
-  private simulationPositionUnsubscribe: (() => void) | null = null;
-  private simulationDisplayInterval: NodeJS.Timeout | null = null;
-  private lastSimulationState: string | null = null;
-  private static readonly SIMULATION_DISPLAY_UPDATE_MS = 5000; // Update e-paper every 5s during simulation
+  // Simulation coordinator (handles simulation display updates)
+  private simulationCoordinator: SimulationCoordinator | null = null;
 
   // Display update queuing (prevents dropped updates when display is busy)
   private displayUpdateQueue = new DisplayUpdateQueue();
@@ -127,6 +125,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Wire up display update callback
     this.driveCoordinator.setDisplayUpdateCallback((success) => {
       this.notifyDisplayUpdate(success);
+    });
+
+    // Initialize simulation coordinator
+    this.simulationCoordinator = new SimulationCoordinator(
+      simulationService ?? null,
+      this.gpsCoordinator,
+      this.driveCoordinator,
+    );
+    // Wire up callbacks
+    this.simulationCoordinator.setStopAutoUpdateCallback(() => {
+      this.stopAutoUpdate();
+    });
+    this.simulationCoordinator.setUpdateDisplayCallback(() => {
+      return this.updateDisplay();
     });
   }
 
@@ -216,8 +228,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           logger.warn("Track simulation will not be available");
         } else {
           logger.info("✓ TrackSimulationService initialized");
-          logger.info("Subscribing to simulation state changes...");
-          this.subscribeToSimulationUpdates();
+          // Subscribe to simulation updates via coordinator
+          if (this.simulationCoordinator) {
+            logger.info("Subscribing to simulation state changes...");
+            this.simulationCoordinator.subscribeToSimulationUpdates();
+          }
         }
       }
 
@@ -260,117 +275,6 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           new Error("Unknown error"),
         ),
       );
-    }
-  }
-
-  /**
-   * Subscribe to simulation state changes to trigger display updates
-   */
-  private subscribeToSimulationUpdates(): void {
-    if (!this.simulationService) {
-      return;
-    }
-
-    // Subscribe to state changes (start/stop/pause)
-    this.simulationService.onStateChange((status) => {
-      // Only act on actual state transitions
-      if (status.state === this.lastSimulationState) {
-        return;
-      }
-
-      logger.info(
-        `Simulation state changed: ${this.lastSimulationState} -> ${status.state}`,
-      );
-      this.lastSimulationState = status.state;
-
-      if (status.state === "running") {
-        // Stop auto-update during simulation to prevent concurrent updates
-        if (this.autoUpdateInterval) {
-          logger.info("Stopping auto-update during simulation");
-          this.stopAutoUpdate();
-        }
-        // Start periodic display updates during simulation
-        this.startSimulationDisplayUpdates();
-      } else if (status.state === "stopped") {
-        // Stop periodic display updates when simulation stops
-        this.stopSimulationDisplayUpdates();
-
-        // If drive navigation is still active, show final drive display
-        if (this.driveCoordinator?.isDriveNavigating()) {
-          logger.info(
-            "Simulation stopped but drive navigation still active - showing final drive display",
-          );
-          void this.driveCoordinator.updateDriveDisplay().catch((error) => {
-            logger.error("Failed to show final drive display:", error);
-          });
-        }
-      }
-      // Note: "paused" state keeps the interval but updateDisplay won't change position
-    });
-
-    // Subscribe to position updates and forward via GPS coordinator
-    this.simulationPositionUnsubscribe =
-      this.simulationService.onPositionUpdate((position) => {
-        const isNav = this.driveCoordinator?.isDriveNavigating() ?? false;
-        logger.debug(
-          `Sim position: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}, isNavigating=${isNav}`,
-        );
-
-        // Update position via GPS coordinator (stores position, forwards to drive nav, notifies callbacks)
-        if (this.gpsCoordinator) {
-          this.gpsCoordinator.updatePosition(position);
-        }
-      });
-
-    logger.info("Subscribed to simulation state and position changes");
-  }
-
-  /**
-   * Start periodic display updates during simulation
-   */
-  private startSimulationDisplayUpdates(): void {
-    // Stop any existing interval
-    this.stopSimulationDisplayUpdates();
-
-    logger.info(
-      `Starting simulation display updates (every ${RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS}ms)`,
-    );
-
-    // Helper to perform the appropriate display update
-    const doDisplayUpdate = () => {
-      // If drive navigation is active, use drive display update instead
-      if (this.driveCoordinator?.isDriveNavigating()) {
-        logger.info("Simulation display update tick (drive mode)");
-        void this.driveCoordinator.updateDriveDisplay().catch((error) => {
-          logger.error("Drive display update failed:", error);
-        });
-      } else {
-        logger.info("Simulation display update tick (track mode)");
-        void this.updateDisplay().catch((error) => {
-          logger.error("Simulation display update failed:", error);
-        });
-      }
-    };
-
-    // Do an immediate update
-    doDisplayUpdate();
-
-    // Set up periodic updates
-    this.simulationDisplayInterval = setInterval(() => {
-      if (this.simulationService?.isSimulating()) {
-        doDisplayUpdate();
-      }
-    }, RenderingOrchestrator.SIMULATION_DISPLAY_UPDATE_MS);
-  }
-
-  /**
-   * Stop periodic display updates for simulation
-   */
-  private stopSimulationDisplayUpdates(): void {
-    if (this.simulationDisplayInterval) {
-      clearInterval(this.simulationDisplayInterval);
-      this.simulationDisplayInterval = null;
-      logger.info("Stopped simulation display updates");
     }
   }
 
@@ -438,7 +342,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // During drive simulation, always use drive display instead of track display
     // This prevents flipping between drive and track screens
     if (
-      this.simulationService?.isSimulating() &&
+      this.simulationCoordinator?.isSimulating() &&
       this.driveCoordinator?.isDriveNavigating()
     ) {
       logger.info(
@@ -519,9 +423,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("Step 3/5: Getting current position...");
       let position: GPSCoordinate;
 
-      if (this.simulationService?.isSimulating()) {
+      const simService = this.simulationCoordinator?.getSimulationService();
+      if (simService?.isSimulating()) {
         // Use simulated position
-        const simStatus = this.simulationService.getStatus();
+        const simStatus = simService.getStatus();
         if (simStatus.currentPosition) {
           position = simStatus.currentPosition;
           logger.info(
@@ -1475,13 +1380,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info("✓ DriveCoordinator disposed");
     }
 
-    // Unsubscribe from simulation state changes and stop display updates
-    if (this.simulationPositionUnsubscribe) {
-      logger.info("Unsubscribing from simulation state changes");
-      this.simulationPositionUnsubscribe();
-      this.simulationPositionUnsubscribe = null;
+    // Dispose simulation coordinator (stops simulation subscriptions)
+    if (this.simulationCoordinator) {
+      logger.info("Disposing SimulationCoordinator...");
+      this.simulationCoordinator.dispose();
+      this.simulationCoordinator = null;
+      logger.info("✓ SimulationCoordinator disposed");
     }
-    this.stopSimulationDisplayUpdates();
 
     // Stop auto-update if running
     logger.info("Stopping auto-update if running");
