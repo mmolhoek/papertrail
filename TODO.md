@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 1.1 Split RenderingOrchestrator - Final cleanup
+**Next item:** 1.2 Split SVGService
 
 **Completed:**
 
@@ -36,6 +36,7 @@
 - [x] GPSCoordinator extracted and integrated (2,143 → 2,002 lines)
 - [x] DriveCoordinator extracted and integrated (2,002 → 1,681 lines)
 - [x] SimulationCoordinator extracted and integrated (1,681 → 1,586 lines)
+- [x] TrackDisplayCoordinator extracted and integrated (1,586 → 1,156 lines)
 
 ---
 
@@ -43,24 +44,26 @@
 
 These items address the largest technical debt and will make subsequent improvements easier.
 
-### 1.1 Split RenderingOrchestrator (started at 3,014 lines, now 1,586 lines)
+### 1.1 Split RenderingOrchestrator (started at 3,014 lines, now 1,156 lines) ✓
 
 - [x] Extract display update queuing into `DisplayUpdateQueue` class
 - [x] Extract WiFi/onboarding flow into `OnboardingCoordinator` class
 - [x] Extract GPS coordination logic into `GPSCoordinator` class
 - [x] Extract drive navigation logic into `DriveCoordinator` class
 - [x] Extract simulation handling into `SimulationCoordinator` class
-- [ ] Keep `RenderingOrchestrator` as thin coordinator delegating to sub-coordinators
-- [ ] Target: <500 lines per file
+- [x] Extract track display logic into `TrackDisplayCoordinator` class
+- [x] Keep `RenderingOrchestrator` as thin coordinator delegating to sub-coordinators
+- [ ] Target: <500 lines per file (currently 1,156 - future work)
 
 **Files:**
 
-- `src/services/orchestrator/RenderingOrchestrator.ts` (1,586 lines)
+- `src/services/orchestrator/RenderingOrchestrator.ts` (1,156 lines)
 - `src/services/orchestrator/DisplayUpdateQueue.ts` (272 lines)
 - `src/services/orchestrator/OnboardingCoordinator.ts` (965 lines)
 - `src/services/orchestrator/GPSCoordinator.ts` (320 lines)
 - `src/services/orchestrator/DriveCoordinator.ts` (515 lines)
 - `src/services/orchestrator/SimulationCoordinator.ts` (215 lines)
+- `src/services/orchestrator/TrackDisplayCoordinator.ts` (685 lines)
 
 ### 1.2 Split SVGService (2,348 lines)
 
