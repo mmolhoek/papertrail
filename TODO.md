@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 3.4 Add Input Validation Layer
+**Next item:** 4.1 Improve File Upload Security
 
 **Completed:**
 
@@ -221,12 +221,19 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `eslint.config.mjs` (added `no-restricted-imports` rule)
 - `jest.config.js` (added `@errors/*` path alias mapping)
 
-### 3.4 Add Input Validation Layer
+### 3.4 Add Input Validation Layer ✓
 
-- [ ] Add validation for API request parameters in controllers
-- [ ] Validate file uploads (file type, not just size)
-- [ ] Validate configuration values in `ServiceContainer`
-- [ ] Consider using `zod` or `joi` for schema validation
+- [x] Add validation for API request parameters in controllers
+- [x] Validate file uploads (file type, not just size)
+- [ ] Validate configuration values in `ServiceContainer` (deferred to Phase 4)
+- [x] Use `zod` for schema validation
+
+**Files:**
+- `src/web/validation/schemas.ts` (309 lines) - Zod schemas for all API endpoints
+- `src/web/validation/middleware.ts` (191 lines) - Express validation middleware
+- `src/web/validation/fileValidation.ts` (230 lines) - File upload security validation
+- `src/web/validation/index.ts` (20 lines) - Barrel export
+- Tests: 101 new tests (schemas: 84, middleware: 18, file validation: 17)
 
 ---
 
