@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 5.1 Add Pre-commit Hooks
+**Next item:** 5.2 Improve Error Messages
 
 **Completed:**
 
@@ -284,12 +284,17 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 
 ## Phase 5: Developer Experience Improvements
 
-### 5.1 Add Pre-commit Hooks
+### 5.1 Add Pre-commit Hooks ✓
 
-- [ ] Install `husky` for git hooks
-- [ ] Add pre-commit hook for `npm run format`
-- [ ] Add pre-commit hook for `npm run lint`
-- [ ] Add pre-push hook for `npm test`
+- [x] Install `husky` for git hooks
+- [x] Add pre-commit hook for `npm run format`
+- [x] Add pre-commit hook for `npm run lint`
+- [x] Add pre-push hook for `npm test`
+
+**Files:**
+- `.husky/pre-commit` - runs lint-staged (prettier + eslint on staged files)
+- `.husky/pre-push` - runs full test suite
+- `package.json` - lint-staged configuration
 
 ### 5.2 Improve Error Messages
 
