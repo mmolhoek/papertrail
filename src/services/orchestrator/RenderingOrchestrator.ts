@@ -22,8 +22,6 @@ import {
   DriveRoute,
   DriveWaypoint,
   DriveNavigationUpdate,
-  DriveDisplayMode,
-  NavigationState,
   ScreenType,
   ManeuverType,
   success,
@@ -33,13 +31,10 @@ import {
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import { TrackTurnAnalyzer, TrackTurn } from "@services/map/TrackTurnAnalyzer";
-import {
-  DisplayUpdateQueue,
-  DriveDisplayUpdateQueue,
-  ActiveGPXQueue,
-} from "./DisplayUpdateQueue";
+import { DisplayUpdateQueue, ActiveGPXQueue } from "./DisplayUpdateQueue";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 import { GPSCoordinator } from "./GPSCoordinator";
+import { DriveCoordinator } from "./DriveCoordinator";
 import * as path from "path";
 
 const logger = getLogger("RenderingOrchestrator");
@@ -62,25 +57,17 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // Onboarding coordinator (handles WiFi/onboarding screen flow)
   private onboardingCoordinator: OnboardingCoordinator | null = null;
 
+  // Drive coordinator (handles drive navigation display and updates)
+  private driveCoordinator: DriveCoordinator | null = null;
+
   // Simulation support
   private simulationPositionUnsubscribe: (() => void) | null = null;
   private simulationDisplayInterval: NodeJS.Timeout | null = null;
   private lastSimulationState: string | null = null;
   private static readonly SIMULATION_DISPLAY_UPDATE_MS = 5000; // Update e-paper every 5s during simulation
 
-  // Drive navigation support
-  private driveNavigationUnsubscribe: (() => void) | null = null;
-  private driveDisplayUnsubscribe: (() => void) | null = null;
-  private driveNavigationCallbacks: Array<
-    (update: DriveNavigationUpdate) => void
-  > = [];
-  private driveRouteStartPosition: GPSCoordinate | null = null; // Stored at navigation start
-
   // Display update queuing (prevents dropped updates when display is busy)
   private displayUpdateQueue = new DisplayUpdateQueue();
-
-  // Drive display update queuing (prevents concurrent renders that can freeze the app)
-  private driveDisplayUpdateQueue = new DriveDisplayUpdateQueue();
 
   // setActiveGPX queuing (ensures only the last selected track is loaded)
   private activeGPXQueue = new ActiveGPXQueue();
@@ -125,6 +112,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Wire up error callback
     this.gpsCoordinator.setErrorCallback((error) => {
       this.notifyError(error);
+    });
+
+    // Initialize drive coordinator
+    this.driveCoordinator = new DriveCoordinator(
+      driveNavigationService ?? null,
+      svgService,
+      epaperService,
+      configService,
+      simulationService ?? null,
+      this.gpsCoordinator,
+      this.onboardingCoordinator,
+    );
+    // Wire up display update callback
+    this.driveCoordinator.setDisplayUpdateCallback((success) => {
+      this.notifyDisplayUpdate(success);
     });
   }
 
@@ -236,6 +238,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       }
 
       this.isInitialized = true;
+
+      // Set drive coordinator as initialized
+      if (this.driveCoordinator) {
+        this.driveCoordinator.setInitialized(true);
+      }
+
       logger.info("✓ RenderingOrchestrator initialization complete");
       return success(undefined);
     } catch (error) {
@@ -288,11 +296,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         this.stopSimulationDisplayUpdates();
 
         // If drive navigation is still active, show final drive display
-        if (this.driveNavigationService?.isNavigating()) {
+        if (this.driveCoordinator?.isDriveNavigating()) {
           logger.info(
             "Simulation stopped but drive navigation still active - showing final drive display",
           );
-          void this.updateDriveDisplay().catch((error) => {
+          void this.driveCoordinator.updateDriveDisplay().catch((error) => {
             logger.error("Failed to show final drive display:", error);
           });
         }
@@ -303,7 +311,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Subscribe to position updates and forward via GPS coordinator
     this.simulationPositionUnsubscribe =
       this.simulationService.onPositionUpdate((position) => {
-        const isNav = this.driveNavigationService?.isNavigating() ?? false;
+        const isNav = this.driveCoordinator?.isDriveNavigating() ?? false;
         logger.debug(
           `Sim position: ${position.latitude.toFixed(5)}, ${position.longitude.toFixed(5)}, isNavigating=${isNav}`,
         );
@@ -331,9 +339,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // Helper to perform the appropriate display update
     const doDisplayUpdate = () => {
       // If drive navigation is active, use drive display update instead
-      if (this.driveNavigationService?.isNavigating()) {
+      if (this.driveCoordinator?.isDriveNavigating()) {
         logger.info("Simulation display update tick (drive mode)");
-        void this.updateDriveDisplay().catch((error) => {
+        void this.driveCoordinator.updateDriveDisplay().catch((error) => {
           logger.error("Drive display update failed:", error);
         });
       } else {
@@ -374,81 +382,34 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    * Start drive navigation with a route
    */
   async startDriveNavigation(route: DriveRoute): Promise<Result<void>> {
-    if (!this.driveNavigationService) {
-      logger.error("Drive navigation service not available");
+    if (!this.driveCoordinator) {
+      logger.error("Drive coordinator not available");
       return failure(
         new OrchestratorError(
-          "Drive navigation service not available",
+          "Drive coordinator not available",
           OrchestratorErrorCode.SERVICE_UNAVAILABLE,
           false,
         ),
       );
     }
-
-    logger.info(`Starting drive navigation to: ${route.destination}`);
-
-    // Stop GPS info refresh - we don't want select track screen during navigation
-    if (this.onboardingCoordinator) {
-      this.onboardingCoordinator.stopGPSInfoRefresh();
-    }
-
-    // Store route start position for fallback during simulation
-    if (route.geometry && route.geometry.length > 0) {
-      const startPoint = route.geometry[0];
-      this.driveRouteStartPosition = {
-        latitude: startPoint[0],
-        longitude: startPoint[1],
-        timestamp: new Date(),
-      };
-      logger.info(
-        `Stored drive route start: ${startPoint[0].toFixed(6)}, ${startPoint[1].toFixed(6)}`,
-      );
-    }
-
-    // Subscribe to navigation updates
-    this.subscribeToDriveNavigation();
-
-    // Start navigation
-    const result = await this.driveNavigationService.startNavigation(route);
-
-    if (result.success) {
-      // Subscribe to GPS updates for navigation
-      this.subscribeGPSToDriveNavigation();
-    }
-
-    return result;
+    return this.driveCoordinator.startDriveNavigation(route);
   }
 
   /**
    * Stop current drive navigation
    */
   async stopDriveNavigation(): Promise<Result<void>> {
-    if (!this.driveNavigationService) {
+    if (!this.driveCoordinator) {
       return success(undefined);
     }
-
-    logger.info("Stopping drive navigation");
-
-    // Clear stored route start position
-    this.driveRouteStartPosition = null;
-
-    // Unsubscribe from GPS updates
-    this.unsubscribeGPSFromDriveNavigation();
-
-    // Unsubscribe from navigation updates
-    if (this.driveNavigationUnsubscribe) {
-      this.driveNavigationUnsubscribe();
-      this.driveNavigationUnsubscribe = null;
-    }
-
-    return this.driveNavigationService.stopNavigation();
+    return this.driveCoordinator.stopDriveNavigation();
   }
 
   /**
    * Check if drive navigation is currently active
    */
   isDriveNavigating(): boolean {
-    return this.driveNavigationService?.isNavigating() ?? false;
+    return this.driveCoordinator?.isDriveNavigating() ?? false;
   }
 
   /**
@@ -457,301 +418,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   onDriveNavigationUpdate(
     callback: (update: DriveNavigationUpdate) => void,
   ): () => void {
-    this.driveNavigationCallbacks.push(callback);
-    return () => {
-      const index = this.driveNavigationCallbacks.indexOf(callback);
-      if (index > -1) {
-        this.driveNavigationCallbacks.splice(index, 1);
-      }
-    };
-  }
-
-  /**
-   * Subscribe to drive navigation updates
-   */
-  private subscribeToDriveNavigation(): void {
-    if (!this.driveNavigationService) {
-      return;
+    if (!this.driveCoordinator) {
+      logger.warn("Drive coordinator not available for navigation callback");
+      return () => {};
     }
-
-    // Unsubscribe from any existing subscription
-    if (this.driveNavigationUnsubscribe) {
-      this.driveNavigationUnsubscribe();
-    }
-
-    this.driveNavigationUnsubscribe =
-      this.driveNavigationService.onNavigationUpdate((update) => {
-        logger.debug(`Drive navigation update: ${update.type}`);
-
-        // Forward to registered callbacks
-        for (const callback of this.driveNavigationCallbacks) {
-          try {
-            callback(update);
-          } catch (error) {
-            const errorMsg =
-              error instanceof Error ? error.message : String(error);
-            logger.error(`Error in drive navigation callback: ${errorMsg}`);
-          }
-        }
-
-        // Skip display updates when simulation is running - the simulation
-        // display interval handles display updates during simulation
-        if (this.simulationService?.isSimulating()) {
-          return;
-        }
-
-        // Update display based on navigation state
-        void this.updateDriveDisplay(update).catch((error) => {
-          logger.error("Failed to update drive display:", error);
-        });
-      });
-
-    // Also subscribe to display update requests
-    if (this.driveDisplayUnsubscribe) {
-      this.driveDisplayUnsubscribe();
-    }
-
-    this.driveDisplayUnsubscribe = this.driveNavigationService.onDisplayUpdate(
-      () => {
-        // Skip display updates when simulation is running - the simulation
-        // display interval handles display updates during simulation
-        if (this.simulationService?.isSimulating()) {
-          return;
-        }
-
-        void this.updateDriveDisplay().catch((error) => {
-          logger.error("Failed to update drive display:", error);
-        });
-      },
-    );
-
-    logger.info("Subscribed to drive navigation updates");
-  }
-
-  /**
-   * Subscribe GPS position updates to drive navigation
-   */
-  private subscribeGPSToDriveNavigation(): void {
-    // The GPS service is already subscribed at orchestrator initialization
-    // The position updates will be forwarded to drive navigation via onPositionUpdate callback
-  }
-
-  /**
-   * Unsubscribe GPS from drive navigation
-   */
-  private unsubscribeGPSFromDriveNavigation(): void {
-    // GPS is always subscribed via the orchestrator, so nothing specific to unsubscribe
-  }
-
-  /**
-   * Update the display for drive navigation
-   */
-  private async updateDriveDisplay(
-    update?: DriveNavigationUpdate,
-  ): Promise<Result<void>> {
-    if (!this.driveNavigationService || !this.isInitialized) {
-      return success(undefined);
-    }
-
-    const status =
-      update?.status ?? this.driveNavigationService.getNavigationStatus();
-
-    if (status.state === NavigationState.IDLE) {
-      return success(undefined);
-    }
-
-    // Queue update if one is already in progress (prevents concurrent renders that freeze the app)
-    if (
-      !this.driveDisplayUpdateQueue.queueUpdate(() =>
-        this.epaperService.isBusy(),
-      )
-    ) {
-      return success(undefined);
-    }
-    logger.info(
-      `Updating drive display: mode=${status.displayMode}, state=${status.state}`,
-    );
-
-    const width = this.configService.getDisplayWidth();
-    const height = this.configService.getDisplayHeight();
-
-    // Use the configured zoom level from display settings
-    const zoomLevel = this.configService.getZoomLevel();
-
-    // Use current position, or fall back to stored route start (not 0,0)
-    // The stored start position is set when navigation begins and persists
-    let centerPoint = this.gpsCoordinator?.getLastPosition() ?? null;
-    if (!centerPoint && this.driveRouteStartPosition) {
-      centerPoint = this.driveRouteStartPosition;
-      logger.info(
-        `Using stored route start as center: ${centerPoint.latitude.toFixed(6)}, ${centerPoint.longitude.toFixed(6)}`,
-      );
-    }
-    if (!centerPoint) {
-      centerPoint = { latitude: 0, longitude: 0, timestamp: new Date() };
-    }
-
-    const viewport = {
-      width,
-      height,
-      zoomLevel,
-      centerPoint,
-    };
-
-    try {
-      let renderResult;
-      const renderStartTime = Date.now();
-
-      // Check active screen type - if TURN_BY_TURN, force turn screen mode
-      const activeScreen = this.configService.getActiveScreen();
-      const effectiveDisplayMode =
-        activeScreen === ScreenType.TURN_BY_TURN &&
-        status.displayMode === DriveDisplayMode.MAP_WITH_OVERLAY
-          ? DriveDisplayMode.TURN_SCREEN
-          : status.displayMode;
-
-      logger.info(
-        `Drive display: activeScreen=${activeScreen}, original mode=${status.displayMode}, effective mode=${effectiveDisplayMode}`,
-      );
-
-      switch (effectiveDisplayMode) {
-        case DriveDisplayMode.TURN_SCREEN:
-          if (status.nextTurn) {
-            logger.info("Starting turn screen render...");
-
-            // Check if there's a turn after the next one
-            let nextNextTurn:
-              | {
-                  maneuverType: ManeuverType;
-                  distance: number;
-                  instruction: string;
-                  streetName?: string;
-                }
-              | undefined;
-
-            if (
-              status.route &&
-              status.currentWaypointIndex + 1 < status.route.waypoints.length
-            ) {
-              const nextWaypoint =
-                status.route.waypoints[status.currentWaypointIndex + 1];
-              // Only show next-next turn if it's not an arrival
-              if (nextWaypoint.maneuverType !== ManeuverType.ARRIVE) {
-                nextNextTurn = {
-                  maneuverType: nextWaypoint.maneuverType,
-                  distance: nextWaypoint.distance,
-                  instruction: nextWaypoint.instruction,
-                  streetName: nextWaypoint.streetName,
-                };
-                logger.info(
-                  `Including next-next turn: ${nextNextTurn.maneuverType}, ${nextNextTurn.distance}m`,
-                );
-              }
-            }
-
-            renderResult = await this.svgService.renderTurnScreen(
-              status.nextTurn.maneuverType,
-              status.distanceToNextTurn,
-              status.nextTurn.instruction,
-              status.nextTurn.streetName,
-              viewport,
-              nextNextTurn,
-              status.progress,
-            );
-            logger.info(
-              `Turn screen render completed in ${Date.now() - renderStartTime}ms`,
-            );
-          }
-          break;
-
-        case DriveDisplayMode.MAP_WITH_OVERLAY:
-          const lastPosition = this.gpsCoordinator?.getLastPosition();
-          const lastStatus = this.gpsCoordinator?.getLastStatus();
-          if (status.route && status.nextTurn && lastPosition) {
-            const info: DriveNavigationInfo = {
-              speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0, // m/s to km/h
-              satellites: lastStatus?.satellitesInUse ?? 0,
-              nextManeuver: status.nextTurn.maneuverType,
-              distanceToTurn: status.distanceToNextTurn,
-              instruction: status.nextTurn.instruction,
-              streetName: status.nextTurn.streetName,
-              distanceRemaining: status.distanceRemaining,
-              progress: status.progress,
-              timeRemaining: status.timeRemaining,
-            };
-
-            // Get render options including map orientation (north-up vs track-up)
-            const renderOptions = {
-              ...this.configService.getRenderOptions(),
-              rotateWithBearing: this.configService.getRotateWithBearing(),
-            };
-
-            logger.info(
-              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
-            );
-            renderResult = await this.svgService.renderDriveMapScreen(
-              status.route,
-              lastPosition,
-              status.nextTurn,
-              viewport,
-              info,
-              renderOptions,
-            );
-            logger.info(
-              `Map screen render completed in ${Date.now() - renderStartTime}ms`,
-            );
-          }
-          break;
-
-        case DriveDisplayMode.OFF_ROAD_ARROW:
-          if (
-            status.bearingToRoute !== undefined &&
-            status.distanceToRoute !== undefined
-          ) {
-            renderResult = await this.svgService.renderOffRoadScreen(
-              status.bearingToRoute,
-              status.distanceToRoute,
-              viewport,
-            );
-          }
-          break;
-
-        case DriveDisplayMode.ARRIVED:
-          if (status.route) {
-            renderResult = await this.svgService.renderArrivalScreen(
-              status.route.destination,
-              viewport,
-            );
-          }
-          break;
-      }
-
-      if (renderResult?.success) {
-        await this.epaperService.displayBitmap(renderResult.data);
-        logger.info("Drive display updated successfully");
-        // Notify display update callbacks so mock display refreshes
-        this.notifyDisplayUpdate(true);
-      } else if (renderResult) {
-        logger.error("Failed to render drive display:", renderResult.error);
-      }
-
-      return success(undefined);
-    } catch (error) {
-      logger.error("Error updating drive display:", error);
-      return failure(
-        new OrchestratorError(
-          "Failed to update drive display",
-          OrchestratorErrorCode.DISPLAY_UPDATE_FAILED,
-          true,
-        ),
-      );
-    } finally {
-      // Set up handler and complete update (which will process pending if any)
-      this.driveDisplayUpdateQueue.setUpdateHandler(async () => {
-        await this.updateDriveDisplay();
-      });
-      this.driveDisplayUpdateQueue.completeUpdate();
-    }
+    return this.driveCoordinator.onDriveNavigationUpdate(callback);
   }
 
   /**
@@ -768,12 +439,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     // This prevents flipping between drive and track screens
     if (
       this.simulationService?.isSimulating() &&
-      this.driveNavigationService?.isNavigating()
+      this.driveCoordinator?.isDriveNavigating()
     ) {
       logger.info(
         "Drive simulation active - redirecting to drive display update",
       );
-      return this.updateDriveDisplay();
+      return this.driveCoordinator.updateDriveDisplay();
     }
 
     // Queue update if one is already in progress
@@ -1794,6 +1465,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       this.gpsCoordinator.dispose();
       this.gpsCoordinator = null;
       logger.info("✓ GPSCoordinator disposed");
+    }
+
+    // Dispose drive coordinator (stops drive navigation subscriptions)
+    if (this.driveCoordinator) {
+      logger.info("Disposing DriveCoordinator...");
+      this.driveCoordinator.dispose();
+      this.driveCoordinator = null;
+      logger.info("✓ DriveCoordinator disposed");
     }
 
     // Unsubscribe from simulation state changes and stop display updates
