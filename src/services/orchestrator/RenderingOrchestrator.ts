@@ -39,8 +39,38 @@ const logger = getLogger("RenderingOrchestrator");
 /**
  * Rendering Orchestrator Implementation
  *
- * Coordinates all services to update the display.
- * This is the main application service that ties everything together.
+ * The central coordinator that ties together all Papertrail services to provide
+ * a cohesive GPS tracking and navigation experience. This service:
+ *
+ * - Initializes and manages the lifecycle of all dependent services
+ * - Coordinates GPS position updates with display rendering
+ * - Handles track selection and drive navigation
+ * - Manages WiFi onboarding and system configuration
+ * - Provides event callbacks for GPS, display, and navigation updates
+ *
+ * The orchestrator delegates specialized tasks to sub-coordinators:
+ * - {@link GPSCoordinator} - GPS position and status management
+ * - {@link DriveCoordinator} - Turn-by-turn navigation
+ * - {@link SimulationCoordinator} - Track simulation for testing
+ * - {@link TrackDisplayCoordinator} - Track rendering and display updates
+ * - {@link OnboardingCoordinator} - WiFi setup and onboarding flow
+ *
+ * @example
+ * ```typescript
+ * // Create and initialize the orchestrator
+ * const orchestrator = new RenderingOrchestrator(
+ *   gpsService, mapService, svgService, epaperService, configService
+ * );
+ * await orchestrator.initialize();
+ *
+ * // Load a track and start following
+ * await orchestrator.setActiveGPX('/path/to/track.gpx');
+ *
+ * // Subscribe to GPS updates
+ * const unsubscribe = orchestrator.onGPSUpdate((position) => {
+ *   console.log('Position:', position.latitude, position.longitude);
+ * });
+ * ```
  */
 export class RenderingOrchestrator implements IRenderingOrchestrator {
   private isInitialized: boolean = false;
@@ -153,7 +183,17 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Initialize the orchestrator and all dependent services
+   * Initialize the orchestrator and all dependent services.
+   *
+   * This method must be called before using any other orchestrator functionality.
+   * It initializes services in the correct order:
+   * 1. ConfigService - loads saved configuration
+   * 2. GPSService - initializes GPS hardware/mock
+   * 3. EpaperService - initializes e-paper display and shows logo
+   * 4. Starts GPS tracking and subscribes to updates
+   * 5. Sets up WiFi and simulation services (if available)
+   *
+   * @returns Result indicating success or failure with error details
    */
   async initialize(): Promise<Result<void>> {
     if (this.isInitialized) {
@@ -298,7 +338,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   // ============================================
 
   /**
-   * Start drive navigation with a route
+   * Start drive navigation with a route.
+   *
+   * Begins turn-by-turn navigation using the provided route.
+   * The display will switch to navigation mode and show
+   * upcoming turns with distance and direction.
+   *
+   * @param route - The drive route to navigate (from routing API)
+   * @returns Result indicating success or failure
    */
   async startDriveNavigation(route: DriveRoute): Promise<Result<void>> {
     if (!this.driveCoordinator) {
@@ -315,7 +362,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Stop current drive navigation
+   * Stop current drive navigation.
+   *
+   * Ends the active navigation session and returns to
+   * normal track following mode (if a track is loaded).
+   *
+   * @returns Result indicating success or failure
    */
   async stopDriveNavigation(): Promise<Result<void>> {
     if (!this.driveCoordinator) {
@@ -325,14 +377,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Check if drive navigation is currently active
+   * Check if drive navigation is currently active.
+   *
+   * @returns true if navigation is in progress, false otherwise
    */
   isDriveNavigating(): boolean {
     return this.driveCoordinator?.isDriveNavigating() ?? false;
   }
 
   /**
-   * Register a callback for drive navigation updates
+   * Register a callback for drive navigation updates.
+   *
+   * The callback is invoked whenever navigation state changes,
+   * including position updates, turn changes, and arrival events.
+   *
+   * @param callback - Function called with navigation update data
+   * @returns Unsubscribe function to remove the callback
    */
   onDriveNavigationUpdate(
     callback: (update: DriveNavigationUpdate) => void,
@@ -345,8 +405,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Update the display with current GPS position and active track
-   * @param mode Optional display update mode (FULL, PARTIAL, or AUTO)
+   * Update the display with current GPS position and active track.
+   *
+   * Renders the current view to the e-paper display. The rendered
+   * content depends on the active mode:
+   * - Track following: Shows map with track and current position
+   * - Drive navigation: Shows turn instructions or route overview
+   * - Onboarding: Shows WiFi setup or welcome screens
+   *
+   * @param mode - Display update mode:
+   *   - FULL: Complete display refresh (slower, no ghosting)
+   *   - PARTIAL: Fast partial update (faster, may ghost)
+   *   - AUTO: Let the system choose based on context
+   * @returns Result indicating success or failure
    */
   async updateDisplay(mode?: DisplayUpdateMode): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -363,7 +434,24 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Set the active GPX file and update display
+   * Set the active GPX file and update display.
+   *
+   * Loads a GPX track file, validates it, calculates optimal zoom,
+   * and renders it to the display. This method also:
+   * - Marks onboarding as complete (if this is the first track)
+   * - Starts auto-update if configured
+   * - Clears any cached turn analysis
+   *
+   * @param filePath - Path to the GPX file to load
+   * @returns Result indicating success or failure
+   *
+   * @example
+   * ```typescript
+   * const result = await orchestrator.setActiveGPX('./data/gpx-files/morning-ride.gpx');
+   * if (!result.success) {
+   *   console.error('Failed to load track:', result.error.message);
+   * }
+   * ```
    */
   async setActiveGPX(filePath: string): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -441,7 +529,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Clear the active GPX file
+   * Clear the active GPX file.
+   *
+   * Removes the currently loaded track and clears the turn cache.
+   * The display will show no track until a new one is loaded.
+   *
+   * @returns Result indicating success
    */
   async clearActiveGPX(): Promise<Result<void>> {
     logger.info("Clearing active GPX file");
@@ -458,7 +551,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Change zoom level and update display
+   * Change zoom level and update display.
+   *
+   * Adjusts the current zoom level by the specified delta.
+   * Positive values zoom in, negative values zoom out.
+   *
+   * @param delta - Amount to change zoom (e.g., +1 to zoom in, -1 to zoom out)
+   * @returns Result indicating success or failure
    */
   async changeZoom(delta: number): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -478,7 +577,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Set absolute zoom level and update display
+   * Set absolute zoom level and update display.
+   *
+   * Sets the zoom level to a specific value (typically 1-20).
+   * Higher values show more detail, lower values show more area.
+   *
+   * @param level - Zoom level to set (1-20, where 15-17 is typical for cycling)
+   * @returns Result indicating success or failure
    */
   async setZoom(level: number): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -496,7 +601,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Calculate zoom level that fits a track's bounds on the display
+   * Calculate zoom level that fits a track's bounds on the display.
+   *
+   * Analyzes the track bounds and display dimensions to find the
+   * optimal zoom level that shows the entire track with padding.
+   *
+   * @param track - The GPX track to fit
+   * @returns Zoom level (1-20) that fits the track on display
    */
   calculateFitZoom(track: GPXTrack): number {
     const bounds = this.mapService.calculateBounds(track);
@@ -605,7 +716,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Refresh GPS position and update display
+   * Refresh GPS position and update display.
+   *
+   * Forces an immediate display update with the latest GPS position.
+   * Useful for manual refresh when auto-update is disabled.
+   *
+   * @returns Result indicating success or failure
    */
   async refreshGPS(): Promise<Result<void>> {
     logger.info("Refreshing GPS and updating display");
@@ -613,7 +729,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Start automatic display updates at configured interval
+   * Start automatic display updates at configured interval.
+   *
+   * Begins periodic display updates using the interval configured
+   * in ConfigService. Useful for keeping the display in sync with
+   * GPS position during active tracking.
+   *
+   * @returns Result indicating success or failure
    */
   async startAutoUpdate(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -654,7 +776,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Stop automatic display updates
+   * Stop automatic display updates.
+   *
+   * Stops the periodic display update timer. The display will
+   * only update on manual refresh or GPS callbacks after this.
    */
   stopAutoUpdate(): void {
     if (this.autoUpdateInterval) {
@@ -668,14 +793,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Check if auto-update is running
+   * Check if auto-update is running.
+   *
+   * @returns true if automatic updates are active, false otherwise
    */
   isAutoUpdateRunning(): boolean {
     return this.autoUpdateInterval !== null;
   }
 
   /**
-   * Get current GPS position
+   * Get current GPS position.
+   *
+   * Returns the most recently received GPS position from the
+   * GPS service or mock service.
+   *
+   * @returns Result containing the current GPS coordinate or an error
    */
   async getCurrentPosition(): Promise<Result<GPSCoordinate>> {
     if (!this.isInitialized) {
@@ -692,7 +824,15 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Get system status including all services
+   * Get system status including all services.
+   *
+   * Collects status information from all services including:
+   * - GPS connection and satellite count
+   * - Display initialization and refresh count
+   * - Active track information
+   * - System resource usage (CPU, memory)
+   *
+   * @returns Result containing the system status or an error
    */
   async getSystemStatus(): Promise<Result<SystemStatus>> {
     if (!this.isInitialized) {
@@ -773,7 +913,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Clear the display
+   * Clear the display.
+   *
+   * Clears the e-paper display to white. This is useful before
+   * sleep or when switching modes.
+   *
+   * @returns Result indicating success or failure
    */
   async clearDisplay(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -796,7 +941,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Put the display to sleep
+   * Put the display to sleep.
+   *
+   * Puts the e-paper display into low-power sleep mode.
+   * The display must be woken before any updates can be made.
+   *
+   * @returns Result indicating success or failure
    */
   async sleepDisplay(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -815,7 +965,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Wake the display
+   * Wake the display.
+   *
+   * Wakes the e-paper display from sleep mode. Must be called
+   * before any display updates if the display was put to sleep.
+   *
+   * @returns Result indicating success or failure
    */
   async wakeDisplay(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -834,7 +989,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Toggle auto-center on GPS position
+   * Toggle auto-center on GPS position.
+   *
+   * When enabled, the map view automatically centers on the
+   * current GPS position during display updates.
+   *
+   * @param enabled - true to enable auto-centering, false to disable
    */
   setAutoCenter(enabled: boolean): void {
     logger.info(`Auto-center ${enabled ? "enabled" : "disabled"}`);
@@ -842,7 +1002,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Toggle map rotation based on GPS bearing
+   * Toggle map rotation based on GPS bearing.
+   *
+   * When enabled, the map rotates so the current direction of
+   * travel is always "up" on the display (track-up mode).
+   *
+   * @param enabled - true to enable bearing rotation, false for north-up mode
    */
   setRotateWithBearing(enabled: boolean): void {
     logger.info(`Rotate with bearing ${enabled ? "enabled" : "disabled"}`);
@@ -850,7 +1015,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Set the active screen type for display rendering
+   * Set the active screen type for display rendering.
+   *
+   * Controls which type of screen is rendered on the display.
+   *
+   * @param screenType - Screen type: "track" for map view or "turn_by_turn" for navigation
    */
   setActiveScreen(screenType: string): void {
     logger.info(`Setting active screen to: ${screenType}`);
@@ -864,7 +1033,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Register a callback for GPS position updates
+   * Register a callback for GPS position updates.
+   *
+   * The callback is invoked whenever a new GPS position is received.
+   * This is useful for real-time position tracking in the UI.
+   *
+   * @param callback - Function called with the new GPS position
+   * @returns Unsubscribe function to remove the callback
+   *
+   * @example
+   * ```typescript
+   * const unsubscribe = orchestrator.onGPSUpdate((position) => {
+   *   console.log(`Lat: ${position.latitude}, Lon: ${position.longitude}`);
+   * });
+   * // Later: unsubscribe() to stop receiving updates
+   * ```
    */
   onGPSUpdate(callback: (position: GPSCoordinate) => void): () => void {
     if (!this.gpsCoordinator) {
@@ -875,7 +1058,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Register a callback for GPS status changes
+   * Register a callback for GPS status changes.
+   *
+   * The callback is invoked when GPS status changes (fix acquired/lost,
+   * satellite count changes, etc.).
+   *
+   * @param callback - Function called with the new GPS status
+   * @returns Unsubscribe function to remove the callback
    */
   onGPSStatusChange(callback: (status: GPSStatus) => void): () => void {
     if (!this.gpsCoordinator) {
@@ -886,7 +1075,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Register a callback for display updates
+   * Register a callback for display updates.
+   *
+   * The callback is invoked after each display update attempt,
+   * with a boolean indicating success or failure.
+   *
+   * @param callback - Function called with the update result
+   * @returns Unsubscribe function to remove the callback
    */
   onDisplayUpdate(callback: (success: boolean) => void): () => void {
     this.displayUpdateCallbacks.push(callback);
@@ -907,7 +1102,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Register a callback for errors
+   * Register a callback for errors.
+   *
+   * The callback is invoked when errors occur during orchestrator
+   * operations, useful for error logging and user notification.
+   *
+   * @param callback - Function called with the error
+   * @returns Unsubscribe function to remove the callback
    */
   onError(callback: (error: Error) => void): () => void {
     this.errorCallbacks.push(callback);
@@ -928,7 +1129,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Register a callback for WiFi state changes
+   * Register a callback for WiFi state changes.
+   *
+   * The callback is invoked when WiFi state transitions occur
+   * (connected, disconnected, hotspot mode, etc.).
+   *
+   * @param callback - Function called with current and previous WiFi state
+   * @returns Unsubscribe function to remove the callback
    */
   onWiFiStateChange(
     callback: (state: WiFiState, previousState: WiFiState) => void,
@@ -943,8 +1150,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Check if onboarding is needed and show appropriate screen
-   * Call this after all services are initialized (including WiFi)
+   * Check if onboarding is needed and show appropriate screen.
+   *
+   * Should be called after all services are initialized. Displays
+   * the appropriate onboarding screen based on current state
+   * (WiFi setup, track selection, etc.).
+   *
+   * @returns Result indicating success or failure
    */
   async checkAndShowOnboardingScreen(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -963,8 +1175,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Restart the onboarding flow (used after factory reset)
-   * Displays the logo, then shows WiFi instructions screen
+   * Restart the onboarding flow (used after factory reset).
+   *
+   * Resets the onboarding state and displays the startup logo
+   * followed by WiFi setup instructions. Called when the user
+   * performs a factory reset.
+   *
+   * @returns Result indicating success or failure
    */
   async restartOnboarding(): Promise<Result<void>> {
     if (!this.isInitialized) {
@@ -981,8 +1198,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Set the number of connected WebSocket clients
-   * Shows "select track" screen when clients connect, returns to connected screen when all disconnect
+   * Set the number of connected WebSocket clients.
+   *
+   * Updates the onboarding coordinator with the current WebSocket
+   * client count. Shows "select track" screen when clients connect,
+   * returns to connected screen when all disconnect.
+   *
+   * @param count - Number of currently connected WebSocket clients
    */
   setWebSocketClientCount(count: number): void {
     if (this.onboardingCoordinator) {
@@ -991,7 +1213,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Clean up resources and shut down all services
+   * Clean up resources and shut down all services.
+   *
+   * Disposes all sub-coordinators, stops auto-update, clears callbacks,
+   * and disposes GPS and e-paper services. Should be called during
+   * application shutdown.
    */
   async dispose(): Promise<void> {
     logger.info("Disposing RenderingOrchestrator...");
@@ -1098,7 +1324,12 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Get the mock display image (only available when using MockEpaperService)
+   * Get the mock display image (only available when using MockEpaperService).
+   *
+   * Returns the current display contents as a PNG buffer for
+   * development/testing purposes.
+   *
+   * @returns PNG buffer of the display contents, or null if not available
    */
   getMockDisplayImage(): Buffer | null {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1110,7 +1341,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Check if mock display image is available
+   * Check if mock display image is available.
+   *
+   * @returns true if using MockEpaperService and an image has been rendered
    */
   hasMockDisplayImage(): boolean {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1123,7 +1356,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Check if GPS service is a mock (for development)
+   * Check if GPS service is a mock (for development).
+   *
+   * @returns true if using MockGPSService, false if using real GPS hardware
    */
   isMockGPS(): boolean {
     return (
@@ -1134,8 +1369,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
-   * Set mock GPS position (only works with MockGPSService)
+   * Set mock GPS position (only works with MockGPSService).
+   *
    * Useful for setting position to track start before drive simulation
+   * or for development testing.
+   *
+   * @param latitude - Latitude in decimal degrees
+   * @param longitude - Longitude in decimal degrees
+   * @returns true if position was set, false if not using mock GPS
    */
   setMockGPSPosition(latitude: number, longitude: number): boolean {
     if (!this.isMockGPS()) {

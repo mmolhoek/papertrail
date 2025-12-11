@@ -35,14 +35,58 @@ const logger = getLogger("SVGService");
 /**
  * SVG Service Implementation
  *
- * Renders GPX tracks to 1-bit bitmaps for e-paper display.
- * Handles coordinate projection, track rendering, and bitmap generation.
+ * Renders GPX tracks and navigation screens to 1-bit bitmaps for e-paper display.
+ * This service is the core rendering engine that handles:
+ * - Coordinate projection (GPS to pixel space)
+ * - Track rendering with configurable line styles
+ * - Navigation UI (turn arrows, progress bars, info panels)
+ * - Bitmap manipulation for 1-bit e-paper displays
+ *
+ * The service delegates specialized rendering to sub-modules:
+ * - {@link BitmapUtils} - Low-level bitmap operations
+ * - {@link ProjectionService} - GPS coordinate projection
+ * - {@link TrackRenderer} - GPX track rendering
+ * - {@link UIRenderer} - UI elements (compass, scale bar, info panels)
+ * - {@link ManeuverRenderer} - Turn-by-turn navigation arrows
+ *
+ * @example
+ * ```typescript
+ * const svgService = new SVGService();
+ * const viewport: ViewportConfig = {
+ *   width: 800,
+ *   height: 480,
+ *   zoomLevel: 15,
+ *   centerPoint: { latitude: 51.5074, longitude: -0.1278 }
+ * };
+ * const result = await svgService.renderViewport(track, viewport);
+ * if (result.success) {
+ *   // Use result.data (Bitmap1Bit) with e-paper service
+ * }
+ * ```
  */
 export class SVGService implements ISVGService {
   constructor() {}
 
   /**
-   * Render a viewport with a GPX track centered on a coordinate
+   * Render a viewport with a GPX track centered on a coordinate.
+   *
+   * Projects the track onto a 1-bit bitmap using the specified viewport configuration.
+   * The track is rendered as connected line segments with optional position highlighting.
+   *
+   * @param track - The GPX track to render
+   * @param viewport - Viewport configuration including dimensions, zoom level, and center point
+   * @param options - Optional rendering options (line width, point display, etc.)
+   * @returns Result containing the rendered bitmap or an error
+   *
+   * @example
+   * ```typescript
+   * const result = await svgService.renderViewport(track, {
+   *   width: 800,
+   *   height: 480,
+   *   zoomLevel: 15,
+   *   centerPoint: currentPosition
+   * }, { lineWidth: 3, highlightCurrentPosition: true });
+   * ```
    */
   async renderViewport(
     track: GPXTrack,
@@ -110,7 +154,15 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render multiple tracks in the same viewport
+   * Render multiple tracks in the same viewport.
+   *
+   * Projects all tracks onto a single bitmap, useful for displaying
+   * multiple routes or comparing tracks in the same view.
+   *
+   * @param tracks - Array of GPX tracks to render
+   * @param viewport - Viewport configuration including dimensions, zoom level, and center point
+   * @param options - Optional rendering options (line width, point display, etc.)
+   * @returns Result containing the rendered bitmap or an error
    */
   async renderMultipleTracks(
     tracks: GPXTrack[],
@@ -171,7 +223,12 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Create a blank bitmap of specified dimensions
+   * Create a blank bitmap of specified dimensions.
+   *
+   * @param width - Width in pixels
+   * @param height - Height in pixels
+   * @param fill - If true, fill with black (1); if false, fill with white (0)
+   * @returns A new blank bitmap with the specified dimensions
    */
   createBlankBitmap(
     width: number,
@@ -182,7 +239,15 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Add text to a bitmap
+   * Add text to a bitmap.
+   *
+   * @param bitmap - The bitmap to add text to
+   * @param text - The text string to render
+   * @param x - X coordinate for text placement
+   * @param y - Y coordinate for text placement
+   * @param fontSize - Font size in pixels (default: 12)
+   * @returns Result containing the modified bitmap
+   * @deprecated Text rendering is not yet implemented - returns bitmap unchanged
    */
   addText(
     bitmap: Bitmap1Bit,
@@ -199,7 +264,18 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Add a compass rose to indicate direction
+   * Add a compass rose to indicate direction.
+   *
+   * Draws a compass with North indicator at the specified position.
+   * The compass rotates based on the current heading to show
+   * which direction is north relative to the current view.
+   *
+   * @param bitmap - The bitmap to add the compass to
+   * @param x - X coordinate for compass center
+   * @param y - Y coordinate for compass center
+   * @param radius - Radius of the compass in pixels
+   * @param heading - Current heading in degrees (0 = north, 90 = east)
+   * @returns Result containing the modified bitmap
    */
   async addCompass(
     bitmap: Bitmap1Bit,
@@ -224,7 +300,18 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Add a scale bar to the bitmap
+   * Add a scale bar to the bitmap.
+   *
+   * Draws a scale bar showing the real-world distance represented
+   * by a portion of the map. Automatically selects appropriate
+   * distance units (meters or kilometers).
+   *
+   * @param bitmap - The bitmap to add the scale bar to
+   * @param x - X coordinate for scale bar start
+   * @param y - Y coordinate for scale bar
+   * @param maxWidth - Maximum width of the scale bar in pixels
+   * @param metersPerPixel - Conversion factor from pixels to meters
+   * @returns Result containing the modified bitmap
    */
   async addScaleBar(
     bitmap: Bitmap1Bit,
@@ -237,7 +324,13 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Overlay information panel on the bitmap
+   * Overlay information panel on the bitmap.
+   *
+   * @param bitmap - The bitmap to add the info panel to
+   * @param info - Object containing optional display values
+   * @param position - Corner position for the panel (default: "top-left")
+   * @returns Result containing the modified bitmap
+   * @deprecated Info panel rendering is not yet implemented - returns bitmap unchanged
    */
   addInfoPanel(
     bitmap: Bitmap1Bit,
@@ -260,7 +353,18 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Get the default render options
+   * Get the default render options.
+   *
+   * Returns a RenderOptions object with sensible defaults for
+   * rendering tracks on e-paper displays.
+   *
+   * @returns Default rendering options
+   *
+   * @example
+   * ```typescript
+   * const defaults = svgService.getDefaultRenderOptions();
+   * // { lineWidth: 2, pointRadius: 3, showPoints: true, ... }
+   * ```
    */
   getDefaultRenderOptions(): RenderOptions {
     return {
@@ -276,9 +380,28 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render the "Follow Track" screen with 70/30 split layout
-   * Left area (70%): Track map centered on current position
-   * Right area (30%): Speed and satellite information
+   * Render the "Follow Track" screen with 70/30 split layout.
+   *
+   * Creates a display optimized for following a GPX track:
+   * - Left area (70%): Track map centered on current GPS position with compass and scale bar
+   * - Right area (30%): Information panel showing speed, satellites, and progress
+   *
+   * @param track - The GPX track being followed
+   * @param currentPosition - Current GPS position (used as map center)
+   * @param viewport - Viewport configuration (dimensions and zoom)
+   * @param info - Track following information (speed, satellites, progress, bearing)
+   * @param options - Optional rendering options
+   * @returns Result containing the rendered bitmap or an error
+   *
+   * @example
+   * ```typescript
+   * const result = await svgService.renderFollowTrackScreen(
+   *   activeTrack,
+   *   gpsPosition,
+   *   { width: 800, height: 480, zoomLevel: 16, centerPoint: gpsPosition },
+   *   { speed: 25.5, satellites: 8, progress: 45.2, bearing: 180 }
+   * );
+   * ```
    */
   async renderFollowTrackScreen(
     track: GPXTrack,
@@ -491,9 +614,46 @@ export class SVGService implements ISVGService {
   // ============================================
 
   /**
-   * Render full-screen turn display for drive navigation
-   * Uses SVG-based text rendering for better font quality
-   * If nextTurn is provided, renders two turns side-by-side with "THEN" between
+   * Render full-screen turn display for drive navigation.
+   *
+   * Creates a high-visibility turn instruction screen with:
+   * - Large maneuver arrow (left, right, straight, etc.)
+   * - Distance to turn in meters or kilometers
+   * - Instruction text (e.g., "TURN LEFT")
+   * - Street name (if available)
+   * - Optional progress bar
+   *
+   * If nextTurn is provided, renders a dual-turn layout showing
+   * the current turn on the left and next turn on the right
+   * with "THEN" indicator between them.
+   *
+   * @param maneuverType - Type of maneuver to display (turn_left, turn_right, etc.)
+   * @param distance - Distance to the turn in meters
+   * @param instruction - Text instruction for the turn
+   * @param streetName - Name of the street to turn onto (optional)
+   * @param viewport - Viewport configuration (dimensions)
+   * @param nextTurn - Optional next turn information for dual-turn display
+   * @param progress - Optional route progress percentage (0-100)
+   * @returns Result containing the rendered bitmap or an error
+   *
+   * @example
+   * ```typescript
+   * // Single turn display
+   * const result = await svgService.renderTurnScreen(
+   *   ManeuverType.TURN_LEFT,
+   *   150,
+   *   "Turn left",
+   *   "Main Street",
+   *   viewport
+   * );
+   *
+   * // Dual turn display (current + next)
+   * const result = await svgService.renderTurnScreen(
+   *   ManeuverType.TURN_LEFT, 150, "Turn left", "Main St", viewport,
+   *   { maneuverType: ManeuverType.TURN_RIGHT, distance: 300, instruction: "Turn right" },
+   *   75 // 75% progress
+   * );
+   * ```
    */
   async renderTurnScreen(
     maneuverType: ManeuverType,
@@ -759,7 +919,19 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render drive navigation map screen with turn overlay
+   * Render drive navigation map screen with turn overlay.
+   *
+   * Creates a 70/30 split layout for active drive navigation:
+   * - Left area (70%): Route map centered on current position with compass
+   * - Right area (30%): Navigation info panel with next turn, speed, progress
+   *
+   * @param route - The drive route being navigated
+   * @param currentPosition - Current GPS position
+   * @param nextWaypoint - The next waypoint/turn on the route
+   * @param viewport - Viewport configuration (dimensions and zoom)
+   * @param info - Navigation information (speed, distances, progress, next maneuver)
+   * @param options - Optional rendering options
+   * @returns Result containing the rendered bitmap or an error
    */
   async renderDriveMapScreen(
     route: DriveRoute,
@@ -878,8 +1050,16 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render off-road arrow screen for drive navigation
-   * Uses SVG-based text rendering for better font quality
+   * Render off-road arrow screen for drive navigation.
+   *
+   * Displayed when the user has gone off the planned route.
+   * Shows a large directional arrow pointing toward the nearest
+   * point on the route with distance and cardinal direction.
+   *
+   * @param bearing - Bearing to the route in degrees (0 = north)
+   * @param distance - Distance to the nearest point on route in meters
+   * @param viewport - Viewport configuration (dimensions)
+   * @returns Result containing the rendered bitmap or an error
    */
   async renderOffRoadScreen(
     bearing: number,
@@ -960,8 +1140,15 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Render arrival screen for drive navigation
-   * Uses SVG-based text rendering for better font quality
+   * Render arrival screen for drive navigation.
+   *
+   * Displayed when the user has arrived at their destination.
+   * Shows a checkmark icon with "ARRIVED" text and the
+   * destination name split across multiple lines.
+   *
+   * @param destination - Name of the destination
+   * @param viewport - Viewport configuration (dimensions)
+   * @returns Result containing the rendered bitmap or an error
    */
   async renderArrivalScreen(
     destination: string,

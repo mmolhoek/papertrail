@@ -20,6 +20,14 @@ export default [
       },
     },
     rules: {
+      // Allow underscore prefix for unused variables (common TypeScript convention)
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+        },
+      ],
       // Enforce path alias usage - disallow deep relative imports
       // Allows: "./" and "../" for sibling/parent within same module
       // Disallows: "../../" and deeper to force path alias usage
