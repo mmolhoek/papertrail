@@ -453,22 +453,47 @@ describe("ServiceContainer", () => {
         expect(config.auth?.password).toBe("testpass");
       });
 
-      it("should use default auth credentials when not specified", () => {
+      it("should generate secure password when not specified", () => {
         process.env.WEB_AUTH_ENABLED = "true";
         const container = ServiceContainer.getInstance();
         const config = container.getWebConfig();
         expect(config.auth?.username).toBe("admin");
-        expect(config.auth?.password).toBe("papertrail");
+        // Password should be auto-generated (16 chars, alphanumeric)
+        expect(config.auth?.password).toBeDefined();
+        expect(config.auth?.password?.length).toBe(16);
+        expect(config.auth?.password).toMatch(/^[A-Za-z0-9]+$/);
+      });
+
+      it("should set warning flag when password is auto-generated", () => {
+        process.env.WEB_AUTH_ENABLED = "true";
+        const container = ServiceContainer.getInstance();
+        container.getWebConfig();
+        const securityInfo = container.getCredentialSecurityInfo();
+        expect(securityInfo.warnings.webAuthGenerated).toBe(true);
+        expect(securityInfo.generatedPasswords.webAuth).toBeDefined();
+      });
+
+      it("should set warning flag when password is insecure", () => {
+        process.env.WEB_AUTH_ENABLED = "true";
+        process.env.WEB_AUTH_PASSWORD = "password123";
+        const container = ServiceContainer.getInstance();
+        container.getWebConfig();
+        const securityInfo = container.getCredentialSecurityInfo();
+        expect(securityInfo.warnings.webAuthInsecure).toBe(true);
+        expect(securityInfo.warnings.webAuthGenerated).toBe(false);
       });
     });
 
     describe("getWiFiConfig", () => {
-      it("should return default WiFi configuration", () => {
+      it("should generate secure password when not specified", () => {
         const container = ServiceContainer.getInstance();
         const config = container.getWiFiConfig();
         expect(config.enabled).toBe(true);
         expect(config.primarySSID).toBe("Papertrail-Setup");
-        expect(config.primaryPassword).toBe("papertrail123");
+        // Password should be auto-generated (12 chars for WiFi, alphanumeric)
+        expect(config.primaryPassword).toBeDefined();
+        expect(config.primaryPassword.length).toBe(12);
+        expect(config.primaryPassword).toMatch(/^[A-Za-z0-9]+$/);
         expect(config.scanIntervalMs).toBe(30000);
         expect(config.connectionTimeoutMs).toBe(60000);
       });
@@ -486,6 +511,30 @@ describe("ServiceContainer", () => {
         expect(config.primaryPassword).toBe("mypassword");
         expect(config.scanIntervalMs).toBe(10000);
         expect(config.connectionTimeoutMs).toBe(30000);
+      });
+
+      it("should set warning flag when password is auto-generated", () => {
+        const container = ServiceContainer.getInstance();
+        container.getWiFiConfig();
+        const securityInfo = container.getCredentialSecurityInfo();
+        expect(securityInfo.warnings.wifiApGenerated).toBe(true);
+        expect(securityInfo.generatedPasswords.wifiAp).toBeDefined();
+      });
+
+      it("should set warning flag when password is insecure", () => {
+        process.env.WIFI_PRIMARY_PASSWORD = "papertrail123";
+        const container = ServiceContainer.getInstance();
+        container.getWiFiConfig();
+        const securityInfo = container.getCredentialSecurityInfo();
+        expect(securityInfo.warnings.wifiApInsecure).toBe(true);
+        expect(securityInfo.warnings.wifiApGenerated).toBe(false);
+      });
+
+      it("should cache generated password across multiple calls", () => {
+        const container = ServiceContainer.getInstance();
+        const config1 = container.getWiFiConfig();
+        const config2 = container.getWiFiConfig();
+        expect(config1.primaryPassword).toBe(config2.primaryPassword);
       });
     });
   });

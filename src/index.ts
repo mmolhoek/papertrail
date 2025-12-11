@@ -16,6 +16,59 @@ const logger = getLogger("Papertrail");
  * 4. Sets up graceful shutdown
  */
 
+/**
+ * Display security warnings about credentials at startup.
+ * This ensures users are aware when passwords are auto-generated
+ * or when they're using insecure default passwords.
+ */
+function displaySecurityWarnings(container: ServiceContainer): void {
+  const securityInfo = container.getCredentialSecurityInfo();
+  const { warnings, generatedPasswords } = securityInfo;
+
+  if (!container.hasSecurityWarnings()) {
+    return;
+  }
+
+  logger.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+  logger.warn("                 SECURITY NOTICE                    ");
+  logger.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+  // WiFi AP password warnings
+  if (warnings.wifiApGenerated && generatedPasswords.wifiAp) {
+    logger.warn("");
+    logger.warn("WiFi Access Point Password (auto-generated):");
+    logger.warn(`  SSID: Papertrail-Setup`);
+    logger.warn(`  Password: ${generatedPasswords.wifiAp}`);
+    logger.warn("");
+    logger.warn("  To set a permanent password, add to your .env file:");
+    logger.warn("    WIFI_PRIMARY_PASSWORD=your-secure-password");
+  } else if (warnings.wifiApInsecure) {
+    logger.warn("");
+    logger.warn("WARNING: WiFi AP is using an insecure default password!");
+    logger.warn("  Please set a secure password in your .env file:");
+    logger.warn("    WIFI_PRIMARY_PASSWORD=your-secure-password");
+  }
+
+  // Web auth password warnings
+  if (warnings.webAuthGenerated && generatedPasswords.webAuth) {
+    logger.warn("");
+    logger.warn("Web Authentication Password (auto-generated):");
+    logger.warn(`  Username: admin`);
+    logger.warn(`  Password: ${generatedPasswords.webAuth}`);
+    logger.warn("");
+    logger.warn("  To set a permanent password, add to your .env file:");
+    logger.warn("    WEB_AUTH_PASSWORD=your-secure-password");
+  } else if (warnings.webAuthInsecure) {
+    logger.warn("");
+    logger.warn("WARNING: Web auth is using an insecure default password!");
+    logger.warn("  Please set a secure password in your .env file:");
+    logger.warn("    WEB_AUTH_PASSWORD=your-secure-password");
+  }
+
+  logger.warn("");
+  logger.warn("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+}
+
 async function main() {
   logger.info("🚀 Starting Papertrail GPS Tracker...\n");
 
@@ -112,6 +165,9 @@ async function main() {
     logger.info("✅ Papertrail is ready!\n");
     logger.info("Access the control panel from your mobile device:");
     logger.info(`   ${webService.getServerUrl()}\n`);
+
+    // Display security warnings if any credentials were auto-generated or insecure
+    displaySecurityWarnings(container);
 
     // Setup graceful shutdown
     setupGracefulShutdown(orchestrator, webService);

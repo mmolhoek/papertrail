@@ -278,6 +278,47 @@ Configuration is done via environment variables in `.env`:
 
 See `.env.example` for all available options.
 
+## Security
+
+### Credential Management
+
+Papertrail automatically generates secure random passwords at startup if none are configured. Generated passwords are displayed in the startup logs and on the e-paper onboarding screen.
+
+**For production use, you should set permanent passwords in your `.env` file:**
+
+```bash
+# WiFi Access Point password (for device setup mode)
+WIFI_PRIMARY_PASSWORD=your-secure-wifi-password
+
+# Web interface authentication (only used when WEB_AUTH_ENABLED=true)
+WEB_AUTH_ENABLED=true
+WEB_AUTH_PASSWORD=your-secure-web-password
+```
+
+### Security Warnings
+
+At startup, Papertrail will display warnings if:
+- Passwords were auto-generated (temporary, will change on restart)
+- Known insecure default passwords are detected
+
+### Network Exposure
+
+By default, the web interface binds to `0.0.0.0:3000`, making it accessible from any device on the network. This is intentional for local device use (e.g., controlling from a mobile phone).
+
+**If exposing Papertrail to untrusted networks:**
+1. Enable web authentication: `WEB_AUTH_ENABLED=true`
+2. Set a strong password: `WEB_AUTH_PASSWORD=...`
+3. Consider using a reverse proxy with HTTPS
+4. Use firewall rules to restrict access
+
+### CORS Configuration
+
+CORS is enabled by default (`origin: "*"`) to allow the mobile web interface to work from any device. For restricted environments, you can disable CORS:
+
+```bash
+WEB_CORS=false
+```
+
 ## Adding GPX Files
 
 Place GPX files in the `data/gpx-files/` directory. They will be automatically available in the web interface.

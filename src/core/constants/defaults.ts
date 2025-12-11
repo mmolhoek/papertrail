@@ -185,10 +185,11 @@ export const WEB_DEFAULT_STATIC_DIRECTORY = "./src/web/public";
 export const WEB_DEFAULT_AUTH_USERNAME = "admin";
 
 /**
- * Default web authentication password
- * NOTE: This should be changed in production environments
+ * Marker value indicating no password was configured.
+ * When this value is used, a secure random password will be generated at startup.
+ * The generated password will be logged once for the user to note.
  */
-export const WEB_DEFAULT_AUTH_PASSWORD = "papertrail";
+export const WEB_AUTH_PASSWORD_NOT_SET = "__NOT_SET__";
 
 // =============================================================================
 // WiFi Configuration Defaults
@@ -200,10 +201,11 @@ export const WEB_DEFAULT_AUTH_PASSWORD = "papertrail";
 export const WIFI_DEFAULT_PRIMARY_SSID = "Papertrail-Setup";
 
 /**
- * Default WiFi access point password for device setup
- * NOTE: This should be changed in production environments
+ * Marker value indicating no WiFi password was configured.
+ * When this value is used, a secure random password will be generated at startup.
+ * The generated password will be logged once and displayed on the e-paper onboarding screen.
  */
-export const WIFI_DEFAULT_PRIMARY_PASSWORD = "papertrail123";
+export const WIFI_PASSWORD_NOT_SET = "__NOT_SET__";
 
 /**
  * Default WiFi scan interval in milliseconds

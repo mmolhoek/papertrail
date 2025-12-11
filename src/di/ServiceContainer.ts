@@ -49,12 +49,16 @@ import {
   WEB_DEFAULT_API_BASE_PATH,
   WEB_DEFAULT_STATIC_DIRECTORY,
   WEB_DEFAULT_AUTH_USERNAME,
-  WEB_DEFAULT_AUTH_PASSWORD,
+  WEB_AUTH_PASSWORD_NOT_SET,
   WIFI_DEFAULT_PRIMARY_SSID,
-  WIFI_DEFAULT_PRIMARY_PASSWORD,
+  WIFI_PASSWORD_NOT_SET,
   WIFI_DEFAULT_SCAN_INTERVAL_MS,
   WIFI_DEFAULT_CONNECTION_TIMEOUT_MS,
 } from "@core/constants";
+import {
+  generateSecurePassword,
+  isInsecureDefaultPassword,
+} from "@utils/crypto";
 // Mock services - safe to import (no hardware dependencies)
 import { MockGPSService } from "@services/gps/MockGPSService";
 import { MockEpaperService } from "@services/epaper/MockEpaperService";
@@ -100,6 +104,29 @@ export class ServiceContainer {
     simulation?: ITrackSimulationService;
     driveNavigation?: IDriveNavigationService;
   } = {};
+
+  /**
+   * Cache for generated passwords (persists across config calls within same instance)
+   */
+  private generatedPasswords: {
+    webAuth?: string;
+    wifiAp?: string;
+  } = {};
+
+  /**
+   * Track whether passwords were auto-generated (for startup warnings)
+   */
+  private passwordWarnings: {
+    webAuthGenerated: boolean;
+    wifiApGenerated: boolean;
+    webAuthInsecure: boolean;
+    wifiApInsecure: boolean;
+  } = {
+    webAuthGenerated: false,
+    wifiApGenerated: false,
+    webAuthInsecure: false,
+    wifiApInsecure: false,
+  };
 
   /**
    * Registry of display driver factories
@@ -149,6 +176,13 @@ export class ServiceContainer {
   static reset(): void {
     if (ServiceContainer.instance) {
       ServiceContainer.instance.services = {};
+      ServiceContainer.instance.generatedPasswords = {};
+      ServiceContainer.instance.passwordWarnings = {
+        webAuthGenerated: false,
+        wifiApGenerated: false,
+        webAuthInsecure: false,
+        wifiApInsecure: false,
+      };
       ServiceContainer.instance.driverFactories.clear();
       ServiceContainer.instance.registerDefaultDrivers();
     }
@@ -461,6 +495,27 @@ export class ServiceContainer {
    * Get Web configuration
    */
   getWebConfig(): WebConfig {
+    // Determine password for web auth
+    let webAuthPassword: string | undefined;
+    if (process.env.WEB_AUTH_ENABLED === "true") {
+      const envPassword = process.env.WEB_AUTH_PASSWORD;
+      if (envPassword && envPassword !== WEB_AUTH_PASSWORD_NOT_SET) {
+        // User provided a password via env var
+        webAuthPassword = envPassword;
+        // Check if it's an insecure default
+        if (isInsecureDefaultPassword(envPassword)) {
+          this.passwordWarnings.webAuthInsecure = true;
+        }
+      } else {
+        // No password provided - generate a secure one
+        if (!this.generatedPasswords.webAuth) {
+          this.generatedPasswords.webAuth = generateSecurePassword();
+          this.passwordWarnings.webAuthGenerated = true;
+        }
+        webAuthPassword = this.generatedPasswords.webAuth;
+      }
+    }
+
     return {
       port: parseInt(process.env.WEB_PORT || String(WEB_DEFAULT_PORT)),
       host: process.env.WEB_HOST || WEB_DEFAULT_HOST,
@@ -480,8 +535,7 @@ export class ServiceContainer {
               enabled: true,
               username:
                 process.env.WEB_AUTH_USERNAME || WEB_DEFAULT_AUTH_USERNAME,
-              password:
-                process.env.WEB_AUTH_PASSWORD || WEB_DEFAULT_AUTH_PASSWORD,
+              password: webAuthPassword!,
             }
           : undefined,
     };
@@ -491,11 +545,29 @@ export class ServiceContainer {
    * Get WiFi configuration
    */
   getWiFiConfig(): WiFiConfig {
+    // Determine password for WiFi AP
+    let wifiPassword: string;
+    const envPassword = process.env.WIFI_PRIMARY_PASSWORD;
+    if (envPassword && envPassword !== WIFI_PASSWORD_NOT_SET) {
+      // User provided a password via env var
+      wifiPassword = envPassword;
+      // Check if it's an insecure default
+      if (isInsecureDefaultPassword(envPassword)) {
+        this.passwordWarnings.wifiApInsecure = true;
+      }
+    } else {
+      // No password provided - generate a secure one
+      if (!this.generatedPasswords.wifiAp) {
+        this.generatedPasswords.wifiAp = generateSecurePassword(12); // 12 chars for WiFi (easier to type)
+        this.passwordWarnings.wifiApGenerated = true;
+      }
+      wifiPassword = this.generatedPasswords.wifiAp;
+    }
+
     return {
       enabled: process.env.WIFI_ENABLED !== "false",
       primarySSID: process.env.WIFI_PRIMARY_SSID || WIFI_DEFAULT_PRIMARY_SSID,
-      primaryPassword:
-        process.env.WIFI_PRIMARY_PASSWORD || WIFI_DEFAULT_PRIMARY_PASSWORD,
+      primaryPassword: wifiPassword,
       scanIntervalMs: parseInt(
         process.env.WIFI_SCAN_INTERVAL_MS ||
           String(WIFI_DEFAULT_SCAN_INTERVAL_MS),
@@ -577,5 +649,46 @@ export class ServiceContainer {
    */
   setDriveNavigationService(service: IDriveNavigationService): void {
     this.services.driveNavigation = service;
+  }
+
+  // Security/Credential helpers
+
+  /**
+   * Get security warnings about credentials.
+   * Call this after getWebConfig() and getWiFiConfig() have been invoked.
+   *
+   * @returns Object containing warning flags and generated passwords
+   */
+  getCredentialSecurityInfo(): {
+    warnings: {
+      webAuthGenerated: boolean;
+      wifiApGenerated: boolean;
+      webAuthInsecure: boolean;
+      wifiApInsecure: boolean;
+    };
+    generatedPasswords: {
+      webAuth?: string;
+      wifiAp?: string;
+    };
+  } {
+    return {
+      warnings: { ...this.passwordWarnings },
+      generatedPasswords: { ...this.generatedPasswords },
+    };
+  }
+
+  /**
+   * Check if there are any security warnings that should be displayed at startup.
+   * Call this after getWebConfig() and getWiFiConfig() have been invoked.
+   *
+   * @returns true if there are warnings to display
+   */
+  hasSecurityWarnings(): boolean {
+    return (
+      this.passwordWarnings.webAuthGenerated ||
+      this.passwordWarnings.wifiApGenerated ||
+      this.passwordWarnings.webAuthInsecure ||
+      this.passwordWarnings.wifiApInsecure
+    );
   }
 }
