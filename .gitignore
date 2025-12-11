@@ -21,6 +21,8 @@ data/gpx-files/*
 !data/gpx-files/.gitkeep
 data/cache/*
 !data/cache/.gitkeep
+data/uploads/*
+!data/uploads/.gitkeep
 
 # IDE
 .vscode/
@@ -40,4 +42,5 @@ coverage/
 tmp/
 temp/
 .aider*
-data/
+data/user-state.json
+data/routes/

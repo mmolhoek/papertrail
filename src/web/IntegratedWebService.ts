@@ -1,6 +1,7 @@
 import express, { Express } from "express";
 import http from "http";
 import path from "path";
+import * as fs from "fs/promises";
 import multer from "multer";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { Result, success, failure, WebConfig } from "../core/types";
@@ -16,6 +17,11 @@ import {
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 import { getLogger } from "../utils/logger";
+import {
+  UPLOAD_DEFAULT_TEMP_DIRECTORY,
+  UPLOAD_MAX_AGE_MS,
+  UPLOAD_CLEANUP_INTERVAL_MS,
+} from "@core/constants";
 import {
   validateBody,
   validateParams,
@@ -78,6 +84,10 @@ export class IntegratedWebService implements IWebInterfaceService {
   // Track if we've already emitted the arrived event to avoid duplicates
   private hasEmittedArrived = false;
 
+  // Upload cleanup timer
+  private uploadCleanupTimer: NodeJS.Timeout | null = null;
+  private readonly uploadDirectory: string;
+
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
     private readonly config: WebConfig = {
@@ -107,9 +117,11 @@ export class IntegratedWebService implements IWebInterfaceService {
       simulationService,
       driveNavigationService,
     );
+    // Use app-controlled upload directory instead of /tmp for better security
+    this.uploadDirectory = path.resolve(UPLOAD_DEFAULT_TEMP_DIRECTORY);
     // Configure multer for file uploads
     this.upload = multer({
-      dest: "/tmp/papertrail-uploads",
+      dest: this.uploadDirectory,
       limits: {
         fileSize: 10 * 1024 * 1024, // 10 MB max
       },
@@ -127,6 +139,12 @@ export class IntegratedWebService implements IWebInterfaceService {
     }
 
     try {
+      // Ensure upload directory exists
+      await this.ensureUploadDirectory();
+
+      // Start orphaned upload cleanup timer
+      this.startUploadCleanupTimer();
+
       this.server = http.createServer(this.app);
 
       // Setup WebSocket if enabled
@@ -190,6 +208,12 @@ export class IntegratedWebService implements IWebInterfaceService {
     }
 
     try {
+      // Stop upload cleanup timer
+      this.stopUploadCleanupTimer();
+
+      // Clean up any remaining temp files on shutdown
+      await this.cleanupAllTempFiles();
+
       // Unsubscribe from orchestrator events
       this.unsubscribeFromOrchestratorEvents();
 
@@ -856,6 +880,124 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.driveNavigationUnsubscribe) {
       this.driveNavigationUnsubscribe();
       this.driveNavigationUnsubscribe = null;
+    }
+  }
+
+  // ==========================================================================
+  // Upload Directory Management
+  // ==========================================================================
+
+  /**
+   * Ensure the upload directory exists
+   */
+  private async ensureUploadDirectory(): Promise<void> {
+    try {
+      await fs.mkdir(this.uploadDirectory, { recursive: true });
+      logger.debug(`Upload directory ready: ${this.uploadDirectory}`);
+    } catch (error) {
+      logger.error("Failed to create upload directory:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start the periodic cleanup timer for orphaned uploads
+   */
+  private startUploadCleanupTimer(): void {
+    // Run initial cleanup
+    this.cleanupOrphanedUploads().catch((err) =>
+      logger.error("Initial upload cleanup failed:", err),
+    );
+
+    // Schedule periodic cleanup
+    this.uploadCleanupTimer = setInterval(() => {
+      this.cleanupOrphanedUploads().catch((err) =>
+        logger.error("Scheduled upload cleanup failed:", err),
+      );
+    }, UPLOAD_CLEANUP_INTERVAL_MS);
+
+    logger.debug(
+      `Upload cleanup timer started (interval: ${UPLOAD_CLEANUP_INTERVAL_MS}ms)`,
+    );
+  }
+
+  /**
+   * Stop the upload cleanup timer
+   */
+  private stopUploadCleanupTimer(): void {
+    if (this.uploadCleanupTimer) {
+      clearInterval(this.uploadCleanupTimer);
+      this.uploadCleanupTimer = null;
+      logger.debug("Upload cleanup timer stopped");
+    }
+  }
+
+  /**
+   * Clean up orphaned upload files (older than UPLOAD_MAX_AGE_MS)
+   */
+  private async cleanupOrphanedUploads(): Promise<void> {
+    try {
+      const files = await fs.readdir(this.uploadDirectory);
+      const now = Date.now();
+      let cleanedCount = 0;
+
+      for (const file of files) {
+        const filePath = path.join(this.uploadDirectory, file);
+        try {
+          const stats = await fs.stat(filePath);
+          const age = now - stats.mtimeMs;
+
+          if (age > UPLOAD_MAX_AGE_MS) {
+            await fs.unlink(filePath);
+            cleanedCount++;
+            logger.debug(
+              `Cleaned up orphaned upload: ${file} (age: ${Math.round(age / 1000)}s)`,
+            );
+          }
+        } catch (error) {
+          // File may have been deleted by another process
+          logger.debug(`Could not process file ${file}:`, error);
+        }
+      }
+
+      if (cleanedCount > 0) {
+        logger.info(`Cleaned up ${cleanedCount} orphaned upload file(s)`);
+      }
+    } catch (error) {
+      // Directory may not exist yet
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.error("Failed to cleanup orphaned uploads:", error);
+      }
+    }
+  }
+
+  /**
+   * Clean up all temp files in the upload directory (called on shutdown)
+   */
+  private async cleanupAllTempFiles(): Promise<void> {
+    try {
+      const files = await fs.readdir(this.uploadDirectory);
+      let cleanedCount = 0;
+
+      for (const file of files) {
+        const filePath = path.join(this.uploadDirectory, file);
+        try {
+          await fs.unlink(filePath);
+          cleanedCount++;
+        } catch (error) {
+          logger.debug(`Could not delete file ${file}:`, error);
+        }
+      }
+
+      if (cleanedCount > 0) {
+        logger.info(
+          `Cleaned up ${cleanedCount} temp upload file(s) on shutdown`,
+        );
+      }
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.error("Failed to cleanup temp files on shutdown:", error);
+      }
     }
   }
 }

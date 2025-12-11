@@ -216,3 +216,25 @@ export const WIFI_DEFAULT_SCAN_INTERVAL_MS = 30000;
  * 60 seconds allows time for authentication and DHCP
  */
 export const WIFI_DEFAULT_CONNECTION_TIMEOUT_MS = 60000;
+
+// =============================================================================
+// File Upload Configuration Defaults
+// =============================================================================
+
+/**
+ * Default directory for temporary file uploads
+ * Using app-controlled location instead of /tmp for better security
+ */
+export const UPLOAD_DEFAULT_TEMP_DIRECTORY = "./data/uploads";
+
+/**
+ * Maximum age of orphaned upload files in milliseconds
+ * Files older than this will be cleaned up (default: 1 hour)
+ */
+export const UPLOAD_MAX_AGE_MS = 3600000; // 1 hour
+
+/**
+ * Interval for orphaned upload cleanup job in milliseconds
+ * Runs every 15 minutes to clean up abandoned uploads
+ */
+export const UPLOAD_CLEANUP_INTERVAL_MS = 900000; // 15 minutes

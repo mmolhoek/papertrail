@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 4.1 Improve File Upload Security
+**Next item:** 4.2 Secure Default Credentials
 
 **Completed:**
 
@@ -239,14 +239,17 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 
 ## Phase 4: Security Hardening
 
-### 4.1 Improve File Upload Security
+### 4.1 Improve File Upload Security ✓
 
-- [ ] Add file type validation (check magic bytes, not just extension)
-- [ ] Implement temp file cleanup on server shutdown
-- [ ] Add cleanup job for orphaned uploads
-- [ ] Move upload directory from `/tmp` to app-controlled location
+- [x] Add file type validation (check magic bytes, not just extension)
+- [x] Implement temp file cleanup on server shutdown
+- [x] Add cleanup job for orphaned uploads
+- [x] Move upload directory from `/tmp` to app-controlled location
 
-**Files:** `src/web/IntegratedWebService.ts:91-96`
+**Files:**
+- `src/web/IntegratedWebService.ts` (upload directory, cleanup timer, shutdown cleanup)
+- `src/web/validation/fileValidation.ts` (magic bytes validation)
+- `src/core/constants/defaults.ts` (upload configuration constants)
 
 ### 4.2 Secure Default Credentials
 
