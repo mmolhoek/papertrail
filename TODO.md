@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 3.1 Complete GPS NMEA Parsing
+**Next item:** 3.2 Extract Configuration Constants
 
 **Completed:**
 
@@ -176,16 +176,20 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 
 ## Phase 3: Code Quality Improvements
 
-### 3.1 Complete GPS NMEA Parsing
+### 3.1 Complete GPS NMEA Parsing ✓
 
-- [ ] Implement full GGA sentence parsing (latitude, longitude, altitude)
-- [ ] Parse GSA sentences for PDOP/VDOP
-- [ ] Parse RMC sentences for speed and bearing
-- [ ] Remove mock position return at lines 419-423
-- [ ] Add unit tests for NMEA parsing
-- [ ] Consider extracting `NMEAParser` class
+- [x] Implement full GGA sentence parsing (latitude, longitude, altitude)
+- [x] Parse GSA sentences for PDOP/VDOP
+- [x] Parse RMC sentences for speed and bearing
+- [x] Remove mock position return (integrated via NMEAParser)
+- [x] Add unit tests for NMEA parsing (38 tests)
+- [x] Extract `NMEAParser` class
 
-**Files:** `src/services/gps/GPSService.ts:366-433`
+**Files:**
+
+- `src/services/gps/NMEAParser.ts` (387 lines) - Full NMEA 0183 parser
+- `src/services/gps/GPSService.ts` (updated to use NMEAParser)
+- `src/services/gps/__tests__/NMEAParser.test.ts` (38 tests)
 
 ### 3.2 Extract Configuration Constants
 

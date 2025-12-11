@@ -12,6 +12,7 @@ import {
 } from "@core/types";
 import { GPSError, GPSErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { NMEAParser } from "./NMEAParser";
 
 const logger = getLogger("GPSService");
 
@@ -32,6 +33,8 @@ export class GPSService implements IGPSService {
 
   private positionCallbacks: Array<(position: GPSCoordinate) => void> = [];
   private statusCallbacks: Array<(status: GPSStatus) => void> = [];
+
+  private nmeaParser: NMEAParser = new NMEAParser();
 
   constructor(
     private readonly config: GPSConfig = {
@@ -364,72 +367,84 @@ export class GPSService implements IGPSService {
   }
 
   /**
-   * Process a single NMEA sentence
-   * TODO: Implement full NMEA parsing
+   * Process a single NMEA sentence using NMEAParser
    */
   private processNMEASentence(sentence: string): void {
-    if (!sentence.startsWith("$")) return;
+    const result = this.nmeaParser.parse(sentence);
 
-    // Example: $GPGGA sentence contains position data
-    // Format: $GPGGA,time,lat,N/S,lon,E/W,quality,satellites,hdop,altitude,M,geoid,M,age,station*checksum
-    if (sentence.startsWith("$GPGGA") || sentence.startsWith("$GNGGA")) {
-      // logger.info(`Processing ${sentence.substring(0, 6)} sentence`);
-      const parts = sentence.split(",");
-
-      // Need at least fix quality and satellites (index 7)
-      if (parts.length < 8) {
-        // logger.warn("Incomplete NMEA sentence, skipping");
-        return;
+    // Update position if new position data was parsed
+    if (result.hasNewPosition && result.position) {
+      // Only update position if we have a valid fix (fix quality > 0)
+      const gga = this.nmeaParser.getLastGGA();
+      if (gga && gga.fixQuality > GPSFixQuality.NO_FIX) {
+        this.updatePosition(result.position);
       }
+    }
 
-      // Parse fix quality (index 6)
-      const fixQuality = parseInt(parts[6]) || 0;
-
-      // Parse number of satellites (index 7)
-      const satellitesInUse = parseInt(parts[7]) || 0;
-
-      // Parse HDOP (index 8) if available
-      const hdop = parts[8] ? parseFloat(parts[8]) || 99.9 : 99.9;
-
-      // logger.info(
-      //   `GPS data: fix=${fixQuality}, satellites=${satellitesInUse}, HDOP=${hdop.toFixed(1)}`,
-      // );
-
-      // Check if status has changed
-      const statusChanged =
-        !this.currentStatus ||
-        this.currentStatus.fixQuality !== fixQuality ||
-        this.currentStatus.satellitesInUse !== satellitesInUse ||
-        Math.abs(this.currentStatus.hdop - hdop) > 0.1;
+    // Update status if new status data was parsed
+    if (result.hasNewStatus && Object.keys(result.status).length > 0) {
+      const statusChanged = this.hasStatusChanged(result.status);
 
       if (statusChanged) {
-        // logger.info("GPS status changed, updating...");
         const newStatus: GPSStatus = {
-          fixQuality: fixQuality as GPSFixQuality,
-          satellitesInUse,
-          hdop,
+          fixQuality: result.status.fixQuality ?? GPSFixQuality.NO_FIX,
+          satellitesInUse: result.status.satellitesInUse ?? 0,
+          hdop: result.status.hdop ?? 99.9,
+          vdop: result.status.vdop,
+          pdop: result.status.pdop,
           isTracking: this.tracking,
         };
         this.updateStatus(newStatus);
       }
+    }
+  }
 
-      // Always update position when we get GGA data (regardless of fix quality)
-      // TODO: Parse full position data from GGA sentence
-      // For now, create a mock position for testing
-      this.updatePosition({
-        latitude: 0,
-        longitude: 0,
-        timestamp: new Date(),
-      });
+  /**
+   * Check if GPS status has changed significantly
+   */
+  private hasStatusChanged(newStatus: Partial<GPSStatus>): boolean {
+    if (!this.currentStatus) {
+      return true;
     }
 
-    // Example: $GPGSA sentence contains satellite status
-    if (sentence.startsWith("$GPGSA") || sentence.startsWith("$GNGSA")) {
-      // TODO: Parse GSA sentence for PDOP, VDOP
-      // logger.info(
-      //   `Received ${sentence.substring(0, 6)} sentence (not fully parsed yet)`,
-      // );
+    if (
+      newStatus.fixQuality !== undefined &&
+      this.currentStatus.fixQuality !== newStatus.fixQuality
+    ) {
+      return true;
     }
+
+    if (
+      newStatus.satellitesInUse !== undefined &&
+      this.currentStatus.satellitesInUse !== newStatus.satellitesInUse
+    ) {
+      return true;
+    }
+
+    if (
+      newStatus.hdop !== undefined &&
+      Math.abs(this.currentStatus.hdop - newStatus.hdop) > 0.1
+    ) {
+      return true;
+    }
+
+    if (
+      newStatus.pdop !== undefined &&
+      (this.currentStatus.pdop === undefined ||
+        Math.abs(this.currentStatus.pdop - newStatus.pdop) > 0.1)
+    ) {
+      return true;
+    }
+
+    if (
+      newStatus.vdop !== undefined &&
+      (this.currentStatus.vdop === undefined ||
+        Math.abs(this.currentStatus.vdop - newStatus.vdop) > 0.1)
+    ) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
