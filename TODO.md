@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 4.3 Review CORS Configuration
+**Next item:** 5.1 Add Pre-commit Hooks
 
 **Completed:**
 
@@ -267,13 +267,18 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - `src/index.ts` (startup security warnings display)
 - `README.md` (security documentation section)
 
-### 4.3 Review CORS Configuration
+### 4.3 Review CORS Configuration ✓
 
-- [ ] Document that `origin: "*"` is intentional for local device use
-- [ ] Add environment variable to restrict CORS origins for production
-- [ ] Add security note in README about network exposure
+- [x] Document that `origin: "*"` is intentional for local device use
+- [x] Add environment variable to restrict CORS origins for production
+- [x] Add security note in README about network exposure
 
-**Files:** `src/web/IntegratedWebService.ts:117`
+**Files:**
+- `src/core/types/ConfigTypes.ts` (WebConfig.corsOrigins with JSDoc)
+- `src/di/ServiceContainer.ts` (WEB_CORS_ORIGINS parsing)
+- `src/web/IntegratedWebService.ts` (CORS middleware and Socket.IO config)
+- `.env.example` (WEB_CORS_ORIGINS documentation)
+- `README.md` (expanded CORS configuration section)
 
 ---
 

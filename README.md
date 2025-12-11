@@ -313,11 +313,33 @@ By default, the web interface binds to `0.0.0.0:3000`, making it accessible from
 
 ### CORS Configuration
 
-CORS is enabled by default (`origin: "*"`) to allow the mobile web interface to work from any device. For restricted environments, you can disable CORS:
+CORS (Cross-Origin Resource Sharing) is enabled by default with `origin: "*"` to allow the mobile web interface to work from any device on the local network. This permissive default is intentional for a GPS tracker device that needs to be controlled from phones and tablets.
 
-```bash
-WEB_CORS=false
-```
+**Why allow all origins by default?**
+
+Papertrail is designed for local network use where:
+- The device creates a WiFi access point for initial setup
+- Users connect from various mobile devices with unpredictable IP addresses
+- The web interface needs to work immediately without configuration
+
+**For restricted environments:**
+
+1. **Disable CORS entirely** (only same-origin requests allowed):
+   ```bash
+   WEB_CORS=false
+   ```
+
+2. **Restrict to specific origins** (recommended for production deployments):
+   ```bash
+   WEB_CORS_ORIGINS=http://192.168.1.100:3000,http://localhost:3000
+   ```
+
+3. **Combine with authentication** for additional security:
+   ```bash
+   WEB_CORS_ORIGINS=http://192.168.1.100:3000
+   WEB_AUTH_ENABLED=true
+   WEB_AUTH_PASSWORD=your-secure-password
+   ```
 
 ## Adding GPX Files
 

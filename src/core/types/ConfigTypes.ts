@@ -68,8 +68,33 @@ export type WebConfig = {
   /** Server host */
   host: string;
 
-  /** Enable CORS */
+  /**
+   * Enable CORS (Cross-Origin Resource Sharing)
+   *
+   * By default, CORS is enabled with `origin: "*"` to allow the mobile web interface
+   * to work from any device on the local network. This is intentional for a GPS tracker
+   * device that needs to be controlled from phones/tablets on the same network.
+   *
+   * For restricted environments, set `cors: false` to disable CORS entirely,
+   * or use `corsOrigins` to specify allowed origins.
+   */
   cors: boolean;
+
+  /**
+   * Allowed CORS origins (optional)
+   *
+   * When specified, restricts CORS to only these origins instead of allowing all (`*`).
+   * This is useful for production deployments where you want to limit access.
+   *
+   * Examples:
+   * - `["http://192.168.1.100:3000"]` - Single origin
+   * - `["http://localhost:3000", "http://192.168.1.*"]` - Multiple origins
+   * - `undefined` or empty - Allow all origins (`*`)
+   *
+   * Note: For local device use (the primary use case), leave this undefined to allow
+   * connections from any device on the network.
+   */
+  corsOrigins?: string[];
 
   /** API base path */
   apiBasePath: string;

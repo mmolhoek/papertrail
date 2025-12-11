@@ -516,10 +516,26 @@ export class ServiceContainer {
       }
     }
 
+    // Parse CORS origins from environment variable
+    // Format: comma-separated list (e.g., "http://localhost:3000,http://192.168.1.100:3000")
+    let corsOrigins: string[] | undefined;
+    const corsOriginsEnv = process.env.WEB_CORS_ORIGINS;
+    if (corsOriginsEnv) {
+      corsOrigins = corsOriginsEnv
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0);
+      // If empty after filtering, set to undefined
+      if (corsOrigins.length === 0) {
+        corsOrigins = undefined;
+      }
+    }
+
     return {
       port: parseInt(process.env.WEB_PORT || String(WEB_DEFAULT_PORT)),
       host: process.env.WEB_HOST || WEB_DEFAULT_HOST,
       cors: process.env.WEB_CORS !== "false",
+      corsOrigins,
       apiBasePath: process.env.WEB_API_BASE || WEB_DEFAULT_API_BASE_PATH,
       staticDirectory:
         process.env.WEB_STATIC_DIR || WEB_DEFAULT_STATIC_DIRECTORY,

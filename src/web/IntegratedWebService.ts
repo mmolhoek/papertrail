@@ -152,7 +152,13 @@ export class IntegratedWebService implements IWebInterfaceService {
         this.io = new SocketIOServer(this.server, {
           cors: this.config.cors
             ? {
-                origin: "*",
+                // Use configured origins if specified, otherwise allow all (*).
+                // Allowing all origins is intentional for local device use - the GPS tracker
+                // needs to be controlled from mobile phones/tablets on the same network.
+                origin:
+                  this.config.corsOrigins && this.config.corsOrigins.length > 0
+                    ? this.config.corsOrigins
+                    : "*",
                 methods: ["GET", "POST"],
               }
             : undefined,
@@ -306,21 +312,44 @@ export class IntegratedWebService implements IWebInterfaceService {
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
 
-    // CORS
+    // CORS (Cross-Origin Resource Sharing)
+    // By default, allows all origins (*) to enable the mobile web interface to work
+    // from any device on the local network. This is intentional for a GPS tracker
+    // device that needs to be controlled from phones/tablets.
+    // For restricted environments, use WEB_CORS_ORIGINS to specify allowed origins.
     if (this.config.cors) {
       this.app.use((req, res, next) => {
-        res.header("Access-Control-Allow-Origin", "*");
-        res.header(
-          "Access-Control-Allow-Methods",
-          "GET, POST, PUT, DELETE, OPTIONS",
-        );
-        res.header(
-          "Access-Control-Allow-Headers",
-          "Content-Type, Authorization",
-        );
+        // Determine allowed origin
+        let allowedOrigin = "*";
+        if (
+          this.config.corsOrigins &&
+          this.config.corsOrigins.length > 0 &&
+          req.headers.origin
+        ) {
+          // Check if the request origin is in the allowed list
+          const requestOrigin = req.headers.origin;
+          if (this.config.corsOrigins.includes(requestOrigin)) {
+            allowedOrigin = requestOrigin;
+          } else {
+            // Origin not allowed - don't set CORS headers, browser will block
+            allowedOrigin = "";
+          }
+        }
+
+        if (allowedOrigin) {
+          res.header("Access-Control-Allow-Origin", allowedOrigin);
+          res.header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS",
+          );
+          res.header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization",
+          );
+        }
 
         if (req.method === "OPTIONS") {
-          res.sendStatus(200);
+          res.sendStatus(allowedOrigin ? 200 : 403);
         } else {
           next();
         }
