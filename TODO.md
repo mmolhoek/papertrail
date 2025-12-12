@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 6.2 Reduce Memory Allocations
+**Next item:** 6.3 Optimize GPS Update Handling
 
 **Completed:**
 
@@ -364,11 +364,24 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - Horizontal line fills: Up to 8x faster for long lines using byte-level fills
 - Performance metrics: Enable with PERF_METRICS=true environment variable
 
-### 6.2 Reduce Memory Allocations
+### 6.2 Reduce Memory Allocations ✓
 
-- [ ] Reuse bitmap buffers where possible in `SVGService`
-- [ ] Pool coordinate arrays in projection calculations
-- [ ] Review callback array allocations in orchestrator
+- [x] Add BitmapPool for reusable bitmap buffer allocation
+- [x] Add CoordinatePool for reusable Point2D arrays during track projection
+- [x] Integrate CoordinatePool into TrackRenderer (renderTrack, renderTrackInArea, renderRouteGeometry)
+- [x] Replace forEach with for loops in callback notification methods to avoid closure allocation
+
+**Files:**
+- `src/services/svg/BitmapPool.ts` (205 lines) - Object pool for bitmap buffers
+- `src/services/svg/CoordinatePool.ts` (236 lines) - Object pool for Point2D arrays
+- `src/services/svg/__tests__/BitmapPool.test.ts` - 17 tests
+- `src/services/svg/__tests__/CoordinatePool.test.ts` - 21 tests
+- `src/services/svg/TrackRenderer.ts` - Updated to use CoordinatePool
+- `src/services/orchestrator/RenderingOrchestrator.ts` - Optimized callback iteration
+- `src/services/gps/GPSService.ts` - Optimized callback iteration
+
+**Note:** BitmapPool is not yet integrated into SVGService due to bitmap ownership transfer constraints
+(bitmaps are passed to e-paper service). Future work could add explicit release points.
 
 ### 6.3 Optimize GPS Update Handling
 
