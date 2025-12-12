@@ -15,6 +15,7 @@ import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
 import {
   WebConfig,
   GPSConfig,
+  GPSDebounceConfig,
   EpaperConfig,
   MapConfig,
   WiFiConfig,
@@ -24,6 +25,8 @@ import {
   GPS_DEFAULT_BAUD_RATE,
   GPS_DEFAULT_UPDATE_INTERVAL_MS,
   GPS_DEFAULT_MIN_ACCURACY_METERS,
+  GPS_DEFAULT_DEBOUNCE_MS,
+  GPS_DEFAULT_DISTANCE_THRESHOLD_METERS,
   MAP_DEFAULT_GPX_DIRECTORY,
   MAP_DEFAULT_MAX_FILE_SIZE_BYTES,
   MAP_DEFAULT_CACHE_DIRECTORY,
@@ -338,6 +341,7 @@ export class ServiceContainer {
         this.getTextRendererService(),
         this.getTrackSimulationService(),
         this.getDriveNavigationService(),
+        this.getGPSDebounceConfig(),
       );
     }
     return this.services.orchestrator;
@@ -591,6 +595,27 @@ export class ServiceContainer {
       connectionTimeoutMs: parseInt(
         process.env.WIFI_CONNECTION_TIMEOUT_MS ||
           String(WIFI_DEFAULT_CONNECTION_TIMEOUT_MS),
+      ),
+    };
+  }
+
+  /**
+   * Get GPS debounce configuration for callback throttling.
+   *
+   * Debouncing prevents excessive display updates from high-frequency GPS data.
+   * Updates are suppressed unless:
+   * - Time since last notification exceeds debounceMs, OR
+   * - Distance moved exceeds distanceThresholdMeters
+   */
+  getGPSDebounceConfig(): GPSDebounceConfig {
+    return {
+      enabled: process.env.GPS_DEBOUNCE_ENABLED !== "false",
+      debounceMs: parseInt(
+        process.env.GPS_DEBOUNCE_MS || String(GPS_DEFAULT_DEBOUNCE_MS),
+      ),
+      distanceThresholdMeters: parseInt(
+        process.env.GPS_DISTANCE_THRESHOLD_METERS ||
+          String(GPS_DEFAULT_DISTANCE_THRESHOLD_METERS),
       ),
     };
   }

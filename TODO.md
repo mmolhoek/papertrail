@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 6.3 Optimize GPS Update Handling
+**Next item:** 7.1 Remove Unused Code
 
 **Completed:**
 
@@ -383,11 +383,27 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 **Note:** BitmapPool is not yet integrated into SVGService due to bitmap ownership transfer constraints
 (bitmaps are passed to e-paper service). Future work could add explicit release points.
 
-### 6.3 Optimize GPS Update Handling
+### 6.3 Optimize GPS Update Handling ✓
 
-- [ ] Add configurable debouncing for display updates
-- [ ] Implement position change threshold (skip updates if moved < X meters)
-- [ ] Consider batching rapid position updates
+- [x] Add configurable debouncing for display updates
+- [x] Implement position change threshold (skip updates if moved < X meters)
+- [x] Consider batching rapid position updates
+
+**Implementation details:**
+- GPSCoordinator already had debouncing with time-based (`debounceMs`) and distance-based (`distanceThresholdMeters`) throttling
+- Added environment variable configuration: `GPS_DEBOUNCE_ENABLED`, `GPS_DEBOUNCE_MS`, `GPS_DISTANCE_THRESHOLD_METERS`
+- Added `getGPSDebounceConfig()` method to ServiceContainer
+- Config is passed through RenderingOrchestrator to GPSCoordinator
+- Batching is effectively achieved through debounce mechanism (only one notification per debounce window)
+- Debounce statistics available via `getDebounceStats()` for monitoring
+
+**Files:**
+- `src/di/ServiceContainer.ts` - Added `getGPSDebounceConfig()` method
+- `src/services/orchestrator/RenderingOrchestrator.ts` - Passes debounce config to GPSCoordinator
+- `src/services/orchestrator/GPSCoordinator.ts` - Already had debouncing implementation
+- `src/core/constants/defaults.ts` - GPS_DEFAULT_DEBOUNCE_MS (500), GPS_DEFAULT_DISTANCE_THRESHOLD_METERS (2)
+- `.env.example` - Added GPS debounce configuration variables
+- `src/di/__tests__/ServiceContainer.test.ts` - Added tests for getGPSDebounceConfig
 
 ---
 

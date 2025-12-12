@@ -14,6 +14,7 @@ import {
   Result,
   GPSCoordinate,
   GPSStatus,
+  GPSDebounceConfig,
   SystemStatus,
   WiFiState,
   GPXTrack,
@@ -106,6 +107,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly textRendererService?: ITextRendererService,
     private readonly simulationService?: ITrackSimulationService,
     private readonly driveNavigationService?: IDriveNavigationService,
+    private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
     this.onboardingCoordinator = new OnboardingCoordinator(
@@ -127,6 +129,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       simulationService ?? null,
       driveNavigationService ?? null,
       this.onboardingCoordinator,
+      gpsDebounceConfig,
     );
     // Wire up error callback
     this.gpsCoordinator.setErrorCallback((error) => {

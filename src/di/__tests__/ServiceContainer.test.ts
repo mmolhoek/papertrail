@@ -1,4 +1,16 @@
 import { ServiceContainer } from "@di/ServiceContainer";
+import {
+  IGPSService,
+  IMapService,
+  ISVGService,
+  IEpaperService,
+  IConfigService,
+  IRenderingOrchestrator,
+  IWiFiService,
+  ITextRendererService,
+  ITrackSimulationService,
+  IDriveNavigationService,
+} from "@core/interfaces";
 
 describe("ServiceContainer", () => {
   beforeEach(() => {
@@ -244,70 +256,78 @@ describe("ServiceContainer", () => {
         onStatusChange: jest.fn(),
         dispose: jest.fn(),
       };
-      container.setGPSService(mockGPS as any);
+      container.setGPSService(mockGPS as unknown as IGPSService);
       expect(container.getGPSService()).toBe(mockGPS);
     });
 
     it("should allow setting Map service", () => {
       const container = ServiceContainer.getInstance();
       const mockMap = { loadGPXFile: jest.fn() };
-      container.setMapService(mockMap as any);
+      container.setMapService(mockMap as unknown as IMapService);
       expect(container.getMapService()).toBe(mockMap);
     });
 
     it("should allow setting SVG service", () => {
       const container = ServiceContainer.getInstance();
       const mockSVG = { renderViewport: jest.fn() };
-      container.setSVGService(mockSVG as any);
+      container.setSVGService(mockSVG as unknown as ISVGService);
       expect(container.getSVGService()).toBe(mockSVG);
     });
 
     it("should allow setting Epaper service", () => {
       const container = ServiceContainer.getInstance();
       const mockEpaper = { displayBitmap: jest.fn() };
-      container.setEpaperService(mockEpaper as any);
+      container.setEpaperService(mockEpaper as unknown as IEpaperService);
       expect(container.getEpaperService()).toBe(mockEpaper);
     });
 
     it("should allow setting Config service", () => {
       const container = ServiceContainer.getInstance();
       const mockConfig = { getZoomLevel: jest.fn() };
-      container.setConfigService(mockConfig as any);
+      container.setConfigService(mockConfig as unknown as IConfigService);
       expect(container.getConfigService()).toBe(mockConfig);
     });
 
     it("should allow setting Rendering Orchestrator", () => {
       const container = ServiceContainer.getInstance();
       const mockOrch = { updateDisplay: jest.fn() };
-      container.setRenderingOrchestrator(mockOrch as any);
+      container.setRenderingOrchestrator(
+        mockOrch as unknown as IRenderingOrchestrator,
+      );
       expect(container.getRenderingOrchestrator()).toBe(mockOrch);
     });
 
     it("should allow setting WiFi service", () => {
       const container = ServiceContainer.getInstance();
       const mockWiFi = { scanNetworks: jest.fn() };
-      container.setWiFiService(mockWiFi as any);
+      container.setWiFiService(mockWiFi as unknown as IWiFiService);
       expect(container.getWiFiService()).toBe(mockWiFi);
     });
 
     it("should allow setting Text Renderer service", () => {
       const container = ServiceContainer.getInstance();
       const mockTextRenderer = { initialize: jest.fn() };
-      container.setTextRendererService(mockTextRenderer as any);
+      container.setTextRendererService(
+        mockTextRenderer as unknown as ITextRendererService,
+      );
       expect(container.getTextRendererService()).toBe(mockTextRenderer);
     });
 
     it("should allow setting Track Simulation service", () => {
       const container = ServiceContainer.getInstance();
       const mockSim = { startSimulation: jest.fn() };
-      container.setTrackSimulationService(mockSim as any);
+      container.setTrackSimulationService(
+        mockSim as unknown as ITrackSimulationService,
+      );
       expect(container.getTrackSimulationService()).toBe(mockSim);
     });
 
     it("should allow setting Drive Navigation service", () => {
       const container = ServiceContainer.getInstance();
       const mockDrive = { initialize: jest.fn() };
-      container.setDriveNavigationService(mockDrive as any);
+      container.setDriveNavigationService(
+        mockDrive as unknown as IDriveNavigationService,
+      );
       expect(container.getDriveNavigationService()).toBe(mockDrive);
     });
   });
@@ -535,6 +555,34 @@ describe("ServiceContainer", () => {
         const config1 = container.getWiFiConfig();
         const config2 = container.getWiFiConfig();
         expect(config1.primaryPassword).toBe(config2.primaryPassword);
+      });
+    });
+
+    describe("getGPSDebounceConfig", () => {
+      it("should return default GPS debounce configuration", () => {
+        const container = ServiceContainer.getInstance();
+        const config = container.getGPSDebounceConfig();
+        expect(config.enabled).toBe(true);
+        expect(config.debounceMs).toBe(500);
+        expect(config.distanceThresholdMeters).toBe(2);
+      });
+
+      it("should use environment variables when set", () => {
+        process.env.GPS_DEBOUNCE_ENABLED = "false";
+        process.env.GPS_DEBOUNCE_MS = "1000";
+        process.env.GPS_DISTANCE_THRESHOLD_METERS = "5";
+        const container = ServiceContainer.getInstance();
+        const config = container.getGPSDebounceConfig();
+        expect(config.enabled).toBe(false);
+        expect(config.debounceMs).toBe(1000);
+        expect(config.distanceThresholdMeters).toBe(5);
+      });
+
+      it("should allow disabling debouncing via environment variable", () => {
+        process.env.GPS_DEBOUNCE_ENABLED = "false";
+        const container = ServiceContainer.getInstance();
+        const config = container.getGPSDebounceConfig();
+        expect(config.enabled).toBe(false);
       });
     });
   });
