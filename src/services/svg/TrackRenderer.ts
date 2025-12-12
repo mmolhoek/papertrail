@@ -8,6 +8,7 @@ import {
 import { getLogger } from "@utils/logger";
 import { BitmapUtils } from "./BitmapUtils";
 import { ProjectionService } from "./ProjectionService";
+import { getCoordinatePool } from "./CoordinatePool";
 
 const logger = getLogger("TrackRenderer");
 
@@ -42,14 +43,21 @@ export class TrackRenderer {
     const totalPoints = track.segments[0].points.length;
     logger.debug(`Rendering track with ${totalPoints} points`);
 
-    // Project all track points to pixel coordinates
-    let projectedPoints = track.segments[0].points.map((point) =>
-      ProjectionService.projectToPixels(
-        point.latitude,
-        point.longitude,
+    // Get coordinate pool for reusable arrays
+    const pool = getCoordinatePool();
+    const projectedPoints = pool.acquire(totalPoints);
+
+    // Project all track points to pixel coordinates using pooled array
+    const trackPoints = track.segments[0].points;
+    for (let i = 0; i < totalPoints; i++) {
+      const projected = ProjectionService.projectToPixels(
+        trackPoints[i].latitude,
+        trackPoints[i].longitude,
         viewport,
-      ),
-    );
+      );
+      projectedPoints[i].x = projected.x;
+      projectedPoints[i].y = projected.y;
+    }
 
     // Apply rotation if rotateWithBearing is enabled and bearing is available
     const bearing = viewport.centerPoint.bearing;
@@ -59,19 +67,24 @@ export class TrackRenderer {
       );
       const centerX = viewport.width / 2;
       const centerY = viewport.height / 2;
-      projectedPoints = projectedPoints.map((p) =>
+      // Transform in place to avoid additional allocation
+      pool.transformInPlace(projectedPoints, totalPoints, (p) =>
         ProjectionService.rotatePoint(p, centerX, centerY, -bearing),
       );
     }
 
-    // Draw the track
-    TrackRenderer.renderProjectedPoints(
+    // Draw the track (only use totalPoints elements, not full array capacity)
+    TrackRenderer.renderProjectedPointsWithCount(
       bitmap,
       projectedPoints,
+      totalPoints,
       options,
       viewport.width,
       viewport.height,
     );
+
+    // Release array back to pool
+    pool.release(projectedPoints);
 
     return totalPoints;
   }
@@ -101,32 +114,44 @@ export class TrackRenderer {
 
     const totalPoints = track.segments[0].points.length;
 
-    // Project all track points to pixel coordinates
-    let projectedPoints = track.segments[0].points.map((point) =>
-      ProjectionService.projectToPixels(
-        point.latitude,
-        point.longitude,
+    // Get coordinate pool for reusable arrays
+    const pool = getCoordinatePool();
+    const projectedPoints = pool.acquire(totalPoints);
+
+    // Project all track points to pixel coordinates using pooled array
+    const trackPoints = track.segments[0].points;
+    for (let i = 0; i < totalPoints; i++) {
+      const projected = ProjectionService.projectToPixels(
+        trackPoints[i].latitude,
+        trackPoints[i].longitude,
         viewport,
-      ),
-    );
+      );
+      projectedPoints[i].x = projected.x;
+      projectedPoints[i].y = projected.y;
+    }
 
     // Apply rotation if needed
     const bearing = viewport.centerPoint.bearing;
     if (options.rotateWithBearing && bearing !== undefined) {
       const centerX = viewport.width / 2;
       const centerY = viewport.height / 2;
-      projectedPoints = projectedPoints.map((p) =>
+      // Transform in place to avoid additional allocation
+      pool.transformInPlace(projectedPoints, totalPoints, (p) =>
         ProjectionService.rotatePoint(p, centerX, centerY, -bearing),
       );
     }
 
     // Render with area constraint
-    TrackRenderer.renderProjectedPointsInArea(
+    TrackRenderer.renderProjectedPointsInAreaWithCount(
       bitmap,
       projectedPoints,
+      totalPoints,
       options,
       maxX,
     );
+
+    // Release array back to pool
+    pool.release(projectedPoints);
 
     return totalPoints;
   }
@@ -144,8 +169,8 @@ export class TrackRenderer {
     bitmap: Bitmap1Bit,
     projectedPoints: Point2D[],
     options: RenderOptions,
-    viewportWidth?: number,
-    viewportHeight?: number,
+    _viewportWidth?: number,
+    _viewportHeight?: number,
   ): void {
     // Draw connecting lines if enabled
     if (options.showLine && projectedPoints.length > 1) {
@@ -268,36 +293,140 @@ export class TrackRenderer {
       return 0;
     }
 
-    // Project route points
-    let projectedRoute = geometry.map(([lat, lon]) =>
-      ProjectionService.projectToPixels(lat, lon, viewport),
-    );
+    const pointCount = geometry.length;
+
+    // Get coordinate pool for reusable arrays
+    const pool = getCoordinatePool();
+    const projectedRoute = pool.acquire(pointCount);
+
+    // Project route points using pooled array
+    for (let i = 0; i < pointCount; i++) {
+      const [lat, lon] = geometry[i];
+      const projected = ProjectionService.projectToPixels(lat, lon, viewport);
+      projectedRoute[i].x = projected.x;
+      projectedRoute[i].y = projected.y;
+    }
 
     // Apply rotation if needed
     const bearing = viewport.centerPoint.bearing;
     if (options.rotateWithBearing && bearing !== undefined) {
       const centerX = viewport.width / 2;
       const centerY = viewport.height / 2;
-      projectedRoute = projectedRoute.map((p) =>
+      // Transform in place to avoid additional allocation
+      pool.transformInPlace(projectedRoute, pointCount, (p) =>
         ProjectionService.rotatePoint(p, centerX, centerY, -bearing),
       );
     }
 
+    // Create render options without showPoints
+    const lineOnlyOptions: RenderOptions = {
+      ...options,
+      showPoints: false,
+    };
+
     // Draw the route
     if (maxX !== undefined) {
-      TrackRenderer.renderProjectedPointsInArea(
+      TrackRenderer.renderProjectedPointsInAreaWithCount(
         bitmap,
         projectedRoute,
-        { ...options, showPoints: false },
+        pointCount,
+        lineOnlyOptions,
         maxX,
       );
     } else {
-      TrackRenderer.renderProjectedPoints(bitmap, projectedRoute, {
-        ...options,
-        showPoints: false,
-      });
+      TrackRenderer.renderProjectedPointsWithCount(
+        bitmap,
+        projectedRoute,
+        pointCount,
+        lineOnlyOptions,
+      );
     }
 
-    return geometry.length;
+    // Release array back to pool
+    pool.release(projectedRoute);
+
+    return pointCount;
+  }
+
+  /**
+   * Render projected points with explicit count (for pooled arrays).
+   *
+   * @param bitmap - Target bitmap
+   * @param projectedPoints - Array of projected pixel coordinates
+   * @param count - Number of points to render (may be less than array length)
+   * @param options - Render options
+   * @param viewportWidth - Viewport width for bounds checking
+   * @param viewportHeight - Viewport height for bounds checking
+   */
+  static renderProjectedPointsWithCount(
+    bitmap: Bitmap1Bit,
+    projectedPoints: Point2D[],
+    count: number,
+    options: RenderOptions,
+    _viewportWidth?: number,
+    _viewportHeight?: number,
+  ): void {
+    // Draw connecting lines if enabled
+    if (options.showLine && count > 1) {
+      for (let i = 0; i < count - 1; i++) {
+        BitmapUtils.drawLine(
+          bitmap,
+          projectedPoints[i],
+          projectedPoints[i + 1],
+          options.lineWidth,
+        );
+      }
+    }
+
+    // Draw points if enabled
+    if (options.showPoints) {
+      for (let i = 0; i < count; i++) {
+        BitmapUtils.drawCircle(bitmap, projectedPoints[i], options.pointRadius);
+      }
+    }
+  }
+
+  /**
+   * Render projected points within a constrained area with explicit count.
+   *
+   * @param bitmap - Target bitmap
+   * @param projectedPoints - Array of projected pixel coordinates
+   * @param count - Number of points to render
+   * @param options - Render options
+   * @param maxX - Maximum X coordinate for rendering
+   */
+  static renderProjectedPointsInAreaWithCount(
+    bitmap: Bitmap1Bit,
+    projectedPoints: Point2D[],
+    count: number,
+    options: RenderOptions,
+    maxX: number,
+  ): void {
+    // Draw connecting lines if enabled, only if at least one point is in area
+    if (options.showLine && count > 1) {
+      for (let i = 0; i < count - 1; i++) {
+        if (projectedPoints[i].x < maxX || projectedPoints[i + 1].x < maxX) {
+          BitmapUtils.drawLine(
+            bitmap,
+            projectedPoints[i],
+            projectedPoints[i + 1],
+            options.lineWidth,
+          );
+        }
+      }
+    }
+
+    // Draw points if enabled, only if within area
+    if (options.showPoints) {
+      for (let i = 0; i < count; i++) {
+        if (projectedPoints[i].x < maxX) {
+          BitmapUtils.drawCircle(
+            bitmap,
+            projectedPoints[i],
+            options.pointRadius,
+          );
+        }
+      }
+    }
   }
 }

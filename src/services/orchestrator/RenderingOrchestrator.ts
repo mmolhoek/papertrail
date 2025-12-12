@@ -1298,29 +1298,33 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
   /**
    * Notify all display update callbacks
+   * Uses for loop instead of forEach to avoid closure allocation
    */
   private notifyDisplayUpdate(success: boolean): void {
-    this.displayUpdateCallbacks.forEach((callback) => {
+    const callbacks = this.displayUpdateCallbacks;
+    for (let i = 0; i < callbacks.length; i++) {
       try {
-        callback(success);
+        callbacks[i](success);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.error(`Error in display update callback: ${errorMsg}`);
       }
-    });
+    }
   }
 
   /**
    * Notify all error callbacks
+   * Uses for loop instead of forEach to avoid closure allocation
    */
   private notifyError(error: Error): void {
-    this.errorCallbacks.forEach((callback) => {
+    const callbacks = this.errorCallbacks;
+    for (let i = 0; i < callbacks.length; i++) {
       try {
-        callback(error);
+        callbacks[i](error);
       } catch (err) {
         logger.error("Error in error callback:", err);
       }
-    });
+    }
   }
 
   /**

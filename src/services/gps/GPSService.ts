@@ -456,20 +456,15 @@ export class GPSService implements IGPSService {
     //   `Position updated: ${position.latitude.toFixed(6)}, ${position.longitude.toFixed(6)}`,
     // );
 
-    // Notify all position callbacks
-    if (this.positionCallbacks.length > 0) {
-      // logger.info(
-      //   `Broadcasting position update to ${this.positionCallbacks.length} callback(s)`,
-      // );
-      this.positionCallbacks.forEach((callback) => {
-        try {
-          callback(position);
-        } catch (error) {
-          const errorMsg =
-            error instanceof Error ? error.message : String(error);
-          logger.error(`Error in position callback: ${errorMsg}`);
-        }
-      });
+    // Notify all position callbacks using for loop to avoid closure allocation
+    const posCallbacks = this.positionCallbacks;
+    for (let i = 0; i < posCallbacks.length; i++) {
+      try {
+        posCallbacks[i](position);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        logger.error(`Error in position callback: ${errorMsg}`);
+      }
     }
   }
 
@@ -482,20 +477,21 @@ export class GPSService implements IGPSService {
       `Status updated: fix=${status.fixQuality}, satellites=${status.satellitesInUse}, HDOP=${status.hdop.toFixed(1)}, tracking=${status.isTracking}`,
     );
 
-    // Notify all status callbacks
-    if (this.statusCallbacks.length > 0) {
+    // Notify all status callbacks using for loop to avoid closure allocation
+    const statCallbacks = this.statusCallbacks;
+    if (statCallbacks.length > 0) {
       logger.info(
-        `Broadcasting status update to ${this.statusCallbacks.length} callback(s)`,
+        `Broadcasting status update to ${statCallbacks.length} callback(s)`,
       );
-      this.statusCallbacks.forEach((callback) => {
+      for (let i = 0; i < statCallbacks.length; i++) {
         try {
-          callback(status);
+          statCallbacks[i](status);
         } catch (error) {
           const errorMsg =
             error instanceof Error ? error.message : String(error);
           logger.error(`Error in status callback: ${errorMsg}`);
         }
-      });
+      }
     }
   }
 }
