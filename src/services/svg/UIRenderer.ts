@@ -1,5 +1,5 @@
 import { Bitmap1Bit, Result, success } from "@core/types";
-import { FollowTrackInfo, DriveNavigationInfo } from "@core/interfaces";
+import { FollowTrackInfo } from "@core/interfaces";
 import { getLogger } from "@utils/logger";
 import {
   renderBitmapText,

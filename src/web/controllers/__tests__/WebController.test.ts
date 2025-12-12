@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from "express";
 import { WebController } from "../WebController";
 import { success, failure } from "@core/types";

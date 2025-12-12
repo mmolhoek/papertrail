@@ -1,4 +1,4 @@
-import { IWiFiService, WiFiMode, IConfigService } from "../../core/interfaces";
+import { IWiFiService, WiFiMode, IConfigService } from "@core/interfaces";
 import {
   Result,
   WiFiNetwork,
@@ -7,10 +7,11 @@ import {
   WiFiConfig,
   WiFiState,
   HotspotConfig,
-} from "../../core/types";
-import { success, failure } from "../../core/types";
-import { WiFiError } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+  success,
+  failure,
+} from "@core/types";
+import { WiFiError } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("MockWiFiService");
 

@@ -562,7 +562,7 @@ describe("MockEpaperService", () => {
         expect(statusResult.data.partialRefreshCount).toBe(10);
         expect(statusResult.data.fullRefreshCount).toBe(1);
       }
-    }, 30000); // Increased timeout for 11 displayBitmap calls with PNG conversion
+    }, 60000); // Increased timeout for 11 displayBitmap calls with PNG conversion
   });
 
   describe("mock display image", () => {

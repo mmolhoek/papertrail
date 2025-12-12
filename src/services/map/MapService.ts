@@ -12,9 +12,9 @@ import {
   success,
   failure,
   MapConfig,
-} from "../../core/types";
-import { MapError, MapErrorCode } from "../../core/errors";
-import { getLogger } from "../../utils/logger";
+} from "@core/types";
+import { MapError, MapErrorCode } from "@core/errors";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("MapService");
 

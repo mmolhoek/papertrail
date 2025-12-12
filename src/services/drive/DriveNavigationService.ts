@@ -3,7 +3,6 @@ import {
   Result,
   GPSCoordinate,
   DriveRoute,
-  DriveWaypoint,
   DriveNavigationStatus,
   DriveNavigationUpdate,
   NavigationState,

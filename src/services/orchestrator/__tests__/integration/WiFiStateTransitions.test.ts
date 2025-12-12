@@ -2,7 +2,6 @@
 import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestrator";
 import {
   success,
-  failure,
   GPSCoordinate,
   GPSStatus,
   GPXTrack,

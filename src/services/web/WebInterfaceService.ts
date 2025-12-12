@@ -4,8 +4,8 @@ import path from "path";
 import { Server as SocketIOServer } from "socket.io";
 import { Result, success, failure, WebConfig } from "@core/types";
 import { WebError, WebErrorCode } from "@core/errors";
-import { IWebInterfaceService } from "core/interfaces";
-import { getLogger } from "../../utils/logger";
+import { IWebInterfaceService } from "@core/interfaces";
+import { getLogger } from "@utils/logger";
 
 const logger = getLogger("WebInterfaceService");
 

@@ -1,8 +1,5 @@
 import { Bitmap1Bit, ManeuverType } from "@core/types";
-import { getLogger } from "@utils/logger";
 import { BitmapUtils } from "./BitmapUtils";
-
-const logger = getLogger("ManeuverRenderer");
 
 /**
  * Renderer for navigation maneuver icons.

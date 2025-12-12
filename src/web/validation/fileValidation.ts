@@ -225,6 +225,7 @@ function detectFileType(bytes: Buffer): string {
 
   // Check if it looks like text/XML
   const textContent = bytes.toString("utf-8", 0, Math.min(100, bytes.length));
+  // eslint-disable-next-line no-control-regex -- Intentionally checking for ASCII/extended ASCII byte range
   if (/^[\x00-\x7F\xC0-\xFF]*$/.test(textContent.substring(0, 50))) {
     if (textContent.includes("<?xml") || textContent.includes("<?XML")) {
       return "xml";

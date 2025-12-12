@@ -25,9 +25,6 @@ export const collectCoverageFrom = [
   "!src/**/__tests__/**",
   // Entry point - not unit tested
   "!src/index.ts",
-  // Unused scaffold code
-  "!src/utils/textRenderer.ts",
-  "!src/core/interfaces/IProjectionInterface.ts",
   // Hardware services requiring nmcli on Linux - tested via MockWiFiService
   "!src/services/wifi/WiFiService.ts",
   "!src/services/wifi/ConnectionManager.ts",

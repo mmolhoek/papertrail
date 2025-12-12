@@ -1,12 +1,4 @@
 import { Point2D, ViewportConfig } from "@core/types";
-import { getLogger } from "@utils/logger";
-
-const logger = getLogger("ProjectionService");
-
-/**
- * Earth's circumference at equator in meters (used for projection calculations)
- */
-const EARTH_CIRCUMFERENCE_METERS = 40075016.686;
 
 /**
  * Meters per degree of latitude (approximately constant)
@@ -42,9 +34,6 @@ export class ProjectionService {
     viewport: ViewportConfig,
   ): Point2D {
     const { centerPoint, zoomLevel, width, height } = viewport;
-
-    // Zoom factor (exponential scale)
-    const scale = Math.pow(2, zoomLevel);
 
     // Meters per pixel at this zoom level (approximate)
     const metersPerPixel = ProjectionService.calculateMetersPerPixel(

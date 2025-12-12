@@ -1,5 +1,5 @@
 import { ITrackSimulationService } from "@core/interfaces";
-import { GPSCoordinate, Result, success } from "@core/types";
+import { Result } from "@core/types";
 import { getLogger } from "@utils/logger";
 import { GPSCoordinator } from "./GPSCoordinator";
 import { DriveCoordinator } from "./DriveCoordinator";

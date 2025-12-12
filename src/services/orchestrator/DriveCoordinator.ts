@@ -8,7 +8,6 @@ import {
 } from "@core/interfaces";
 import {
   GPSCoordinate,
-  GPSStatus,
   Result,
   success,
   failure,
@@ -317,7 +316,7 @@ export class DriveCoordinator {
           }
           break;
 
-        case DriveDisplayMode.MAP_WITH_OVERLAY:
+        case DriveDisplayMode.MAP_WITH_OVERLAY: {
           const lastPosition = this.gpsCoordinator?.getLastPosition();
           const lastStatus = this.gpsCoordinator?.getLastStatus();
           if (status.route && status.nextTurn && lastPosition) {
@@ -354,6 +353,7 @@ export class DriveCoordinator {
             );
           }
           break;
+        }
 
         case DriveDisplayMode.OFF_ROAD_ARROW:
           if (
