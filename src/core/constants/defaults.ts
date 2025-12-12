@@ -34,6 +34,22 @@ export const GPS_DEFAULT_UPDATE_INTERVAL_MS = 1000;
  */
 export const GPS_DEFAULT_MIN_ACCURACY_METERS = 10;
 
+/**
+ * Default debounce time for GPS callback notifications in milliseconds
+ * Prevents rapid-fire display updates from high-frequency GPS data.
+ * 500ms provides responsive updates while avoiding unnecessary rendering.
+ * Set to 0 to disable time-based debouncing.
+ */
+export const GPS_DEFAULT_DEBOUNCE_MS = 500;
+
+/**
+ * Default minimum distance threshold for GPS callback notifications in meters
+ * Skip updates if the position has moved less than this distance.
+ * 2 meters provides meaningful position changes while filtering GPS noise.
+ * Set to 0 to disable distance-based throttling.
+ */
+export const GPS_DEFAULT_DISTANCE_THRESHOLD_METERS = 2;
+
 // =============================================================================
 // Map Configuration Defaults
 // =============================================================================

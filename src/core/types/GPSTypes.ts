@@ -98,3 +98,39 @@ export type GPSConfig = {
   /** Minimum accuracy required in meters */
   minAccuracy?: number;
 };
+
+/**
+ * Configuration options for GPS update debouncing.
+ *
+ * Debouncing prevents excessive callback notifications when GPS updates
+ * arrive rapidly (e.g., 1Hz GPS). Updates are suppressed unless:
+ * - Time since last notification exceeds `debounceMs`, OR
+ * - Distance moved since last notification exceeds `distanceThresholdMeters`
+ *
+ * This is particularly useful for display updates where rendering is expensive.
+ */
+export type GPSDebounceConfig = {
+  /**
+   * Minimum time between GPS callback notifications in milliseconds.
+   * Updates within this window are suppressed unless distance threshold is exceeded.
+   * Set to 0 to disable time-based debouncing.
+   * @default 500
+   */
+  debounceMs: number;
+
+  /**
+   * Minimum distance moved (in meters) to trigger a callback notification.
+   * Even if debounce time hasn't elapsed, an update will be sent if the
+   * position has moved more than this distance.
+   * Set to 0 to disable distance-based throttling.
+   * @default 2
+   */
+  distanceThresholdMeters: number;
+
+  /**
+   * Whether debouncing is enabled.
+   * When false, all GPS updates are passed through immediately.
+   * @default true
+   */
+  enabled: boolean;
+};

@@ -6,15 +6,43 @@ import {
 import {
   GPSCoordinate,
   GPSStatus,
+  GPSDebounceConfig,
   Result,
-  success,
-  failure,
 } from "@core/types";
-import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
+import {
+  GPS_DEFAULT_DEBOUNCE_MS,
+  GPS_DEFAULT_DISTANCE_THRESHOLD_METERS,
+} from "@core/constants";
 import { getLogger } from "@utils/logger";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 
 const logger = getLogger("GPSCoordinator");
+
+/** Earth radius in meters for Haversine calculation */
+const EARTH_RADIUS_METERS = 6371000;
+
+/**
+ * Calculate the distance between two GPS coordinates using Haversine formula.
+ * @param pos1 - First GPS coordinate
+ * @param pos2 - Second GPS coordinate
+ * @returns Distance in meters
+ */
+function calculateDistance(pos1: GPSCoordinate, pos2: GPSCoordinate): number {
+  const lat1 = (pos1.latitude * Math.PI) / 180;
+  const lat2 = (pos2.latitude * Math.PI) / 180;
+  const deltaLat = ((pos2.latitude - pos1.latitude) * Math.PI) / 180;
+  const deltaLon = ((pos2.longitude - pos1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(lat1) *
+      Math.cos(lat2) *
+      Math.sin(deltaLon / 2) *
+      Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return EARTH_RADIUS_METERS * c;
+}
 
 /**
  * Coordinates GPS position and status updates.
@@ -22,6 +50,7 @@ const logger = getLogger("GPSCoordinator");
  * Responsibilities:
  * - Subscribes to GPS service position and status updates
  * - Filters updates (skip during simulation, skip invalid positions)
+ * - Debounces callback notifications (time-based and distance-based)
  * - Forwards updates to onboarding coordinator, drive navigation
  * - Manages callback registration for GPS updates and status changes
  * - Stores latest GPS position and status
@@ -39,6 +68,20 @@ export class GPSCoordinator {
   private lastGPSPosition: GPSCoordinate | null = null;
   private lastGPSStatus: GPSStatus | null = null;
 
+  // Debouncing state
+  private debounceConfig: GPSDebounceConfig;
+  private lastNotificationTime: number = 0;
+  private lastNotifiedPosition: GPSCoordinate | null = null;
+
+  // Debounce statistics (for debugging/monitoring)
+  private debounceStats = {
+    totalUpdates: 0,
+    notifiedUpdates: 0,
+    skippedByTime: 0,
+    skippedByDistance: 0,
+    triggeredByDistance: 0,
+  };
+
   // Error callback
   private errorCallback: ((error: Error) => void) | null = null;
 
@@ -47,7 +90,20 @@ export class GPSCoordinator {
     private readonly simulationService: ITrackSimulationService | null,
     private readonly driveNavigationService: IDriveNavigationService | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
-  ) {}
+    debounceConfig?: Partial<GPSDebounceConfig>,
+  ) {
+    // Initialize debounce configuration with defaults
+    this.debounceConfig = {
+      enabled: debounceConfig?.enabled ?? true,
+      debounceMs: debounceConfig?.debounceMs ?? GPS_DEFAULT_DEBOUNCE_MS,
+      distanceThresholdMeters:
+        debounceConfig?.distanceThresholdMeters ??
+        GPS_DEFAULT_DISTANCE_THRESHOLD_METERS,
+    };
+    logger.info(
+      `GPSCoordinator initialized with debounce config: ${JSON.stringify(this.debounceConfig)}`,
+    );
+  }
 
   /**
    * Set the error callback for reporting errors to the orchestrator
@@ -249,6 +305,83 @@ export class GPSCoordinator {
   }
 
   /**
+   * Get the current debounce configuration.
+   */
+  getDebounceConfig(): Readonly<GPSDebounceConfig> {
+    return { ...this.debounceConfig };
+  }
+
+  /**
+   * Update the debounce configuration.
+   * Only updates specified fields; others retain their current values.
+   * @param config - Partial configuration to update
+   */
+  setDebounceConfig(config: Partial<GPSDebounceConfig>): void {
+    const oldConfig = { ...this.debounceConfig };
+    if (config.enabled !== undefined) {
+      this.debounceConfig.enabled = config.enabled;
+    }
+    if (config.debounceMs !== undefined) {
+      this.debounceConfig.debounceMs = config.debounceMs;
+    }
+    if (config.distanceThresholdMeters !== undefined) {
+      this.debounceConfig.distanceThresholdMeters =
+        config.distanceThresholdMeters;
+    }
+    logger.info(
+      `Debounce config updated: ${JSON.stringify(oldConfig)} -> ${JSON.stringify(this.debounceConfig)}`,
+    );
+  }
+
+  /**
+   * Get debounce statistics for monitoring.
+   * Useful for debugging and performance tuning.
+   */
+  getDebounceStats(): Readonly<{
+    totalUpdates: number;
+    notifiedUpdates: number;
+    skippedByTime: number;
+    skippedByDistance: number;
+    triggeredByDistance: number;
+    hitRate: number;
+  }> {
+    const hitRate =
+      this.debounceStats.totalUpdates > 0
+        ? this.debounceStats.notifiedUpdates / this.debounceStats.totalUpdates
+        : 1;
+    return {
+      ...this.debounceStats,
+      hitRate: Math.round(hitRate * 100) / 100,
+    };
+  }
+
+  /**
+   * Reset debounce statistics counters.
+   * Useful for monitoring debounce effectiveness over specific periods.
+   */
+  resetDebounceStats(): void {
+    this.debounceStats = {
+      totalUpdates: 0,
+      notifiedUpdates: 0,
+      skippedByTime: 0,
+      skippedByDistance: 0,
+      triggeredByDistance: 0,
+    };
+    logger.info("Debounce statistics reset");
+  }
+
+  /**
+   * Reset debounce state (position and timing).
+   * Forces the next update to be notified regardless of debounce settings.
+   * Useful when switching tracks or modes.
+   */
+  resetDebounceState(): void {
+    this.lastNotificationTime = 0;
+    this.lastNotifiedPosition = null;
+    logger.info("Debounce state reset");
+  }
+
+  /**
    * Dispose of resources and unsubscribe from GPS service
    */
   dispose(): void {
@@ -279,16 +412,96 @@ export class GPSCoordinator {
     this.lastGPSPosition = null;
     this.lastGPSStatus = null;
 
+    // Reset debounce state
+    this.lastNotificationTime = 0;
+    this.lastNotifiedPosition = null;
+
     logger.info("✓ GPSCoordinator disposed");
   }
 
   /**
-   * Notify all GPS update callbacks
+   * Check if an update should be notified based on debounce configuration.
+   * @param position - The new GPS position
+   * @returns true if the update should be notified, false to skip
+   */
+  private shouldNotifyUpdate(position: GPSCoordinate): boolean {
+    // If debouncing is disabled, always notify
+    if (!this.debounceConfig.enabled) {
+      return true;
+    }
+
+    // First update always notifies (no previous position to compare)
+    if (!this.lastNotifiedPosition) {
+      return true;
+    }
+
+    const now = Date.now();
+    const timeSinceLastNotification = now - this.lastNotificationTime;
+
+    // Check time-based debounce
+    // If debounceMs is 0, time debouncing is disabled (always passes)
+    const timeThresholdExceeded =
+      this.debounceConfig.debounceMs === 0 ||
+      timeSinceLastNotification >= this.debounceConfig.debounceMs;
+
+    // Check distance-based threshold
+    // If distanceThresholdMeters is 0, distance throttling is disabled (never triggers early)
+    let distanceThresholdExceeded = false;
+    if (this.debounceConfig.distanceThresholdMeters > 0) {
+      const distance = calculateDistance(this.lastNotifiedPosition, position);
+      distanceThresholdExceeded =
+        distance >= this.debounceConfig.distanceThresholdMeters;
+
+      if (distanceThresholdExceeded && !timeThresholdExceeded) {
+        // Update triggered by significant movement before time threshold
+        this.debounceStats.triggeredByDistance++;
+        logger.debug(
+          `GPS update triggered by distance (${distance.toFixed(1)}m >= ${this.debounceConfig.distanceThresholdMeters}m)`,
+        );
+      }
+    }
+
+    // Notify if time threshold exceeded OR distance threshold exceeded
+    return timeThresholdExceeded || distanceThresholdExceeded;
+  }
+
+  /**
+   * Notify all GPS update callbacks with debouncing.
+   * Updates are suppressed unless:
+   * - Debounce time has elapsed since last notification, OR
+   * - Position has moved more than the distance threshold
    */
   private notifyGPSUpdateCallbacks(position: GPSCoordinate): void {
-    this.gpsUpdateCallbacks.forEach((callback) => {
+    this.debounceStats.totalUpdates++;
+
+    // Check if we should notify based on debounce configuration
+    if (!this.shouldNotifyUpdate(position)) {
+      // Track why we skipped
+      const now = Date.now();
+      if (
+        now - this.lastNotificationTime < this.debounceConfig.debounceMs &&
+        this.lastNotifiedPosition
+      ) {
+        const distance = calculateDistance(this.lastNotifiedPosition, position);
+        if (distance < this.debounceConfig.distanceThresholdMeters) {
+          this.debounceStats.skippedByDistance++;
+        } else {
+          this.debounceStats.skippedByTime++;
+        }
+      }
+      return;
+    }
+
+    // Update debounce tracking state
+    this.lastNotificationTime = Date.now();
+    this.lastNotifiedPosition = position;
+    this.debounceStats.notifiedUpdates++;
+
+    // Notify all callbacks using optimized for loop (avoids closure allocation)
+    const callbacks = this.gpsUpdateCallbacks;
+    for (let i = 0; i < callbacks.length; i++) {
       try {
-        callback(position);
+        callbacks[i](position);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         logger.error(`Error in GPS update callback: ${errorMsg}`);
@@ -300,7 +513,7 @@ export class GPSCoordinator {
           );
         }
       }
-    });
+    }
   }
 
   /**
