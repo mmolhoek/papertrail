@@ -731,9 +731,8 @@ export class DriveNavigationService implements IDriveNavigationService {
    * Generate basic waypoints from geometry when OSRM doesn't provide turn-by-turn data
    * Creates depart/arrive waypoints plus intermediate waypoints for significant turns
    *
-   * Uses cumulative bearing change detection: tracks bearing from last waypoint
-   * and triggers a new waypoint when cumulative change exceeds threshold.
-   * This handles smooth OSRM polylines where turns are spread across many segments.
+   * Uses segment-based bearing comparison: compares bearing of current segment
+   * against a reference segment from further back to detect direction changes.
    */
   private generateWaypointsFromGeometry(
     geometry: [number, number][],
@@ -756,101 +755,97 @@ export class DriveNavigationService implements IDriveNavigationService {
     });
 
     // Turn detection parameters
-    const TURN_THRESHOLD = 20; // degrees - cumulative bearing change to trigger waypoint
-    const MIN_DISTANCE_BETWEEN_WAYPOINTS = 30; // meters - minimum distance between waypoints
-    const LOOKBACK_DISTANCE = 20; // meters - how far back to look for entry bearing
+    const TURN_THRESHOLD = 25; // degrees - bearing change to trigger waypoint
+    const MIN_DISTANCE_BETWEEN_WAYPOINTS = 50; // meters
+    const SEGMENT_DISTANCE = 30; // meters - distance for bearing calculation segments
 
-    let lastWaypointGeometryIndex = 0;
-    let accumulatedDistance = 0;
-
-    // Track entry bearing (bearing when leaving last waypoint area)
-    let entryBearing: number | null = null;
-    let entryBearingIndex = 0;
-
-    for (let i = 1; i < geometry.length - 1; i++) {
-      const prev = geometry[i - 1];
-      const curr = geometry[i];
-
-      // Calculate segment distance
-      const segmentDist = this.calculateDistance(
-        prev[0],
-        prev[1],
-        curr[0],
-        curr[1],
+    // Build distance array for quick lookups
+    const distances: number[] = [0];
+    for (let i = 1; i < geometry.length; i++) {
+      const d = this.calculateDistance(
+        geometry[i - 1][0],
+        geometry[i - 1][1],
+        geometry[i][0],
+        geometry[i][1],
       );
-      accumulatedDistance += segmentDist;
-
-      // Set entry bearing once we're far enough from last waypoint
-      if (entryBearing === null && accumulatedDistance >= LOOKBACK_DISTANCE) {
-        entryBearing = this.calculateBearing(
-          geometry[lastWaypointGeometryIndex][0],
-          geometry[lastWaypointGeometryIndex][1],
-          curr[0],
-          curr[1],
-        );
-        entryBearingIndex = i;
-      }
-
-      // Only check for turns if we have an entry bearing and are far enough from last waypoint
-      if (
-        entryBearing !== null &&
-        accumulatedDistance >= MIN_DISTANCE_BETWEEN_WAYPOINTS
-      ) {
-        // Calculate current bearing from entry point
-        const currentBearing = this.calculateBearing(
-          geometry[entryBearingIndex][0],
-          geometry[entryBearingIndex][1],
-          curr[0],
-          curr[1],
-        );
-
-        // Calculate bearing change from entry bearing
-        let bearingChange = currentBearing - entryBearing;
-        // Normalize to -180 to 180
-        if (bearingChange > 180) bearingChange -= 360;
-        if (bearingChange < -180) bearingChange += 360;
-
-        const absBearingChange = Math.abs(bearingChange);
-
-        // Add waypoint if significant turn detected
-        if (absBearingChange >= TURN_THRESHOLD) {
-          const turnType = this.getTurnTypeFromChange(bearingChange);
-          waypoints.push({
-            latitude: curr[0],
-            longitude: curr[1],
-            instruction: this.formatTurnInstruction(turnType),
-            maneuverType: turnType,
-            distance: accumulatedDistance,
-            index: waypoints.length,
-          });
-
-          // Reset for next segment
-          lastWaypointGeometryIndex = i;
-          accumulatedDistance = 0;
-          entryBearing = null;
-        }
-      }
+      distances.push(distances[i - 1] + d);
     }
+    const totalDistance = distances[distances.length - 1];
 
-    // Add the final segment (loop doesn't process the last point)
-    const lastIdx = geometry.length - 1;
-    if (lastIdx > 0) {
-      const finalSegmentDist = this.calculateDistance(
-        geometry[lastIdx - 1][0],
-        geometry[lastIdx - 1][1],
-        geometry[lastIdx][0],
-        geometry[lastIdx][1],
+    let lastWaypointDistance = 0;
+
+    // Find index at a given distance from start
+    const findIndexAtDistance = (targetDist: number): number => {
+      for (let i = 0; i < distances.length; i++) {
+        if (distances[i] >= targetDist) return i;
+      }
+      return distances.length - 1;
+    };
+
+    // Calculate bearing between two indices
+    const getBearing = (fromIdx: number, toIdx: number): number => {
+      if (
+        fromIdx === toIdx ||
+        fromIdx >= geometry.length ||
+        toIdx >= geometry.length
+      ) {
+        return 0;
+      }
+      return this.calculateBearing(
+        geometry[fromIdx][0],
+        geometry[fromIdx][1],
+        geometry[toIdx][0],
+        geometry[toIdx][1],
       );
-      accumulatedDistance += finalSegmentDist;
+    };
+
+    // Scan through the route looking for turns
+    for (
+      let dist = SEGMENT_DISTANCE * 2;
+      dist < totalDistance - SEGMENT_DISTANCE;
+      dist += 10
+    ) {
+      const currentIdx = findIndexAtDistance(dist);
+      const behindIdx = findIndexAtDistance(dist - SEGMENT_DISTANCE);
+      const aheadIdx = findIndexAtDistance(dist + SEGMENT_DISTANCE);
+
+      // Calculate incoming and outgoing bearings
+      const incomingBearing = getBearing(behindIdx, currentIdx);
+      const outgoingBearing = getBearing(currentIdx, aheadIdx);
+
+      // Calculate turn angle
+      let turnAngle = outgoingBearing - incomingBearing;
+      if (turnAngle > 180) turnAngle -= 360;
+      if (turnAngle < -180) turnAngle += 360;
+
+      const absTurn = Math.abs(turnAngle);
+
+      // Check if this is a significant turn and far enough from last waypoint
+      if (
+        absTurn >= TURN_THRESHOLD &&
+        dist - lastWaypointDistance >= MIN_DISTANCE_BETWEEN_WAYPOINTS
+      ) {
+        const turnType = this.getTurnTypeFromChange(turnAngle);
+        waypoints.push({
+          latitude: geometry[currentIdx][0],
+          longitude: geometry[currentIdx][1],
+          instruction: this.formatTurnInstruction(turnType),
+          maneuverType: turnType,
+          distance: dist - lastWaypointDistance,
+          index: waypoints.length,
+        });
+
+        lastWaypointDistance = dist;
+      }
     }
 
     // Last point: arrive
     waypoints.push({
-      latitude: geometry[lastIdx][0],
-      longitude: geometry[lastIdx][1],
+      latitude: geometry[geometry.length - 1][0],
+      longitude: geometry[geometry.length - 1][1],
       instruction: destination ? `Arrive at ${destination}` : "Arrive",
       maneuverType: ManeuverType.ARRIVE,
-      distance: accumulatedDistance,
+      distance: totalDistance - lastWaypointDistance,
       index: waypoints.length,
     });
 
@@ -861,7 +856,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     );
     logger.info(
       `Generated ${waypoints.length} waypoints from ${geometry.length} geometry points, ` +
-        `waypoint distance sum=${Math.round(waypointDistanceSum)}m`,
+        `waypoint distance sum=${Math.round(waypointDistanceSum)}m, totalDistance=${Math.round(totalDistance)}m`,
     );
 
     return waypoints;

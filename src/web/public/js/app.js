@@ -2300,6 +2300,22 @@ class PapertrailClient {
       estimatedTime: route.duration,
     };
 
+    console.log(
+      "OSRM route processed:",
+      "legs:",
+      route.legs?.length,
+      "steps:",
+      route.legs?.[0]?.steps?.length,
+      "waypoints extracted:",
+      waypoints.length,
+      "geometry points:",
+      geometry.length,
+    );
+    if (waypoints.length > 0) {
+      console.log("First waypoint:", waypoints[0]);
+      console.log("Last waypoint:", waypoints[waypoints.length - 1]);
+    }
+
     // Update route preview
     this.showRoutePreview();
 
