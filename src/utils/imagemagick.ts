@@ -292,57 +292,6 @@ export async function packedBitmapToPng(
 }
 
 /**
- * Convert raw RGBA buffer to 1-bit packed bitmap
- *
- * @param rgba Buffer of RGBA pixels
- * @param sourceWidth Source image width
- * @param sourceHeight Source image height
- * @param targetWidth Target width
- * @param targetHeight Target height
- * @returns Buffer containing packed 1-bit bitmap (MSB first)
- */
-export async function rgbaToPackedBitmap(
-  rgba: Buffer | Uint8Array,
-  sourceWidth: number,
-  sourceHeight: number,
-  targetWidth: number,
-  targetHeight: number,
-): Promise<Buffer> {
-  const inputPath = getTempFilePath(".rgba");
-  const outputPath = getTempFilePath(".gray");
-  tempFiles.add(inputPath);
-  tempFiles.add(outputPath);
-
-  try {
-    // Write RGBA data to temp file
-    fs.writeFileSync(inputPath, Buffer.from(rgba));
-
-    await convert([
-      "-size",
-      `${sourceWidth}x${sourceHeight}`,
-      "-depth",
-      "8",
-      `RGBA:${inputPath}`,
-      "-resize",
-      `${targetWidth}x${targetHeight}`,
-      "-colorspace",
-      "Gray",
-      "-threshold",
-      "50%",
-      "-depth",
-      "8",
-      `GRAY:${outputPath}`,
-    ]);
-
-    const grayscale = fs.readFileSync(outputPath);
-    return grayscaleToPackedBitmap(grayscale, targetWidth, targetHeight);
-  } finally {
-    await cleanupTempFile(inputPath);
-    await cleanupTempFile(outputPath);
-  }
-}
-
-/**
  * Resize a PNG image using nearest-neighbor interpolation (no anti-aliasing)
  * This is essential for crisp QR codes and pixel art
  *

@@ -15,20 +15,6 @@ export async function convert(_args: string[]): Promise<void> {
 }
 
 /**
- * Mock check for ImageMagick availability - always returns true in tests
- */
-export async function isImageMagickAvailable(): Promise<boolean> {
-  return true;
-}
-
-/**
- * Mock cleanup function
- */
-export async function cleanupAllTempFiles(): Promise<void> {
-  logger.debug("Mock: cleanupAllTempFiles called");
-}
-
-/**
  * Mock image to grayscale conversion
  * Returns a buffer of all white pixels
  */
@@ -152,23 +138,6 @@ export async function packedBitmapToPng(
 ): Promise<Buffer> {
   logger.debug("Mock: packedBitmapToPng");
   return Buffer.from(MINIMAL_PNG);
-}
-
-/**
- * Mock RGBA to packed bitmap conversion
- */
-export async function rgbaToPackedBitmap(
-  _rgba: Buffer | Uint8Array,
-  _sourceWidth: number,
-  _sourceHeight: number,
-  targetWidth: number,
-  targetHeight: number,
-): Promise<Buffer> {
-  logger.debug(`Mock: rgbaToPackedBitmap -> ${targetWidth}x${targetHeight}`);
-  const bytesPerRow = Math.ceil(targetWidth / 8);
-  const buffer = Buffer.alloc(bytesPerRow * targetHeight);
-  buffer.fill(0xff); // All white (1 bits)
-  return buffer;
 }
 
 /**
