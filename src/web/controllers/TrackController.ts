@@ -5,6 +5,7 @@ import { IMapService, IConfigService } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
 import { validateUploadedFile } from "@web/validation";
+import { isNodeJSErrnoException } from "@utils/typeGuards";
 
 const logger = getLogger("TrackController");
 
@@ -396,7 +397,7 @@ export class TrackController {
         message: "File deleted successfully",
       });
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isNodeJSErrnoException(error) && error.code === "ENOENT") {
         res.status(404).json({
           success: false,
           error: {

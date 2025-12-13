@@ -8,6 +8,7 @@ export const moduleNameMapper = {
   "^@core/interfaces$": "<rootDir>/src/core/interfaces",
   "^@core/types/(.*)$": "<rootDir>/src/core/types/$1",
   "^@core/errors$": "<rootDir>/src/core/errors",
+  "^@core/errors/(.*)$": "<rootDir>/src/core/errors/$1",
   "^@core/constants$": "<rootDir>/src/core/constants",
   "^@core/constants/(.*)$": "<rootDir>/src/core/constants/$1",
   "^@errors/(.*)$": "<rootDir>/src/core/errors/$1",

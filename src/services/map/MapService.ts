@@ -16,6 +16,7 @@ import {
 import { MapError, MapErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import { haversineDistance } from "@utils/geo";
+import { toError } from "@utils/typeGuards";
 
 const logger = getLogger("MapService");
 
@@ -428,7 +429,7 @@ export class MapService implements IMapService {
 
           resolve(gpxFile);
         } catch (error) {
-          reject(MapError.parseError(filePath, error as Error));
+          reject(MapError.parseError(filePath, toError(error)));
         }
       });
     });

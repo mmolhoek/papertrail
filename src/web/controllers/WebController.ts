@@ -8,8 +8,8 @@ import {
   IDriveNavigationService,
 } from "@core/interfaces";
 import { isSuccess } from "@core/types";
-import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { extractErrorInfo } from "@utils/typeGuards";
 import { GPSController } from "./GPSController";
 import { TrackController } from "./TrackController";
 import { WiFiController } from "./WiFiController";
@@ -136,10 +136,7 @@ export class WebController {
       logger.error("Failed to get system status:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -168,10 +165,7 @@ export class WebController {
       logger.error("Failed to get active GPX:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -215,10 +209,7 @@ export class WebController {
       logger.error(`Failed to set active GPX (${path}):`, result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -246,10 +237,7 @@ export class WebController {
       logger.error("Failed to update display:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -277,10 +265,7 @@ export class WebController {
         logger.error("Failed to clear display:", result.error);
         res.status(500).json({
           success: false,
-          error: {
-            code: (result.error as WebError).code,
-            message: (result.error as WebError).getUserMessage(),
-          },
+          error: extractErrorInfo(result.error),
         });
       }
     } catch (error) {

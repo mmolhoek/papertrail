@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { IRenderingOrchestrator } from "@core/interfaces";
 import { isSuccess } from "@core/types";
-import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { extractErrorInfo } from "@utils/typeGuards";
 
 const logger = getLogger("GPSController");
 
@@ -42,10 +42,7 @@ export class GPSController {
       logger.error("Failed to get GPS position:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -74,10 +71,7 @@ export class GPSController {
       logger.error("Failed to get GPS status:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }

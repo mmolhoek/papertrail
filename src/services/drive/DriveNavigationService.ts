@@ -16,6 +16,7 @@ import {
 import { DriveError } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import { haversineDistance } from "@utils/geo";
+import { isNodeJSErrnoException, toError } from "@utils/typeGuards";
 import * as fs from "fs/promises";
 import * as path from "path";
 
@@ -119,10 +120,10 @@ export class DriveNavigationService implements IDriveNavigationService {
       logger.info(`Route loaded: ${id}`);
       return success(route);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isNodeJSErrnoException(error) && error.code === "ENOENT") {
         return failure(DriveError.routeNotFound(id));
       }
-      const err = error instanceof Error ? error : new Error(String(error));
+      const err = toError(error);
       logger.error("Failed to load route:", err);
       return failure(DriveError.loadFailed(id, err));
     }
@@ -139,10 +140,10 @@ export class DriveNavigationService implements IDriveNavigationService {
       logger.info(`Route deleted: ${id}`);
       return success(undefined);
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      if (isNodeJSErrnoException(error) && error.code === "ENOENT") {
         return failure(DriveError.routeNotFound(id));
       }
-      const err = error instanceof Error ? error : new Error(String(error));
+      const err = toError(error);
       logger.error("Failed to delete route:", err);
       return failure(
         new DriveError(

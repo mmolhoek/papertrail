@@ -17,6 +17,7 @@ import {
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
 import { getLogger } from "../utils/logger";
+import { isNodeJSErrnoException } from "@utils/typeGuards";
 import {
   UPLOAD_DEFAULT_TEMP_DIRECTORY,
   UPLOAD_MAX_AGE_MS,
@@ -1005,7 +1006,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       }
     } catch (error) {
       // Directory may not exist yet
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      if (!isNodeJSErrnoException(error) || error.code !== "ENOENT") {
         logger.error("Failed to cleanup orphaned uploads:", error);
       }
     }
@@ -1035,7 +1036,7 @@ export class IntegratedWebService implements IWebInterfaceService {
         );
       }
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      if (!isNodeJSErrnoException(error) || error.code !== "ENOENT") {
         logger.error("Failed to cleanup temp files on shutdown:", error);
       }
     }

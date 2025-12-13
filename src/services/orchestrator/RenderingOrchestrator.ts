@@ -20,13 +20,13 @@ import {
   GPXTrack,
   DriveRoute,
   DriveNavigationUpdate,
-  ScreenType,
   success,
   failure,
   DisplayUpdateMode,
 } from "@core/types";
 import { OrchestratorError, OrchestratorErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { isScreenType } from "@utils/typeGuards";
 import { ActiveGPXQueue } from "./DisplayUpdateQueue";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 import { GPSCoordinator } from "./GPSCoordinator";
@@ -1026,10 +1026,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    */
   setActiveScreen(screenType: string): void {
     logger.info(`Setting active screen to: ${screenType}`);
-    // Import ScreenType and validate
-    const validTypes = ["track", "turn_by_turn"];
-    if (validTypes.includes(screenType)) {
-      this.configService.setActiveScreen(screenType as ScreenType);
+    if (isScreenType(screenType)) {
+      this.configService.setActiveScreen(screenType);
     } else {
       logger.warn(`Invalid screen type: ${screenType}`);
     }

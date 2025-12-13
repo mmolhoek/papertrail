@@ -5,8 +5,8 @@ import {
   IConfigService,
 } from "@core/interfaces";
 import { isSuccess } from "@core/types";
-import { WebError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { extractErrorInfo } from "@utils/typeGuards";
 
 const logger = getLogger("ConfigController");
 
@@ -87,10 +87,7 @@ export class ConfigController {
       logger.error("Failed to update zoom level:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }
@@ -112,10 +109,7 @@ export class ConfigController {
       logger.error("Failed to start auto-update:", result.error);
       res.status(500).json({
         success: false,
-        error: {
-          code: (result.error as WebError).code,
-          message: (result.error as WebError).getUserMessage(),
-        },
+        error: extractErrorInfo(result.error),
       });
     }
   }

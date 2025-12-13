@@ -1,5 +1,6 @@
 import { GPSCoordinate, GPSStatus, GPSFixQuality } from "@core/types";
 import { getLogger } from "@utils/logger";
+import { toGPSFixQuality } from "@utils/typeGuards";
 
 const logger = getLogger("NMEAParser");
 
@@ -291,7 +292,7 @@ export class NMEAParser {
       time,
       latitude,
       longitude,
-      fixQuality: fixQuality as GPSFixQuality,
+      fixQuality: toGPSFixQuality(fixQuality),
       satellitesInUse,
       hdop,
       altitude,
