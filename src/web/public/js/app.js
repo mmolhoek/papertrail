@@ -63,9 +63,11 @@ class PapertrailClient {
 
     // Setup radio-style panel switching
     menuItems.forEach((item) => {
-      item.addEventListener("click", () => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
         const panelId = item.dataset.panel;
         this.switchToPanel(panelId, item);
+        // Close the menu after selection
         menuContent.classList.add("hidden");
       });
     });
