@@ -733,6 +733,8 @@ export class DriveNavigationService implements IDriveNavigationService {
    *
    * Uses segment-based bearing comparison: compares bearing of current segment
    * against a reference segment from further back to detect direction changes.
+   * Uses longer segments (50m) and averages multiple bearings to reduce noise
+   * from OSRM geometry encoding.
    */
   private generateWaypointsFromGeometry(
     geometry: [number, number][],
@@ -754,10 +756,10 @@ export class DriveNavigationService implements IDriveNavigationService {
       index: 0,
     });
 
-    // Turn detection parameters
-    const TURN_THRESHOLD = 25; // degrees - bearing change to trigger waypoint
+    // Turn detection parameters - use longer segments to reduce noise
+    const TURN_THRESHOLD = 30; // degrees - increased to reduce false positives
     const MIN_DISTANCE_BETWEEN_WAYPOINTS = 50; // meters
-    const SEGMENT_DISTANCE = 30; // meters - distance for bearing calculation segments
+    const SEGMENT_DISTANCE = 50; // meters - increased for more stable bearing calculation
 
     // Build distance array for quick lookups
     const distances: number[] = [0];
@@ -789,7 +791,7 @@ export class DriveNavigationService implements IDriveNavigationService {
         fromIdx >= geometry.length ||
         toIdx >= geometry.length
       ) {
-        return 0;
+        return -1; // Invalid bearing marker
       }
       return this.calculateBearing(
         geometry[fromIdx][0],
@@ -799,19 +801,66 @@ export class DriveNavigationService implements IDriveNavigationService {
       );
     };
 
+    // Calculate smoothed bearing by averaging bearings over a range
+    const getSmoothedBearing = (
+      centerDist: number,
+      direction: number,
+    ): number => {
+      // direction: -1 for behind (incoming), +1 for ahead (outgoing)
+      const sampleCount = 3;
+      const sampleSpacing = SEGMENT_DISTANCE / sampleCount;
+      let sumX = 0;
+      let sumY = 0;
+      let validSamples = 0;
+
+      for (let i = 0; i < sampleCount; i++) {
+        const fromDist =
+          centerDist + direction * (i * sampleSpacing + sampleSpacing);
+        const toDist =
+          centerDist + direction * ((i + 1) * sampleSpacing + sampleSpacing);
+
+        const fromIdx = findIndexAtDistance(Math.max(0, fromDist));
+        const toIdx = findIndexAtDistance(Math.max(0, toDist));
+
+        if (fromIdx !== toIdx) {
+          const bearing =
+            direction > 0
+              ? getBearing(fromIdx, toIdx)
+              : getBearing(toIdx, fromIdx);
+
+          if (bearing >= 0) {
+            // Convert to unit vector and accumulate
+            sumX += Math.cos((bearing * Math.PI) / 180);
+            sumY += Math.sin((bearing * Math.PI) / 180);
+            validSamples++;
+          }
+        }
+      }
+
+      if (validSamples === 0) {
+        return -1; // No valid samples
+      }
+
+      // Convert back to bearing
+      const avgBearing =
+        (Math.atan2(sumY / validSamples, sumX / validSamples) * 180) / Math.PI;
+      return (avgBearing + 360) % 360;
+    };
+
     // Scan through the route looking for turns
     for (
       let dist = SEGMENT_DISTANCE * 2;
       dist < totalDistance - SEGMENT_DISTANCE;
-      dist += 10
+      dist += 15 // Increased step for efficiency
     ) {
-      const currentIdx = findIndexAtDistance(dist);
-      const behindIdx = findIndexAtDistance(dist - SEGMENT_DISTANCE);
-      const aheadIdx = findIndexAtDistance(dist + SEGMENT_DISTANCE);
+      // Use smoothed bearings to reduce noise
+      const incomingBearing = getSmoothedBearing(dist, -1);
+      const outgoingBearing = getSmoothedBearing(dist, 1);
 
-      // Calculate incoming and outgoing bearings
-      const incomingBearing = getBearing(behindIdx, currentIdx);
-      const outgoingBearing = getBearing(currentIdx, aheadIdx);
+      // Skip if we couldn't calculate valid bearings
+      if (incomingBearing < 0 || outgoingBearing < 0) {
+        continue;
+      }
 
       // Calculate turn angle
       let turnAngle = outgoingBearing - incomingBearing;
@@ -825,7 +874,14 @@ export class DriveNavigationService implements IDriveNavigationService {
         absTurn >= TURN_THRESHOLD &&
         dist - lastWaypointDistance >= MIN_DISTANCE_BETWEEN_WAYPOINTS
       ) {
+        const currentIdx = findIndexAtDistance(dist);
         const turnType = this.getTurnTypeFromChange(turnAngle);
+
+        logger.debug(
+          `Turn detected at ${Math.round(dist)}m: ${turnType} (${turnAngle.toFixed(1)}°), ` +
+            `incoming=${incomingBearing.toFixed(1)}°, outgoing=${outgoingBearing.toFixed(1)}°`,
+        );
+
         waypoints.push({
           latitude: geometry[currentIdx][0],
           longitude: geometry[currentIdx][1],
@@ -864,21 +920,26 @@ export class DriveNavigationService implements IDriveNavigationService {
 
   /**
    * Determine turn type from signed bearing change
+   * Thresholds aligned with standard navigation systems:
+   * - < 30°: straight (no turn instruction)
+   * - 30-60°: slight turn
+   * - 60-120°: normal turn
+   * - > 120°: sharp turn
    */
   private getTurnTypeFromChange(bearingChange: number): ManeuverType {
     // bearingChange is positive for right turns, negative for left
     const abs = Math.abs(bearingChange);
 
-    if (abs < 20) return ManeuverType.STRAIGHT;
+    if (abs < 30) return ManeuverType.STRAIGHT;
     if (bearingChange > 0) {
       // Right turns
-      if (abs < 50) return ManeuverType.SLIGHT_RIGHT;
-      if (abs < 110) return ManeuverType.RIGHT;
+      if (abs < 60) return ManeuverType.SLIGHT_RIGHT;
+      if (abs < 120) return ManeuverType.RIGHT;
       return ManeuverType.SHARP_RIGHT;
     } else {
       // Left turns
-      if (abs < 50) return ManeuverType.SLIGHT_LEFT;
-      if (abs < 110) return ManeuverType.LEFT;
+      if (abs < 60) return ManeuverType.SLIGHT_LEFT;
+      if (abs < 120) return ManeuverType.LEFT;
       return ManeuverType.SHARP_LEFT;
     }
   }
