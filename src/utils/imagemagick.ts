@@ -47,28 +47,6 @@ async function cleanupTempFile(filePath: string): Promise<void> {
 }
 
 /**
- * Clean up all tracked temporary files
- */
-export async function cleanupAllTempFiles(): Promise<void> {
-  for (const filePath of tempFiles) {
-    await cleanupTempFile(filePath);
-  }
-  tempFiles.clear();
-}
-
-/**
- * Check if ImageMagick is installed and available
- */
-export async function isImageMagickAvailable(): Promise<boolean> {
-  try {
-    await execAsync("convert -version");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Execute an ImageMagick convert command
  *
  * @param args Array of command-line arguments for 'convert'

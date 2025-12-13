@@ -1,7 +1,4 @@
 import { Bitmap1Bit } from "@core/types";
-import { getLogger } from "@utils/logger";
-
-const logger = getLogger("BitmapFont");
 
 /**
  * Simple 5x7 bitmap font for rendering text without Sharp
@@ -160,41 +157,4 @@ export function renderBitmapText(
 
     currentX += charWidth + CHAR_SPACING * scale;
   }
-}
-
-/**
- * Text item for batched bitmap rendering
- */
-export interface BitmapTextItem {
-  text: string;
-  x: number;
-  y: number;
-  scale?: number;
-  bold?: boolean;
-}
-
-/**
- * Render multiple text items to a bitmap
- * All coordinates are relative to the bitmap origin
- */
-export function renderBitmapTextItems(
-  bitmap: Bitmap1Bit,
-  items: BitmapTextItem[],
-): void {
-  logger.debug(`Rendering ${items.length} bitmap text items (no Sharp)`);
-
-  for (const item of items) {
-    renderBitmapText(bitmap, item.text, item.x, item.y, {
-      scale: item.scale,
-      bold: item.bold,
-    });
-  }
-}
-
-/**
- * Convert font size (in pixels) to scale factor
- * The base font is 7 pixels tall, so scale = fontSize / 7
- */
-export function fontSizeToScale(fontSize: number): number {
-  return Math.max(1, Math.round(fontSize / 7));
 }
