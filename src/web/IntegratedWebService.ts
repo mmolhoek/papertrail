@@ -32,6 +32,7 @@ import {
   setActiveScreenSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
+  resolveGoogleMapsLinkSchema,
   setHotspotConfigSchema,
   startSimulationSchema,
   setSimulationSpeedSchema,
@@ -479,6 +480,12 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     this.app.delete(`${api}/destinations/recent/all`, (req, res) =>
       this.controller.clearRecentDestinations(req, res),
+    );
+
+    this.app.post(
+      `${api}/destinations/resolve-google-maps`,
+      validateBody(resolveGoogleMapsLinkSchema),
+      (req, res) => this.controller.resolveGoogleMapsLink(req, res),
     );
 
     // Auto-update endpoints

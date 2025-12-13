@@ -549,6 +549,11 @@ export class WebController {
     return this.config.clearRecentDestinations(req, res);
   }
 
+  /** @see ConfigController.resolveGoogleMapsLink */
+  async resolveGoogleMapsLink(req: Request, res: Response): Promise<void> {
+    return this.config.resolveGoogleMapsLink(req, res);
+  }
+
   /** @see ConfigController.resetSystem */
   async resetSystem(req: Request, res: Response): Promise<void> {
     return this.config.resetSystem(req, res);

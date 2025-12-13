@@ -358,6 +358,9 @@ export class DriveController {
     const { route, speed = 100 } = req.body;
 
     logger.info(`Simulate drive route requested at ${speed} km/h`);
+    logger.info(
+      `Route received: waypoints=${route?.waypoints?.length ?? 0}, geometry=${route?.geometry?.length ?? 0}, destination=${route?.destination}`,
+    );
 
     if (!this.simulationService) {
       res.status(503).json({
@@ -417,7 +420,25 @@ export class DriveController {
         `GPX track created with ${pointCount} points, from (${firstPt.latitude.toFixed(5)}, ${firstPt.longitude.toFixed(5)}) to (${lastPt.latitude.toFixed(5)}, ${lastPt.longitude.toFixed(5)})`,
       );
 
-      // Start simulation at drive speed (100 km/h)
+      // Start drive navigation FIRST so it's ready to receive position updates
+      logger.info(
+        `Checking services: driveNavigationService=${!!this.driveNavigationService}, orchestrator=${!!this.orchestrator}`,
+      );
+      if (this.driveNavigationService && this.orchestrator) {
+        // Enable simulation mode to skip off-road detection
+        this.driveNavigationService.setSimulationMode(true);
+
+        logger.info("Starting drive navigation for tracking (simulation mode)");
+        const navResult = await this.orchestrator.startDriveNavigation(route);
+        logger.info(`Drive navigation start result: ${navResult.success}`);
+        if (!navResult.success) {
+          logger.error("Drive navigation failed:", navResult.error);
+        }
+      } else {
+        logger.warn("Cannot start drive navigation - missing services!");
+      }
+
+      // Now start simulation - position updates will flow to drive navigation
       logger.info(`Starting simulation service at ${speed} km/h`);
       const result = await this.simulationService.startSimulation(
         gpxTrack,
@@ -426,21 +447,6 @@ export class DriveController {
       logger.info(`Simulation start result: ${result.success}`);
 
       if (isSuccess(result)) {
-        // Also start drive navigation so it tracks progress
-        if (this.driveNavigationService && this.orchestrator) {
-          // Enable simulation mode to skip off-road detection
-          this.driveNavigationService.setSimulationMode(true);
-
-          logger.info(
-            "Starting drive navigation for tracking (simulation mode)",
-          );
-          const navResult = await this.orchestrator.startDriveNavigation(route);
-          logger.info(`Drive navigation start result: ${navResult.success}`);
-          if (!navResult.success) {
-            logger.error("Drive navigation failed:", navResult.error);
-          }
-        }
-
         // Trigger a full e-paper display refresh
         logger.info("Triggering full display refresh for drive simulation");
         const displayResult = await this.orchestrator.updateDisplay(

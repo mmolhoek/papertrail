@@ -189,9 +189,15 @@ export class SimulationCoordinator {
     // Helper to perform the appropriate display update
     const doDisplayUpdate = () => {
       // If drive navigation is active, use drive display update instead
-      if (this.driveCoordinator?.isDriveNavigating()) {
+      const hasDriveCoord = !!this.driveCoordinator;
+      const isDriveNav = this.driveCoordinator?.isDriveNavigating() ?? false;
+      logger.info(
+        `doDisplayUpdate: hasDriveCoordinator=${hasDriveCoord}, isDriveNavigating=${isDriveNav}`,
+      );
+
+      if (isDriveNav) {
         logger.info("Simulation display update tick (drive mode)");
-        void this.driveCoordinator.updateDriveDisplay().catch((error) => {
+        void this.driveCoordinator!.updateDriveDisplay().catch((error) => {
           logger.error("Drive display update failed:", error);
         });
       } else if (this.updateDisplayCallback) {

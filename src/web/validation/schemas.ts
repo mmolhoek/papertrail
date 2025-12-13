@@ -113,6 +113,25 @@ export const removeRecentDestinationSchema = z.object({
   longitude: longitudeSchema,
 });
 
+/**
+ * Resolve Google Maps link request
+ */
+export const resolveGoogleMapsLinkSchema = z.object({
+  url: z
+    .string({ message: "url must be a string" })
+    .url("url must be a valid URL")
+    .refine(
+      (url) =>
+        url.includes("google.com/maps") ||
+        url.includes("maps.google.com") ||
+        url.includes("maps.app.goo.gl") ||
+        url.includes("goo.gl/maps"),
+      {
+        message: "URL must be a Google Maps link",
+      },
+    ),
+});
+
 // ============================================================================
 // WiFi Controller Schemas
 // ============================================================================
@@ -310,3 +329,6 @@ export type StartDriveNavigationInput = z.infer<
 >;
 export type SimulateDriveRouteInput = z.infer<typeof simulateDriveRouteSchema>;
 export type SetActiveMapInput = z.infer<typeof setActiveMapSchema>;
+export type ResolveGoogleMapsLinkInput = z.infer<
+  typeof resolveGoogleMapsLinkSchema
+>;

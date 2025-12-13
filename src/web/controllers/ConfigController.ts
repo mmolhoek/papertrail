@@ -388,6 +388,217 @@ export class ConfigController {
     });
   }
 
+  /**
+   * Resolve a Google Maps link to coordinates
+   * Handles both shortened URLs (maps.app.goo.gl) and full URLs
+   */
+  async resolveGoogleMapsLink(req: Request, res: Response): Promise<void> {
+    const { url } = req.body;
+
+    logger.info(`Resolving Google Maps link: ${url}`);
+
+    try {
+      // Follow redirects to get the final URL
+      let finalUrl = url;
+
+      // If it's a shortened URL, we need to follow the redirect
+      if (url.includes("goo.gl") || url.includes("maps.app.goo.gl")) {
+        try {
+          const response = await fetch(url, {
+            method: "HEAD",
+            redirect: "follow",
+          });
+          finalUrl = response.url;
+          logger.debug(`Shortened URL resolved to: ${finalUrl}`);
+        } catch (fetchError) {
+          logger.warn(`Failed to follow redirect, trying GET: ${fetchError}`);
+          // Try GET if HEAD fails
+          const response = await fetch(url, {
+            redirect: "follow",
+          });
+          finalUrl = response.url;
+        }
+      }
+
+      // Parse coordinates from the URL
+      const result = this.parseGoogleMapsUrl(finalUrl);
+
+      if (!result) {
+        logger.warn(`Could not parse coordinates from URL: ${finalUrl}`);
+        res.status(400).json({
+          success: false,
+          error: {
+            code: "PARSE_FAILED",
+            message:
+              "Could not extract coordinates from Google Maps link. Please try a different link format.",
+          },
+        });
+        return;
+      }
+
+      logger.info(
+        `Resolved coordinates: ${result.latitude}, ${result.longitude} (${result.name})`,
+      );
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      logger.error("Failed to resolve Google Maps link:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "RESOLVE_FAILED",
+          message: "Failed to resolve Google Maps link",
+        },
+      });
+    }
+  }
+
+  /**
+   * Parse a Google Maps URL to extract coordinates and place name
+   */
+  private parseGoogleMapsUrl(
+    url: string,
+  ): { latitude: number; longitude: number; name: string } | null {
+    try {
+      const urlObj = new URL(url);
+      const fullUrl = url;
+
+      // Pattern 1: /@lat,lng,zoom in path (most common)
+      // Example: /maps/place/Name/@40.7128,-74.0060,15z
+      const atPattern = /@(-?\d+\.?\d*),(-?\d+\.?\d*)/;
+      const atMatch = fullUrl.match(atPattern);
+
+      if (atMatch) {
+        const lat = parseFloat(atMatch[1]);
+        const lon = parseFloat(atMatch[2]);
+
+        if (this.isValidCoordinate(lat, lon)) {
+          return {
+            latitude: lat,
+            longitude: lon,
+            name:
+              this.extractPlaceName(fullUrl) ||
+              `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+          };
+        }
+      }
+
+      // Pattern 2: q=lat,lng in query string
+      // Example: ?q=40.7128,-74.0060
+      const qParam = urlObj.searchParams.get("q");
+      if (qParam) {
+        const coordMatch = qParam.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+        if (coordMatch) {
+          const lat = parseFloat(coordMatch[1]);
+          const lon = parseFloat(coordMatch[2]);
+
+          if (this.isValidCoordinate(lat, lon)) {
+            return {
+              latitude: lat,
+              longitude: lon,
+              name: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+            };
+          }
+        }
+      }
+
+      // Pattern 3: ll=lat,lng in query string
+      const llParam = urlObj.searchParams.get("ll");
+      if (llParam) {
+        const coordMatch = llParam.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+        if (coordMatch) {
+          const lat = parseFloat(coordMatch[1]);
+          const lon = parseFloat(coordMatch[2]);
+
+          if (this.isValidCoordinate(lat, lon)) {
+            return {
+              latitude: lat,
+              longitude: lon,
+              name: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+            };
+          }
+        }
+      }
+
+      // Pattern 4: destination parameter for directions
+      // Example: destination=40.7128,-74.0060
+      const destParam = urlObj.searchParams.get("destination");
+      if (destParam) {
+        const coordMatch = destParam.match(/^(-?\d+\.?\d*),(-?\d+\.?\d*)$/);
+        if (coordMatch) {
+          const lat = parseFloat(coordMatch[1]);
+          const lon = parseFloat(coordMatch[2]);
+
+          if (this.isValidCoordinate(lat, lon)) {
+            return {
+              latitude: lat,
+              longitude: lon,
+              name: `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+            };
+          }
+        }
+      }
+
+      // Pattern 5: data parameter with !3d and !4d markers
+      // Example: !3d40.7128!4d-74.0060
+      const dataPattern = /!3d(-?\d+\.?\d*)!4d(-?\d+\.?\d*)/;
+      const dataMatch = fullUrl.match(dataPattern);
+      if (dataMatch) {
+        const lat = parseFloat(dataMatch[1]);
+        const lon = parseFloat(dataMatch[2]);
+
+        if (this.isValidCoordinate(lat, lon)) {
+          return {
+            latitude: lat,
+            longitude: lon,
+            name:
+              this.extractPlaceName(fullUrl) ||
+              `${lat.toFixed(5)}, ${lon.toFixed(5)}`,
+          };
+        }
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Validate latitude and longitude values
+   */
+  private isValidCoordinate(lat: number, lon: number): boolean {
+    return (
+      !isNaN(lat) &&
+      !isNaN(lon) &&
+      lat >= -90 &&
+      lat <= 90 &&
+      lon >= -180 &&
+      lon <= 180
+    );
+  }
+
+  /**
+   * Extract place name from Google Maps URL
+   */
+  private extractPlaceName(url: string): string | null {
+    try {
+      // Try to extract from /place/Name/ pattern
+      const placeMatch = url.match(/\/place\/([^/@]+)/);
+      if (placeMatch) {
+        // Decode URL-encoded characters and replace + with space
+        return decodeURIComponent(placeMatch[1].replace(/\+/g, " "));
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   // System Reset Endpoint
 
   /**

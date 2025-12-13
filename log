@@ -1,0 +1,36 @@
+
+> papertrail@1.0.0 dev
+> ts-node-dev --respawn --exit-child --transpile-only -r tsconfig-paths/register src/index.ts
+
+[INFO] 12:29:25 ts-node-dev ver. 2.0.0 (using ts-node ver. 10.9.2, typescript ver. 5.9.3)
+[Papertrail] 🚀 Starting Papertrail GPS Tracker...
+
+[Papertrail] Initializing services...
+[MockGPSService] Mock GPS Service created (for development/testing)
+[MockEpaperService] Mock E-Paper Service created (for development/testing)
+[MockEpaperService] Mock E-Paper: Display size 800x480
+[MockWiFiService] Mock WiFi Service created (for development/testing)
+[TrackSimulationService] TrackSimulationService created
+[DriveNavigationService] DriveNavigationService created, routes dir: /root/projects/papertrail/data/routes
+[GPSCoordinator] GPSCoordinator initialized with debounce config: {"enabled":true,"debounceMs":500,"distanceThresholdMeters":2}
+[RenderingOrchestrator] Initializing RenderingOrchestrator...
+[RenderingOrchestrator] Initializing ConfigService...
+[RenderingOrchestrator] ✓ ConfigService initialized
+[RenderingOrchestrator] Initializing GPSService...
+[MockGPSService] Initializing Mock GPS Service...
+[MockGPSService] Mock GPS Service initialized
+[MockGPSService] Mock GPS: Initial position: 37.7749, -122.4194
+[RenderingOrchestrator] ✓ GPSService initialized
+[RenderingOrchestrator] Initializing EpaperService...
+[MockEpaperService] Initializing Mock E-Paper Service...
+[MockAdapter] Initializing MockAdapter (mock hardware)...
+[MockAdapter]   Pins: RST=17, DC=25, BUSY=24
+[MockAdapter]   Power pin: 18
+[MockAdapter]   SPI: bus=0, device=0, speed=256000Hz
+[MockAdapter] MockAdapter initialized successfully
+[mock_display] Mock display buffer allocated: 48000 bytes
+[mock_display] Mock display initialized
+[MockEpaperService] Mock E-Paper Service initialized
+[RenderingOrchestrator] ✓ EpaperService initialized
+[RenderingOrchestrator] Displaying startup logo...
+[MockEpaperService] Mock E-Paper: Displaying logo...

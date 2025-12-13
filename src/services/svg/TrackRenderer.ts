@@ -307,6 +307,14 @@ export class TrackRenderer {
       projectedRoute[i].y = projected.y;
     }
 
+    // Log first and middle projected points for debugging
+    const firstProj = projectedRoute[0];
+    const midIdx = Math.floor(pointCount / 2);
+    const midProj = projectedRoute[midIdx];
+    logger.info(
+      `renderRouteGeometry: projected points - first=[${firstProj.x}, ${firstProj.y}], mid=[${midProj.x}, ${midProj.y}], viewportCenter=[${viewport.width / 2}, ${viewport.height / 2}]`,
+    );
+
     // Apply rotation if needed
     const bearing = viewport.centerPoint.bearing;
     if (options.rotateWithBearing && bearing !== undefined) {

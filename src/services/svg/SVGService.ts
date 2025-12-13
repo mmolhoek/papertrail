@@ -967,6 +967,16 @@ export class SVGService implements ISVGService {
 
       // Draw route line using geometry via TrackRenderer
       if (route.geometry && route.geometry.length > 1) {
+        // Diagnostic logging for route rendering
+        const firstPt = route.geometry[0];
+        const centerPt = route.geometry[Math.floor(route.geometry.length / 2)];
+        logger.info(
+          `renderDriveMapScreen: route geometry has ${route.geometry.length} points, first=[${firstPt[0].toFixed(5)}, ${firstPt[1].toFixed(5)}], center=[${centerPt[0].toFixed(5)}, ${centerPt[1].toFixed(5)}]`,
+        );
+        logger.info(
+          `renderDriveMapScreen: viewport center=[${mapViewport.centerPoint.latitude.toFixed(5)}, ${mapViewport.centerPoint.longitude.toFixed(5)}], zoom=${mapViewport.zoomLevel}, mapWidth=${mapWidth}`,
+        );
+
         const pointCount = TrackRenderer.renderRouteGeometry(
           bitmap,
           route.geometry,

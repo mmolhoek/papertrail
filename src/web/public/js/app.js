@@ -1622,6 +1622,8 @@ class PapertrailClient {
       // Click to select this destination
       item.addEventListener("click", () => {
         this.setDriveDestination(dest.latitude, dest.longitude, dest.name);
+        // Hide the quicklist after selection
+        container.classList.add("hidden");
       });
 
       list.appendChild(item);
@@ -1706,6 +1708,8 @@ class PapertrailClient {
       // Click to select this as starting point
       item.addEventListener("click", () => {
         this.setDriveStartPoint(dest.latitude, dest.longitude, dest.name);
+        // Hide the quicklist after selection
+        container.classList.add("hidden");
       });
 
       list.appendChild(item);

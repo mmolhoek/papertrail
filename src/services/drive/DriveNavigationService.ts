@@ -759,9 +759,9 @@ export class DriveNavigationService implements IDriveNavigationService {
     });
 
     // Turn detection parameters
-    const TURN_THRESHOLD = 35; // degrees - cumulative bearing change to trigger waypoint
-    const MIN_DISTANCE_BETWEEN_WAYPOINTS = 50; // meters - minimum distance between waypoints
-    const LOOKBACK_DISTANCE = 30; // meters - how far back to look for entry bearing
+    const TURN_THRESHOLD = 20; // degrees - cumulative bearing change to trigger waypoint
+    const MIN_DISTANCE_BETWEEN_WAYPOINTS = 30; // meters - minimum distance between waypoints
+    const LOOKBACK_DISTANCE = 20; // meters - how far back to look for entry bearing
 
     let lastWaypointGeometryIndex = 0;
     let accumulatedDistance = 0;

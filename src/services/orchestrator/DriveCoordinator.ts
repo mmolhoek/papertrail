@@ -118,6 +118,14 @@ export class DriveCoordinator {
       this.onboardingCoordinator.stopGPSInfoRefresh();
     }
 
+    // Mark onboarding as complete - drive navigation is a valid app usage
+    // This prevents the WiFi screen from showing during navigation
+    if (!this.configService.isOnboardingCompleted()) {
+      logger.info("Drive navigation started - marking onboarding as complete");
+      this.configService.setOnboardingCompleted(true);
+      await this.configService.save();
+    }
+
     // Store route start position for fallback during simulation
     if (route.geometry && route.geometry.length > 0) {
       const startPoint = route.geometry[0];
@@ -171,7 +179,12 @@ export class DriveCoordinator {
    * Check if drive navigation is currently active
    */
   isDriveNavigating(): boolean {
-    return this.driveNavigationService?.isNavigating() ?? false;
+    const hasService = !!this.driveNavigationService;
+    const isNav = this.driveNavigationService?.isNavigating() ?? false;
+    logger.info(
+      `isDriveNavigating: hasService=${hasService}, isNavigating=${isNav}`,
+    );
+    return isNav;
   }
 
   /**
