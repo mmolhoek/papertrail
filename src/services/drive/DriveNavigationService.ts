@@ -3,10 +3,12 @@ import {
   Result,
   GPSCoordinate,
   DriveRoute,
+  DriveWaypoint,
   DriveNavigationStatus,
   DriveNavigationUpdate,
   NavigationState,
   DriveDisplayMode,
+  ManeuverType,
   DRIVE_THRESHOLDS,
   success,
   failure,
@@ -217,11 +219,31 @@ export class DriveNavigationService implements IDriveNavigationService {
       activeRoute = route;
     }
 
-    // Validate route
+    // Validate route - need either waypoints or geometry
+    logger.info(
+      `startNavigation: route has ${activeRoute.waypoints?.length ?? 0} waypoints, ${activeRoute.geometry?.length ?? 0} geometry points`,
+    );
+
+    // Auto-generate waypoints from geometry if missing
     if (!activeRoute.waypoints || activeRoute.waypoints.length < 2) {
-      return failure(
-        DriveError.invalidRoute("Route must have at least 2 waypoints"),
-      );
+      if (activeRoute.geometry && activeRoute.geometry.length >= 2) {
+        logger.info(
+          `Auto-generating waypoints from ${activeRoute.geometry.length} geometry points`,
+        );
+        activeRoute.waypoints = this.generateWaypointsFromGeometry(
+          activeRoute.geometry,
+          activeRoute.destination,
+        );
+        logger.info(
+          `Generated ${activeRoute.waypoints.length} waypoints from geometry`,
+        );
+      } else {
+        return failure(
+          DriveError.invalidRoute(
+            "Route must have at least 2 waypoints or geometry points",
+          ),
+        );
+      }
     }
 
     logger.info(`Starting navigation to: ${activeRoute.destination}`);
@@ -308,6 +330,9 @@ export class DriveNavigationService implements IDriveNavigationService {
       this.navigationState === NavigationState.NAVIGATING ||
       this.navigationState === NavigationState.OFF_ROAD ||
       this.navigationState === NavigationState.ARRIVED;
+    logger.info(
+      `isNavigating: state=${this.navigationState}, result=${result}`,
+    );
     return result;
   }
 
@@ -672,5 +697,162 @@ export class DriveNavigationService implements IDriveNavigationService {
         logger.error(`Error in display callback: ${errorMsg}`);
       }
     }
+  }
+
+  /**
+   * Generate basic waypoints from geometry when OSRM doesn't provide turn-by-turn data
+   * Creates depart/arrive waypoints plus intermediate waypoints for significant turns
+   */
+  private generateWaypointsFromGeometry(
+    geometry: [number, number][],
+    destination?: string,
+  ): DriveWaypoint[] {
+    const waypoints: DriveWaypoint[] = [];
+
+    if (geometry.length < 2) {
+      return waypoints;
+    }
+
+    // First point: depart
+    waypoints.push({
+      latitude: geometry[0][0],
+      longitude: geometry[0][1],
+      instruction: "Depart",
+      maneuverType: ManeuverType.DEPART,
+      distance: 0,
+      index: 0,
+    });
+
+    // Add intermediate waypoints at significant bearing changes (turns > 45 degrees)
+    const TURN_THRESHOLD = 45; // degrees
+    const MIN_SEGMENT_DISTANCE = 100; // meters - don't add waypoints too close together
+
+    let lastWaypointIndex = 0;
+    let accumulatedDistance = 0;
+
+    for (let i = 1; i < geometry.length - 1; i++) {
+      const prev = geometry[i - 1];
+      const curr = geometry[i];
+      const next = geometry[i + 1];
+
+      // Calculate segment distance
+      const segmentDist = this.calculateDistance(
+        prev[0],
+        prev[1],
+        curr[0],
+        curr[1],
+      );
+      accumulatedDistance += segmentDist;
+
+      // Calculate bearing change
+      const bearingIn = this.calculateBearing(
+        prev[0],
+        prev[1],
+        curr[0],
+        curr[1],
+      );
+      const bearingOut = this.calculateBearing(
+        curr[0],
+        curr[1],
+        next[0],
+        next[1],
+      );
+
+      let bearingChange = Math.abs(bearingOut - bearingIn);
+      if (bearingChange > 180) {
+        bearingChange = 360 - bearingChange;
+      }
+
+      // Add waypoint if significant turn and far enough from last waypoint
+      if (
+        bearingChange >= TURN_THRESHOLD &&
+        accumulatedDistance >= MIN_SEGMENT_DISTANCE
+      ) {
+        const turnType = this.getTurnType(bearingIn, bearingOut);
+        waypoints.push({
+          latitude: curr[0],
+          longitude: curr[1],
+          instruction: this.formatTurnInstruction(turnType),
+          maneuverType: turnType,
+          distance: accumulatedDistance,
+          index: waypoints.length,
+        });
+        lastWaypointIndex = i;
+        accumulatedDistance = 0;
+      }
+    }
+
+    // Calculate final segment distance
+    const lastIdx = geometry.length - 1;
+    const finalDist = this.calculateDistance(
+      geometry[lastWaypointIndex][0],
+      geometry[lastWaypointIndex][1],
+      geometry[lastIdx][0],
+      geometry[lastIdx][1],
+    );
+
+    // Last point: arrive
+    waypoints.push({
+      latitude: geometry[lastIdx][0],
+      longitude: geometry[lastIdx][1],
+      instruction: destination ? `Arrive at ${destination}` : "Arrive",
+      maneuverType: ManeuverType.ARRIVE,
+      distance: finalDist + accumulatedDistance,
+      index: waypoints.length,
+    });
+
+    return waypoints;
+  }
+
+  /**
+   * Determine turn type from bearing change
+   */
+  private getTurnType(bearingIn: number, bearingOut: number): ManeuverType {
+    let diff = bearingOut - bearingIn;
+    if (diff > 180) diff -= 360;
+    if (diff < -180) diff += 360;
+
+    if (diff >= -30 && diff <= 30) return ManeuverType.STRAIGHT;
+    if (diff > 30 && diff <= 60) return ManeuverType.SLIGHT_RIGHT;
+    if (diff > 60 && diff <= 120) return ManeuverType.RIGHT;
+    if (diff > 120) return ManeuverType.SHARP_RIGHT;
+    if (diff < -30 && diff >= -60) return ManeuverType.SLIGHT_LEFT;
+    if (diff < -60 && diff >= -120) return ManeuverType.LEFT;
+    if (diff < -120) return ManeuverType.SHARP_LEFT;
+
+    return ManeuverType.STRAIGHT;
+  }
+
+  /**
+   * Format turn type into human-readable instruction
+   */
+  private formatTurnInstruction(turnType: ManeuverType): string {
+    const instructions: Record<ManeuverType, string> = {
+      [ManeuverType.DEPART]: "Depart",
+      [ManeuverType.STRAIGHT]: "Continue straight",
+      [ManeuverType.SLIGHT_LEFT]: "Turn slightly left",
+      [ManeuverType.LEFT]: "Turn left",
+      [ManeuverType.SHARP_LEFT]: "Turn sharp left",
+      [ManeuverType.SLIGHT_RIGHT]: "Turn slightly right",
+      [ManeuverType.RIGHT]: "Turn right",
+      [ManeuverType.SHARP_RIGHT]: "Turn sharp right",
+      [ManeuverType.UTURN]: "Make a U-turn",
+      [ManeuverType.ARRIVE]: "Arrive",
+      [ManeuverType.MERGE]: "Merge",
+      [ManeuverType.FORK_LEFT]: "Take left fork",
+      [ManeuverType.FORK_RIGHT]: "Take right fork",
+      [ManeuverType.RAMP_LEFT]: "Take left ramp",
+      [ManeuverType.RAMP_RIGHT]: "Take right ramp",
+      [ManeuverType.ROUNDABOUT]: "Enter roundabout",
+      [ManeuverType.ROUNDABOUT_EXIT_1]: "Take 1st exit",
+      [ManeuverType.ROUNDABOUT_EXIT_2]: "Take 2nd exit",
+      [ManeuverType.ROUNDABOUT_EXIT_3]: "Take 3rd exit",
+      [ManeuverType.ROUNDABOUT_EXIT_4]: "Take 4th exit",
+      [ManeuverType.ROUNDABOUT_EXIT_5]: "Take 5th exit",
+      [ManeuverType.ROUNDABOUT_EXIT_6]: "Take 6th exit",
+      [ManeuverType.ROUNDABOUT_EXIT_7]: "Take 7th exit",
+      [ManeuverType.ROUNDABOUT_EXIT_8]: "Take 8th exit",
+    };
+    return instructions[turnType] || "Continue";
   }
 }

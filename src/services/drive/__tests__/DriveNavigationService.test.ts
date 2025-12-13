@@ -509,8 +509,8 @@ describe("DriveNavigationService", () => {
         }
       });
 
-      it("should fail for route with invalid waypoints", async () => {
-        const route = createTestRoute({ waypoints: [] });
+      it("should fail for route with no waypoints and no geometry", async () => {
+        const route = createTestRoute({ waypoints: [], geometry: [] });
 
         const result = await service.startNavigation(route);
 
@@ -520,6 +520,16 @@ describe("DriveNavigationService", () => {
             DriveErrorCode.ROUTE_INVALID,
           );
         }
+      });
+
+      it("should auto-generate waypoints from geometry when waypoints are empty", async () => {
+        const route = createTestRoute({ waypoints: [] });
+
+        const result = await service.startNavigation(route);
+
+        // Should succeed because geometry is present
+        expect(result.success).toBe(true);
+        expect(service.getNavigationState()).toBe(NavigationState.NAVIGATING);
       });
 
       it("should fail if route ID is not found", async () => {
@@ -1036,10 +1046,23 @@ describe("DriveNavigationService", () => {
       expect(() => service.updatePosition(position)).not.toThrow();
     });
 
-    it("should handle route with undefined waypoints gracefully", async () => {
+    it("should handle route with undefined waypoints by auto-generating from geometry", async () => {
       const route = createTestRoute();
       // @ts-expect-error - Testing edge case
       route.waypoints = undefined;
+
+      const result = await service.startNavigation(route);
+
+      // Should succeed because geometry is present - waypoints will be auto-generated
+      expect(result.success).toBe(true);
+      expect(service.getNavigationState()).toBe(NavigationState.NAVIGATING);
+    });
+
+    it("should fail when both waypoints and geometry are missing", async () => {
+      const route = createTestRoute();
+      // @ts-expect-error - Testing edge case
+      route.waypoints = undefined;
+      route.geometry = [];
 
       const result = await service.startNavigation(route);
 
