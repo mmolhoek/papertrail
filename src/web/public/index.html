@@ -295,7 +295,7 @@
                 type="text"
                 id="drive-address-input"
                 class="field-input"
-                placeholder="Enter destination address..."
+                placeholder="Enter address or paste Google Maps link..."
               />
               <div id="drive-address-results" class="address-results hidden">
                 <!-- Autocomplete results will be added here -->
@@ -318,6 +318,38 @@
               <span class="dest-label">Destination:</span>
               <span id="drive-dest-text" class="dest-text">--</span>
               <button id="drive-clear-dest" class="dest-clear">×</button>
+            </div>
+
+            <!-- Starting Point (Optional) -->
+            <div id="starting-point-section" class="form-field hidden">
+              <label class="field-label"
+                >Starting Point
+                <span class="field-hint">(optional - uses GPS if empty)</span>
+              </label>
+              <input
+                type="text"
+                id="drive-start-input"
+                class="field-input"
+                placeholder="Enter address or paste Google Maps link..."
+              />
+              <div id="drive-start-results" class="address-results hidden">
+                <!-- Autocomplete results will be added here -->
+              </div>
+              <!-- Recent Starting Points -->
+              <div id="recent-starts" class="recent-destinations hidden">
+                <label class="field-label field-label-small"
+                  >Recent Locations</label
+                >
+                <div id="recent-starts-list" class="recent-destinations-list">
+                  <!-- Recent start items will be added here -->
+                </div>
+              </div>
+              <!-- Selected Starting Point Display -->
+              <div id="drive-start-point" class="drive-destination hidden">
+                <span class="dest-label">From:</span>
+                <span id="drive-start-text" class="dest-text">--</span>
+                <button id="drive-clear-start" class="dest-clear">×</button>
+              </div>
             </div>
 
             <!-- Calculate Route Button -->
@@ -392,6 +424,36 @@
                   >-- remaining</span
                 >
               </div>
+            </div>
+
+            <!-- Simulation Status (shown during drive simulation) -->
+            <div id="drive-sim-status" class="simulation-status hidden">
+              <div class="sim-header">
+                <span class="sim-indicator">🚗 SIMULATING @ 100 km/h</span>
+              </div>
+              <div class="sim-stat">
+                <span class="sim-stat-label">Progress</span>
+                <div class="progress-bar">
+                  <div
+                    id="drive-sim-progress-bar"
+                    class="progress-fill"
+                    style="width: 0%"
+                  ></div>
+                </div>
+                <span class="sim-stat-value" id="drive-sim-progress">0%</span>
+              </div>
+              <div class="sim-stat">
+                <span class="sim-stat-label">Distance</span>
+                <span class="sim-stat-value" id="drive-sim-distance">--</span>
+              </div>
+              <div class="sim-stat">
+                <span class="sim-stat-label">Time</span>
+                <span class="sim-stat-value" id="drive-sim-time">--</span>
+              </div>
+              <button id="drive-sim-stop-btn" class="btn btn-danger btn-large">
+                <span class="btn-icon">■</span>
+                <span class="btn-text">Stop Simulation</span>
+              </button>
             </div>
           </div>
         </section>

@@ -24,11 +24,14 @@ class PapertrailClient {
     // Drive navigation state
     this.driveMap = null;
     this.driveDestination = null; // { lat, lon, name }
+    this.driveStartPoint = null; // { lat, lon, name } - custom starting point (optional)
     this.driveRoute = null;
     this.driveMarker = null;
     this.driveRouteLine = null;
     this.isDriveNavigating = false;
+    this.isDriveSimulating = false; // Track if drive simulation is active
     this.addressSearchTimeout = null;
+    this.startSearchTimeout = null;
     this.currentPosition = null; // { lat, lon }
 
     // Mock display state
@@ -1492,6 +1495,34 @@ class PapertrailClient {
       });
     }
 
+    // Starting point search input
+    const startInput = document.getElementById("drive-start-input");
+    if (startInput) {
+      startInput.addEventListener("input", (e) => {
+        this.handleStartPointSearch(e.target.value);
+      });
+
+      // Close results when clicking outside
+      document.addEventListener("click", (e) => {
+        const results = document.getElementById("drive-start-results");
+        if (
+          results &&
+          !startInput.contains(e.target) &&
+          !results.contains(e.target)
+        ) {
+          results.classList.add("hidden");
+        }
+      });
+    }
+
+    // Clear starting point button
+    const clearStart = document.getElementById("drive-clear-start");
+    if (clearStart) {
+      clearStart.addEventListener("click", () => {
+        this.clearDriveStartPoint();
+      });
+    }
+
     // Calculate route button
     const calcRoute = document.getElementById("drive-calc-route");
     if (calcRoute) {
@@ -1516,6 +1547,14 @@ class PapertrailClient {
       });
     }
 
+    // Stop simulation button (in simulation status panel)
+    const simStopBtn = document.getElementById("drive-sim-stop-btn");
+    if (simStopBtn) {
+      simStopBtn.addEventListener("click", () => {
+        this.stopDriveNavigation();
+      });
+    }
+
     // Simulate drive button
     const simulateBtn = document.getElementById("drive-simulate-btn");
     if (simulateBtn) {
@@ -1526,6 +1565,7 @@ class PapertrailClient {
 
     // Load recent destinations on panel show
     this.loadRecentDestinations();
+    this.loadRecentStarts();
   }
 
   async loadRecentDestinations() {
@@ -1617,9 +1657,61 @@ class PapertrailClient {
       });
       // Reload the list to show the updated order
       this.loadRecentDestinations();
+      this.loadRecentStarts();
     } catch (error) {
       console.error("Failed to save recent destination:", error);
     }
+  }
+
+  async loadRecentStarts() {
+    try {
+      // Use the same recent destinations as potential starting points
+      const response = await fetch(`${this.apiBase}/destinations/recent`);
+      const data = await response.json();
+
+      if (data.success && data.data.length > 0) {
+        this.renderRecentStarts(data.data);
+      } else {
+        const container = document.getElementById("recent-starts");
+        if (container) {
+          container.classList.add("hidden");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load recent starts:", error);
+    }
+  }
+
+  renderRecentStarts(destinations) {
+    const container = document.getElementById("recent-starts");
+    const list = document.getElementById("recent-starts-list");
+
+    if (!container || !list) return;
+
+    list.innerHTML = "";
+
+    destinations.forEach((dest) => {
+      const item = document.createElement("div");
+      item.className = "recent-dest-item";
+
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "recent-dest-name";
+      const displayName =
+        dest.name.length > 40 ? dest.name.substring(0, 40) + "..." : dest.name;
+      nameSpan.textContent = displayName;
+      nameSpan.title = dest.name;
+
+      item.appendChild(nameSpan);
+
+      // Click to select this as starting point
+      item.addEventListener("click", () => {
+        this.setDriveStartPoint(dest.latitude, dest.longitude, dest.name);
+      });
+
+      list.appendChild(item);
+    });
+
+    container.classList.remove("hidden");
   }
 
   handleAddressSearch(query) {
@@ -1630,6 +1722,12 @@ class PapertrailClient {
 
     if (query.length < 3) {
       document.getElementById("drive-address-results").classList.add("hidden");
+      return;
+    }
+
+    // Check if the input is a Google Maps URL
+    if (this.isGoogleMapsUrl(query)) {
+      this.resolveGoogleMapsLink(query);
       return;
     }
 
@@ -1651,6 +1749,62 @@ class PapertrailClient {
         console.error("Address search error:", error);
       }
     }, 300);
+  }
+
+  /**
+   * Check if the input string is a Google Maps URL
+   */
+  isGoogleMapsUrl(str) {
+    return (
+      str.includes("google.com/maps") ||
+      str.includes("maps.google.com") ||
+      str.includes("maps.app.goo.gl") ||
+      str.includes("goo.gl/maps")
+    );
+  }
+
+  /**
+   * Resolve a Google Maps link to coordinates via backend API
+   */
+  async resolveGoogleMapsLink(url) {
+    // Clear address results
+    document.getElementById("drive-address-results").classList.add("hidden");
+
+    // Show loading state
+    this.showMessage("Resolving Google Maps link...", "info");
+
+    try {
+      const response = await fetch(
+        `${this.apiBase}/destinations/resolve-google-maps`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url.trim() }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const { latitude, longitude, name } = data.data;
+
+        // Set the destination
+        this.setDriveDestination(latitude, longitude, name);
+
+        // Clear the input
+        document.getElementById("drive-address-input").value = "";
+
+        this.showMessage("Destination set from Google Maps link", "success");
+      } else {
+        const errorMsg =
+          data.error?.message ||
+          "Could not extract coordinates from Google Maps link";
+        this.showMessage(errorMsg, "error");
+      }
+    } catch (error) {
+      console.error("Failed to resolve Google Maps link:", error);
+      this.showMessage("Failed to resolve Google Maps link", "error");
+    }
   }
 
   showAddressResults(results) {
@@ -1681,6 +1835,160 @@ class PapertrailClient {
     container.classList.remove("hidden");
   }
 
+  /**
+   * Handle starting point search input
+   */
+  handleStartPointSearch(query) {
+    // Debounce the search
+    if (this.startSearchTimeout) {
+      clearTimeout(this.startSearchTimeout);
+    }
+
+    if (query.length < 3) {
+      document.getElementById("drive-start-results").classList.add("hidden");
+      return;
+    }
+
+    // Check if the input is a Google Maps URL
+    if (this.isGoogleMapsUrl(query)) {
+      this.resolveGoogleMapsLinkForStart(query);
+      return;
+    }
+
+    this.startSearchTimeout = setTimeout(async () => {
+      try {
+        // Use Nominatim for geocoding
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`,
+          {
+            headers: {
+              "User-Agent": "Papertrail GPS Tracker",
+            },
+          },
+        );
+
+        const results = await response.json();
+        this.showStartPointResults(results);
+      } catch (error) {
+        console.error("Start point search error:", error);
+      }
+    }, 300);
+  }
+
+  /**
+   * Resolve a Google Maps link to coordinates for starting point
+   */
+  async resolveGoogleMapsLinkForStart(url) {
+    // Clear start results
+    document.getElementById("drive-start-results").classList.add("hidden");
+
+    // Show loading state
+    this.showMessage("Resolving Google Maps link...", "info");
+
+    try {
+      const response = await fetch(
+        `${this.apiBase}/destinations/resolve-google-maps`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: url.trim() }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const { latitude, longitude, name } = data.data;
+
+        // Set the starting point
+        this.setDriveStartPoint(latitude, longitude, name);
+
+        // Clear the input
+        document.getElementById("drive-start-input").value = "";
+
+        this.showMessage("Starting point set from Google Maps link", "success");
+      } else {
+        const errorMsg =
+          data.error?.message ||
+          "Could not extract coordinates from Google Maps link";
+        this.showMessage(errorMsg, "error");
+      }
+    } catch (error) {
+      console.error("Failed to resolve Google Maps link:", error);
+      this.showMessage("Failed to resolve Google Maps link", "error");
+    }
+  }
+
+  /**
+   * Show starting point search results
+   */
+  showStartPointResults(results) {
+    const container = document.getElementById("drive-start-results");
+    container.innerHTML = "";
+
+    if (results.length === 0) {
+      container.classList.add("hidden");
+      return;
+    }
+
+    results.forEach((result) => {
+      const item = document.createElement("div");
+      item.className = "address-result-item";
+      item.textContent = result.display_name;
+      item.addEventListener("click", () => {
+        this.setDriveStartPoint(
+          parseFloat(result.lat),
+          parseFloat(result.lon),
+          result.display_name,
+        );
+        container.classList.add("hidden");
+        document.getElementById("drive-start-input").value = "";
+      });
+      container.appendChild(item);
+    });
+
+    container.classList.remove("hidden");
+  }
+
+  /**
+   * Set custom starting point for route
+   */
+  setDriveStartPoint(lat, lon, name) {
+    this.driveStartPoint = { lat, lon, name };
+
+    // Update starting point display
+    const startContainer = document.getElementById("drive-start-point");
+    const startText = document.getElementById("drive-start-text");
+    startContainer.classList.remove("hidden");
+    startText.textContent =
+      name.length > 50 ? name.substring(0, 50) + "..." : name;
+    startText.title = name; // Full name on hover
+
+    // Clear previous route preview since start changed
+    document.getElementById("drive-route-preview").classList.add("hidden");
+    document.getElementById("drive-nav-controls").classList.add("hidden");
+    this.driveRoute = null;
+
+    this.showMessage("Starting point set", "success");
+  }
+
+  /**
+   * Clear custom starting point
+   */
+  clearDriveStartPoint() {
+    this.driveStartPoint = null;
+
+    document.getElementById("drive-start-point").classList.add("hidden");
+    document.getElementById("drive-start-input").value = "";
+
+    // Clear previous route preview
+    document.getElementById("drive-route-preview").classList.add("hidden");
+    document.getElementById("drive-nav-controls").classList.add("hidden");
+    this.driveRoute = null;
+
+    this.showMessage("Starting point cleared - will use GPS position", "info");
+  }
+
   setDriveDestination(lat, lon, name) {
     this.driveDestination = { lat, lon, name };
 
@@ -1689,6 +1997,11 @@ class PapertrailClient {
     const destText = document.getElementById("drive-dest-text");
     destContainer.classList.remove("hidden");
     destText.textContent = name;
+
+    // Show starting point section (optional input for custom start)
+    document
+      .getElementById("starting-point-section")
+      .classList.remove("hidden");
 
     // Enable calculate button
     document.getElementById("drive-calc-route").disabled = false;
@@ -1706,9 +2019,13 @@ class PapertrailClient {
 
   clearDriveDestination() {
     this.driveDestination = null;
+    this.driveStartPoint = null;
     this.driveRoute = null;
 
     document.getElementById("drive-destination").classList.add("hidden");
+    document.getElementById("starting-point-section").classList.add("hidden");
+    document.getElementById("drive-start-point").classList.add("hidden");
+    document.getElementById("drive-start-input").value = "";
     document.getElementById("drive-route-preview").classList.add("hidden");
     document.getElementById("drive-nav-controls").classList.add("hidden");
     document.getElementById("drive-calc-route").disabled = true;
@@ -1727,6 +2044,7 @@ class PapertrailClient {
   async calculateRoute() {
     console.log("calculateRoute called");
     console.log("driveDestination:", this.driveDestination);
+    console.log("driveStartPoint:", this.driveStartPoint);
     console.log("currentPosition:", this.currentPosition);
 
     if (!this.driveDestination) {
@@ -1734,96 +2052,134 @@ class PapertrailClient {
       return;
     }
 
-    if (!this.currentPosition) {
-      this.showMessage("Waiting for GPS position...", "error");
-      return;
-    }
+    // Determine the starting position to use for route calculation
+    let routeStartPosition;
 
-    // If using mock GPS, set position to track start point to avoid long distance routes
-    const isMockGPS = await this.checkMockGPS();
-    if (isMockGPS) {
-      console.log("Mock GPS detected - checking for active track start point");
-      const trackStart = await this.getActiveTrackStartPoint();
-      if (trackStart) {
+    // If custom starting point is set, use it directly
+    if (this.driveStartPoint) {
+      routeStartPosition = this.driveStartPoint;
+      console.log("Using custom starting point:", routeStartPosition);
+
+      // Also update mock GPS to the custom starting point for simulation
+      const isMockGPS = await this.checkMockGPS();
+      if (isMockGPS) {
+        await this.setMockGPSPosition(
+          routeStartPosition.lat,
+          routeStartPosition.lon,
+        );
+        this.currentPosition = {
+          lat: routeStartPosition.lat,
+          lon: routeStartPosition.lon,
+        };
+        this.showMessage(
+          "Mock GPS positioned at custom starting point",
+          "info",
+        );
+      }
+    } else {
+      // No custom starting point - use GPS position with fallbacks
+      if (!this.currentPosition) {
+        this.showMessage("Waiting for GPS position...", "error");
+        return;
+      }
+
+      routeStartPosition = this.currentPosition;
+
+      // If using mock GPS, set position to track start point to avoid long distance routes
+      const isMockGPS = await this.checkMockGPS();
+      if (isMockGPS) {
         console.log(
-          `Setting mock GPS position to track start: ${trackStart.lat}, ${trackStart.lon}`,
+          "Mock GPS detected - checking for active track start point",
         );
-        const success = await this.setMockGPSPosition(
-          trackStart.lat,
-          trackStart.lon,
-        );
-        if (success) {
-          this.currentPosition = trackStart;
-          this.showMessage("Mock GPS positioned at track start point", "info");
+        const trackStart = await this.getActiveTrackStartPoint();
+        if (trackStart) {
+          console.log(
+            `Setting mock GPS position to track start: ${trackStart.lat}, ${trackStart.lon}`,
+          );
+          const success = await this.setMockGPSPosition(
+            trackStart.lat,
+            trackStart.lon,
+          );
+          if (success) {
+            this.currentPosition = trackStart;
+            routeStartPosition = trackStart;
+            this.showMessage(
+              "Mock GPS positioned at track start point",
+              "info",
+            );
+          }
         }
       }
-    }
 
-    // Check for invalid 0,0 coordinates (no GPS fix)
-    if (this.currentPosition.lat === 0 && this.currentPosition.lon === 0) {
-      console.warn(
-        "GPS position is 0,0 - trying browser geolocation as fallback",
-      );
-      try {
-        const browserPos = await this.getBrowserGeolocation();
-        if (browserPos) {
-          this.currentPosition = browserPos;
-          console.log("Using browser geolocation:", this.currentPosition);
-        } else {
-          // Try active track starting point as final fallback
-          console.warn(
-            "Browser geolocation unavailable - trying active track starting point",
-          );
-          const trackStart = await this.getActiveTrackStartPoint();
-          if (trackStart) {
-            this.currentPosition = trackStart;
-            console.log(
-              "Using active track starting point:",
-              this.currentPosition,
-            );
-            this.showMessage(
-              "Using track starting point as origin (no GPS fix)",
-              "info",
-            );
-          } else {
-            this.showMessage(
-              "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
-              "error",
-            );
-            return;
-          }
-        }
-      } catch {
-        // Try active track starting point as final fallback
+      // Check for invalid 0,0 coordinates (no GPS fix)
+      if (routeStartPosition.lat === 0 && routeStartPosition.lon === 0) {
         console.warn(
-          "Browser geolocation failed - trying active track starting point",
+          "GPS position is 0,0 - trying browser geolocation as fallback",
         );
         try {
-          const trackStart = await this.getActiveTrackStartPoint();
-          if (trackStart) {
-            this.currentPosition = trackStart;
-            console.log(
-              "Using active track starting point:",
-              this.currentPosition,
-            );
-            this.showMessage(
-              "Using track starting point as origin (no GPS fix)",
-              "info",
-            );
+          const browserPos = await this.getBrowserGeolocation();
+          if (browserPos) {
+            routeStartPosition = browserPos;
+            this.currentPosition = browserPos;
+            console.log("Using browser geolocation:", routeStartPosition);
           } else {
+            // Try active track starting point as final fallback
+            console.warn(
+              "Browser geolocation unavailable - trying active track starting point",
+            );
+            const trackStart = await this.getActiveTrackStartPoint();
+            if (trackStart) {
+              routeStartPosition = trackStart;
+              this.currentPosition = trackStart;
+              console.log(
+                "Using active track starting point:",
+                routeStartPosition,
+              );
+              this.showMessage(
+                "Using track starting point as origin (no GPS fix)",
+                "info",
+              );
+            } else {
+              this.showMessage(
+                "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
+                "error",
+              );
+              return;
+            }
+          }
+        } catch {
+          // Try active track starting point as final fallback
+          console.warn(
+            "Browser geolocation failed - trying active track starting point",
+          );
+          try {
+            const trackStart = await this.getActiveTrackStartPoint();
+            if (trackStart) {
+              routeStartPosition = trackStart;
+              this.currentPosition = trackStart;
+              console.log(
+                "Using active track starting point:",
+                routeStartPosition,
+              );
+              this.showMessage(
+                "Using track starting point as origin (no GPS fix)",
+                "info",
+              );
+            } else {
+              this.showMessage(
+                "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
+                "error",
+              );
+              return;
+            }
+          } catch (trackError) {
+            console.error("Failed to get track starting point:", trackError);
             this.showMessage(
-              "No valid position. Please wait for GPS fix, enable browser location, or select a track.",
+              "No valid GPS position. Please wait for GPS fix.",
               "error",
             );
             return;
           }
-        } catch (trackError) {
-          console.error("Failed to get track starting point:", trackError);
-          this.showMessage(
-            "No valid GPS position. Please wait for GPS fix.",
-            "error",
-          );
-          return;
         }
       }
     }
@@ -1835,8 +2191,8 @@ class PapertrailClient {
 
     try {
       // Use backend proxy for OSRM routing (avoids CORS issues)
-      const startLon = this.currentPosition.lon;
-      const startLat = this.currentPosition.lat;
+      const startLon = routeStartPosition.lon;
+      const startLat = routeStartPosition.lat;
       const endLon = this.driveDestination.lon;
       const endLat = this.driveDestination.lat;
 
@@ -1907,14 +2263,22 @@ class PapertrailClient {
       coord[0],
     ]);
 
+    // Use custom starting point if set, otherwise use current position
+    const startLat = this.driveStartPoint
+      ? this.driveStartPoint.lat
+      : this.currentPosition.lat;
+    const startLon = this.driveStartPoint
+      ? this.driveStartPoint.lon
+      : this.currentPosition.lon;
+
     // Build the route object
     this.driveRoute = {
       id: `route_${Date.now()}`,
       destination: this.driveDestination.name,
       createdAt: new Date().toISOString(),
       startPoint: {
-        latitude: this.currentPosition.lat,
-        longitude: this.currentPosition.lon,
+        latitude: startLat,
+        longitude: startLon,
       },
       endPoint: {
         latitude: this.driveDestination.lat,
@@ -2156,6 +2520,9 @@ class PapertrailClient {
 
       if (result.success) {
         this.isDriveNavigating = false;
+        this.isDriveSimulating = false;
+        // Hide simulation status
+        document.getElementById("drive-sim-status")?.classList.add("hidden");
         this.updateDriveUI();
         this.showMessage("Navigation stopped", "info");
       } else {
@@ -2184,9 +2551,36 @@ class PapertrailClient {
     startBtn.disabled = true;
 
     try {
+      // Set mock GPS to the route's starting point before simulation
+      // This ensures simulation starts from the correct location
+      const startPoint = this.driveRoute.startPoint;
+      if (startPoint) {
+        const isMockGPS = await this.checkMockGPS();
+        if (isMockGPS) {
+          console.log(
+            `Setting mock GPS to route start: ${startPoint.latitude}, ${startPoint.longitude}`,
+          );
+          await this.setMockGPSPosition(
+            startPoint.latitude,
+            startPoint.longitude,
+          );
+          this.currentPosition = {
+            lat: startPoint.latitude,
+            lon: startPoint.longitude,
+          };
+        }
+      }
+
       // Convert drive route geometry to simulation format
       // The geometry is an array of [lat, lon] pairs
       // Screen type (track vs turn-by-turn) is controlled by Display Controls setting
+      console.log(
+        "Sending drive route:",
+        "waypoints:",
+        this.driveRoute.waypoints?.length,
+        "geometry:",
+        this.driveRoute.geometry?.length,
+      );
       const result = await this.fetchJSON(`${this.apiBase}/drive/simulate`, {
         method: "POST",
         body: JSON.stringify({
@@ -2197,11 +2591,14 @@ class PapertrailClient {
 
       if (result.success) {
         this.isDriveNavigating = true;
+        this.isDriveSimulating = true;
         this.showMessage("Drive simulation started at 100 km/h", "success");
         // Hide start/simulate, show stop
         simulateBtn.classList.add("hidden");
         startBtn.classList.add("hidden");
         stopBtn.classList.remove("hidden");
+        // Show simulation status
+        document.getElementById("drive-sim-status").classList.remove("hidden");
       } else {
         this.showMessage(
           result.error?.message || "Failed to start simulation",
@@ -2299,12 +2696,42 @@ class PapertrailClient {
       remaining.textContent = `${this.formatDistance(data.distanceRemaining)} remaining`;
     }
 
+    // Update simulation status if simulating
+    if (this.isDriveSimulating) {
+      const simProgressBar = document.getElementById("drive-sim-progress-bar");
+      const simProgress = document.getElementById("drive-sim-progress");
+      const simDistance = document.getElementById("drive-sim-distance");
+      const simTime = document.getElementById("drive-sim-time");
+
+      if (simProgressBar && data.progress !== undefined) {
+        simProgressBar.style.width = `${data.progress}%`;
+      }
+      if (simProgress && data.progress !== undefined) {
+        simProgress.textContent = `${data.progress.toFixed(1)}%`;
+      }
+      if (simDistance && data.distanceRemaining !== undefined) {
+        simDistance.textContent = this.formatDistance(data.distanceRemaining);
+      }
+      if (simTime && data.timeRemaining !== undefined) {
+        const mins = Math.floor(data.timeRemaining / 60);
+        const secs = Math.round(data.timeRemaining % 60);
+        if (mins > 0) {
+          simTime.textContent = `${mins}m ${secs}s`;
+        } else {
+          simTime.textContent = `${secs}s`;
+        }
+      }
+    }
+
     // Show navigation status if navigating
     if (data.state === "navigating" || data.state === "off_road") {
       this.isDriveNavigating = true;
       this.updateDriveUI();
     } else if (data.state === "arrived" || data.state === "cancelled") {
       this.isDriveNavigating = false;
+      this.isDriveSimulating = false;
+      // Hide simulation status
+      document.getElementById("drive-sim-status")?.classList.add("hidden");
       this.updateDriveUI();
     }
   }
