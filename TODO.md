@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 7.1 Remove Unused Code
+**Next item:** 7.2 Consolidate Similar Patterns
 
 **Completed:**
 
@@ -409,11 +409,12 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 
 ## Phase 7: Code Cleanup
 
-### 7.1 Remove Unused Code
+### 7.1 Remove Unused Code ✓
 
-- [ ] Remove `IProjectionInterface.ts` (listed as unused in jest.config.js:27)
-- [ ] Remove `textRenderer.ts` (listed as unused in jest.config.js:26)
-- [ ] Audit for other dead code
+- [x] Remove `IProjectionInterface.ts` (already removed in previous session)
+- [x] Remove `textRenderer.ts` (already removed in previous session)
+- [x] Audit for other dead code
+- [x] Remove `WebInterfaceService.ts` (353 lines, replaced by IntegratedWebService)
 
 ### 7.2 Consolidate Similar Patterns
 
