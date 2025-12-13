@@ -702,6 +702,10 @@ export class DriveNavigationService implements IDriveNavigationService {
   /**
    * Generate basic waypoints from geometry when OSRM doesn't provide turn-by-turn data
    * Creates depart/arrive waypoints plus intermediate waypoints for significant turns
+   *
+   * Uses cumulative bearing change detection: tracks bearing from last waypoint
+   * and triggers a new waypoint when cumulative change exceeds threshold.
+   * This handles smooth OSRM polylines where turns are spread across many segments.
    */
   private generateWaypointsFromGeometry(
     geometry: [number, number][],
@@ -723,17 +727,21 @@ export class DriveNavigationService implements IDriveNavigationService {
       index: 0,
     });
 
-    // Add intermediate waypoints at significant bearing changes (turns > 45 degrees)
-    const TURN_THRESHOLD = 45; // degrees
-    const MIN_SEGMENT_DISTANCE = 100; // meters - don't add waypoints too close together
+    // Turn detection parameters
+    const TURN_THRESHOLD = 35; // degrees - cumulative bearing change to trigger waypoint
+    const MIN_DISTANCE_BETWEEN_WAYPOINTS = 50; // meters - minimum distance between waypoints
+    const LOOKBACK_DISTANCE = 30; // meters - how far back to look for entry bearing
 
-    let lastWaypointIndex = 0;
+    let lastWaypointGeometryIndex = 0;
     let accumulatedDistance = 0;
+
+    // Track entry bearing (bearing when leaving last waypoint area)
+    let entryBearing: number | null = null;
+    let entryBearingIndex = 0;
 
     for (let i = 1; i < geometry.length - 1; i++) {
       const prev = geometry[i - 1];
       const curr = geometry[i];
-      const next = geometry[i + 1];
 
       // Calculate segment distance
       const segmentDist = this.calculateDistance(
@@ -744,49 +752,63 @@ export class DriveNavigationService implements IDriveNavigationService {
       );
       accumulatedDistance += segmentDist;
 
-      // Calculate bearing change
-      const bearingIn = this.calculateBearing(
-        prev[0],
-        prev[1],
-        curr[0],
-        curr[1],
-      );
-      const bearingOut = this.calculateBearing(
-        curr[0],
-        curr[1],
-        next[0],
-        next[1],
-      );
-
-      let bearingChange = Math.abs(bearingOut - bearingIn);
-      if (bearingChange > 180) {
-        bearingChange = 360 - bearingChange;
+      // Set entry bearing once we're far enough from last waypoint
+      if (entryBearing === null && accumulatedDistance >= LOOKBACK_DISTANCE) {
+        entryBearing = this.calculateBearing(
+          geometry[lastWaypointGeometryIndex][0],
+          geometry[lastWaypointGeometryIndex][1],
+          curr[0],
+          curr[1],
+        );
+        entryBearingIndex = i;
       }
 
-      // Add waypoint if significant turn and far enough from last waypoint
+      // Only check for turns if we have an entry bearing and are far enough from last waypoint
       if (
-        bearingChange >= TURN_THRESHOLD &&
-        accumulatedDistance >= MIN_SEGMENT_DISTANCE
+        entryBearing !== null &&
+        accumulatedDistance >= MIN_DISTANCE_BETWEEN_WAYPOINTS
       ) {
-        const turnType = this.getTurnType(bearingIn, bearingOut);
-        waypoints.push({
-          latitude: curr[0],
-          longitude: curr[1],
-          instruction: this.formatTurnInstruction(turnType),
-          maneuverType: turnType,
-          distance: accumulatedDistance,
-          index: waypoints.length,
-        });
-        lastWaypointIndex = i;
-        accumulatedDistance = 0;
+        // Calculate current bearing from entry point
+        const currentBearing = this.calculateBearing(
+          geometry[entryBearingIndex][0],
+          geometry[entryBearingIndex][1],
+          curr[0],
+          curr[1],
+        );
+
+        // Calculate bearing change from entry bearing
+        let bearingChange = currentBearing - entryBearing;
+        // Normalize to -180 to 180
+        if (bearingChange > 180) bearingChange -= 360;
+        if (bearingChange < -180) bearingChange += 360;
+
+        const absBearingChange = Math.abs(bearingChange);
+
+        // Add waypoint if significant turn detected
+        if (absBearingChange >= TURN_THRESHOLD) {
+          const turnType = this.getTurnTypeFromChange(bearingChange);
+          waypoints.push({
+            latitude: curr[0],
+            longitude: curr[1],
+            instruction: this.formatTurnInstruction(turnType),
+            maneuverType: turnType,
+            distance: accumulatedDistance,
+            index: waypoints.length,
+          });
+
+          // Reset for next segment
+          lastWaypointGeometryIndex = i;
+          accumulatedDistance = 0;
+          entryBearing = null;
+        }
       }
     }
 
     // Calculate final segment distance
     const lastIdx = geometry.length - 1;
     const finalDist = this.calculateDistance(
-      geometry[lastWaypointIndex][0],
-      geometry[lastWaypointIndex][1],
+      geometry[lastWaypointGeometryIndex][0],
+      geometry[lastWaypointGeometryIndex][1],
       geometry[lastIdx][0],
       geometry[lastIdx][1],
     );
@@ -801,26 +823,32 @@ export class DriveNavigationService implements IDriveNavigationService {
       index: waypoints.length,
     });
 
+    logger.info(
+      `Generated ${waypoints.length} waypoints from ${geometry.length} geometry points`,
+    );
+
     return waypoints;
   }
 
   /**
-   * Determine turn type from bearing change
+   * Determine turn type from signed bearing change
    */
-  private getTurnType(bearingIn: number, bearingOut: number): ManeuverType {
-    let diff = bearingOut - bearingIn;
-    if (diff > 180) diff -= 360;
-    if (diff < -180) diff += 360;
+  private getTurnTypeFromChange(bearingChange: number): ManeuverType {
+    // bearingChange is positive for right turns, negative for left
+    const abs = Math.abs(bearingChange);
 
-    if (diff >= -30 && diff <= 30) return ManeuverType.STRAIGHT;
-    if (diff > 30 && diff <= 60) return ManeuverType.SLIGHT_RIGHT;
-    if (diff > 60 && diff <= 120) return ManeuverType.RIGHT;
-    if (diff > 120) return ManeuverType.SHARP_RIGHT;
-    if (diff < -30 && diff >= -60) return ManeuverType.SLIGHT_LEFT;
-    if (diff < -60 && diff >= -120) return ManeuverType.LEFT;
-    if (diff < -120) return ManeuverType.SHARP_LEFT;
-
-    return ManeuverType.STRAIGHT;
+    if (abs < 20) return ManeuverType.STRAIGHT;
+    if (bearingChange > 0) {
+      // Right turns
+      if (abs < 50) return ManeuverType.SLIGHT_RIGHT;
+      if (abs < 110) return ManeuverType.RIGHT;
+      return ManeuverType.SHARP_RIGHT;
+    } else {
+      // Left turns
+      if (abs < 50) return ManeuverType.SLIGHT_LEFT;
+      if (abs < 110) return ManeuverType.LEFT;
+      return ManeuverType.SHARP_LEFT;
+    }
   }
 
   /**
