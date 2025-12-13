@@ -1960,6 +1960,9 @@ class PapertrailClient {
   setDriveStartPoint(lat, lon, name) {
     this.driveStartPoint = { lat, lon, name };
 
+    // Update starting point input field
+    document.getElementById("drive-start-input").value = name;
+
     // Update starting point display
     const startContainer = document.getElementById("drive-start-point");
     const startText = document.getElementById("drive-start-text");
@@ -1995,6 +1998,9 @@ class PapertrailClient {
 
   setDriveDestination(lat, lon, name) {
     this.driveDestination = { lat, lon, name };
+
+    // Update destination input field
+    document.getElementById("drive-address-input").value = name;
 
     // Update destination display
     const destContainer = document.getElementById("drive-destination");
