@@ -15,6 +15,7 @@ import {
 } from "@core/types";
 import { DriveError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { haversineDistance } from "@utils/geo";
 import * as fs from "fs/promises";
 import * as path from "path";
 
@@ -439,7 +440,7 @@ export class DriveNavigationService implements IDriveNavigationService {
 
     // Check distance to route start
     const routeStart = this.activeRoute.startPoint;
-    const distanceToStart = this.calculateDistance(
+    const distanceToStart = haversineDistance(
       this.currentPosition.latitude,
       this.currentPosition.longitude,
       routeStart.latitude,
@@ -504,7 +505,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     // Check if we've reached the current waypoint
     while (this.currentWaypointIndex < waypoints.length) {
       const waypoint = waypoints[this.currentWaypointIndex];
-      const distanceToWaypoint = this.calculateDistance(
+      const distanceToWaypoint = haversineDistance(
         this.currentPosition.latitude,
         this.currentPosition.longitude,
         waypoint.latitude,
@@ -538,7 +539,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     // Calculate distance to next turn
     if (this.currentWaypointIndex < waypoints.length) {
       const nextWaypoint = waypoints[this.currentWaypointIndex];
-      this.distanceToNextTurn = this.calculateDistance(
+      this.distanceToNextTurn = haversineDistance(
         this.currentPosition.latitude,
         this.currentPosition.longitude,
         nextWaypoint.latitude,
@@ -624,28 +625,6 @@ export class DriveNavigationService implements IDriveNavigationService {
   }
 
   /**
-   * Calculate distance between two coordinates using Haversine formula
-   */
-  private calculateDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }
-
-  /**
    * Calculate total distance along a geometry path
    */
   private calculateTotalDistanceFromGeometry(
@@ -653,7 +632,7 @@ export class DriveNavigationService implements IDriveNavigationService {
   ): number {
     let total = 0;
     for (let i = 1; i < geometry.length; i++) {
-      total += this.calculateDistance(
+      total += haversineDistance(
         geometry[i - 1][0],
         geometry[i - 1][1],
         geometry[i][0],
@@ -764,7 +743,7 @@ export class DriveNavigationService implements IDriveNavigationService {
     // Build distance array for quick lookups
     const distances: number[] = [0];
     for (let i = 1; i < geometry.length; i++) {
-      const d = this.calculateDistance(
+      const d = haversineDistance(
         geometry[i - 1][0],
         geometry[i - 1][1],
         geometry[i][0],

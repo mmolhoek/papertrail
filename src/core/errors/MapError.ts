@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Map-related error codes
@@ -170,9 +169,5 @@ export class MapError extends BaseError {
       false,
       { latitude: lat, longitude: lon },
     );
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

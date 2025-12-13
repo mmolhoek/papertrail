@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * GPS-related error codes
@@ -113,9 +112,5 @@ export class GPSError extends BaseError {
       true,
       { originalError: error.message },
     );
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

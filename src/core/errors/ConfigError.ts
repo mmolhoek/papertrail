@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Config-related error codes
@@ -155,9 +154,5 @@ export class ConfigError extends BaseError {
       false,
       { originalError: error.message },
     );
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

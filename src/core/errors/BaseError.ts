@@ -1,3 +1,5 @@
+import { getUserMessage as getErrorUserMessage } from "./ErrorMessages";
+
 /**
  * Base error class for all custom errors in the application
  * Extends Error to maintain stack traces and instanceof checks
@@ -60,9 +62,12 @@ export abstract class BaseError extends Error {
   }
 
   /**
-   * Get a user-friendly error message
+   * Get a user-friendly error message.
+   * Uses centralized error messages from ErrorMessages.ts for consistent
+   * user-facing messages. Falls back to the technical message if no
+   * user message is defined for this error code.
    */
   getUserMessage(): string {
-    return this.message;
+    return getErrorUserMessage(this.code);
   }
 }

@@ -14,6 +14,7 @@ import {
 } from "@core/types";
 import { GPSError, GPSErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { haversineDistance, calculateBearing } from "@utils/geo";
 
 const logger = getLogger("TrackSimulationService");
 
@@ -117,7 +118,12 @@ export class TrackSimulationService implements ITrackSimulationService {
       altitude: firstPoint.altitude,
       timestamp: new Date(),
       speed: (speed * 1000) / 3600, // Convert km/h to m/s
-      bearing: this.calculateBearing(firstPoint, secondPoint),
+      bearing: calculateBearing(
+        firstPoint.latitude,
+        firstPoint.longitude,
+        secondPoint.latitude,
+        secondPoint.longitude,
+      ),
     };
 
     this.state = SimulationState.RUNNING;
@@ -326,7 +332,12 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.totalDistance = 0;
 
     for (let i = 0; i < points.length - 1; i++) {
-      const distance = this.calculateDistance(points[i], points[i + 1]);
+      const distance = haversineDistance(
+        points[i].latitude,
+        points[i].longitude,
+        points[i + 1].latitude,
+        points[i + 1].longitude,
+      );
       this.segmentDistances.push(distance);
       this.totalDistance += distance;
     }
@@ -353,44 +364,6 @@ export class TrackSimulationService implements ITrackSimulationService {
   }
 
   /**
-   * Calculate distance between two points using Haversine formula
-   */
-  private calculateDistance(p1: GPXTrackPoint, p2: GPXTrackPoint): number {
-    const R = 6371000; // Earth's radius in meters
-    const lat1 = (p1.latitude * Math.PI) / 180;
-    const lat2 = (p2.latitude * Math.PI) / 180;
-    const deltaLat = ((p2.latitude - p1.latitude) * Math.PI) / 180;
-    const deltaLon = ((p2.longitude - p1.longitude) * Math.PI) / 180;
-
-    const a =
-      Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-      Math.cos(lat1) *
-        Math.cos(lat2) *
-        Math.sin(deltaLon / 2) *
-        Math.sin(deltaLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-
-  /**
-   * Calculate bearing between two points
-   */
-  private calculateBearing(p1: GPXTrackPoint, p2: GPXTrackPoint): number {
-    const lat1 = (p1.latitude * Math.PI) / 180;
-    const lat2 = (p2.latitude * Math.PI) / 180;
-    const deltaLon = ((p2.longitude - p1.longitude) * Math.PI) / 180;
-
-    const y = Math.sin(deltaLon) * Math.cos(lat2);
-    const x =
-      Math.cos(lat1) * Math.sin(lat2) -
-      Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLon);
-
-    const bearing = (Math.atan2(y, x) * 180) / Math.PI;
-    return (bearing + 360) % 360;
-  }
-
-  /**
    * Interpolate position between two points
    */
   private interpolatePosition(
@@ -411,7 +384,12 @@ export class TrackSimulationService implements ITrackSimulationService {
       altitude: alt,
       timestamp: new Date(),
       speed: (this.speed * 1000) / 3600, // m/s
-      bearing: this.calculateBearing(p1, p2),
+      bearing: calculateBearing(
+        p1.latitude,
+        p1.longitude,
+        p2.latitude,
+        p2.longitude,
+      ),
     };
   }
 
@@ -517,7 +495,12 @@ export class TrackSimulationService implements ITrackSimulationService {
           altitude: lastPoint.altitude,
           timestamp: new Date(),
           speed: 0,
-          bearing: this.calculateBearing(prevPoint, lastPoint),
+          bearing: calculateBearing(
+            prevPoint.latitude,
+            prevPoint.longitude,
+            lastPoint.latitude,
+            lastPoint.longitude,
+          ),
         };
         this.notifyPositionUpdate(this.currentPosition);
 

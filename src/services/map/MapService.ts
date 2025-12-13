@@ -15,6 +15,7 @@ import {
 } from "@core/types";
 import { MapError, MapErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { haversineDistance } from "@utils/geo";
 
 const logger = getLogger("MapService");
 
@@ -271,7 +272,7 @@ export class MapService implements IMapService {
       for (let i = 1; i < segment.points.length; i++) {
         const p1 = segment.points[i - 1];
         const p2 = segment.points[i];
-        totalDistance += this.haversineDistance(
+        totalDistance += haversineDistance(
           p1.latitude,
           p1.longitude,
           p2.latitude,
@@ -480,30 +481,6 @@ export class MapService implements IMapService {
   }
 
   /**
-   * Calculate distance between two coordinates using Haversine formula
-   */
-  private haversineDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371e3; // Earth radius in meters
-    const φ1 = (lat1 * Math.PI) / 180;
-    const φ2 = (lat2 * Math.PI) / 180;
-    const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-    const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-    const a =
-      Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-      Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return R * c;
-  }
-
-  /**
    * Douglas-Peucker algorithm for line simplification
    */
   private douglasPeucker(
@@ -554,19 +531,19 @@ export class MapService implements IMapService {
     lineEnd: GPXTrackPoint,
   ): number {
     // Convert to meters using Haversine for better accuracy
-    const d1 = this.haversineDistance(
+    const d1 = haversineDistance(
       point.latitude,
       point.longitude,
       lineStart.latitude,
       lineStart.longitude,
     );
-    const d2 = this.haversineDistance(
+    const d2 = haversineDistance(
       point.latitude,
       point.longitude,
       lineEnd.latitude,
       lineEnd.longitude,
     );
-    const d3 = this.haversineDistance(
+    const d3 = haversineDistance(
       lineStart.latitude,
       lineStart.longitude,
       lineEnd.latitude,

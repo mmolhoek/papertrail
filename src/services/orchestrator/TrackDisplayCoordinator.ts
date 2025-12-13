@@ -23,6 +23,7 @@ import {
 } from "@core/types";
 import { OrchestratorError } from "@core/errors";
 import { getLogger } from "@utils/logger";
+import { haversineDistance } from "@utils/geo";
 import { TrackTurnAnalyzer, TrackTurn } from "@services/map/TrackTurnAnalyzer";
 import { DisplayUpdateQueue } from "./DisplayUpdateQueue";
 import { SimulationCoordinator } from "./SimulationCoordinator";
@@ -604,7 +605,7 @@ export class TrackDisplayCoordinator {
 
     track.segments.forEach((segment, segIdx) => {
       segment.points.forEach((point, ptIdx) => {
-        const dist = this.haversineDistance(
+        const dist = haversineDistance(
           position.latitude,
           position.longitude,
           point.latitude,
@@ -630,7 +631,7 @@ export class TrackDisplayCoordinator {
       for (let p = 0; p < endPoint; p++) {
         const p1 = segment.points[p];
         const p2 = segment.points[p + 1];
-        distanceTraveled += this.haversineDistance(
+        distanceTraveled += haversineDistance(
           p1.latitude,
           p1.longitude,
           p2.latitude,
@@ -641,28 +642,6 @@ export class TrackDisplayCoordinator {
 
     const distanceRemaining = Math.max(0, totalDistance - distanceTraveled);
     return { distanceTraveled, distanceRemaining };
-  }
-
-  /**
-   * Calculate distance between two coordinates using Haversine formula
-   */
-  private haversineDistance(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371000; // Earth's radius in meters
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
   }
 
   /**

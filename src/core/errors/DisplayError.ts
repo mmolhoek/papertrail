@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Display-related error codes
@@ -197,9 +196,5 @@ export class DisplayError extends BaseError {
       true,
       { originalError: error.message },
     );
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

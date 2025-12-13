@@ -27,7 +27,7 @@
 
 ## Current Progress
 
-**Next item:** 7.2 Consolidate Similar Patterns
+**Next item:** 7.3 Improve Type Consistency
 
 **Completed:**
 
@@ -416,11 +416,24 @@ After excluding untestable hardware code, actual coverage is: 59.73%/76.77%/74.8
 - [x] Audit for other dead code
 - [x] Remove `WebInterfaceService.ts` (353 lines, replaced by IntegratedWebService)
 
-### 7.2 Consolidate Similar Patterns
+### 7.2 Consolidate Similar Patterns ✓
 
-- [ ] Review error class `getUserMessage()` methods for DRY opportunities
-- [ ] Consider generic error message builder
-- [ ] Consolidate duplicate validation logic across services
+- [x] Review error class `getUserMessage()` methods for DRY opportunities
+  - Moved `getUserMessage()` implementation to `BaseError` using centralized `ErrorMessages.ts`
+  - Removed redundant `getUserMessage()` overrides from all 8 error classes
+- [x] Consider generic error message builder
+  - `getFormattedMessage()` already exists in `ErrorMessages.ts` with placeholder support
+  - Error messages use static strings with context fields for dynamic details
+- [x] Consolidate duplicate validation logic across services
+  - Created `src/utils/geo.ts` with centralized geo utilities (haversineDistance, calculateBearing, etc.)
+  - Removed 6 duplicate Haversine implementations from services
+  - Added 31 tests for geo utilities
+
+**Files:**
+- `src/utils/geo.ts` (140 lines) - Centralized geo calculations
+- `src/utils/__tests__/geo.test.ts` (180 lines) - 31 tests
+- `src/core/errors/BaseError.ts` - Now uses centralized getUserMessage()
+- Updated services: MapService, TrackTurnAnalyzer, TrackDisplayCoordinator, GPSCoordinator, TrackSimulationService, DriveNavigationService
 
 ### 7.3 Improve Type Consistency
 

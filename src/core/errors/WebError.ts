@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Web-related error codes
@@ -199,9 +198,5 @@ export class WebError extends BaseError {
       ...super.toJSON(),
       statusCode: this.statusCode,
     };
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

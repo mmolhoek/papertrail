@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Orchestrator-related error codes
@@ -141,9 +140,5 @@ export class OrchestratorError extends BaseError {
         stack: e.stack,
       })),
     };
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }

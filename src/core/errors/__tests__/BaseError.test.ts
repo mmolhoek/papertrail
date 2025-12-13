@@ -60,9 +60,26 @@ describe("BaseError", () => {
   });
 
   describe("getUserMessage", () => {
-    it("should return the error message by default", () => {
-      const error = new TestError("User facing message");
-      expect(error.getUserMessage()).toBe("User facing message");
+    it("should return centralized user message for known error code", () => {
+      // Use a known GPS error code
+      const error = new TestError("Technical message", "GPS_DEVICE_NOT_FOUND");
+      expect(error.getUserMessage()).toBe(
+        "GPS device not found. Please check connections.",
+      );
+    });
+
+    it("should return fallback message for unknown error code", () => {
+      const error = new TestError("Technical message", "UNKNOWN_CODE");
+      expect(error.getUserMessage()).toBe(
+        "An error occurred. Please try again.",
+      );
+    });
+
+    it("should return category fallback for known category prefix", () => {
+      const error = new TestError("Technical message", "GPS_FUTURE_ERROR");
+      expect(error.getUserMessage()).toBe(
+        "GPS error occurred. Please try again.",
+      );
     });
   });
 });

@@ -14,35 +14,10 @@ import {
   GPS_DEFAULT_DISTANCE_THRESHOLD_METERS,
 } from "@core/constants";
 import { getLogger } from "@utils/logger";
+import { distanceBetween } from "@utils/geo";
 import { OnboardingCoordinator } from "./OnboardingCoordinator";
 
 const logger = getLogger("GPSCoordinator");
-
-/** Earth radius in meters for Haversine calculation */
-const EARTH_RADIUS_METERS = 6371000;
-
-/**
- * Calculate the distance between two GPS coordinates using Haversine formula.
- * @param pos1 - First GPS coordinate
- * @param pos2 - Second GPS coordinate
- * @returns Distance in meters
- */
-function calculateDistance(pos1: GPSCoordinate, pos2: GPSCoordinate): number {
-  const lat1 = (pos1.latitude * Math.PI) / 180;
-  const lat2 = (pos2.latitude * Math.PI) / 180;
-  const deltaLat = ((pos2.latitude - pos1.latitude) * Math.PI) / 180;
-  const deltaLon = ((pos2.longitude - pos1.longitude) * Math.PI) / 180;
-
-  const a =
-    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
-    Math.cos(lat1) *
-      Math.cos(lat2) *
-      Math.sin(deltaLon / 2) *
-      Math.sin(deltaLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return EARTH_RADIUS_METERS * c;
-}
 
 /**
  * Coordinates GPS position and status updates.
@@ -448,7 +423,7 @@ export class GPSCoordinator {
     // If distanceThresholdMeters is 0, distance throttling is disabled (never triggers early)
     let distanceThresholdExceeded = false;
     if (this.debounceConfig.distanceThresholdMeters > 0) {
-      const distance = calculateDistance(this.lastNotifiedPosition, position);
+      const distance = distanceBetween(this.lastNotifiedPosition, position);
       distanceThresholdExceeded =
         distance >= this.debounceConfig.distanceThresholdMeters;
 
@@ -482,7 +457,7 @@ export class GPSCoordinator {
         now - this.lastNotificationTime < this.debounceConfig.debounceMs &&
         this.lastNotifiedPosition
       ) {
-        const distance = calculateDistance(this.lastNotifiedPosition, position);
+        const distance = distanceBetween(this.lastNotifiedPosition, position);
         if (distance < this.debounceConfig.distanceThresholdMeters) {
           this.debounceStats.skippedByDistance++;
         } else {

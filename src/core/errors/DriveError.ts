@@ -1,5 +1,4 @@
 import { BaseError } from "./BaseError";
-import { getUserMessage } from "./ErrorMessages";
 
 /**
  * Drive navigation error codes
@@ -127,9 +126,5 @@ export class DriveError extends BaseError {
       DriveErrorCode.SERVICE_NOT_INITIALIZED,
       false,
     );
-  }
-
-  getUserMessage(): string {
-    return getUserMessage(this.code);
   }
 }
