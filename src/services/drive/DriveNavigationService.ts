@@ -240,8 +240,15 @@ export class DriveNavigationService implements IDriveNavigationService {
           activeRoute.geometry,
         );
 
+        // Verify distances match
+        const waypointSum = activeRoute.waypoints.reduce(
+          (sum, wp) => sum + wp.distance,
+          0,
+        );
         logger.info(
-          `Generated ${activeRoute.waypoints.length} waypoints, totalDistance=${Math.round(activeRoute.totalDistance)}m`,
+          `Generated ${activeRoute.waypoints.length} waypoints, ` +
+            `totalDistance=${Math.round(activeRoute.totalDistance)}m, ` +
+            `waypointSum=${Math.round(waypointSum)}m`,
         );
       } else {
         return failure(
@@ -828,14 +835,17 @@ export class DriveNavigationService implements IDriveNavigationService {
       }
     }
 
-    // Calculate final segment distance
+    // Add the final segment (loop doesn't process the last point)
     const lastIdx = geometry.length - 1;
-    const finalDist = this.calculateDistance(
-      geometry[lastWaypointGeometryIndex][0],
-      geometry[lastWaypointGeometryIndex][1],
-      geometry[lastIdx][0],
-      geometry[lastIdx][1],
-    );
+    if (lastIdx > 0) {
+      const finalSegmentDist = this.calculateDistance(
+        geometry[lastIdx - 1][0],
+        geometry[lastIdx - 1][1],
+        geometry[lastIdx][0],
+        geometry[lastIdx][1],
+      );
+      accumulatedDistance += finalSegmentDist;
+    }
 
     // Last point: arrive
     waypoints.push({
@@ -843,12 +853,18 @@ export class DriveNavigationService implements IDriveNavigationService {
       longitude: geometry[lastIdx][1],
       instruction: destination ? `Arrive at ${destination}` : "Arrive",
       maneuverType: ManeuverType.ARRIVE,
-      distance: finalDist + accumulatedDistance,
+      distance: accumulatedDistance,
       index: waypoints.length,
     });
 
+    // Debug: verify waypoint distances sum correctly
+    const waypointDistanceSum = waypoints.reduce(
+      (sum, wp) => sum + wp.distance,
+      0,
+    );
     logger.info(
-      `Generated ${waypoints.length} waypoints from ${geometry.length} geometry points`,
+      `Generated ${waypoints.length} waypoints from ${geometry.length} geometry points, ` +
+        `waypoint distance sum=${Math.round(waypointDistanceSum)}m`,
     );
 
     return waypoints;
