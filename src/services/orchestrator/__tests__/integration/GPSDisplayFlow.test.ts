@@ -126,10 +126,8 @@ describe("GPS → Display Update Flow Integration", () => {
       renderArrivalScreen: jest.fn().mockResolvedValue(success(testBitmap)),
       createBlankBitmap: jest.fn().mockReturnValue(testBitmap),
       getDefaultRenderOptions: jest.fn().mockReturnValue({ showLine: true }),
-      addText: jest.fn().mockReturnValue(success(testBitmap)),
       addCompass: jest.fn().mockReturnValue(success(testBitmap)),
       addScaleBar: jest.fn().mockReturnValue(success(testBitmap)),
-      addInfoPanel: jest.fn().mockReturnValue(success(testBitmap)),
     };
 
     mockEpaperService = {

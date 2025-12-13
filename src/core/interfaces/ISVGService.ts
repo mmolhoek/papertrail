@@ -115,23 +115,6 @@ export interface ISVGService {
   createBlankBitmap(width: number, height: number, fill?: boolean): Bitmap1Bit;
 
   /**
-   * Add text to a bitmap
-   * @param bitmap The bitmap to modify
-   * @param text Text to add
-   * @param x X position
-   * @param y Y position
-   * @param fontSize Font size in pixels
-   * @returns Result containing modified bitmap or error
-   */
-  addText(
-    bitmap: Bitmap1Bit,
-    text: string,
-    x: number,
-    y: number,
-    fontSize?: number,
-  ): Result<Bitmap1Bit>;
-
-  /**
    * Add a compass rose to indicate direction
    * Uses SVG-based text rendering for labels
    * @param bitmap The bitmap to modify
@@ -166,24 +149,6 @@ export interface ISVGService {
     width: number,
     metersPerPixel: number,
   ): Promise<Result<Bitmap1Bit>>;
-
-  /**
-   * Overlay information panel on the bitmap
-   * @param bitmap The bitmap to modify
-   * @param info Information to display (speed, distance, etc.)
-   * @param position Position of the panel ('top-left', 'top-right', 'bottom-left', 'bottom-right')
-   * @returns Result containing modified bitmap or error
-   */
-  addInfoPanel(
-    bitmap: Bitmap1Bit,
-    info: {
-      speed?: string;
-      distance?: string;
-      elevation?: string;
-      time?: string;
-    },
-    position?: "top-left" | "top-right" | "bottom-left" | "bottom-right",
-  ): Result<Bitmap1Bit>;
 
   /**
    * Get the default render options

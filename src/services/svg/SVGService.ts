@@ -239,31 +239,6 @@ export class SVGService implements ISVGService {
   }
 
   /**
-   * Add text to a bitmap.
-   *
-   * @param bitmap - The bitmap to add text to
-   * @param text - The text string to render
-   * @param x - X coordinate for text placement
-   * @param y - Y coordinate for text placement
-   * @param fontSize - Font size in pixels (default: 12)
-   * @returns Result containing the modified bitmap
-   * @deprecated Text rendering is not yet implemented - returns bitmap unchanged
-   */
-  addText(
-    bitmap: Bitmap1Bit,
-    text: string,
-    x: number,
-    y: number,
-    fontSize: number = 12,
-  ): Result<Bitmap1Bit> {
-    logger.debug(`Adding text: "${text}" at (${x}, ${y}), size=${fontSize}`);
-    // TODO: Implement text rendering
-    // For now, just return the bitmap unchanged
-    logger.warn("Text rendering not yet implemented");
-    return success(bitmap);
-  }
-
-  /**
    * Add a compass rose to indicate direction.
    *
    * Draws a compass with North indicator at the specified position.
@@ -321,35 +296,6 @@ export class SVGService implements ISVGService {
     metersPerPixel: number,
   ): Promise<Result<Bitmap1Bit>> {
     return UIRenderer.addScaleBar(bitmap, x, y, maxWidth, metersPerPixel);
-  }
-
-  /**
-   * Overlay information panel on the bitmap.
-   *
-   * @param bitmap - The bitmap to add the info panel to
-   * @param info - Object containing optional display values
-   * @param position - Corner position for the panel (default: "top-left")
-   * @returns Result containing the modified bitmap
-   * @deprecated Info panel rendering is not yet implemented - returns bitmap unchanged
-   */
-  addInfoPanel(
-    bitmap: Bitmap1Bit,
-    info: {
-      speed?: string;
-      distance?: string;
-      elevation?: string;
-      time?: string;
-    },
-    position:
-      | "top-left"
-      | "top-right"
-      | "bottom-left"
-      | "bottom-right" = "top-left",
-  ): Result<Bitmap1Bit> {
-    logger.debug(`Adding info panel at ${position}:`, info);
-    // TODO: Implement info panel rendering
-    logger.warn("Info panel rendering not yet implemented");
-    return success(bitmap);
   }
 
   /**

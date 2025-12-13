@@ -212,24 +212,6 @@ describe("SVGService", () => {
     });
   });
 
-  describe("addText", () => {
-    it("should add text to bitmap", () => {
-      const bitmap = service.createBlankBitmap(200, 100, false);
-
-      const result = service.addText(bitmap, "Test", 10, 10);
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should add text with custom font size", () => {
-      const bitmap = service.createBlankBitmap(200, 100, false);
-
-      const result = service.addText(bitmap, "Test", 10, 10, 16);
-
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe("addCompass", () => {
     it("should add compass to bitmap", async () => {
       const bitmap = service.createBlankBitmap(200, 200, false);
@@ -266,52 +248,6 @@ describe("SVGService", () => {
         const result = await service.addScaleBar(bitmap, 10, 80, 100, mpp);
         expect(result.success).toBe(true);
       }
-    });
-  });
-
-  describe("addInfoPanel", () => {
-    it("should add info panel to bitmap", () => {
-      const bitmap = service.createBlankBitmap(800, 480, false);
-
-      const result = service.addInfoPanel(
-        bitmap,
-        {
-          speed: "25 km/h",
-          distance: "5.2 km",
-          elevation: "150 m",
-          time: "10:30",
-        },
-        "top-right",
-      );
-
-      expect(result.success).toBe(true);
-    });
-
-    it("should add info panel at different positions", () => {
-      const positions = [
-        "top-left",
-        "top-right",
-        "bottom-left",
-        "bottom-right",
-      ] as const;
-
-      for (const position of positions) {
-        const bitmap = service.createBlankBitmap(800, 480, false);
-        const result = service.addInfoPanel(
-          bitmap,
-          { speed: "25 km/h" },
-          position,
-        );
-        expect(result.success).toBe(true);
-      }
-    });
-
-    it("should add info panel with partial info", () => {
-      const bitmap = service.createBlankBitmap(800, 480, false);
-
-      const result = service.addInfoPanel(bitmap, { speed: "25 km/h" });
-
-      expect(result.success).toBe(true);
     });
   });
 
