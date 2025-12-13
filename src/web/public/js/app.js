@@ -1430,6 +1430,12 @@ class PapertrailClient {
     }
   }
 
+  // Initialize drive map (placeholder - map container not yet implemented)
+  initDriveMap() {
+    // Map initialization will be added when map container is added to drive panel
+    // For now, just ensure this doesn't throw an error
+  }
+
   updateSimulationStatus(data) {
     const progressBar = document.getElementById("sim-progress-bar");
     const progressText = document.getElementById("sim-progress");
