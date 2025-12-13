@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Papertrail is a GPS tracker with e-paper display for Raspberry Pi 5. It tracks GPS position, displays GPX tracks on an e-paper screen, and provides a mobile web interface for control via WebSocket.
+Papertrail is a GPS tracker with e-paper display for Raspberry Pi 5. It tracks GPS position, displays GPX tracks on an 800x480 e-paper screen, and provides a mobile web interface for control via WebSocket.
 
 ## Common Commands
 
@@ -14,10 +14,15 @@ npm start              # Run compiled code from dist/
 npm run dev            # Development mode with auto-reload
 npm test               # Run all tests
 npm run test:watch     # Run tests in watch mode
-npm run test:coverage  # Run tests with coverage (threshold: 70%)
+npm run test:coverage  # Run tests with coverage
 npm run lint           # Check code style
 npm run lint:fix       # Fix linting issues
 npm run format         # Format code with Prettier
+```
+
+Run a single test file:
+```bash
+npm test -- path/to/file.test.ts
 ```
 
 ## Architecture
@@ -25,14 +30,18 @@ npm run format         # Format code with Prettier
 ### Request Flow
 
 ```
-Mobile Browser → IntegratedWebService (Express + Socket.IO)
+Mobile Browser → IntegratedWebService (Express + Socket.IO, port 3000)
                         ↓
-              WebController → RenderingOrchestrator
-                                      ↓
-          GPS / Map / SVG / Epaper / Config Services
+              WebController → Sub-controllers (GPS, Track, Drive, Config, WiFi, Simulation)
+                        ↓
+              RenderingOrchestrator (central coordinator)
+                        ↓
+     ┌──────────┬──────────┬───────────┬──────────┐
+     ↓          ↓          ↓           ↓          ↓
+GPSService  MapService  SVGService  EPaper  ConfigService
 ```
 
-**Key insight:** `RenderingOrchestrator` is the central coordinator that initializes all services, subscribes to GPS updates, and orchestrates the rendering pipeline.
+**RenderingOrchestrator** is the central coordinator that initializes all services, subscribes to GPS updates, and orchestrates the rendering pipeline. Sub-coordinators handle specific domains: GPSCoordinator, DriveCoordinator, SimulationCoordinator, TrackDisplayCoordinator, OnboardingCoordinator.
 
 ### Result Type Pattern
 
@@ -51,8 +60,9 @@ Helper functions: `success()`, `failure()`, `isSuccess()`, `isFailure()` from `@
 ### Dependency Injection
 
 Services are managed by `ServiceContainer` singleton (`src/di/ServiceContainer.ts`):
-- Factory methods for production services
-- Setter methods for test mocking
+- Factory methods create production services
+- Setter methods allow test mocking: `ServiceContainer.setGPSService(mockService)`
+- Call `ServiceContainer.reset()` between tests to clear singleton state
 - Reads configuration from environment variables
 
 ### Path Aliases
@@ -67,11 +77,11 @@ import { ServiceContainer } from "@di/ServiceContainer";
 import { getLogger } from "@utils/logger";
 ```
 
-Aliases: `@core/*`, `@services/*`, `@di/*`, `@web/*`, `@utils/*`, `@errors/*`
+Aliases defined in tsconfig.json: `@core/*`, `@services/*`, `@di/*`, `@web/*`, `@utils/*`, `@errors/*`
 
 ### Service Structure
 
-Each service follows:
+Each service follows this pattern:
 - Interface in `src/core/interfaces/I{Name}Service.ts`
 - Implementation in `src/services/{name}/{Name}Service.ts`
 - Tests in `src/services/{name}/__tests__/{Name}Service.test.ts`
@@ -83,21 +93,41 @@ Services must implement `initialize(): Promise<Result<void>>` and `dispose(): Pr
 
 Custom errors extend `BaseError` with typed error codes (enums) and static factory methods: `GPSError`, `MapError`, `DisplayError`, `OrchestratorError`, `WebError`, `ConfigError`.
 
+### Key Services
+
+| Service | Location | Purpose |
+|---------|----------|---------|
+| RenderingOrchestrator | `src/services/orchestrator/` | Central coordinator, manages lifecycle |
+| GPSService | `src/services/gps/` | Hardware interface for GPS receiver |
+| MapService | `src/services/map/` | GPX file parsing and track management |
+| SVGService | `src/services/svg/` | Renders maps and tracks to bitmap |
+| EPaperService | `src/services/epaper/` | E-paper display hardware interface |
+| ConfigService | `src/services/config/` | Persists configuration to JSON |
+| WiFiService | `src/services/wifi/` | Network management via nmcli |
+| DriveNavigationService | `src/services/drive/` | Route calculation and turn-by-turn guidance |
+
 ## Testing
 
-Tests are in `__tests__/` directories next to the code. Use:
-1. `ServiceContainer.reset()` to clear singleton state
-2. Inject mocks via `ServiceContainer.set{Service}()` methods
+Tests use Jest and are located in `__tests__/` directories next to the code they test.
+
+Test setup pattern:
+```typescript
+beforeEach(() => {
+  ServiceContainer.reset();
+  ServiceContainer.setGPSService(mockGPSService);
+  // ... inject other mocks
+});
+```
+
+Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they require physical devices. Mock implementations are used automatically on non-Linux platforms.
 
 ## Development Notes
 
 - **Entry point:** `src/index.ts`
 - **Logging:** Use `getLogger(name)` from `@utils/logger`
-- **Static files:** `src/web/public/`
+- **Static web files:** `src/web/public/`
 - **GPX files:** `data/gpx-files/`
-- **Mock services:** Automatically used on non-Linux platforms for GPS/E-paper
+- **Config persistence:** `data/config.json`
+- **Pre-commit hooks:** Husky runs lint-staged (prettier + eslint) on staged files
 
-**Workflow requirements:**
-- Run `npm run format` after making changes
-- Write tests for new code
-- Use logger utility with extensive logging when adding services
+Run `npm run format` after making changes. Write tests for new code.
