@@ -234,8 +234,14 @@ export class DriveNavigationService implements IDriveNavigationService {
           activeRoute.geometry,
           activeRoute.destination,
         );
+
+        // Recalculate totalDistance from geometry to ensure consistency
+        activeRoute.totalDistance = this.calculateTotalDistanceFromGeometry(
+          activeRoute.geometry,
+        );
+
         logger.info(
-          `Generated ${activeRoute.waypoints.length} waypoints from geometry`,
+          `Generated ${activeRoute.waypoints.length} waypoints, totalDistance=${Math.round(activeRoute.totalDistance)}m`,
         );
       } else {
         return failure(
@@ -633,6 +639,24 @@ export class DriveNavigationService implements IDriveNavigationService {
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  }
+
+  /**
+   * Calculate total distance along a geometry path
+   */
+  private calculateTotalDistanceFromGeometry(
+    geometry: [number, number][],
+  ): number {
+    let total = 0;
+    for (let i = 1; i < geometry.length; i++) {
+      total += this.calculateDistance(
+        geometry[i - 1][0],
+        geometry[i - 1][1],
+        geometry[i][0],
+        geometry[i][1],
+      );
+    }
+    return total;
   }
 
   /**
