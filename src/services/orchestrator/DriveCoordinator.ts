@@ -336,6 +336,7 @@ export class DriveCoordinator {
             const info: DriveNavigationInfo = {
               speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0,
               satellites: lastStatus?.satellitesInUse ?? 0,
+              zoomLevel: zoomLevel,
               nextManeuver: status.nextTurn.maneuverType,
               distanceToTurn: status.distanceToNextTurn,
               instruction: status.nextTurn.instruction,

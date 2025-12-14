@@ -18,6 +18,8 @@ export interface FollowTrackInfo {
   speed: number;
   /** Number of satellites in use */
   satellites: number;
+  /** Current zoom level */
+  zoomLevel?: number;
   /** Progress percentage (0-100) */
   progress?: number;
   /** Current bearing/heading in degrees (used for compass rotation) */
@@ -56,6 +58,8 @@ export interface DriveNavigationInfo {
   speed: number;
   /** Number of satellites in use */
   satellites: number;
+  /** Current zoom level */
+  zoomLevel?: number;
   /** Next turn maneuver type */
   nextManeuver: ManeuverType;
   /** Distance to next turn in meters */

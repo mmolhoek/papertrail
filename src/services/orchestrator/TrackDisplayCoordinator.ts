@@ -442,6 +442,7 @@ export class TrackDisplayCoordinator {
     const followTrackInfo: FollowTrackInfo = {
       speed: position.speed ? position.speed * 3.6 : 0,
       satellites: satellites,
+      zoomLevel: viewport.zoomLevel,
       bearing: position.bearing,
       progress: progress,
       distanceRemaining: distanceRemaining,
@@ -603,6 +604,7 @@ export class TrackDisplayCoordinator {
     const driveInfo: DriveNavigationInfo = {
       speed: followTrackInfo.speed,
       satellites: followTrackInfo.satellites,
+      zoomLevel: viewport.zoomLevel,
       nextManeuver: displayManeuver,
       distanceToTurn: displayDistance,
       instruction: displayInstruction,

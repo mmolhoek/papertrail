@@ -349,7 +349,27 @@ export class UIRenderer {
     );
     currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
 
-    // Section 3: Progress percentage
+    // Section 3: Zoom level
+    if (info.zoomLevel !== undefined) {
+      renderBitmapText(bitmap, "ZOOM", x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + lineSpacing;
+
+      renderBitmapText(
+        bitmap,
+        info.zoomLevel.toString(),
+        x + padding,
+        currentY,
+        {
+          scale: valueScale,
+          bold: true,
+        },
+      );
+      currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
+    }
+
+    // Section 4: Progress percentage
     if (info.progress !== undefined) {
       renderBitmapText(bitmap, "DONE", x + padding, currentY, {
         scale: labelScale,
@@ -364,7 +384,7 @@ export class UIRenderer {
       currentY += calculateBitmapTextHeight(valueScale) + sectionSpacing;
     }
 
-    // Section 4: Time remaining
+    // Section 5: Time remaining
     if (info.estimatedTimeRemaining !== undefined) {
       renderBitmapText(bitmap, "ETA", x + padding, currentY, {
         scale: labelScale,

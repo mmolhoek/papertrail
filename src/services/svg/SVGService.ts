@@ -1328,6 +1328,28 @@ export class SVGService implements ISVGService {
     );
     currentY += calculateBitmapTextHeight(valueScale) + 20;
 
+    // Zoom level section (if available)
+    if (info.zoomLevel !== undefined) {
+      logger.info("renderDriveInfoPanel: step 6b - zoom label");
+      renderBitmapText(bitmap, "ZOOM", x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + 4;
+
+      logger.info("renderDriveInfoPanel: step 6c - zoom value");
+      renderBitmapText(
+        bitmap,
+        info.zoomLevel.toString(),
+        x + padding,
+        currentY,
+        {
+          scale: valueScale,
+          bold: true,
+        },
+      );
+      currentY += calculateBitmapTextHeight(valueScale) + 20;
+    }
+
     logger.info("renderDriveInfoPanel: step 7 - progress label");
 
     // Progress label
