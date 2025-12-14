@@ -945,24 +945,52 @@ export class SVGService implements ISVGService {
         TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
-      // Draw next waypoint marker
-      let waypointPixel = this.projectToPixels(
-        nextWaypoint.latitude,
-        nextWaypoint.longitude,
-        mapViewport,
-      );
-      // Apply same rotation as route if in track-up mode
+      // Draw all waypoint markers on the route
       const bearing = currentPosition.bearing;
-      if (renderOpts.rotateWithBearing && bearing !== undefined) {
-        waypointPixel = this.rotatePoint(
-          waypointPixel,
-          mapWidth / 2,
-          height / 2,
-          -bearing,
+      for (const waypoint of route.waypoints) {
+        let waypointPixel = this.projectToPixels(
+          waypoint.latitude,
+          waypoint.longitude,
+          mapViewport,
         );
-      }
-      if (waypointPixel.x < mapWidth) {
-        TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 6, 8);
+
+        // Apply rotation if in track-up mode
+        if (renderOpts.rotateWithBearing && bearing !== undefined) {
+          waypointPixel = this.rotatePoint(
+            waypointPixel,
+            mapWidth / 2,
+            height / 2,
+            -bearing,
+          );
+        }
+
+        // Only render if within map area and on screen
+        if (
+          waypointPixel.x >= 0 &&
+          waypointPixel.x < mapWidth &&
+          waypointPixel.y >= 0 &&
+          waypointPixel.y < height
+        ) {
+          // Draw waypoint marker (highlight next waypoint differently)
+          const isNextWaypoint = waypoint.index === nextWaypoint.index;
+          if (isNextWaypoint) {
+            TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 6, 8);
+          } else {
+            TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 4, 6);
+          }
+
+          // Draw waypoint label
+          const label = this.formatWaypointLabel(waypoint);
+          if (label) {
+            const labelX = waypointPixel.x + 12; // Offset to right of marker
+            const labelY = waypointPixel.y - 4; // Slightly above center
+
+            // Only render label if it fits in map area
+            if (labelX < mapWidth - 50) {
+              renderBitmapText(bitmap, label, labelX, labelY, { scale: 1 });
+            }
+          }
+        }
       }
 
       // Draw compass in top-left corner of map area
@@ -1385,5 +1413,38 @@ export class SVGService implements ISVGService {
    */
   private bearingToDirection(bearing: number): string {
     return UIRenderer.bearingToDirection(bearing);
+  }
+
+  /**
+   * Format a waypoint label for display on the map.
+   * Keeps labels short to fit on e-paper display.
+   */
+  private formatWaypointLabel(waypoint: DriveWaypoint): string {
+    // Use street name if available, otherwise use maneuver type
+    if (waypoint.streetName) {
+      // Truncate long street names
+      const name = waypoint.streetName.substring(0, 12);
+      return name.toUpperCase();
+    }
+
+    // Format maneuver type as short label
+    switch (waypoint.maneuverType) {
+      case ManeuverType.LEFT:
+      case ManeuverType.SLIGHT_LEFT:
+      case ManeuverType.SHARP_LEFT:
+        return "L";
+      case ManeuverType.RIGHT:
+      case ManeuverType.SLIGHT_RIGHT:
+      case ManeuverType.SHARP_RIGHT:
+        return "R";
+      case ManeuverType.UTURN:
+        return "U";
+      case ManeuverType.ARRIVE:
+        return "END";
+      case ManeuverType.DEPART:
+        return "START";
+      default:
+        return "";
+    }
   }
 }
