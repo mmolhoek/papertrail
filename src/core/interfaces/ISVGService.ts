@@ -74,6 +74,8 @@ export interface DriveNavigationInfo {
   progress: number;
   /** Estimated time remaining in seconds */
   timeRemaining?: number;
+  /** Current speed limit in km/h (null if unknown) */
+  speedLimit?: number | null;
 }
 
 /**

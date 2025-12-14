@@ -358,6 +358,8 @@ function createMockConfigService(): IConfigService {
     setActiveScreen: jest.fn(),
     getAutoRefreshInterval: jest.fn().mockReturnValue(0),
     setAutoRefreshInterval: jest.fn(),
+    getShowSpeedLimit: jest.fn().mockReturnValue(true),
+    setShowSpeedLimit: jest.fn(),
     getRecentFiles: jest.fn().mockReturnValue([]),
     addRecentFile: jest.fn(),
     clearRecentFiles: jest.fn(),

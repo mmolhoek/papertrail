@@ -9,6 +9,7 @@ import {
   ITextRendererService,
   ITrackSimulationService,
   IDriveNavigationService,
+  ISpeedLimitService,
 } from "@core/interfaces";
 import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
@@ -77,6 +78,7 @@ import { RenderingOrchestrator } from "@services/orchestrator/RenderingOrchestra
 import { TextRendererService } from "@services/textRenderer/TextRendererService";
 import { TrackSimulationService } from "@services/simulation/TrackSimulationService";
 import { DriveNavigationService } from "@services/drive/DriveNavigationService";
+import { SpeedLimitService } from "@services/speedLimit/SpeedLimitService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -106,6 +108,7 @@ export class ServiceContainer {
     textRenderer?: ITextRendererService;
     simulation?: ITrackSimulationService;
     driveNavigation?: IDriveNavigationService;
+    speedLimit?: ISpeedLimitService;
   } = {};
 
   /**
@@ -341,6 +344,7 @@ export class ServiceContainer {
         this.getTextRendererService(),
         this.getTrackSimulationService(),
         this.getDriveNavigationService(),
+        this.getSpeedLimitService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -397,6 +401,16 @@ export class ServiceContainer {
       this.services.driveNavigation = new DriveNavigationService();
     }
     return this.services.driveNavigation;
+  }
+
+  /**
+   * Get Speed Limit Service
+   */
+  getSpeedLimitService(): ISpeedLimitService {
+    if (!this.services.speedLimit) {
+      this.services.speedLimit = new SpeedLimitService();
+    }
+    return this.services.speedLimit;
   }
 
   // Configuration getters
@@ -690,6 +704,13 @@ export class ServiceContainer {
    */
   setDriveNavigationService(service: IDriveNavigationService): void {
     this.services.driveNavigation = service;
+  }
+
+  /**
+   * Set Speed Limit Service (for testing)
+   */
+  setSpeedLimitService(service: ISpeedLimitService): void {
+    this.services.speedLimit = service;
   }
 
   // Security/Credential helpers

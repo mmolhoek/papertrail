@@ -9,6 +9,7 @@ import {
   ITextRendererService,
   ITrackSimulationService,
   IDriveNavigationService,
+  ISpeedLimitService,
 } from "@core/interfaces";
 import {
   Result,
@@ -107,6 +108,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly textRendererService?: ITextRendererService,
     private readonly simulationService?: ITrackSimulationService,
     private readonly driveNavigationService?: IDriveNavigationService,
+    private readonly speedLimitService?: ISpeedLimitService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -143,6 +145,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       epaperService,
       configService,
       simulationService ?? null,
+      speedLimitService ?? null,
       this.gpsCoordinator,
       this.onboardingCoordinator,
     );
@@ -305,6 +308,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
+      // Initialize speed limit service (if provided)
+      if (this.speedLimitService) {
+        logger.info("Initializing SpeedLimitService...");
+        const speedLimitResult = await this.speedLimitService.initialize();
+        if (!speedLimitResult.success) {
+          logger.error(
+            "Failed to initialize SpeedLimitService:",
+            speedLimitResult.error,
+          );
+          // Non-fatal - speed limit is optional
+          logger.warn("Speed limit display will not be available");
+        } else {
+          logger.info("✓ SpeedLimitService initialized");
+        }
+      }
+
       this.isInitialized = true;
 
       // Set drive coordinator as initialized
@@ -368,6 +387,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.info(`Setting zoom to fit drive route: ${fitZoom}`);
       this.configService.setZoomLevel(fitZoom);
       await this.configService.save();
+    }
+
+    // Prefetch speed limits for the route in the background (while internet is available)
+    if (this.speedLimitService && this.configService.getShowSpeedLimit()) {
+      logger.info("Starting speed limit prefetch for route");
+      // Run in background - don't block navigation start
+      this.speedLimitService.prefetchRouteSpeedLimits(route).then((result) => {
+        if (result.success) {
+          logger.info(`Prefetched ${result.data} speed limit segments`);
+        } else {
+          logger.warn(
+            "Failed to prefetch speed limits:",
+            result.error?.message,
+          );
+        }
+      });
     }
 
     return this.driveCoordinator.startDriveNavigation(route);

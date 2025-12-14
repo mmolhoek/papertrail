@@ -16,6 +16,7 @@ export * from "./IWiFiService";
 export * from "./ITextRendererService";
 export * from "./ITrackSimulationService";
 export * from "./IDriveNavigationService";
+export * from "./ISpeedLimitService";
 
 // Display driver abstraction interfaces
 export * from "./IDisplayDriver";

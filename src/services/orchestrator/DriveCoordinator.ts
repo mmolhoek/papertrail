@@ -4,6 +4,7 @@ import {
   IEpaperService,
   IConfigService,
   ITrackSimulationService,
+  ISpeedLimitService,
   DriveNavigationInfo,
 } from "@core/interfaces";
 import {
@@ -58,12 +59,17 @@ export class DriveCoordinator {
   // Initialized flag
   private isInitialized: boolean = false;
 
+  // Cached speed limit data
+  private cachedSpeedLimit: number | null = null;
+  private lastSpeedLimitPosition: { lat: number; lon: number } | null = null;
+
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
     private readonly svgService: ISVGService,
     private readonly epaperService: IEpaperService,
     private readonly configService: IConfigService,
     private readonly simulationService: ITrackSimulationService | null,
+    private readonly speedLimitService: ISpeedLimitService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
@@ -333,6 +339,9 @@ export class DriveCoordinator {
           const lastPosition = this.gpsCoordinator?.getLastPosition();
           const lastStatus = this.gpsCoordinator?.getLastStatus();
           if (status.route && status.nextTurn && lastPosition) {
+            // Get current speed limit (async but cached)
+            const speedLimit = await this.getCurrentSpeedLimit(lastPosition);
+
             const info: DriveNavigationInfo = {
               speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0,
               satellites: lastStatus?.satellitesInUse ?? 0,
@@ -344,6 +353,7 @@ export class DriveCoordinator {
               distanceRemaining: status.distanceRemaining,
               progress: status.progress,
               timeRemaining: status.timeRemaining,
+              speedLimit: speedLimit,
             };
 
             const renderOptions = {
@@ -461,6 +471,8 @@ export class DriveCoordinator {
 
     // Clear stored data
     this.driveRouteStartPosition = null;
+    this.cachedSpeedLimit = null;
+    this.lastSpeedLimitPosition = null;
 
     logger.info("✓ DriveCoordinator disposed");
   }
@@ -524,5 +536,50 @@ export class DriveCoordinator {
     );
 
     logger.info("Subscribed to drive navigation updates");
+  }
+
+  /**
+   * Get current speed limit for position (uses cache to avoid excessive lookups)
+   */
+  private async getCurrentSpeedLimit(
+    position: GPSCoordinate,
+  ): Promise<number | null> {
+    // Check if speed limit display is enabled
+    if (!this.configService.getShowSpeedLimit()) {
+      return null;
+    }
+
+    if (!this.speedLimitService) {
+      return null;
+    }
+
+    // Check if we should update the cache (moved significantly)
+    const shouldUpdate =
+      !this.lastSpeedLimitPosition ||
+      Math.abs(position.latitude - this.lastSpeedLimitPosition.lat) > 0.0005 || // ~50m
+      Math.abs(position.longitude - this.lastSpeedLimitPosition.lon) > 0.0005;
+
+    if (shouldUpdate) {
+      try {
+        const result = await this.speedLimitService.getSpeedLimit(position);
+        if (result.success && result.data) {
+          this.cachedSpeedLimit = result.data.speedLimit;
+          logger.debug(
+            `Speed limit updated: ${this.cachedSpeedLimit} km/h (${result.data.roadName || "unknown road"})`,
+          );
+        } else {
+          // Keep previous value if no new data found
+          logger.debug("No speed limit data found for position");
+        }
+        this.lastSpeedLimitPosition = {
+          lat: position.latitude,
+          lon: position.longitude,
+        };
+      } catch (error) {
+        logger.warn("Failed to fetch speed limit:", error);
+      }
+    }
+
+    return this.cachedSpeedLimit;
   }
 }

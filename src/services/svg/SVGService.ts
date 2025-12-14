@@ -1318,15 +1318,32 @@ export class SVGService implements ISVGService {
 
     logger.info("renderDriveInfoPanel: step 6 - speed value");
 
-    // Speed value
-    renderBitmapText(
-      bitmap,
-      `${Math.round(info.speed)} KM/H`,
-      x + padding,
-      currentY,
-      { scale: valueScale, bold: true },
-    );
-    currentY += calculateBitmapTextHeight(valueScale) + 20;
+    // Speed value (with speed limit if available)
+    if (info.speedLimit !== undefined && info.speedLimit !== null) {
+      // Show speed with limit: "45 / 50"
+      const speedText = `${Math.round(info.speed)}/${info.speedLimit}`;
+      renderBitmapText(bitmap, speedText, x + padding, currentY, {
+        scale: valueScale,
+        bold: true,
+      });
+      currentY += calculateBitmapTextHeight(valueScale) + 4;
+
+      // Show unit and LIMIT label
+      renderBitmapText(bitmap, "KM/H LIMIT", x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + 16;
+    } else {
+      // No speed limit available - show just speed
+      renderBitmapText(
+        bitmap,
+        `${Math.round(info.speed)} KM/H`,
+        x + padding,
+        currentY,
+        { scale: valueScale, bold: true },
+      );
+      currentY += calculateBitmapTextHeight(valueScale) + 20;
+    }
 
     // Zoom level section (if available)
     if (info.zoomLevel !== undefined) {

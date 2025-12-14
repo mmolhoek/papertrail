@@ -23,4 +23,5 @@ export * from "./OrchestratorError";
 export * from "./WebError";
 export * from "./WiFiError";
 export * from "./DriveError";
+export * from "./SpeedLimitError";
 export * from "./ErrorMessages";

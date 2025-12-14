@@ -204,6 +204,7 @@ describe("Drive Navigation Flow Integration", () => {
       getRenderOptions: jest.fn().mockReturnValue({ showLine: true }),
       save: jest.fn().mockResolvedValue(success(undefined)),
       getConfig: jest.fn().mockReturnValue({ web: { port: 3000 } }),
+      getShowSpeedLimit: jest.fn().mockReturnValue(true),
     };
 
     // Create mock drive navigation service
@@ -250,6 +251,7 @@ describe("Drive Navigation Flow Integration", () => {
       undefined, // Text renderer service
       undefined, // Simulation service
       mockDriveNavigationService,
+      undefined, // Speed limit service
     );
   });
 

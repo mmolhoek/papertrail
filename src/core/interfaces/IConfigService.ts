@@ -147,6 +147,18 @@ export interface IConfigService {
    */
   setAutoRefreshInterval(seconds: number): void;
 
+  /**
+   * Get show speed limit preference
+   * @returns true if speed limit should be displayed during drive navigation
+   */
+  getShowSpeedLimit(): boolean;
+
+  /**
+   * Set show speed limit preference
+   * @param enabled Whether to show speed limit
+   */
+  setShowSpeedLimit(enabled: boolean): void;
+
   // Active screen management
 
   /**

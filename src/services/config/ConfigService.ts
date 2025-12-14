@@ -186,6 +186,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.autoRefreshInterval = seconds;
   }
 
+  // Speed limit display
+
+  getShowSpeedLimit(): boolean {
+    return this.userState.displayPreferences.showSpeedLimit ?? true;
+  }
+
+  setShowSpeedLimit(enabled: boolean): void {
+    this.userState.displayPreferences.showSpeedLimit = enabled;
+  }
+
   // Active screen management
 
   getActiveScreen(): ScreenType {
@@ -518,6 +528,7 @@ export class ConfigService implements IConfigService {
         rotateWithBearing: false,
         brightness: 100,
         autoRefreshInterval: 30,
+        showSpeedLimit: true,
       },
       recentFiles: [],
       customWaypoints: [],

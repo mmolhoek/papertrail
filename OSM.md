@@ -33,7 +33,7 @@ Display human-readable location names instead of just coordinates.
 ---
 
 ### OSM-2: Speed Limit Display
-**Status:** Not started
+**Status:** Implemented
 **Priority:** High
 **Complexity:** Medium
 
@@ -45,12 +45,13 @@ Show speed limits from OSM road data.
 - Show speed limit in drive info panel
 - Handle roads without speed limit data gracefully
 
-**Implementation notes:**
-- Use Overpass API to query `maxspeed` tag for nearby ways
-- Match current GPS position to nearest OSM way
-- Cache speed limits for road segments
-- Overpass query: `way(around:20,{lat},{lon})[highway][maxspeed];out;`
-- Update on road changes, not continuously
+**Implementation:**
+- Created `SpeedLimitService` using Overpass API to query `maxspeed` tags
+- Speed limits are prefetched along the route when navigation starts (while internet available)
+- Cached in `data/speed-limits/` for offline use during driving
+- Speed limit displayed in drive info panel next to current speed (format: "45/50" for speed/limit)
+- Configurable via `showSpeedLimit` in user display preferences
+- Handles various maxspeed formats: numeric (30, 50), with units (30 mph, 50 km/h), special values (walk, none)
 
 ---
 

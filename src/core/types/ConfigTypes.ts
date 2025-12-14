@@ -178,6 +178,9 @@ export type UserState = {
 
     /** Auto-refresh interval in seconds (0 = disabled) */
     autoRefreshInterval: number;
+
+    /** Whether to show speed limit during drive navigation */
+    showSpeedLimit: boolean;
   };
 
   /** Recently used GPX files */
