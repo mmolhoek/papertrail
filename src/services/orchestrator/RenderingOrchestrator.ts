@@ -361,6 +361,15 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         ),
       );
     }
+
+    // Calculate and set zoom level to fit the entire route
+    if (route.geometry && route.geometry.length > 0) {
+      const fitZoom = this.calculateFitZoomFromGeometry(route.geometry);
+      logger.info(`Setting zoom to fit drive route: ${fitZoom}`);
+      this.configService.setZoomLevel(fitZoom);
+      await this.configService.save();
+    }
+
     return this.driveCoordinator.startDriveNavigation(route);
   }
 
@@ -467,6 +476,18 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return success(undefined);
     }
     logger.info(`Setting active GPX file: ${filePath}`);
+
+    // Stop any running simulation when selecting a different track
+    if (this.simulationService?.isSimulating()) {
+      logger.info("Stopping simulation before switching tracks");
+      await this.simulationService.stopSimulation();
+    }
+
+    // Stop any active drive navigation when selecting a different track
+    if (this.driveCoordinator?.isDriveNavigating()) {
+      logger.info("Stopping drive navigation before switching tracks");
+      await this.driveCoordinator.stopDriveNavigation();
+    }
 
     // Clear turn analysis cache for the new track
     if (this.trackDisplayCoordinator) {
