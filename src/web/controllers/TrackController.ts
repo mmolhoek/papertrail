@@ -56,6 +56,7 @@ export class TrackController {
               trackCount: info.trackCount,
               pointCount: info.pointCount,
               totalDistance: info.totalDistance,
+              waypointCount: info.waypointCount,
               fileSize: info.fileSize,
               lastModified: info.lastModified,
             };
@@ -301,19 +302,26 @@ export class TrackController {
         this.mapService.clearCache();
       }
 
-      // Get track info for point count and distance
+      // Get track info for point count, distance, and waypoints
       let pointCount = 0;
       let totalDistance = 0;
+      let waypointCount = 0;
       if (this.mapService) {
-        const trackResult = await this.mapService.getTrack(destPath);
-        if (trackResult.success && trackResult.data.segments[0]) {
-          pointCount = trackResult.data.segments[0].points.length;
-          totalDistance = this.mapService.calculateDistance(trackResult.data);
+        const fileResult = await this.mapService.loadGPXFile(destPath);
+        if (fileResult.success) {
+          const gpxFile = fileResult.data;
+          if (gpxFile.tracks[0]?.segments[0]) {
+            pointCount = gpxFile.tracks[0].segments[0].points.length;
+            totalDistance = this.mapService.calculateDistance(
+              gpxFile.tracks[0],
+            );
+          }
+          waypointCount = gpxFile.waypoints?.length || 0;
         }
       }
 
       logger.info(
-        `GPX file uploaded successfully: ${safeFileName} (${pointCount} points, ${totalDistance.toFixed(0)}m)`,
+        `GPX file uploaded successfully: ${safeFileName} (${pointCount} points, ${totalDistance.toFixed(0)}m, ${waypointCount} waypoints)`,
       );
       res.json({
         success: true,
@@ -324,6 +332,7 @@ export class TrackController {
           trackName: baseName,
           pointCount,
           totalDistance,
+          waypointCount,
         },
       });
     } catch (error) {

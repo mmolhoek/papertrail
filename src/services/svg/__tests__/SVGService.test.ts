@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { SVGService } from "@services/svg/SVGService";
 import {
   GPXTrack,
@@ -453,6 +454,111 @@ describe("SVGService", () => {
       const result = await service.renderArrivalScreen("Home", viewport);
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("formatWaypointLabel", () => {
+    const createWaypoint = (
+      overrides: Partial<DriveWaypoint> = {},
+    ): DriveWaypoint => ({
+      latitude: 37.7749,
+      longitude: -122.4194,
+      maneuverType: ManeuverType.STRAIGHT,
+      instruction: "Continue straight",
+      distance: 100,
+      index: 0,
+      ...overrides,
+    });
+
+    it("should return street name when available", () => {
+      const waypoint = createWaypoint({ streetName: "Main Street" });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("MAIN STREET");
+    });
+
+    it("should truncate long street names to 12 characters", () => {
+      const waypoint = createWaypoint({
+        streetName: "Massachusetts Avenue",
+      });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("MASSACHUSETT");
+      expect(label.length).toBe(12);
+    });
+
+    it("should return L for left turns", () => {
+      const leftManeuvers = [
+        ManeuverType.LEFT,
+        ManeuverType.SLIGHT_LEFT,
+        ManeuverType.SHARP_LEFT,
+      ];
+
+      for (const maneuverType of leftManeuvers) {
+        const waypoint = createWaypoint({ maneuverType });
+        const label = (service as any).formatWaypointLabel(waypoint);
+        expect(label).toBe("L");
+      }
+    });
+
+    it("should return R for right turns", () => {
+      const rightManeuvers = [
+        ManeuverType.RIGHT,
+        ManeuverType.SLIGHT_RIGHT,
+        ManeuverType.SHARP_RIGHT,
+      ];
+
+      for (const maneuverType of rightManeuvers) {
+        const waypoint = createWaypoint({ maneuverType });
+        const label = (service as any).formatWaypointLabel(waypoint);
+        expect(label).toBe("R");
+      }
+    });
+
+    it("should return U for u-turn", () => {
+      const waypoint = createWaypoint({ maneuverType: ManeuverType.UTURN });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("U");
+    });
+
+    it("should return END for arrive", () => {
+      const waypoint = createWaypoint({ maneuverType: ManeuverType.ARRIVE });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("END");
+    });
+
+    it("should return START for depart", () => {
+      const waypoint = createWaypoint({ maneuverType: ManeuverType.DEPART });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("START");
+    });
+
+    it("should return empty string for straight", () => {
+      const waypoint = createWaypoint({ maneuverType: ManeuverType.STRAIGHT });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("");
+    });
+
+    it("should return empty string for other maneuver types without street name", () => {
+      const otherManeuvers = [
+        ManeuverType.MERGE,
+        ManeuverType.FORK_LEFT,
+        ManeuverType.FORK_RIGHT,
+        ManeuverType.ROUNDABOUT,
+      ];
+
+      for (const maneuverType of otherManeuvers) {
+        const waypoint = createWaypoint({ maneuverType });
+        const label = (service as any).formatWaypointLabel(waypoint);
+        expect(label).toBe("");
+      }
+    });
+
+    it("should prefer street name over maneuver type", () => {
+      const waypoint = createWaypoint({
+        maneuverType: ManeuverType.LEFT,
+        streetName: "Oak Ave",
+      });
+      const label = (service as any).formatWaypointLabel(waypoint);
+      expect(label).toBe("OAK AVE");
     });
   });
 

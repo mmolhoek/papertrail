@@ -945,49 +945,54 @@ export class SVGService implements ISVGService {
         TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
       }
 
-      // Draw all waypoint markers on the route
+      // Draw all waypoint markers on the route (only at zoom level 19+)
       const bearing = currentPosition.bearing;
-      for (const waypoint of route.waypoints) {
-        let waypointPixel = this.projectToPixels(
-          waypoint.latitude,
-          waypoint.longitude,
-          mapViewport,
+      const showWaypoints = viewport.zoomLevel >= 19;
+
+      if (showWaypoints && route.waypoints.length > 0) {
+        logger.info(
+          `Rendering ${route.waypoints.length} waypoints at zoom level ${viewport.zoomLevel}`,
         );
 
-        // Apply rotation if in track-up mode
-        if (renderOpts.rotateWithBearing && bearing !== undefined) {
-          waypointPixel = this.rotatePoint(
-            waypointPixel,
-            mapWidth / 2,
-            height / 2,
-            -bearing,
+        for (const waypoint of route.waypoints) {
+          let waypointPixel = this.projectToPixels(
+            waypoint.latitude,
+            waypoint.longitude,
+            mapViewport,
           );
-        }
 
-        // Only render if within map area and on screen
-        if (
-          waypointPixel.x >= 0 &&
-          waypointPixel.x < mapWidth &&
-          waypointPixel.y >= 0 &&
-          waypointPixel.y < height
-        ) {
-          // Draw waypoint marker (highlight next waypoint differently)
-          const isNextWaypoint = waypoint.index === nextWaypoint.index;
-          if (isNextWaypoint) {
-            TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 6, 8);
-          } else {
-            TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 4, 6);
+          // Apply rotation if in track-up mode
+          if (renderOpts.rotateWithBearing && bearing !== undefined) {
+            waypointPixel = this.rotatePoint(
+              waypointPixel,
+              mapWidth / 2,
+              height / 2,
+              -bearing,
+            );
           }
 
-          // Draw waypoint label
-          const label = this.formatWaypointLabel(waypoint);
-          if (label) {
-            const labelX = waypointPixel.x + 12; // Offset to right of marker
-            const labelY = waypointPixel.y - 4; // Slightly above center
+          // Only render if within map area and on screen
+          if (
+            waypointPixel.x >= 0 &&
+            waypointPixel.x < mapWidth &&
+            waypointPixel.y >= 0 &&
+            waypointPixel.y < height
+          ) {
+            // Draw waypoint marker
+            TrackRenderer.renderWaypointMarker(bitmap, waypointPixel, 5, 7);
 
-            // Only render label if it fits in map area
-            if (labelX < mapWidth - 50) {
-              renderBitmapText(bitmap, label, labelX, labelY, { scale: 1 });
+            // Draw waypoint label (use instruction which holds the name for GPX waypoints)
+            const label = waypoint.instruction
+              ? waypoint.instruction.substring(0, 12).toUpperCase()
+              : "";
+            if (label) {
+              const labelX = waypointPixel.x + 12; // Offset to right of marker
+              const labelY = waypointPixel.y - 4; // Slightly above center
+
+              // Only render label if it fits in map area
+              if (labelX < mapWidth - 50) {
+                renderBitmapText(bitmap, label, labelX, labelY, { scale: 1 });
+              }
             }
           }
         }

@@ -207,6 +207,9 @@ export class MapService implements IMapService {
               totalDistance += this.calculateDistance(track);
             });
 
+            // Count actual GPX waypoints from the file
+            const waypointCount = gpxFile.waypoints?.length || 0;
+
             infos.push({
               path: filePath,
               fileName: path.basename(filePath),
@@ -214,6 +217,7 @@ export class MapService implements IMapService {
               trackCount: gpxFile.tracks.length,
               pointCount: totalPoints,
               totalDistance: totalDistance,
+              waypointCount: waypointCount,
               fileSize: stats.size,
               lastModified: stats.mtime,
               createdAt: gpxFile.metadata?.time,
@@ -414,8 +418,41 @@ export class MapService implements IMapService {
             });
           });
 
+          // Parse waypoints
+          const waypoints: GPXTrackPoint[] = [];
+          const wptArray = Array.isArray(gpx.wpt)
+            ? gpx.wpt
+            : gpx.wpt
+              ? [gpx.wpt]
+              : [];
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          wptArray.forEach((wpt: any) => {
+            const lat = parseFloat(wpt.$.lat);
+            const lon = parseFloat(wpt.$.lon);
+            if (!isNaN(lat) && !isNaN(lon)) {
+              waypoints.push({
+                latitude: lat,
+                longitude: lon,
+                altitude: wpt.ele ? parseFloat(wpt.ele) : undefined,
+                timestamp: wpt.time ? new Date(wpt.time) : new Date(0),
+                name: wpt.name || undefined,
+              });
+            }
+          });
+
+          if (waypoints.length > 0) {
+            logger.info(`Parsed ${waypoints.length} waypoints from GPX file:`);
+            waypoints.forEach((wp, i) => {
+              logger.info(
+                `  [${i + 1}] ${wp.name || "(unnamed)"} at (${wp.latitude.toFixed(5)}, ${wp.longitude.toFixed(5)})`,
+              );
+            });
+          }
+
           const gpxFile: GPXFile = {
             tracks,
+            waypoints: waypoints.length > 0 ? waypoints : undefined,
             metadata: gpx.metadata
               ? {
                   name: gpx.metadata.name,

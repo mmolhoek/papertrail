@@ -11,6 +11,7 @@ import {
 import {
   GPSCoordinate,
   GPXTrack,
+  GPXTrackPoint,
   Result,
   success,
   failure,
@@ -46,6 +47,7 @@ export class TrackDisplayCoordinator {
   private trackTurnAnalyzer: TrackTurnAnalyzer = new TrackTurnAnalyzer();
   private cachedTrackTurns: TrackTurn[] = [];
   private cachedTrackPath: string | null = null;
+  private cachedWaypoints: GPXTrackPoint[] = [];
 
   // Display update queuing
   private displayUpdateQueue = new DisplayUpdateQueue();
@@ -173,22 +175,45 @@ export class TrackDisplayCoordinator {
         }
         logger.info(`✓ Active GPX: ${gpxPath}`);
 
-        // Step 2: Load the track
+        // Step 2: Load the track and waypoints
         logger.info("Step 2/5: Loading GPX track...");
-        const trackResult = await this.mapService.getTrack(gpxPath);
-        if (!trackResult.success) {
-          logger.error("Failed to load track:", trackResult.error);
+        const fileResult = await this.mapService.loadGPXFile(gpxPath);
+        if (!fileResult.success) {
+          logger.error("Failed to load GPX file:", fileResult.error);
           return failure(
-            OrchestratorError.updateFailed("GPX track", trackResult.error),
+            OrchestratorError.updateFailed("GPX file", fileResult.error),
           );
         }
-        track = trackResult.data;
+        const gpxFile = fileResult.data;
+        track = gpxFile.tracks[0];
+        if (!track) {
+          logger.error("GPX file has no tracks");
+          return failure(
+            OrchestratorError.updateFailed("GPX file", new Error("No tracks")),
+          );
+        }
         const pointCount = track.segments.reduce(
           (sum, seg) => sum + seg.points.length,
           0,
         );
+
+        // Cache waypoints if this is a new track
+        if (this.cachedTrackPath !== gpxPath) {
+          this.cachedWaypoints = gpxFile.waypoints || [];
+          if (this.cachedWaypoints.length > 0) {
+            logger.info(
+              `Cached ${this.cachedWaypoints.length} waypoints for track:`,
+            );
+            this.cachedWaypoints.forEach((wp, i) => {
+              logger.info(
+                `  [${i + 1}] ${wp.name || "(unnamed)"} at (${wp.latitude.toFixed(5)}, ${wp.longitude.toFixed(5)})`,
+              );
+            });
+          }
+        }
+
         logger.info(
-          `✓ GPX track loaded: ${track.segments.length} segments, ${pointCount} points`,
+          `✓ GPX track loaded: ${track.segments.length} segments, ${pointCount} points, ${this.cachedWaypoints.length} waypoints`,
         );
       }
 
@@ -541,13 +566,23 @@ export class TrackDisplayCoordinator {
       position.longitude,
     ];
 
+    // Convert GPX waypoints to DriveWaypoints for rendering
+    const gpxWaypoints: DriveWaypoint[] = this.cachedWaypoints.map((wp, i) => ({
+      latitude: wp.latitude,
+      longitude: wp.longitude,
+      instruction: wp.name || "",
+      maneuverType: ManeuverType.STRAIGHT,
+      distance: 0,
+      index: i,
+    }));
+
     const driveRoute: DriveRoute = {
       id: `track-${Date.now()}`,
       destination: track.name || "Track",
       createdAt: new Date(),
       startPoint: { latitude: firstPoint[0], longitude: firstPoint[1] },
       endPoint: { latitude: lastPoint[0], longitude: lastPoint[1] },
-      waypoints: [],
+      waypoints: gpxWaypoints,
       geometry: trackGeometry,
       totalDistance: distanceRemaining,
       estimatedTime: 0,

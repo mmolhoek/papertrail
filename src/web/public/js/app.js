@@ -1003,6 +1003,7 @@ class PapertrailClient {
         // Store additional data for display
         option.dataset.points = file.pointCount || 0;
         option.dataset.distance = file.totalDistance || 0;
+        option.dataset.waypoints = file.waypointCount || 0;
         option.dataset.fileName = file.fileName;
         select.appendChild(option);
       });
@@ -1036,12 +1037,14 @@ class PapertrailClient {
     const trackInfo = document.getElementById("track-info");
     const pointsEl = document.getElementById("track-points");
     const distanceEl = document.getElementById("track-distance");
+    const waypointsEl = document.getElementById("track-waypoints");
 
     const selectedOption = select.options[select.selectedIndex];
 
     if (selectedOption && selectedOption.value) {
       const points = selectedOption.dataset.points || "0";
       const distanceMeters = parseFloat(selectedOption.dataset.distance) || 0;
+      const waypoints = selectedOption.dataset.waypoints || "0";
 
       if (pointsEl) {
         pointsEl.textContent = points;
@@ -1049,6 +1052,10 @@ class PapertrailClient {
 
       if (distanceEl) {
         distanceEl.textContent = this.formatDistance(distanceMeters);
+      }
+
+      if (waypointsEl) {
+        waypointsEl.textContent = waypoints;
       }
 
       if (trackInfo) {
@@ -1122,9 +1129,10 @@ class PapertrailClient {
               option = document.createElement("option");
               option.value = result.data.path;
               option.textContent = displayName;
-              // Set data attributes for point count and distance
+              // Set data attributes for point count, distance, and waypoints
               option.dataset.points = result.data.pointCount || 0;
               option.dataset.distance = result.data.totalDistance || 0;
+              option.dataset.waypoints = result.data.waypointCount || 0;
               select.appendChild(option);
             }
             select.value = result.data.path;

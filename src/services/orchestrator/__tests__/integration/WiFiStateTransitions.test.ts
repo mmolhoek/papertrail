@@ -84,6 +84,12 @@ describe("WiFi State Transitions Integration", () => {
 
     mockMapService = {
       getTrack: jest.fn().mockResolvedValue(success(testTrack)),
+      loadGPXFile: jest.fn().mockResolvedValue(
+        success({
+          tracks: [testTrack],
+          waypoints: [],
+        }),
+      ),
       validateGPXFile: jest.fn().mockResolvedValue(success(undefined)),
       listAvailableGPXFiles: jest
         .fn()

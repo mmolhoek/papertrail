@@ -143,6 +143,9 @@ export type GPXFileInfo = {
   /** Total distance in meters */
   totalDistance: number;
 
+  /** Number of detected waypoints/turns */
+  waypointCount: number;
+
   /** File size in bytes */
   fileSize: number;
 

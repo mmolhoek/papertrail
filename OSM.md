@@ -1,0 +1,244 @@
+# OpenStreetMap Feature Roadmap
+
+Potential OSM-based features for Papertrail. Each feature includes implementation notes for future development.
+
+---
+general implementation notes:
+- always keep test coverage up
+- Keep in mind we have no internet during driving. use data folder/ to prefetch and cache all data
+- All features should be optional and configurable in the display menu
+
+## Features
+
+### OSM-1: Reverse Geocoding
+**Status:** Not started
+**Priority:** High
+**Complexity:** Low
+
+Display human-readable location names instead of just coordinates.
+
+**Functionality:**
+- Show current street/area name on e-paper display (e.g., "Main Street, London")
+- Update location name periodically during navigation
+- Show when entering/leaving towns or regions
+- Log location names in track history
+
+**Implementation notes:**
+- Use Nominatim API (public or self-hosted)
+- Cache results to reduce API calls (location doesn't change rapidly)
+- Rate limit: max 1 request/second for public Nominatim
+- Endpoint: `https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json`
+- Add to DriveCoordinator and display in info panel
+
+---
+
+### OSM-2: Speed Limit Display
+**Status:** Not started
+**Priority:** High
+**Complexity:** Medium
+
+Show speed limits from OSM road data.
+
+**Functionality:**
+- Display current road's speed limit on e-paper
+- Visual alert when exceeding limit
+- Show speed limit in drive info panel
+- Handle roads without speed limit data gracefully
+
+**Implementation notes:**
+- Use Overpass API to query `maxspeed` tag for nearby ways
+- Match current GPS position to nearest OSM way
+- Cache speed limits for road segments
+- Overpass query: `way(around:20,{lat},{lon})[highway][maxspeed];out;`
+- Update on road changes, not continuously
+
+---
+
+### OSM-3: Points of Interest (POI)
+**Status:** Not started
+**Priority:** Medium
+**Complexity:** Medium
+
+Display nearby amenities during navigation.
+
+**Functionality:**
+- Show distance to nearest fuel station
+- Alert when approaching configured POI types
+- Configurable categories: fuel, parking, food, rest areas
+- Display POI name and distance on demand
+- in track mode show arrow and distance plus code letter for each poi if it is close enought but not visible on the screen yet.
+
+**Implementation notes:**
+- Use Overpass API for POI queries
+- Query example: `node(around:5000,{lat},{lon})[amenity=fuel];out;`
+- Cache POIs along route corridor at navigation start
+- Add POI layer to web map interface
+- E-paper: show in info panel or dedicated POI screen
+- individualy selectable in the display settings and stored in the user state
+
+**POI categories to support:**
+- `amenity=fuel` - (F)uel stations
+- `amenity=parking` - (P)arking areas
+- `amenity=restaurant` / `amenity=cafe` - (E)Food
+- `amenity=toilets` - (R)estrooms
+- `tourism=viewpoint` - (V)iewpoints
+
+
+---
+
+### OSM-4: Offline Routing
+**Status:** Not started
+**Priority:** Medium
+**Complexity:** High
+
+Run OSRM locally for navigation without internet.
+
+**Functionality:**
+- Calculate routes without internet connection
+- Pre-download routing graph for selected regions
+- Same turn-by-turn quality as online routing
+- Region management in web interface
+
+**Implementation notes:**
+- Run osrm-backend on Raspberry Pi 5 (has sufficient RAM)
+- Download pre-processed `.osrm` files for regions
+- Storage: ~100MB per small country, 1-2GB for large countries
+- API compatible with current OSRM integration
+- Add region download/management endpoints
+- Consider osrm-routed or direct library integration
+
+---
+
+### OSM-5: Alternative Routing Profiles
+**Status:** Not started
+**Priority:** Medium
+**Complexity:** Low
+
+Support different transport modes beyond car.
+
+**Functionality:**
+- Bicycle routing (prefer bike paths, avoid highways)
+- Walking/hiking routing
+- Option to avoid tolls, ferries, motorways
+- Profile selection in web interface
+
+**Implementation notes:**
+- OSRM supports profiles: `car`, `bike`, `foot`
+- Change route endpoint: `/route/v1/{profile}/{coordinates}`
+- Add profile selector to drive mode UI
+- Store preferred profile in config
+- Different turn instructions per profile
+
+---
+
+### OSM-6: Road Surface Information
+**Status:** Not started
+**Priority:** Low
+**Complexity:** Medium
+
+Show road surface type from OSM tags.
+
+**Functionality:**
+- Display current surface (paved, gravel, dirt)
+- Warn about upcoming surface changes
+- Useful for cycling and adventure routes
+- Show surface in route preview
+
+**Implementation notes:**
+- OSM tags: `surface=asphalt|gravel|dirt|unpaved|paved`
+- Query via Overpass for route corridor
+- Match route geometry to OSM ways
+- Display icon or text for surface type
+- Pre-analyze at route calculation time
+
+---
+
+### OSM-7: Elevation Profiles
+**Status:** Not started
+**Priority:** Low
+**Complexity:** Medium
+
+Show elevation data for routes.
+
+**Functionality:**
+- Display total climb/descent for route
+- Show gradient of upcoming section
+- Elevation profile visualization in web interface
+- Warn about steep sections
+
+**Implementation notes:**
+- Use Open-Elevation API or SRTM data
+- Endpoint: `https://api.open-elevation.com/api/v1/lookup`
+- Batch query route points for elevation
+- Calculate gradients between points
+- Add elevation graph to route preview
+- E-paper: show climb remaining in info panel
+
+---
+
+### OSM-8: Offline Vector Maps
+**Status:** Not started
+**Priority:** Low
+**Complexity:** High
+
+Render actual map backgrounds on e-paper display.
+
+**Functionality:**
+- Display roads, water, forests on e-paper
+- High-contrast style optimized for 1-bit display
+- Show street names at intersections
+- Offline map tiles for regions
+
+**Implementation notes:**
+- Download vector tiles (Protomaps PMTiles format)
+- Render with custom 1-bit style (roads black, water pattern, etc.)
+- Significant complexity: tile rendering, text placement
+- Storage: ~50-500MB per region
+- Alternative: pre-render raster tiles at fixed zoom levels
+- May require native rendering library for performance
+
+---
+
+### OSM-9: Map Matching
+**Status:** Not started
+**Priority:** Low
+**Complexity:** Medium
+
+Snap GPS traces to actual roads.
+
+**Functionality:**
+- Clean recorded tracks by snapping to roads
+- Correct GPS drift and inaccuracies
+- More accurate distance calculations
+- Post-process GPX files
+
+**Implementation notes:**
+- OSRM provides map matching: `/match/v1/{profile}/{coordinates}`
+- Process recorded tracks after completion
+- Store both raw and matched tracks
+- Option to export matched GPX
+- Useful for track mode recordings
+
+---
+
+## Implementation Order Recommendation
+
+1. **OSM-2: Speed Limits** - Safety feature, medium complexity
+2. **OSM-3: POI** - Practical utility during drives
+3. **OSM-1: Reverse Geocoding** - Low complexity, high user value
+4. **OSM-5: Routing Profiles** - Simple OSRM parameter change
+5. **OSM-4: Offline Routing** - Reliability for remote areas
+6. **OSM-7: Elevation** - Useful for cycling/hiking
+7. **OSM-6: Surface Info** - Niche but useful
+8. **OSM-9: Map Matching** - Nice to have
+9. **OSM-8: Vector Maps** - High complexity, significant undertaking
+
+---
+
+## API References
+
+- **Nominatim** (Geocoding): https://nominatim.org/release-docs/latest/api/Reverse/
+- **Overpass** (POI/Tags): https://overpass-api.de/
+- **OSRM** (Routing): https://project-osrm.org/docs/v5.24.0/api/
+- **Open-Elevation**: https://open-elevation.com/
+- **Protomaps** (Vector tiles): https://protomaps.com/

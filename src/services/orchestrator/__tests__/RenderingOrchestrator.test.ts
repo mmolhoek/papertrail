@@ -62,6 +62,12 @@ describe("RenderingOrchestrator", () => {
 
     mockMapService = {
       getTrack: jest.fn().mockResolvedValue(success(testTrack)),
+      loadGPXFile: jest.fn().mockResolvedValue(
+        success({
+          tracks: [testTrack],
+          waypoints: [],
+        }),
+      ),
       listAvailableGPXFiles: jest
         .fn()
         .mockResolvedValue(success(["track1.gpx", "track2.gpx"])),
