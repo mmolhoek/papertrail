@@ -354,6 +354,7 @@ export class DriveCoordinator {
               progress: status.progress,
               timeRemaining: status.timeRemaining,
               speedLimit: speedLimit,
+              speedUnit: this.configService.getSpeedUnit(),
             };
 
             const renderOptions = {

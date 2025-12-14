@@ -181,6 +181,9 @@ export type UserState = {
 
     /** Whether to show speed limit during drive navigation */
     showSpeedLimit: boolean;
+
+    /** Speed unit preference: 'kmh' for kilometers per hour, 'mph' for miles per hour */
+    speedUnit: "kmh" | "mph";
   };
 
   /** Recently used GPX files */

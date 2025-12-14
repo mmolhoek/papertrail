@@ -159,6 +159,18 @@ export interface IConfigService {
    */
   setShowSpeedLimit(enabled: boolean): void;
 
+  /**
+   * Get speed unit preference
+   * @returns 'kmh' for kilometers per hour, 'mph' for miles per hour
+   */
+  getSpeedUnit(): "kmh" | "mph";
+
+  /**
+   * Set speed unit preference
+   * @param unit Speed unit ('kmh' or 'mph')
+   */
+  setSpeedUnit(unit: "kmh" | "mph"): void;
+
   // Active screen management
 
   /**

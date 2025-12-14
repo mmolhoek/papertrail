@@ -76,6 +76,8 @@ export interface DriveNavigationInfo {
   timeRemaining?: number;
   /** Current speed limit in km/h (null if unknown) */
   speedLimit?: number | null;
+  /** Speed unit for display ('kmh' or 'mph') */
+  speedUnit?: "kmh" | "mph";
 }
 
 /**

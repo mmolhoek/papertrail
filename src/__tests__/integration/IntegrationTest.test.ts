@@ -360,6 +360,8 @@ function createMockConfigService(): IConfigService {
     setAutoRefreshInterval: jest.fn(),
     getShowSpeedLimit: jest.fn().mockReturnValue(true),
     setShowSpeedLimit: jest.fn(),
+    getSpeedUnit: jest.fn().mockReturnValue("kmh"),
+    setSpeedUnit: jest.fn(),
     getRecentFiles: jest.fn().mockReturnValue([]),
     addRecentFile: jest.fn(),
     clearRecentFiles: jest.fn(),

@@ -196,6 +196,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showSpeedLimit = enabled;
   }
 
+  // Speed unit preference
+
+  getSpeedUnit(): "kmh" | "mph" {
+    return this.userState.displayPreferences.speedUnit ?? "kmh";
+  }
+
+  setSpeedUnit(unit: "kmh" | "mph"): void {
+    this.userState.displayPreferences.speedUnit = unit;
+  }
+
   // Active screen management
 
   getActiveScreen(): ScreenType {
@@ -529,6 +539,7 @@ export class ConfigService implements IConfigService {
         brightness: 100,
         autoRefreshInterval: 30,
         showSpeedLimit: true,
+        speedUnit: "kmh",
       },
       recentFiles: [],
       customWaypoints: [],

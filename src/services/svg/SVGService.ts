@@ -1318,10 +1318,23 @@ export class SVGService implements ISVGService {
 
     logger.info("renderDriveInfoPanel: step 6 - speed value");
 
+    // Determine unit and convert speeds if needed
+    const useMph = info.speedUnit === "mph";
+    const unitLabel = useMph ? "MPH" : "KM/H";
+    const displaySpeed = useMph
+      ? Math.round(info.speed * 0.621371)
+      : Math.round(info.speed);
+    const displaySpeedLimit =
+      info.speedLimit !== undefined && info.speedLimit !== null
+        ? useMph
+          ? Math.round(info.speedLimit * 0.621371)
+          : info.speedLimit
+        : null;
+
     // Speed value (with speed limit if available)
-    if (info.speedLimit !== undefined && info.speedLimit !== null) {
-      // Show speed with limit: "45 / 50"
-      const speedText = `${Math.round(info.speed)}/${info.speedLimit}`;
+    if (displaySpeedLimit !== null) {
+      // Show speed with limit: "45/50"
+      const speedText = `${displaySpeed}/${displaySpeedLimit}`;
       renderBitmapText(bitmap, speedText, x + padding, currentY, {
         scale: valueScale,
         bold: true,
@@ -1329,7 +1342,7 @@ export class SVGService implements ISVGService {
       currentY += calculateBitmapTextHeight(valueScale) + 4;
 
       // Show unit and LIMIT label
-      renderBitmapText(bitmap, "KM/H LIMIT", x + padding, currentY, {
+      renderBitmapText(bitmap, `${unitLabel} LIMIT`, x + padding, currentY, {
         scale: labelScale,
       });
       currentY += calculateBitmapTextHeight(labelScale) + 16;
@@ -1337,7 +1350,7 @@ export class SVGService implements ISVGService {
       // No speed limit available - show just speed
       renderBitmapText(
         bitmap,
-        `${Math.round(info.speed)} KM/H`,
+        `${displaySpeed} ${unitLabel}`,
         x + padding,
         currentY,
         { scale: valueScale, bold: true },
