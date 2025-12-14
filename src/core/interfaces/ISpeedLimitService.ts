@@ -35,6 +35,20 @@ export interface SpeedLimitSegment {
 }
 
 /**
+ * Progress callback for speed limit prefetching
+ */
+export interface SpeedLimitPrefetchProgress {
+  /** Current point being processed (1-based) */
+  current: number;
+  /** Total points to process */
+  total: number;
+  /** Number of segments found so far */
+  segmentsFound: number;
+  /** Whether prefetch is complete */
+  complete: boolean;
+}
+
+/**
  * Speed Limit Service Interface
  *
  * Fetches and caches speed limit data from OpenStreetMap via Overpass API.
@@ -61,9 +75,13 @@ export interface ISpeedLimitService {
    * Prefetch speed limits along a route for offline use
    * Should be called when route is calculated (while internet is available)
    * @param route The drive route to prefetch speed limits for
+   * @param onProgress Optional callback for progress updates
    * @returns Result with number of segments cached
    */
-  prefetchRouteSpeedLimits(route: DriveRoute): Promise<Result<number>>;
+  prefetchRouteSpeedLimits(
+    route: DriveRoute,
+    onProgress?: (progress: SpeedLimitPrefetchProgress) => void,
+  ): Promise<Result<number>>;
 
   /**
    * Check if speed limits are cached for a route

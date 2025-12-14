@@ -120,6 +120,7 @@ describe("IntegratedWebService", () => {
           errorCallback = null;
         };
       }),
+      onSpeedLimitPrefetchProgress: jest.fn().mockReturnValue(() => {}),
       setWebSocketClientCount: jest.fn(),
     } as unknown as IRenderingOrchestrator;
 

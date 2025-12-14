@@ -4,6 +4,7 @@ import {
   ISpeedLimitService,
   SpeedLimitData,
   SpeedLimitSegment,
+  SpeedLimitPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -130,7 +131,10 @@ export class SpeedLimitService implements ISpeedLimitService {
   /**
    * Prefetch speed limits along a route for offline use
    */
-  async prefetchRouteSpeedLimits(route: DriveRoute): Promise<Result<number>> {
+  async prefetchRouteSpeedLimits(
+    route: DriveRoute,
+    onProgress?: (progress: SpeedLimitPrefetchProgress) => void,
+  ): Promise<Result<number>> {
     if (!this.isInitialized) {
       return failure(SpeedLimitError.serviceNotInitialized());
     }
@@ -145,6 +149,14 @@ export class SpeedLimitService implements ISpeedLimitService {
       // Sample points along the route (every ~500m)
       const samplePoints = this.sampleRoutePoints(route.geometry, 500);
       logger.info(`Sampling ${samplePoints.length} points along route`);
+
+      // Notify progress start
+      onProgress?.({
+        current: 0,
+        total: samplePoints.length,
+        segmentsFound: 0,
+        complete: false,
+      });
 
       // Query each sample point with rate limiting
       for (let i = 0; i < samplePoints.length; i++) {
@@ -169,6 +181,14 @@ export class SpeedLimitService implements ISpeedLimitService {
           logger.warn(`Failed to fetch speed limit for point ${i}:`, error);
         }
 
+        // Notify progress update
+        onProgress?.({
+          current: i + 1,
+          total: samplePoints.length,
+          segmentsFound: segments.length,
+          complete: false,
+        });
+
         // Log progress
         if ((i + 1) % 10 === 0 || i === samplePoints.length - 1) {
           logger.info(
@@ -180,6 +200,14 @@ export class SpeedLimitService implements ISpeedLimitService {
       // Cache the results
       this.routeCache.set(route.id, segments);
       await this.saveRouteCache(route.id, segments);
+
+      // Notify completion
+      onProgress?.({
+        current: samplePoints.length,
+        total: samplePoints.length,
+        segmentsFound: segments.length,
+        complete: true,
+      });
 
       logger.info(
         `Prefetched ${segments.length} speed limit segments for route ${route.id}`,

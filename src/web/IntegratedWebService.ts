@@ -74,6 +74,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private simulationPositionUnsubscribe: (() => void) | null = null;
   private simulationStateUnsubscribe: (() => void) | null = null;
   private driveNavigationUnsubscribe: (() => void) | null = null;
+  private speedLimitPrefetchUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
@@ -877,6 +878,20 @@ export class IntegratedWebService implements IWebInterfaceService {
           }
         });
     }
+
+    // Subscribe to speed limit prefetch progress updates
+    this.speedLimitPrefetchUnsubscribe =
+      this.orchestrator.onSpeedLimitPrefetchProgress((progress) => {
+        logger.debug(
+          `Speed limit prefetch progress: ${progress.current}/${progress.total} (${progress.segmentsFound} segments)`,
+        );
+        this.broadcast("speedlimit:prefetch", {
+          current: progress.current,
+          total: progress.total,
+          segmentsFound: progress.segmentsFound,
+          complete: progress.complete,
+        });
+      });
   }
 
   /**
@@ -921,6 +936,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.driveNavigationUnsubscribe) {
       this.driveNavigationUnsubscribe();
       this.driveNavigationUnsubscribe = null;
+    }
+
+    if (this.speedLimitPrefetchUnsubscribe) {
+      this.speedLimitPrefetchUnsubscribe();
+      this.speedLimitPrefetchUnsubscribe = null;
     }
   }
 

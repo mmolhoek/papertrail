@@ -205,6 +205,11 @@ class PapertrailClient {
       console.log("Off-road detected:", data);
     });
 
+    // Speed limit prefetch progress event
+    this.socket.on("speedlimit:prefetch", (data) => {
+      this.updateSpeedLimitPrefetchStatus(data);
+    });
+
     // Display update event - refresh mock display if visible
     this.socket.on("display:updated", (data) => {
       console.log("Display updated:", data);
@@ -2775,6 +2780,48 @@ class PapertrailClient {
       // Hide simulation status
       document.getElementById("drive-sim-status")?.classList.add("hidden");
       this.updateDriveUI();
+    }
+  }
+
+  /**
+   * Update speed limit prefetch progress indicator
+   * Shows loading progress when navigation starts and speed limits are being fetched
+   */
+  updateSpeedLimitPrefetchStatus(data) {
+    const container = document.getElementById("speedlimit-prefetch-status");
+    const progressBar = document.getElementById("speedlimit-prefetch-bar");
+    const progressText = document.getElementById("speedlimit-prefetch-text");
+    const segmentsText = document.getElementById(
+      "speedlimit-prefetch-segments",
+    );
+
+    if (!container) return;
+
+    if (data.complete) {
+      // Hide the prefetch status when complete
+      container.classList.add("hidden");
+      if (data.segmentsFound > 0) {
+        this.showMessage(
+          `Speed limits loaded (${data.segmentsFound} segments)`,
+          "success",
+        );
+      }
+    } else {
+      // Show progress
+      container.classList.remove("hidden");
+
+      const progress =
+        data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+
+      if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+      }
+      if (progressText) {
+        progressText.textContent = `${data.current}/${data.total} points`;
+      }
+      if (segmentsText) {
+        segmentsText.textContent = `${data.segmentsFound} segments found`;
+      }
     }
   }
 

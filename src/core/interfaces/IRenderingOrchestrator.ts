@@ -7,6 +7,7 @@ import {
   DriveNavigationUpdate,
   DisplayUpdateMode,
 } from "@core/types";
+import { SpeedLimitPrefetchProgress } from "./ISpeedLimitService";
 
 /**
  * Rendering Orchestrator Interface
@@ -211,6 +212,15 @@ export interface IRenderingOrchestrator {
    */
   onDriveNavigationUpdate(
     callback: (update: DriveNavigationUpdate) => void,
+  ): () => void;
+
+  /**
+   * Register a callback for speed limit prefetch progress
+   * @param callback Function to call on prefetch progress updates
+   * @returns Unsubscribe function
+   */
+  onSpeedLimitPrefetchProgress(
+    callback: (progress: SpeedLimitPrefetchProgress) => void,
   ): () => void;
 
   /**

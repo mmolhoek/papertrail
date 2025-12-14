@@ -10,6 +10,7 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
   ISpeedLimitService,
+  SpeedLimitPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -79,6 +80,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private autoUpdateInterval: NodeJS.Timeout | null = null;
   private displayUpdateCallbacks: Array<(success: boolean) => void> = [];
   private errorCallbacks: Array<(error: Error) => void> = [];
+  private speedLimitPrefetchCallbacks: Array<
+    (progress: SpeedLimitPrefetchProgress) => void
+  > = [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -393,16 +397,20 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     if (this.speedLimitService && this.configService.getShowSpeedLimit()) {
       logger.info("Starting speed limit prefetch for route");
       // Run in background - don't block navigation start
-      this.speedLimitService.prefetchRouteSpeedLimits(route).then((result) => {
-        if (result.success) {
-          logger.info(`Prefetched ${result.data} speed limit segments`);
-        } else {
-          logger.warn(
-            "Failed to prefetch speed limits:",
-            result.error?.message,
-          );
-        }
-      });
+      this.speedLimitService
+        .prefetchRouteSpeedLimits(route, (progress) => {
+          this.notifySpeedLimitPrefetchProgress(progress);
+        })
+        .then((result) => {
+          if (result.success) {
+            logger.info(`Prefetched ${result.data} speed limit segments`);
+          } else {
+            logger.warn(
+              "Failed to prefetch speed limits:",
+              result.error?.message,
+            );
+          }
+        });
     }
 
     return this.driveCoordinator.startDriveNavigation(route);
@@ -449,6 +457,39 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return () => {};
     }
     return this.driveCoordinator.onDriveNavigationUpdate(callback);
+  }
+
+  /**
+   * Register a callback for speed limit prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onSpeedLimitPrefetchProgress(
+    callback: (progress: SpeedLimitPrefetchProgress) => void,
+  ): () => void {
+    this.speedLimitPrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.speedLimitPrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.speedLimitPrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all speed limit prefetch progress callbacks
+   */
+  private notifySpeedLimitPrefetchProgress(
+    progress: SpeedLimitPrefetchProgress,
+  ): void {
+    for (const callback of this.speedLimitPrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error("Error in speed limit prefetch progress callback:", error);
+      }
+    }
   }
 
   /**
