@@ -114,6 +114,13 @@ export interface ITrackSimulationService {
   setSpeedPreset(preset: "walk" | "bicycle" | "drive"): Promise<Result<void>>;
 
   /**
+   * Set the current speed limit to cap simulation speed
+   * When set, simulation speed will be limited to this value (in km/h)
+   * @param limit Speed limit in km/h, or null to remove limit
+   */
+  setCurrentSpeedLimit(limit: number | null): void;
+
+  /**
    * Get the current simulation status
    * @returns Current simulation status
    */

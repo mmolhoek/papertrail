@@ -342,6 +342,11 @@ export class DriveCoordinator {
             // Get current speed limit (async but cached)
             const speedLimit = await this.getCurrentSpeedLimit(lastPosition);
 
+            // Push speed limit to simulation service to adjust simulation speed
+            if (this.simulationService?.isSimulating()) {
+              this.simulationService.setCurrentSpeedLimit(speedLimit);
+            }
+
             const info: DriveNavigationInfo = {
               speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0,
               satellites: lastStatus?.satellitesInUse ?? 0,

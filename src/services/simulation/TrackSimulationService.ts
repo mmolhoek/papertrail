@@ -32,6 +32,7 @@ export class TrackSimulationService implements ITrackSimulationService {
   private currentPosition: GPSCoordinate | null = null;
   private speed: number = SimulationSpeed.WALK;
   private speedPreset: "walk" | "bicycle" | "drive" | "custom" = "walk";
+  private currentSpeedLimit: number | null = null;
 
   private updateInterval: NodeJS.Timeout | null = null;
   private positionCallbacks: Array<(position: GPSCoordinate) => void> = [];
@@ -163,6 +164,7 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.coveredDistance = 0;
     this.totalDistance = 0;
     this.segmentDistances = [];
+    this.currentSpeedLimit = null;
 
     this.notifyStateChange();
 
@@ -237,6 +239,17 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.notifyStateChange();
 
     return success(undefined);
+  }
+
+  setCurrentSpeedLimit(limit: number | null): void {
+    if (this.currentSpeedLimit !== limit) {
+      this.currentSpeedLimit = limit;
+      if (limit !== null) {
+        logger.info(`Speed limit set to ${limit} km/h`);
+      } else {
+        logger.info("Speed limit cleared");
+      }
+    }
   }
 
   getStatus(): SimulationStatus {
@@ -378,12 +391,18 @@ export class TrackSimulationService implements ITrackSimulationService {
         ? p1.altitude + (p2.altitude - p1.altitude) * fraction
         : p1.altitude;
 
+    // Use speed limit if set and lower than configured speed
+    const effectiveSpeed =
+      this.currentSpeedLimit !== null
+        ? Math.min(this.speed, this.currentSpeedLimit)
+        : this.speed;
+
     return {
       latitude: lat,
       longitude: lon,
       altitude: alt,
       timestamp: new Date(),
-      speed: (this.speed * 1000) / 3600, // m/s
+      speed: (effectiveSpeed * 1000) / 3600, // m/s
       bearing: calculateBearing(
         p1.latitude,
         p1.longitude,
@@ -443,7 +462,12 @@ export class TrackSimulationService implements ITrackSimulationService {
     }
 
     // Calculate how far we move in this update interval
-    const speedMs = (this.speed * 1000) / 3600; // m/s
+    // Use speed limit if set and lower than configured speed
+    const effectiveSpeed =
+      this.currentSpeedLimit !== null
+        ? Math.min(this.speed, this.currentSpeedLimit)
+        : this.speed;
+    const speedMs = (effectiveSpeed * 1000) / 3600; // m/s
     const distanceThisUpdate = speedMs * (this.UPDATE_INTERVAL_MS / 1000);
 
     // Get current segment

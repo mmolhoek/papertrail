@@ -394,23 +394,30 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }
 
     // Prefetch speed limits for the route in the background (while internet is available)
+    // Skip if already cached for this route
     if (this.speedLimitService && this.configService.getShowSpeedLimit()) {
-      logger.info("Starting speed limit prefetch for route");
-      // Run in background - don't block navigation start
-      this.speedLimitService
-        .prefetchRouteSpeedLimits(route, (progress) => {
-          this.notifySpeedLimitPrefetchProgress(progress);
-        })
-        .then((result) => {
-          if (result.success) {
-            logger.info(`Prefetched ${result.data} speed limit segments`);
-          } else {
-            logger.warn(
-              "Failed to prefetch speed limits:",
-              result.error?.message,
-            );
-          }
-        });
+      if (this.speedLimitService.hasRouteCache(route.id)) {
+        logger.info(
+          `Speed limits already cached for route ${route.id}, skipping prefetch`,
+        );
+      } else {
+        logger.info("Starting speed limit prefetch for route");
+        // Run in background - don't block navigation start
+        this.speedLimitService
+          .prefetchRouteSpeedLimits(route, (progress) => {
+            this.notifySpeedLimitPrefetchProgress(progress);
+          })
+          .then((result) => {
+            if (result.success) {
+              logger.info(`Prefetched ${result.data} speed limit segments`);
+            } else {
+              logger.warn(
+                "Failed to prefetch speed limits:",
+                result.error?.message,
+              );
+            }
+          });
+      }
     }
 
     return this.driveCoordinator.startDriveNavigation(route);

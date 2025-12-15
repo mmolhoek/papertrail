@@ -175,6 +175,8 @@ export class SpeedLimitService implements ISpeedLimitService {
                 segments.push(segment);
               }
             }
+            // Update cache incrementally so speed limits are available immediately
+            this.routeCache.set(route.id, segments);
           }
         } catch (error) {
           // Log but continue - some failures are acceptable
@@ -355,10 +357,11 @@ export class SpeedLimitService implements ISpeedLimitService {
     lat: number,
     lon: number,
   ): Promise<Result<SpeedLimitSegment[]>> {
-    // Overpass QL query: find ways with maxspeed tag near the coordinate
+    // Overpass QL query: find ways with highway tag near the coordinate
+    // Don't require maxspeed - we'll use defaults based on highway type
     const query = `
       [out:json][timeout:10];
-      way(around:${QUERY_RADIUS},${lat},${lon})[highway][maxspeed];
+      way(around:${QUERY_RADIUS},${lat},${lon})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service)$"];
       out geom;
     `;
 
@@ -410,11 +413,19 @@ export class SpeedLimitService implements ISpeedLimitService {
     for (const element of response.elements) {
       if (
         element.type === "way" &&
-        element.tags?.maxspeed &&
+        element.tags?.highway &&
         element.geometry &&
         element.geometry.length >= 2
       ) {
-        const speedLimit = this.parseMaxspeed(element.tags.maxspeed);
+        // Use explicit maxspeed if available, otherwise use default for highway type
+        let speedLimit: number | null = null;
+        if (element.tags.maxspeed) {
+          speedLimit = this.parseMaxspeed(element.tags.maxspeed);
+        }
+        if (speedLimit === null) {
+          speedLimit = this.getDefaultSpeedLimit(element.tags.highway);
+        }
+
         if (speedLimit !== null) {
           // Create segment from way geometry
           const geom = element.geometry;
@@ -437,6 +448,31 @@ export class SpeedLimitService implements ISpeedLimitService {
     }
 
     return segments;
+  }
+
+  /**
+   * Get default speed limit based on highway type
+   * These are typical European defaults - adjust for your region
+   */
+  private getDefaultSpeedLimit(highwayType: string): number | null {
+    const defaults: Record<string, number> = {
+      motorway: 120,
+      motorway_link: 80,
+      trunk: 100,
+      trunk_link: 60,
+      primary: 80,
+      primary_link: 50,
+      secondary: 70,
+      secondary_link: 50,
+      tertiary: 60,
+      tertiary_link: 40,
+      unclassified: 50,
+      residential: 50,
+      living_street: 20,
+      service: 30,
+    };
+
+    return defaults[highwayType] ?? null;
   }
 
   /**
