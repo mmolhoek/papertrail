@@ -514,6 +514,16 @@ export class WebController {
     return this.config.setActiveScreen(req, res);
   }
 
+  /** @see ConfigController.setSpeedUnit */
+  async setSpeedUnit(req: Request, res: Response): Promise<void> {
+    return this.config.setSpeedUnit(req, res);
+  }
+
+  /** @see ConfigController.setPOICategory */
+  async setPOICategory(req: Request, res: Response): Promise<void> {
+    return this.config.setPOICategory(req, res);
+  }
+
   /** @see ConfigController.getRecentDestinations */
   async getRecentDestinations(req: Request, res: Response): Promise<void> {
     return this.config.getRecentDestinations(req, res);

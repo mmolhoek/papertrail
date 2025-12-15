@@ -94,6 +94,26 @@ export const setActiveScreenSchema = z.object({
 });
 
 /**
+ * Set speed unit preference request
+ */
+export const setSpeedUnitSchema = z.object({
+  unit: z.enum(["kmh", "mph"], {
+    message: "unit must be 'kmh' or 'mph'",
+  }),
+});
+
+/**
+ * Set POI category enabled/disabled request
+ */
+export const setPOICategorySchema = z.object({
+  category: z.enum(["fuel", "parking", "food", "restroom", "viewpoint"], {
+    message:
+      "category must be one of: fuel, parking, food, restroom, viewpoint",
+  }),
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Add recent destination request
  */
 export const addRecentDestinationSchema = z.object({
@@ -313,6 +333,8 @@ export type SetRotateWithBearingInput = z.infer<
   typeof setRotateWithBearingSchema
 >;
 export type SetActiveScreenInput = z.infer<typeof setActiveScreenSchema>;
+export type SetSpeedUnitInput = z.infer<typeof setSpeedUnitSchema>;
+export type SetPOICategoryInput = z.infer<typeof setPOICategorySchema>;
 export type AddRecentDestinationInput = z.infer<
   typeof addRecentDestinationSchema
 >;

@@ -31,6 +31,8 @@ import {
   setAutoCenterSchema,
   setRotateWithBearingSchema,
   setActiveScreenSchema,
+  setSpeedUnitSchema,
+  setPOICategorySchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
   resolveGoogleMapsLinkSchema,
@@ -462,6 +464,18 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/screen`,
       validateBody(setActiveScreenSchema),
       (req, res) => this.controller.setActiveScreen(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/speed-unit`,
+      validateBody(setSpeedUnitSchema),
+      (req, res) => this.controller.setSpeedUnit(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/poi-category`,
+      validateBody(setPOICategorySchema),
+      (req, res) => this.controller.setPOICategory(req, res),
     );
 
     // Recent destinations endpoints

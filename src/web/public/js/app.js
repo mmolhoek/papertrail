@@ -20,6 +20,7 @@ class PapertrailClient {
     this.isSimulating = false;
     this.isPaused = false;
     this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
+    this.currentSpeedUnit = "kmh"; // 'kmh' or 'mph'
 
     // Drive navigation state
     this.driveMap = null;
@@ -299,6 +300,23 @@ class PapertrailClient {
       });
     }
 
+    // Speed unit control
+    const speedUnitBtn = document.getElementById("speed-unit-btn");
+    if (speedUnitBtn) {
+      speedUnitBtn.addEventListener("click", () => {
+        this.toggleSpeedUnit();
+      });
+    }
+
+    // POI category toggles
+    const poiToggles = document.querySelectorAll(".poi-toggle");
+    poiToggles.forEach((toggle) => {
+      toggle.addEventListener("change", (e) => {
+        const category = e.target.dataset.category;
+        this.setPOICategory(category, e.target.checked);
+      });
+    });
+
     // Screen selection
     const screenSelect = document.getElementById("screen-select");
     if (screenSelect) {
@@ -444,6 +462,34 @@ class PapertrailClient {
       if (screenSelect) {
         screenSelect.value = settings.activeScreen;
       }
+    }
+
+    // Update speed unit button
+    if (settings.speedUnit !== undefined) {
+      const btn = document.getElementById("speed-unit-btn");
+      const text = btn?.querySelector(".speed-unit-text");
+
+      this.currentSpeedUnit = settings.speedUnit;
+      if (text)
+        text.textContent = settings.speedUnit === "kmh" ? "km/h" : "mph";
+      if (btn) btn.classList.toggle("mph", settings.speedUnit === "mph");
+    }
+
+    // Update POI category toggles
+    if (settings.enabledPOICategories !== undefined) {
+      const allCategories = [
+        "fuel",
+        "parking",
+        "food",
+        "restroom",
+        "viewpoint",
+      ];
+      allCategories.forEach((category) => {
+        const checkbox = document.getElementById(`poi-${category}`);
+        if (checkbox) {
+          checkbox.checked = settings.enabledPOICategories.includes(category);
+        }
+      });
     }
   }
 
@@ -609,6 +655,72 @@ class PapertrailClient {
     } catch (error) {
       console.error("Failed to set orientation:", error);
       this.showMessage("Failed to change orientation", "error");
+    }
+  }
+
+  // Toggle speed unit between km/h and mph
+  async toggleSpeedUnit() {
+    const btn = document.getElementById("speed-unit-btn");
+    const text = btn.querySelector(".speed-unit-text");
+
+    // Toggle between units
+    const newUnit = this.currentSpeedUnit === "kmh" ? "mph" : "kmh";
+
+    // Send to backend
+    try {
+      const response = await fetch(`${this.apiBase}/config/speed-unit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ unit: newUnit }),
+      });
+
+      if (response.ok) {
+        this.currentSpeedUnit = newUnit;
+        text.textContent = newUnit === "kmh" ? "km/h" : "mph";
+        btn.classList.toggle("mph", newUnit === "mph");
+        this.showMessage(
+          `Speed unit: ${newUnit === "kmh" ? "km/h" : "mph"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set speed unit");
+      }
+    } catch (error) {
+      console.error("Failed to set speed unit:", error);
+      this.showMessage("Failed to change speed unit", "error");
+    }
+  }
+
+  // Set POI category enabled/disabled
+  async setPOICategory(category, enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/poi-category`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ category, enabled }),
+      });
+
+      if (response.ok) {
+        const categoryNames = {
+          fuel: "Fuel",
+          parking: "Parking",
+          food: "Food",
+          restroom: "Restroom",
+          viewpoint: "Viewpoint",
+        };
+        this.showMessage(
+          `${categoryNames[category]} POI ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set POI category");
+      }
+    } catch (error) {
+      console.error("Failed to set POI category:", error);
+      this.showMessage("Failed to change POI setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById(`poi-${category}`);
+      if (checkbox) checkbox.checked = !enabled;
     }
   }
 

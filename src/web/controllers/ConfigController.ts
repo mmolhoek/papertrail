@@ -48,6 +48,8 @@ export class ConfigController {
         autoCenter: this.configService.getAutoCenter(),
         rotateWithBearing: this.configService.getRotateWithBearing(),
         activeScreen: this.configService.getActiveScreen(),
+        speedUnit: this.configService.getSpeedUnit(),
+        enabledPOICategories: this.configService.getEnabledPOICategories(),
       },
     });
   }
@@ -241,6 +243,113 @@ export class ConfigController {
         },
       });
     }
+  }
+
+  /**
+   * Set speed unit preference
+   */
+  async setSpeedUnit(req: Request, res: Response): Promise<void> {
+    const { unit } = req.body;
+
+    if (typeof unit !== "string" || !["kmh", "mph"].includes(unit)) {
+      logger.warn("Set speed unit called with invalid unit parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "unit must be 'kmh' or 'mph'",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting speed unit to: ${unit}`);
+    this.configService.setSpeedUnit(unit as "kmh" | "mph");
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Speed unit set to ${unit}`);
+    res.json({
+      success: true,
+      message: `Speed unit set to ${unit === "kmh" ? "km/h" : "mph"}`,
+    });
+  }
+
+  /**
+   * Set POI category enabled/disabled
+   */
+  async setPOICategory(req: Request, res: Response): Promise<void> {
+    const { category, enabled } = req.body;
+
+    const validCategories = [
+      "fuel",
+      "parking",
+      "food",
+      "restroom",
+      "viewpoint",
+    ];
+    if (typeof category !== "string" || !validCategories.includes(category)) {
+      logger.warn("Set POI category called with invalid category parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message:
+            "category must be one of: fuel, parking, food, restroom, viewpoint",
+        },
+      });
+      return;
+    }
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set POI category called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting POI category ${category} to: ${enabled}`);
+    this.configService.setPOICategoryEnabled(
+      category as "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+      enabled,
+    );
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`POI category ${category} ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `POI category ${category} ${enabled ? "enabled" : "disabled"}`,
+    });
   }
 
   // Recent Destinations Endpoints
