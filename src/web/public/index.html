@@ -430,6 +430,28 @@
               >
             </div>
 
+            <!-- POI Prefetch Status -->
+            <div id="poi-prefetch-status" class="prefetch-status hidden">
+              <div class="prefetch-header">
+                <span class="prefetch-indicator">⏳ Loading POIs...</span>
+              </div>
+              <div class="prefetch-progress">
+                <div class="progress-bar">
+                  <div
+                    id="poi-prefetch-bar"
+                    class="progress-fill"
+                    style="width: 0%"
+                  ></div>
+                </div>
+                <span class="prefetch-text" id="poi-prefetch-text"
+                  >0/0 points</span
+                >
+              </div>
+              <span class="prefetch-segments" id="poi-prefetch-pois"
+                >0 POIs found</span
+              >
+            </div>
+
             <!-- Navigation Status -->
             <div id="drive-nav-status" class="drive-nav-status hidden">
               <div class="nav-status-header">

@@ -206,6 +206,51 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.speedUnit = unit;
   }
 
+  // POI preferences
+
+  private readonly DEFAULT_POI_CATEGORIES: Array<
+    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+  > = ["fuel", "parking", "food", "restroom", "viewpoint"];
+
+  getEnabledPOICategories(): Array<
+    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+  > {
+    return (
+      this.userState.displayPreferences.enabledPOICategories ??
+      this.DEFAULT_POI_CATEGORIES
+    );
+  }
+
+  setEnabledPOICategories(
+    categories: Array<"fuel" | "parking" | "food" | "restroom" | "viewpoint">,
+  ): void {
+    this.userState.displayPreferences.enabledPOICategories = categories;
+  }
+
+  isPOICategoryEnabled(
+    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+  ): boolean {
+    const enabled = this.getEnabledPOICategories();
+    return enabled.includes(category);
+  }
+
+  setPOICategoryEnabled(
+    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    enabled: boolean,
+  ): void {
+    const current = this.getEnabledPOICategories();
+    if (enabled && !current.includes(category)) {
+      this.userState.displayPreferences.enabledPOICategories = [
+        ...current,
+        category,
+      ];
+    } else if (!enabled && current.includes(category)) {
+      this.userState.displayPreferences.enabledPOICategories = current.filter(
+        (c) => c !== category,
+      );
+    }
+  }
+
   // Active screen management
 
   getActiveScreen(): ScreenType {

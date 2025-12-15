@@ -56,7 +56,7 @@ Show speed limits from OSM road data.
 ---
 
 ### OSM-3: Points of Interest (POI)
-**Status:** Not started
+**Status:** Implemented
 **Priority:** Medium
 **Complexity:** Medium
 
@@ -69,18 +69,19 @@ Display nearby amenities during navigation.
 - Display POI name and distance on demand
 - in track mode show arrow and distance plus code letter for each poi if it is close enought but not visible on the screen yet.
 
-**Implementation notes:**
-- Use Overpass API for POI queries
-- Query example: `node(around:5000,{lat},{lon})[amenity=fuel];out;`
-- Cache POIs along route corridor at navigation start
-- Add POI layer to web map interface
-- E-paper: show in info panel or dedicated POI screen
-- individualy selectable in the display settings and stored in the user state
+**Implementation:**
+- Created `POIService` using Overpass API to query POI amenities
+- POIs are prefetched along the route corridor (2km radius) when navigation starts
+- Cached in `data/poi/` directory for offline use during driving
+- Nearby POIs passed to `DriveNavigationInfo` for display
+- Configurable per-category toggles via `enabledPOICategories` in user preferences
+- Web UI shows POI prefetch progress during route loading
+- Rate limiting (1.1s between requests) to respect Overpass API terms
 
-**POI categories to support:**
+**POI categories supported:**
 - `amenity=fuel` - (F)uel stations
 - `amenity=parking` - (P)arking areas
-- `amenity=restaurant` / `amenity=cafe` - (E)Food
+- `amenity=restaurant` / `amenity=cafe` / `amenity=fast_food` - (E)Food
 - `amenity=toilets` - (R)estrooms
 - `tourism=viewpoint` - (V)iewpoints
 

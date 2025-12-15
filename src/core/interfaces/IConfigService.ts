@@ -171,6 +171,41 @@ export interface IConfigService {
    */
   setSpeedUnit(unit: "kmh" | "mph"): void;
 
+  /**
+   * Get enabled POI categories
+   * @returns Array of enabled POI category names
+   */
+  getEnabledPOICategories(): Array<
+    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+  >;
+
+  /**
+   * Set enabled POI categories
+   * @param categories Array of POI category names to enable
+   */
+  setEnabledPOICategories(
+    categories: Array<"fuel" | "parking" | "food" | "restroom" | "viewpoint">,
+  ): void;
+
+  /**
+   * Check if a specific POI category is enabled
+   * @param category POI category name
+   * @returns true if the category is enabled
+   */
+  isPOICategoryEnabled(
+    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+  ): boolean;
+
+  /**
+   * Toggle a specific POI category
+   * @param category POI category name
+   * @param enabled Whether to enable or disable
+   */
+  setPOICategoryEnabled(
+    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    enabled: boolean,
+  ): void;
+
   // Active screen management
 
   /**

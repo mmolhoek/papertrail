@@ -5,7 +5,9 @@ import {
   IConfigService,
   ITrackSimulationService,
   ISpeedLimitService,
+  IPOIService,
   DriveNavigationInfo,
+  NearbyPOI,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -63,6 +65,10 @@ export class DriveCoordinator {
   private cachedSpeedLimit: number | null = null;
   private lastSpeedLimitPosition: { lat: number; lon: number } | null = null;
 
+  // Cached nearby POIs
+  private cachedNearbyPOIs: NearbyPOI[] = [];
+  private lastPOIPosition: { lat: number; lon: number } | null = null;
+
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
     private readonly svgService: ISVGService,
@@ -70,6 +76,7 @@ export class DriveCoordinator {
     private readonly configService: IConfigService,
     private readonly simulationService: ITrackSimulationService | null,
     private readonly speedLimitService: ISpeedLimitService | null,
+    private readonly poiService: IPOIService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
@@ -342,6 +349,9 @@ export class DriveCoordinator {
             // Get current speed limit (async but cached)
             const speedLimit = await this.getCurrentSpeedLimit(lastPosition);
 
+            // Get nearby POIs (async but cached)
+            const nearbyPOIs = await this.getCurrentNearbyPOIs(lastPosition);
+
             // Push speed limit to simulation service to adjust simulation speed
             if (this.simulationService?.isSimulating()) {
               this.simulationService.setCurrentSpeedLimit(speedLimit);
@@ -360,6 +370,12 @@ export class DriveCoordinator {
               timeRemaining: status.timeRemaining,
               speedLimit: speedLimit,
               speedUnit: this.configService.getSpeedUnit(),
+              nearbyPOIs: nearbyPOIs.map((poi) => ({
+                codeLetter: poi.codeLetter,
+                name: poi.name,
+                distance: poi.distance,
+                bearing: poi.bearing,
+              })),
             };
 
             const renderOptions = {
@@ -587,5 +603,58 @@ export class DriveCoordinator {
     }
 
     return this.cachedSpeedLimit;
+  }
+
+  /**
+   * Get nearby POIs for position (uses cache to avoid excessive lookups)
+   */
+  private async getCurrentNearbyPOIs(
+    position: GPSCoordinate,
+  ): Promise<NearbyPOI[]> {
+    // Check if POI display is enabled
+    const enabledCategories = this.configService.getEnabledPOICategories();
+    if (enabledCategories.length === 0) {
+      return [];
+    }
+
+    if (!this.poiService) {
+      return [];
+    }
+
+    // Check if we should update the cache (moved significantly)
+    const shouldUpdate =
+      !this.lastPOIPosition ||
+      Math.abs(position.latitude - this.lastPOIPosition.lat) > 0.001 || // ~100m
+      Math.abs(position.longitude - this.lastPOIPosition.lon) > 0.001;
+
+    if (shouldUpdate) {
+      try {
+        const result = await this.poiService.getNearbyPOIs(
+          position,
+          enabledCategories,
+          5000, // 5km max distance
+          5, // Max 5 POIs
+        );
+        if (result.success) {
+          this.cachedNearbyPOIs = result.data;
+          if (this.cachedNearbyPOIs.length > 0) {
+            logger.debug(
+              `Found ${this.cachedNearbyPOIs.length} nearby POIs: ${this.cachedNearbyPOIs.map((p) => `${p.codeLetter}:${p.name || "unnamed"}`).join(", ")}`,
+            );
+          }
+        } else {
+          // Keep previous value if no new data found
+          logger.debug("No POI data found for position");
+        }
+        this.lastPOIPosition = {
+          lat: position.latitude,
+          lon: position.longitude,
+        };
+      } catch (error) {
+        logger.warn("Failed to fetch nearby POIs:", error);
+      }
+    }
+
+    return this.cachedNearbyPOIs;
   }
 }

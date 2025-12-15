@@ -8,6 +8,7 @@ import {
   DisplayUpdateMode,
 } from "@core/types";
 import { SpeedLimitPrefetchProgress } from "./ISpeedLimitService";
+import { POIPrefetchProgress } from "./IPOIService";
 
 /**
  * Rendering Orchestrator Interface
@@ -221,6 +222,15 @@ export interface IRenderingOrchestrator {
    */
   onSpeedLimitPrefetchProgress(
     callback: (progress: SpeedLimitPrefetchProgress) => void,
+  ): () => void;
+
+  /**
+   * Register a callback for POI prefetch progress
+   * @param callback Function to call on prefetch progress updates
+   * @returns Unsubscribe function
+   */
+  onPOIPrefetchProgress(
+    callback: (progress: POIPrefetchProgress) => void,
   ): () => void;
 
   /**

@@ -206,6 +206,12 @@ describe("Drive Navigation Flow Integration", () => {
       getConfig: jest.fn().mockReturnValue({ web: { port: 3000 } }),
       getShowSpeedLimit: jest.fn().mockReturnValue(true),
       getSpeedUnit: jest.fn().mockReturnValue("kmh"),
+      getEnabledPOICategories: jest
+        .fn()
+        .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),
+      setEnabledPOICategories: jest.fn(),
+      isPOICategoryEnabled: jest.fn().mockReturnValue(true),
+      setPOICategoryEnabled: jest.fn(),
     };
 
     // Create mock drive navigation service

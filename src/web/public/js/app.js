@@ -210,6 +210,11 @@ class PapertrailClient {
       this.updateSpeedLimitPrefetchStatus(data);
     });
 
+    // POI prefetch progress event
+    this.socket.on("poi:prefetch", (data) => {
+      this.updatePOIPrefetchStatus(data);
+    });
+
     // Display update event - refresh mock display if visible
     this.socket.on("display:updated", (data) => {
       console.log("Display updated:", data);
@@ -2821,6 +2826,43 @@ class PapertrailClient {
       }
       if (segmentsText) {
         segmentsText.textContent = `${data.segmentsFound} segments found`;
+      }
+    }
+  }
+
+  /**
+   * Update POI prefetch progress indicator
+   * Shows loading progress when navigation starts and POIs are being fetched
+   */
+  updatePOIPrefetchStatus(data) {
+    const container = document.getElementById("poi-prefetch-status");
+    const progressBar = document.getElementById("poi-prefetch-bar");
+    const progressText = document.getElementById("poi-prefetch-text");
+    const poisText = document.getElementById("poi-prefetch-pois");
+
+    if (!container) return;
+
+    if (data.complete) {
+      // Hide the prefetch status when complete
+      container.classList.add("hidden");
+      if (data.poisFound > 0) {
+        this.showMessage(`POIs loaded (${data.poisFound} found)`, "success");
+      }
+    } else {
+      // Show progress
+      container.classList.remove("hidden");
+
+      const progress =
+        data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+
+      if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+      }
+      if (progressText) {
+        progressText.textContent = `${data.current}/${data.total} points`;
+      }
+      if (poisText) {
+        poisText.textContent = `${data.poisFound} POIs found`;
       }
     }
   }

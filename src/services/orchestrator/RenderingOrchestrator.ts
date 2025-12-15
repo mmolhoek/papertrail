@@ -10,7 +10,9 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
   ISpeedLimitService,
+  IPOIService,
   SpeedLimitPrefetchProgress,
+  POIPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -83,6 +85,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private speedLimitPrefetchCallbacks: Array<
     (progress: SpeedLimitPrefetchProgress) => void
   > = [];
+  private poiPrefetchCallbacks: Array<(progress: POIPrefetchProgress) => void> =
+    [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -113,6 +117,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly simulationService?: ITrackSimulationService,
     private readonly driveNavigationService?: IDriveNavigationService,
     private readonly speedLimitService?: ISpeedLimitService,
+    private readonly poiService?: IPOIService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -150,6 +155,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       configService,
       simulationService ?? null,
       speedLimitService ?? null,
+      poiService ?? null,
       this.gpsCoordinator,
       this.onboardingCoordinator,
     );
@@ -328,6 +334,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
+      // Initialize POI service (if provided)
+      if (this.poiService) {
+        logger.info("Initializing POIService...");
+        const poiResult = await this.poiService.initialize();
+        if (!poiResult.success) {
+          logger.error("Failed to initialize POIService:", poiResult.error);
+          // Non-fatal - POI is optional
+          logger.warn("POI display will not be available");
+        } else {
+          logger.info("✓ POIService initialized");
+        }
+      }
+
       this.isInitialized = true;
 
       // Set drive coordinator as initialized
@@ -420,6 +439,33 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       }
     }
 
+    // Prefetch POIs for the route in the background (while internet is available)
+    // Skip if already cached for this route
+    const enabledPOICategories = this.configService.getEnabledPOICategories();
+    if (this.poiService && enabledPOICategories.length > 0) {
+      if (this.poiService.hasRouteCache(route.id)) {
+        logger.info(
+          `POIs already cached for route ${route.id}, skipping prefetch`,
+        );
+      } else {
+        logger.info(
+          `Starting POI prefetch for route (categories: ${enabledPOICategories.join(", ")})`,
+        );
+        // Run in background - don't block navigation start
+        this.poiService
+          .prefetchRoutePOIs(route, enabledPOICategories, (progress) => {
+            this.notifyPOIPrefetchProgress(progress);
+          })
+          .then((result) => {
+            if (result.success) {
+              logger.info(`Prefetched ${result.data} POIs`);
+            } else {
+              logger.warn("Failed to prefetch POIs:", result.error?.message);
+            }
+          });
+      }
+    }
+
     return this.driveCoordinator.startDriveNavigation(route);
   }
 
@@ -495,6 +541,37 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         callback(progress);
       } catch (error) {
         logger.error("Error in speed limit prefetch progress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Register a callback for POI prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onPOIPrefetchProgress(
+    callback: (progress: POIPrefetchProgress) => void,
+  ): () => void {
+    this.poiPrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.poiPrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.poiPrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all POI prefetch progress callbacks
+   */
+  private notifyPOIPrefetchProgress(progress: POIPrefetchProgress): void {
+    for (const callback of this.poiPrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error("Error in POI prefetch progress callback:", error);
       }
     }
   }

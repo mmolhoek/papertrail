@@ -78,6 +78,17 @@ export interface DriveNavigationInfo {
   speedLimit?: number | null;
   /** Speed unit for display ('kmh' or 'mph') */
   speedUnit?: "kmh" | "mph";
+  /** Nearby POIs for display */
+  nearbyPOIs?: Array<{
+    /** POI category code letter (F, P, E, R, V) */
+    codeLetter: string;
+    /** POI name */
+    name?: string;
+    /** Distance in meters */
+    distance: number;
+    /** Bearing in degrees */
+    bearing?: number;
+  }>;
 }
 
 /**

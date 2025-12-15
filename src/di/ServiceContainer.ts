@@ -10,6 +10,7 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
   ISpeedLimitService,
+  IPOIService,
 } from "@core/interfaces";
 import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
@@ -79,6 +80,7 @@ import { TextRendererService } from "@services/textRenderer/TextRendererService"
 import { TrackSimulationService } from "@services/simulation/TrackSimulationService";
 import { DriveNavigationService } from "@services/drive/DriveNavigationService";
 import { SpeedLimitService } from "@services/speedLimit/SpeedLimitService";
+import { POIService } from "@services/poi/POIService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -109,6 +111,7 @@ export class ServiceContainer {
     simulation?: ITrackSimulationService;
     driveNavigation?: IDriveNavigationService;
     speedLimit?: ISpeedLimitService;
+    poi?: IPOIService;
   } = {};
 
   /**
@@ -345,6 +348,7 @@ export class ServiceContainer {
         this.getTrackSimulationService(),
         this.getDriveNavigationService(),
         this.getSpeedLimitService(),
+        this.getPOIService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -411,6 +415,16 @@ export class ServiceContainer {
       this.services.speedLimit = new SpeedLimitService();
     }
     return this.services.speedLimit;
+  }
+
+  /**
+   * Get POI Service
+   */
+  getPOIService(): IPOIService {
+    if (!this.services.poi) {
+      this.services.poi = new POIService();
+    }
+    return this.services.poi;
   }
 
   // Configuration getters
@@ -711,6 +725,13 @@ export class ServiceContainer {
    */
   setSpeedLimitService(service: ISpeedLimitService): void {
     this.services.speedLimit = service;
+  }
+
+  /**
+   * Set POI Service (for testing)
+   */
+  setPOIService(service: IPOIService): void {
+    this.services.poi = service;
   }
 
   // Security/Credential helpers

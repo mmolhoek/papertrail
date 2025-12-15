@@ -184,6 +184,11 @@ export type UserState = {
 
     /** Speed unit preference: 'kmh' for kilometers per hour, 'mph' for miles per hour */
     speedUnit: "kmh" | "mph";
+
+    /** Enabled POI categories for display during navigation */
+    enabledPOICategories?: Array<
+      "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+    >;
   };
 
   /** Recently used GPX files */
