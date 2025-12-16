@@ -303,9 +303,13 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     startDriveNavigation: jest.fn().mockResolvedValue(success(undefined)),
     stopDriveNavigation: jest.fn().mockResolvedValue(success(undefined)),
     isDriveNavigating: jest.fn().mockReturnValue(false),
+    showFullRoute: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(success(undefined))),
     onDriveNavigationUpdate: jest.fn().mockReturnValue(() => {}),
     onSpeedLimitPrefetchProgress: jest.fn().mockReturnValue(() => {}),
     onPOIPrefetchProgress: jest.fn().mockReturnValue(() => {}),
+    refreshRoutePOIs: jest.fn().mockResolvedValue(success(undefined)),
     getMockDisplayImage: jest.fn().mockReturnValue(null),
     hasMockDisplayImage: jest.fn().mockReturnValue(false),
     isMockGPS: jest.fn().mockReturnValue(false),

@@ -345,6 +345,14 @@ export class ConfigController {
     // Save the setting to persist it
     await this.configService.save();
 
+    // Refresh POIs for active route if navigating (to fetch newly enabled categories)
+    if (this.orchestrator.isDriveNavigating()) {
+      logger.info(
+        "POI categories changed during navigation - triggering POI refresh",
+      );
+      await this.orchestrator.refreshRoutePOIs();
+    }
+
     logger.info(`POI category ${category} ${enabled ? "enabled" : "disabled"}`);
     res.json({
       success: true,

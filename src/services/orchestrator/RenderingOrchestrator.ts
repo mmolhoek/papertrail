@@ -404,12 +404,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
     }
 
-    // Calculate and set zoom level to fit the entire route
-    if (route.geometry && route.geometry.length > 0) {
-      const fitZoom = this.calculateFitZoomFromGeometry(route.geometry);
-      logger.info(`Setting zoom to fit drive route: ${fitZoom}`);
-      this.configService.setZoomLevel(fitZoom);
-      await this.configService.save();
+    // Ensure route has an ID for caching purposes
+    if (!route.id) {
+      route.id = `route_${Date.now()}`;
+      logger.info(`Generated route ID: ${route.id}`);
     }
 
     // Prefetch speed limits for the route in the background (while internet is available)
@@ -485,12 +483,180 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Refresh POIs for the active route with current enabled categories.
+   *
+   * Call this when POI categories are changed during navigation.
+   * Clears the existing POI cache and re-prefetches with current settings.
+   *
+   * @returns Result indicating success or failure
+   */
+  async refreshRoutePOIs(): Promise<Result<void>> {
+    if (!this.poiService) {
+      logger.warn("POI service not available, cannot refresh POIs");
+      return success(undefined);
+    }
+
+    // Get the active route
+    const route = this.driveCoordinator?.getActiveRoute();
+    if (!route) {
+      logger.info("No active route, nothing to refresh POIs for");
+      return success(undefined);
+    }
+
+    // Ensure route has an ID
+    if (!route.id) {
+      route.id = `route_${Date.now()}`;
+    }
+
+    const enabledPOICategories = this.configService.getEnabledPOICategories();
+    if (enabledPOICategories.length === 0) {
+      logger.info("No POI categories enabled, clearing cache");
+      await this.poiService.clearRouteCache(route.id);
+      return success(undefined);
+    }
+
+    // Clear the existing cache for this route to force re-fetch
+    logger.info(
+      `Clearing POI cache for route ${route.id} and re-prefetching with categories: ${enabledPOICategories.join(", ")}`,
+    );
+    await this.poiService.clearRouteCache(route.id);
+
+    // Re-prefetch POIs with current categories
+    this.poiService
+      .prefetchRoutePOIs(route, enabledPOICategories, (progress) => {
+        this.notifyPOIPrefetchProgress(progress);
+      })
+      .then((result) => {
+        if (result.success) {
+          logger.info(`Re-prefetched ${result.data} POIs for route`);
+        } else {
+          logger.warn("Failed to re-prefetch POIs:", result.error?.message);
+        }
+      });
+
+    return success(undefined);
+  }
+
+  /**
    * Check if drive navigation is currently active.
    *
    * @returns true if navigation is in progress, false otherwise
    */
   isDriveNavigating(): boolean {
     return this.driveCoordinator?.isDriveNavigating() ?? false;
+  }
+
+  /**
+   * Show the full route on the e-paper display.
+   *
+   * Sets the zoom level to fit the entire route and renders
+   * the route overview on the e-paper display.
+   *
+   * @returns Result indicating success or failure
+   */
+  async showFullRoute(routeParam?: DriveRoute): Promise<Result<void>> {
+    // Use provided route or fall back to active route
+    const route = routeParam ?? this.driveCoordinator?.getActiveRoute();
+
+    if (!route || !route.geometry || route.geometry.length === 0) {
+      logger.warn("Cannot show full route: no route with geometry");
+      return failure(
+        new OrchestratorError(
+          "No route available",
+          OrchestratorErrorCode.INVALID_STATE,
+          false,
+        ),
+      );
+    }
+
+    // Calculate zoom to fit the entire route
+    const fitZoom = this.calculateFitZoomFromGeometry(route.geometry);
+    logger.info(`Setting zoom to show full route: ${fitZoom}`);
+
+    // Set the zoom level and save
+    this.configService.setZoomLevel(fitZoom);
+    await this.configService.save();
+
+    // Calculate center point of the route for viewport
+    const geometry = route.geometry;
+    let minLat = geometry[0][0],
+      maxLat = geometry[0][0];
+    let minLon = geometry[0][1],
+      maxLon = geometry[0][1];
+    for (const [lat, lon] of geometry) {
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLon = Math.min(minLon, lon);
+      maxLon = Math.max(maxLon, lon);
+    }
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
+
+    // Render the route overview
+    const viewport = {
+      width: this.configService.getDisplayWidth(),
+      height: this.configService.getDisplayHeight(),
+      zoomLevel: fitZoom,
+      centerPoint: {
+        latitude: centerLat,
+        longitude: centerLon,
+        timestamp: new Date(),
+      },
+    };
+
+    // Find first waypoint with a street name (skip depart which often has none)
+    const waypointWithStreet = route.waypoints.find((wp) => wp.streetName);
+    const displayStreetName =
+      waypointWithStreet?.streetName ?? route.destination;
+
+    // Create minimal navigation info for rendering
+    const info = {
+      speed: 0,
+      satellites: 0,
+      zoomLevel: fitZoom,
+      nextManeuver: route.waypoints[0]?.maneuverType,
+      distanceToTurn: route.waypoints[0]?.distance ?? 0,
+      instruction: route.destination,
+      streetName: displayStreetName,
+      distanceRemaining: route.totalDistance,
+      progress: 0,
+      speedUnit: this.configService.getSpeedUnit(),
+    };
+
+    // Disable current position marker for route overview (just show the route and flag)
+    const renderOptions = {
+      ...this.configService.getRenderOptions(),
+      highlightCurrentPosition: false,
+    };
+
+    try {
+      const renderResult = await this.svgService.renderDriveMapScreen(
+        route,
+        viewport.centerPoint,
+        route.waypoints[0],
+        viewport,
+        info,
+        renderOptions,
+      );
+
+      if (renderResult.success) {
+        await this.epaperService.displayBitmap(renderResult.data);
+        logger.info("Full route displayed successfully");
+        return success(undefined);
+      } else {
+        logger.error("Failed to render route:", renderResult.error);
+        return failure(renderResult.error);
+      }
+    } catch (error) {
+      logger.error("Error showing full route:", error);
+      return failure(
+        new OrchestratorError(
+          "Failed to render route",
+          OrchestratorErrorCode.DISPLAY_UPDATE_FAILED,
+          true,
+        ),
+      );
+    }
   }
 
   /**

@@ -207,6 +207,14 @@ export interface IRenderingOrchestrator {
   isDriveNavigating(): boolean;
 
   /**
+   * Show the full route on the e-paper display
+   * Sets zoom level to fit the entire route and renders it
+   * @param route Optional route to display (uses active route if not provided)
+   * @returns Result indicating success or failure
+   */
+  showFullRoute(route?: DriveRoute): Promise<Result<void>>;
+
+  /**
    * Register a callback for drive navigation updates
    * @param callback Function to call on navigation updates
    * @returns Unsubscribe function
@@ -232,6 +240,13 @@ export interface IRenderingOrchestrator {
   onPOIPrefetchProgress(
     callback: (progress: POIPrefetchProgress) => void,
   ): () => void;
+
+  /**
+   * Refresh POIs for the active route with current enabled categories.
+   * Call this when POI categories are changed during navigation.
+   * @returns Result indicating success or failure
+   */
+  refreshRoutePOIs(): Promise<Result<void>>;
 
   /**
    * Clean up resources and shut down all services
