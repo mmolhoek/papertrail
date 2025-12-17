@@ -765,7 +765,9 @@ export class DriveCoordinator {
         const result =
           await this.reverseGeocodingService.getLocationName(position);
         if (result.success && result.data) {
-          this.cachedLocationName = result.data.displayName;
+          // Prefer street name only, fall back to full display name if no street
+          this.cachedLocationName =
+            result.data.street || result.data.displayName;
           logger.debug(`Location name updated: ${this.cachedLocationName}`);
         } else {
           // Keep previous value if no new data found
