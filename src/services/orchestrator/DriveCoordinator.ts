@@ -659,6 +659,12 @@ export class DriveCoordinator {
   private async getCurrentNearbyPOIs(
     position: GPSCoordinate,
   ): Promise<NearbyPOI[]> {
+    // Only show POIs at zoom level 15+ during navigation
+    const zoomLevel = this.configService.getZoomLevel();
+    if (zoomLevel < 15) {
+      return [];
+    }
+
     // Check if POI display is enabled
     const enabledCategories = this.configService.getEnabledPOICategories();
     if (enabledCategories.length === 0) {
