@@ -16,7 +16,6 @@ class PapertrailClient {
     this.apiBase = "/api";
     this.autoRefreshInterval = null;
     this.simulationPollingInterval = null;
-    this.selectedSpeed = "walk";
     this.isSimulating = false;
     this.isPaused = false;
     this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
@@ -373,20 +372,8 @@ class PapertrailClient {
 
   // Setup simulation control event listeners
   setupSimulationControls() {
-    // Speed buttons
-    const speedButtons = document.querySelectorAll(".speed-btn");
-    speedButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        speedButtons.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        this.selectedSpeed = btn.dataset.speed;
-
-        // If simulation is running, update speed
-        if (this.isSimulating) {
-          this.setSimulationSpeed(this.selectedSpeed);
-        }
-      });
-    });
+    // Note: Simulation speed is now determined by the Routing Profile setting
+    // in Display Controls (car=drive, bike=bicycle, foot=walk)
 
     // Start simulation
     document
@@ -795,7 +782,7 @@ class PapertrailClient {
     }
   }
 
-  // Set routing profile for OSRM route calculation
+  // Set routing profile for OSRM route calculation and simulation speed
   async setRoutingProfile(profile) {
     const profileNames = {
       car: "Driving",
@@ -816,6 +803,16 @@ class PapertrailClient {
           `Routing profile: ${profileNames[profile]}`,
           "success",
         );
+
+        // If simulation is running, update its speed to match the new profile
+        if (this.isSimulating) {
+          const profileToSpeed = {
+            car: "drive",
+            bike: "bicycle",
+            foot: "walk",
+          };
+          this.setSimulationSpeed(profileToSpeed[profile] || "walk");
+        }
       } else {
         throw new Error("Failed to set routing profile");
       }
@@ -1483,11 +1480,19 @@ class PapertrailClient {
     btn.disabled = true;
 
     try {
+      // Map routing profile to simulation speed preset
+      const profileToSpeed = {
+        car: "drive",
+        bike: "bicycle",
+        foot: "walk",
+      };
+      const speed = profileToSpeed[this.currentRoutingProfile] || "walk";
+
       const result = await this.fetchJSON(`${this.apiBase}/simulation/start`, {
         method: "POST",
         body: JSON.stringify({
           trackPath: trackPath,
-          speed: this.selectedSpeed,
+          speed: speed,
         }),
       });
 
