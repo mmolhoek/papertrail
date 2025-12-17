@@ -31,7 +31,8 @@ const CACHE_DIR = "./data/locations";
 
 // Distance threshold for cache lookup (meters)
 // Use cached location if within this distance
-const CACHE_LOOKUP_DISTANCE = 100;
+// Set to slightly over half the sample interval so any route point is covered
+const CACHE_LOOKUP_DISTANCE = 600;
 
 // Distance between sample points for prefetching (meters)
 const PREFETCH_SAMPLE_INTERVAL = 1000;
