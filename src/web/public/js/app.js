@@ -1701,6 +1701,14 @@ class PapertrailClient {
       });
     }
 
+    // Show route button
+    const showRouteBtn = document.getElementById("drive-show-route-btn");
+    if (showRouteBtn) {
+      showRouteBtn.addEventListener("click", () => {
+        this.showFullRoute();
+      });
+    }
+
     // Load recent destinations on panel show
     this.loadRecentDestinations();
     this.loadRecentStarts();
@@ -2775,6 +2783,43 @@ class PapertrailClient {
     } finally {
       simulateBtn.disabled = false;
       startBtn.disabled = false;
+    }
+  }
+
+  async showFullRoute() {
+    if (!this.driveRoute) {
+      this.showMessage("Please calculate a route first", "error");
+      return;
+    }
+
+    const showRouteBtn = document.getElementById("drive-show-route-btn");
+    if (showRouteBtn) {
+      showRouteBtn.disabled = true;
+    }
+
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/drive/show-route`, {
+        method: "POST",
+        body: JSON.stringify({
+          route: this.driveRoute,
+        }),
+      });
+
+      if (result.success) {
+        this.showMessage("Route displayed on e-paper", "success");
+      } else {
+        this.showMessage(
+          result.error?.message || "Failed to show route",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Error showing route:", error);
+      this.showMessage("Failed to show route", "error");
+    } finally {
+      if (showRouteBtn) {
+        showRouteBtn.disabled = false;
+      }
     }
   }
 

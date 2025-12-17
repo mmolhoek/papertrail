@@ -449,6 +449,11 @@ export class WebController {
     return this.drive.calculateRoute(req, res);
   }
 
+  /** @see DriveController.showFullRoute */
+  async showFullRoute(req: Request, res: Response): Promise<void> {
+    return this.drive.showFullRoute(req, res);
+  }
+
   /** @see SimulationController.startSimulation */
   async startSimulation(req: Request, res: Response): Promise<void> {
     return this.simulation.startSimulation(req, res);

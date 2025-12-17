@@ -617,6 +617,10 @@ export class IntegratedWebService implements IWebInterfaceService {
       (req, res) => this.controller.simulateDriveRoute(req, res),
     );
 
+    this.app.post(`${api}/drive/show-route`, (req, res) =>
+      this.controller.showFullRoute(req, res),
+    );
+
     // Mock display endpoints (for development)
     this.app.get(`${api}/mock-display/image`, (req, res) =>
       this.controller.getMockDisplayImage(req, res),

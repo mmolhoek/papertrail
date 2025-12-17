@@ -933,6 +933,39 @@ export class SVGService implements ISVGService {
         logger.info(
           `renderDriveMapScreen: rendered ${pointCount} route points (${Date.now() - methodStart}ms)`,
         );
+
+        // Render end/destination marker for route overview
+        const endCoord = route.geometry[route.geometry.length - 1];
+
+        let endPixel = this.projectToPixels(
+          endCoord[0],
+          endCoord[1],
+          mapViewport,
+        );
+
+        // Apply rotation if in track-up mode
+        const routeBearing = currentPosition.bearing;
+        if (renderOpts.rotateWithBearing && routeBearing !== undefined) {
+          endPixel = this.rotatePoint(
+            endPixel,
+            mapWidth / 2,
+            height / 2,
+            -routeBearing,
+          );
+        }
+
+        // Draw end marker if within map bounds
+        if (
+          endPixel.x >= 0 &&
+          endPixel.x < mapWidth &&
+          endPixel.y >= 0 &&
+          endPixel.y < height
+        ) {
+          TrackRenderer.renderEndMarker(bitmap, endPixel, 16);
+          logger.info(
+            `renderDriveMapScreen: end marker at (${endPixel.x}, ${endPixel.y})`,
+          );
+        }
       }
 
       // Highlight current position
@@ -994,6 +1027,71 @@ export class SVGService implements ISVGService {
                 renderBitmapText(bitmap, label, labelX, labelY, { scale: 1 });
               }
             }
+          }
+        }
+      }
+
+      // Draw POIs on the map (at zoom level 19+)
+      const showPOIs = viewport.zoomLevel >= 19;
+      if (showPOIs && info.nearbyPOIs && info.nearbyPOIs.length > 0) {
+        logger.info(
+          `Rendering ${info.nearbyPOIs.length} POIs at zoom level ${viewport.zoomLevel}`,
+        );
+
+        for (const poi of info.nearbyPOIs) {
+          let poiPixel = this.projectToPixels(
+            poi.latitude,
+            poi.longitude,
+            mapViewport,
+          );
+
+          // Apply rotation if in track-up mode
+          if (renderOpts.rotateWithBearing && bearing !== undefined) {
+            poiPixel = this.rotatePoint(
+              poiPixel,
+              mapWidth / 2,
+              height / 2,
+              -bearing,
+            );
+          }
+
+          // Only render if within map area
+          if (
+            poiPixel.x >= 0 &&
+            poiPixel.x < mapWidth &&
+            poiPixel.y >= 0 &&
+            poiPixel.y < height
+          ) {
+            // Draw POI marker (circle with code letter)
+            const poiRadius = 12;
+
+            // Draw filled circle background (white)
+            for (let dy = -poiRadius; dy <= poiRadius; dy++) {
+              for (let dx = -poiRadius; dx <= poiRadius; dx++) {
+                if (dx * dx + dy * dy <= poiRadius * poiRadius) {
+                  const px = Math.floor(poiPixel.x + dx);
+                  const py = Math.floor(poiPixel.y + dy);
+                  if (px >= 0 && px < mapWidth && py >= 0 && py < height) {
+                    this.setPixel(bitmap, px, py, false); // White fill
+                  }
+                }
+              }
+            }
+
+            // Draw circle outline (black)
+            this.drawCircle(
+              bitmap,
+              { x: Math.floor(poiPixel.x), y: Math.floor(poiPixel.y) },
+              poiRadius,
+            );
+
+            // Draw code letter centered in circle
+            const letterX = Math.floor(poiPixel.x) - 4;
+            const letterY = Math.floor(poiPixel.y) - 5;
+            renderBitmapText(bitmap, poi.codeLetter, letterX, letterY, {
+              scale: 1,
+              bold: true,
+            });
           }
         }
       }
@@ -1302,6 +1400,25 @@ export class SVGService implements ISVGService {
     });
     currentY += 30;
 
+    // Street name (road you're turning onto)
+    if (info.streetName) {
+      logger.info(
+        `renderDriveInfoPanel: step 3b - street name: ${info.streetName}`,
+      );
+      // Truncate long street names to fit panel
+      const maxChars = Math.floor((width - padding * 2) / 7); // ~7px per char at scale 1
+      let streetDisplay = info.streetName.toUpperCase();
+      if (streetDisplay.length > maxChars) {
+        streetDisplay = streetDisplay.substring(0, maxChars - 2) + "..";
+      }
+      renderBitmapText(bitmap, streetDisplay, x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += 25;
+    } else {
+      logger.info("renderDriveInfoPanel: step 3b - no street name available");
+    }
+
     logger.info("renderDriveInfoPanel: step 4 - divider");
 
     // Divider
@@ -1454,8 +1571,62 @@ export class SVGService implements ISVGService {
       scale: valueScale,
       bold: true,
     });
+    currentY += 35;
+
+    // Background fetch indicator (loading icon)
+    if (info.isBackgroundFetching) {
+      logger.info("renderDriveInfoPanel: step 13 - loading indicator");
+      this.drawLoadingIndicator(
+        bitmap,
+        x + padding,
+        currentY,
+        width - padding * 2,
+      );
+    }
 
     logger.info("renderDriveInfoPanel: completed all steps");
+  }
+
+  /**
+   * Draw a loading indicator for background fetch activity
+   */
+  private drawLoadingIndicator(
+    bitmap: Bitmap1Bit,
+    x: number,
+    y: number,
+    _maxWidth: number,
+  ): void {
+    // Draw a small loading spinner icon (circle with gap)
+    const iconRadius = 8;
+    const iconCenterX = x + iconRadius + 2;
+    const iconCenterY = y + iconRadius;
+
+    // Draw circle outline with a gap (like a loading spinner)
+    for (let angle = 0; angle < 360; angle += 10) {
+      // Skip 60 degrees to create gap effect (static spinner look)
+      if (angle >= 30 && angle < 90) continue;
+
+      const radians = (angle * Math.PI) / 180;
+      const px = Math.round(iconCenterX + iconRadius * Math.cos(radians));
+      const py = Math.round(iconCenterY + iconRadius * Math.sin(radians));
+      this.setPixel(bitmap, px, py, true);
+
+      // Make line thicker
+      const px2 = Math.round(
+        iconCenterX + (iconRadius - 1) * Math.cos(radians),
+      );
+      const py2 = Math.round(
+        iconCenterY + (iconRadius - 1) * Math.sin(radians),
+      );
+      this.setPixel(bitmap, px2, py2, true);
+    }
+
+    // Draw "SYNC" text next to the icon
+    const textX = iconCenterX + iconRadius + 8;
+    renderBitmapText(bitmap, "SYNC", textX, y + 2, {
+      scale: 1,
+      bold: false,
+    });
   }
 
   /**

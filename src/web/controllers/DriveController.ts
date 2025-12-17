@@ -516,6 +516,37 @@ export class DriveController {
   }
 
   /**
+   * Show the full route on the e-paper display
+   * Sets zoom to fit the entire route and renders it
+   * Accepts optional route in request body
+   */
+  async showFullRoute(req: Request, res: Response): Promise<void> {
+    const { route } = req.body;
+    logger.info(
+      `Show full route requested${route ? ` (route with ${route.geometry?.length || 0} points)` : ""}`,
+    );
+
+    const result = await this.orchestrator.showFullRoute(route);
+
+    if (isSuccess(result)) {
+      logger.info("Full route displayed successfully");
+      res.json({
+        success: true,
+        message: "Route displayed on e-paper",
+      });
+    } else {
+      logger.error("Failed to show full route:", result.error);
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "SHOW_ROUTE_FAILED",
+          message: result.error.message || "Failed to show route",
+        },
+      });
+    }
+  }
+
+  /**
    * Proxy route calculation to OSRM API
    * This avoids CORS issues when calling OSRM from the browser
    */

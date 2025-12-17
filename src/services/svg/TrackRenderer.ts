@@ -273,6 +273,114 @@ export class TrackRenderer {
   }
 
   /**
+   * Render a start marker for route overview.
+   *
+   * Draws a large filled circle with "S" indicator.
+   *
+   * @param bitmap - Target bitmap
+   * @param center - Center point for the marker
+   * @param radius - Radius of the marker (default 12 for visibility)
+   */
+  static renderStartMarker(
+    bitmap: Bitmap1Bit,
+    center: Point2D,
+    radius: number = 12,
+  ): void {
+    const rowBytes = Math.ceil(bitmap.width / 8);
+    // Draw outer circle (white/unfilled)
+    BitmapUtils.drawCircle(bitmap, center, radius + 2);
+    // Draw filled inner circle
+    BitmapUtils.drawFilledCircle(bitmap, center, radius);
+    // Draw white "S" by clearing pixels in center area
+    // Create a small unfilled rectangle in center for "S" visibility
+    const innerSize = Math.floor(radius * 0.6);
+    for (let dy = -innerSize; dy <= innerSize; dy++) {
+      for (let dx = -innerSize; dx <= innerSize; dx++) {
+        const px = center.x + dx;
+        const py = center.y + dy;
+        if (px >= 0 && px < bitmap.width && py >= 0 && py < bitmap.height) {
+          // Clear center pixels to create contrast
+          if (Math.abs(dx) <= innerSize - 2 && Math.abs(dy) <= innerSize - 2) {
+            const byteIndex = py * rowBytes + Math.floor(px / 8);
+            const bitIndex = 7 - (px % 8);
+            bitmap.data[byteIndex] &= ~(1 << bitIndex); // Clear bit (white)
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Render an end marker for route overview.
+   *
+   * Draws a flag/destination marker shape.
+   *
+   * @param bitmap - Target bitmap
+   * @param center - Center point for the marker
+   * @param size - Size of the marker (default 14 for visibility)
+   */
+  static renderEndMarker(
+    bitmap: Bitmap1Bit,
+    center: Point2D,
+    size: number = 14,
+  ): void {
+    const rowBytes = Math.ceil(bitmap.width / 8);
+    // Draw a checkered flag / destination marker
+    // Vertical pole
+    const poleTop = center.y - size;
+    const poleBottom = center.y + Math.floor(size / 2);
+    for (let y = poleTop; y <= poleBottom; y++) {
+      if (
+        y >= 0 &&
+        y < bitmap.height &&
+        center.x >= 0 &&
+        center.x < bitmap.width
+      ) {
+        const byteIndex = y * rowBytes + Math.floor(center.x / 8);
+        const bitIndex = 7 - (center.x % 8);
+        bitmap.data[byteIndex] |= 1 << bitIndex;
+        // Make pole 2px wide
+        if (center.x + 1 < bitmap.width) {
+          const byteIndex2 = y * rowBytes + Math.floor((center.x + 1) / 8);
+          const bitIndex2 = 7 - ((center.x + 1) % 8);
+          bitmap.data[byteIndex2] |= 1 << bitIndex2;
+        }
+      }
+    }
+    // Flag rectangle (filled)
+    const flagWidth = size;
+    const flagHeight = Math.floor(size * 0.6);
+    for (let dy = 0; dy < flagHeight; dy++) {
+      for (let dx = 0; dx < flagWidth; dx++) {
+        const px = center.x + 2 + dx;
+        const py = poleTop + dy;
+        if (px >= 0 && px < bitmap.width && py >= 0 && py < bitmap.height) {
+          const byteIndex = py * rowBytes + Math.floor(px / 8);
+          const bitIndex = 7 - (px % 8);
+          bitmap.data[byteIndex] |= 1 << bitIndex;
+        }
+      }
+    }
+    // Add checkered pattern (clear some pixels)
+    for (let dy = 0; dy < flagHeight; dy++) {
+      for (let dx = 0; dx < flagWidth; dx++) {
+        const px = center.x + 2 + dx;
+        const py = poleTop + dy;
+        // Checkered pattern: clear alternating 3x3 squares
+        const checkX = Math.floor(dx / 3) % 2;
+        const checkY = Math.floor(dy / 3) % 2;
+        if (checkX === checkY) {
+          if (px >= 0 && px < bitmap.width && py >= 0 && py < bitmap.height) {
+            const byteIndex = py * rowBytes + Math.floor(px / 8);
+            const bitIndex = 7 - (px % 8);
+            bitmap.data[byteIndex] &= ~(1 << bitIndex); // Clear bit
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Render a route geometry as a line (for drive navigation).
    *
    * @param bitmap - Target bitmap

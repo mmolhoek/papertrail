@@ -419,12 +419,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         );
       } else {
         logger.info("Starting speed limit prefetch for route");
+        // Mark prefetch as active
+        this.driveCoordinator?.setSpeedLimitPrefetchActive(true);
         // Run in background - don't block navigation start
         this.speedLimitService
           .prefetchRouteSpeedLimits(route, (progress) => {
             this.notifySpeedLimitPrefetchProgress(progress);
           })
           .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setSpeedLimitPrefetchActive(false);
             if (result.success) {
               logger.info(`Prefetched ${result.data} speed limit segments`);
             } else {
@@ -433,6 +437,10 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
                 result.error?.message,
               );
             }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setSpeedLimitPrefetchActive(false);
           });
       }
     }
@@ -449,17 +457,25 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         logger.info(
           `Starting POI prefetch for route (categories: ${enabledPOICategories.join(", ")})`,
         );
+        // Mark prefetch as active
+        this.driveCoordinator?.setPOIPrefetchActive(true);
         // Run in background - don't block navigation start
         this.poiService
           .prefetchRoutePOIs(route, enabledPOICategories, (progress) => {
             this.notifyPOIPrefetchProgress(progress);
           })
           .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setPOIPrefetchActive(false);
             if (result.success) {
               logger.info(`Prefetched ${result.data} POIs`);
             } else {
               logger.warn("Failed to prefetch POIs:", result.error?.message);
             }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setPOIPrefetchActive(false);
           });
       }
     }
@@ -512,6 +528,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     if (enabledPOICategories.length === 0) {
       logger.info("No POI categories enabled, clearing cache");
       await this.poiService.clearRouteCache(route.id);
+      // Also invalidate DriveCoordinator's local cache
+      this.driveCoordinator?.invalidatePOICache();
       return success(undefined);
     }
 
@@ -521,17 +539,29 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
     await this.poiService.clearRouteCache(route.id);
 
+    // Also invalidate DriveCoordinator's local cache so it fetches fresh data
+    this.driveCoordinator?.invalidatePOICache();
+
+    // Mark prefetch as active
+    this.driveCoordinator?.setPOIPrefetchActive(true);
+
     // Re-prefetch POIs with current categories
     this.poiService
       .prefetchRoutePOIs(route, enabledPOICategories, (progress) => {
         this.notifyPOIPrefetchProgress(progress);
       })
       .then((result) => {
+        // Mark prefetch as complete
+        this.driveCoordinator?.setPOIPrefetchActive(false);
         if (result.success) {
           logger.info(`Re-prefetched ${result.data} POIs for route`);
         } else {
           logger.warn("Failed to re-prefetch POIs:", result.error?.message);
         }
+      })
+      .catch(() => {
+        // Mark prefetch as complete even on error
+        this.driveCoordinator?.setPOIPrefetchActive(false);
       });
 
     return success(undefined);

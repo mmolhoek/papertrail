@@ -69,6 +69,10 @@ export class DriveCoordinator {
   private cachedNearbyPOIs: NearbyPOI[] = [];
   private lastPOIPosition: { lat: number; lon: number } | null = null;
 
+  // Background fetch tracking (POI or speed limit prefetch in progress)
+  private poiPrefetchActive: boolean = false;
+  private speedLimitPrefetchActive: boolean = false;
+
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
     private readonly svgService: ISVGService,
@@ -357,6 +361,10 @@ export class DriveCoordinator {
               this.simulationService.setCurrentSpeedLimit(speedLimit);
             }
 
+            logger.info(
+              `Drive info: waypoint=${status.currentWaypointIndex}, streetName=${status.nextTurn.streetName || "NONE"}, instruction=${status.nextTurn.instruction}`,
+            );
+
             const info: DriveNavigationInfo = {
               speed: lastPosition.speed ? lastPosition.speed * 3.6 : 0,
               satellites: lastStatus?.satellitesInUse ?? 0,
@@ -373,9 +381,12 @@ export class DriveCoordinator {
               nearbyPOIs: nearbyPOIs.map((poi) => ({
                 codeLetter: poi.codeLetter,
                 name: poi.name,
+                latitude: poi.latitude,
+                longitude: poi.longitude,
                 distance: poi.distance,
                 bearing: poi.bearing,
               })),
+              isBackgroundFetching: this.isBackgroundFetchActive(),
             };
 
             const renderOptions = {
@@ -469,6 +480,41 @@ export class DriveCoordinator {
   }
 
   /**
+   * Invalidate the local POI cache.
+   *
+   * Call this when POI categories change to force a fresh fetch
+   * on the next display update.
+   */
+  invalidatePOICache(): void {
+    logger.info("Invalidating local POI cache");
+    this.cachedNearbyPOIs = [];
+    this.lastPOIPosition = null;
+  }
+
+  /**
+   * Set POI prefetch active state.
+   */
+  setPOIPrefetchActive(active: boolean): void {
+    this.poiPrefetchActive = active;
+    logger.debug(`POI prefetch active: ${active}`);
+  }
+
+  /**
+   * Set speed limit prefetch active state.
+   */
+  setSpeedLimitPrefetchActive(active: boolean): void {
+    this.speedLimitPrefetchActive = active;
+    logger.debug(`Speed limit prefetch active: ${active}`);
+  }
+
+  /**
+   * Check if any background fetch is active (POI or speed limit).
+   */
+  isBackgroundFetchActive(): boolean {
+    return this.poiPrefetchActive || this.speedLimitPrefetchActive;
+  }
+
+  /**
    * Dispose of resources
    */
   dispose(): void {
@@ -495,6 +541,8 @@ export class DriveCoordinator {
     this.driveRouteStartPosition = null;
     this.cachedSpeedLimit = null;
     this.lastSpeedLimitPosition = null;
+    this.cachedNearbyPOIs = [];
+    this.lastPOIPosition = null;
 
     logger.info("✓ DriveCoordinator disposed");
   }

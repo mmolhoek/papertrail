@@ -84,11 +84,17 @@ export interface DriveNavigationInfo {
     codeLetter: string;
     /** POI name */
     name?: string;
+    /** Latitude */
+    latitude: number;
+    /** Longitude */
+    longitude: number;
     /** Distance in meters */
     distance: number;
     /** Bearing in degrees */
     bearing?: number;
   }>;
+  /** Whether background data fetch (POI or speed limit) is in progress */
+  isBackgroundFetching?: boolean;
 }
 
 /**

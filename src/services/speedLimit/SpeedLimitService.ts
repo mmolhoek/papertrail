@@ -295,6 +295,58 @@ export class SpeedLimitService implements ISpeedLimitService {
   // ============================================
 
   /**
+   * Calculate the distance from a point to a line segment.
+   * Uses flat-Earth approximation (accurate for short distances).
+   * Returns distance in meters.
+   */
+  private distanceToSegment(
+    point: GPSCoordinate,
+    segmentStart: { latitude: number; longitude: number },
+    segmentEnd: { latitude: number; longitude: number },
+  ): number {
+    // Convert to local flat coordinates (meters) centered on the point
+    // At the equator, 1 degree lat ≈ 111km, 1 degree lon ≈ 111km * cos(lat)
+    const latScale = 111320; // meters per degree latitude
+    const lonScale = 111320 * Math.cos((point.latitude * Math.PI) / 180);
+
+    // Point in local coordinates (at origin)
+    const px = 0;
+    const py = 0;
+
+    // Segment start and end in local coordinates relative to point
+    const ax = (segmentStart.longitude - point.longitude) * lonScale;
+    const ay = (segmentStart.latitude - point.latitude) * latScale;
+    const bx = (segmentEnd.longitude - point.longitude) * lonScale;
+    const by = (segmentEnd.latitude - point.latitude) * latScale;
+
+    // Vector from A to B
+    const abx = bx - ax;
+    const aby = by - ay;
+
+    // Vector from A to P
+    const apx = px - ax;
+    const apy = py - ay;
+
+    // Project P onto line AB, clamped to segment
+    const abSquared = abx * abx + aby * aby;
+    if (abSquared === 0) {
+      // Segment is a point
+      return Math.sqrt(ax * ax + ay * ay);
+    }
+
+    // Parameter t for projection (0 = at A, 1 = at B)
+    let t = (apx * abx + apy * aby) / abSquared;
+    t = Math.max(0, Math.min(1, t)); // Clamp to segment
+
+    // Closest point on segment
+    const closestX = ax + t * abx;
+    const closestY = ay + t * aby;
+
+    // Distance from point to closest point on segment
+    return Math.sqrt(closestX * closestX + closestY * closestY);
+  }
+
+  /**
    * Find speed limit in cached data for a position
    */
   private findSpeedLimitInCache(
@@ -305,14 +357,11 @@ export class SpeedLimitService implements ISpeedLimitService {
 
     for (const segments of this.routeCache.values()) {
       for (const segment of segments) {
-        // Calculate distance to segment midpoint
-        const midLat = (segment.start.latitude + segment.end.latitude) / 2;
-        const midLon = (segment.start.longitude + segment.end.longitude) / 2;
-        const distance = haversineDistance(
-          position.latitude,
-          position.longitude,
-          midLat,
-          midLon,
+        // Calculate distance to line segment (not midpoint)
+        const distance = this.distanceToSegment(
+          position,
+          segment.start,
+          segment.end,
         );
 
         // Check if this is closer (within reasonable distance)
