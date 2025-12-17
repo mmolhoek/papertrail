@@ -139,10 +139,12 @@ export function renderBitmapText(
   options?: {
     scale?: number;
     bold?: boolean;
+    extraBold?: boolean;
   },
 ): void {
   const scale = options?.scale ?? 1;
   const bold = options?.bold ?? false;
+  const extraBold = options?.extraBold ?? false;
 
   let currentX = Math.round(x);
   const currentY = Math.round(y);
@@ -151,8 +153,14 @@ export function renderBitmapText(
     const charWidth = drawChar(bitmap, char, currentX, currentY, scale);
 
     // For bold, draw again offset by 1 pixel
-    if (bold) {
+    if (bold || extraBold) {
       drawChar(bitmap, char, currentX + 1, currentY, scale);
+    }
+
+    // For extra bold, also draw with vertical offset for thicker strokes
+    if (extraBold) {
+      drawChar(bitmap, char, currentX, currentY + 1, scale);
+      drawChar(bitmap, char, currentX + 1, currentY + 1, scale);
     }
 
     currentX += charWidth + CHAR_SPACING * scale;

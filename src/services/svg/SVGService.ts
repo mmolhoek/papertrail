@@ -1086,11 +1086,13 @@ export class SVGService implements ISVGService {
             );
 
             // Draw code letter centered in circle
-            const letterX = Math.floor(poiPixel.x) - 4;
-            const letterY = Math.floor(poiPixel.y) - 5;
+            // At scale 1, char is ~7px wide, ~10px tall. Offset from center to top-left anchor.
+            const letterX = Math.floor(poiPixel.x) - 3;
+            const letterY = Math.floor(poiPixel.y) - 4;
             renderBitmapText(bitmap, poi.codeLetter, letterX, letterY, {
               scale: 1,
               bold: true,
+              extraBold: true,
             });
           }
         }
