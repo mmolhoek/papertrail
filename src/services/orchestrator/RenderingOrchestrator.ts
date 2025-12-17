@@ -640,6 +640,39 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     const displayStreetName =
       waypointWithStreet?.streetName ?? route.destination;
 
+    // Get nearby POIs for the route center if POI service is available
+    let nearbyPOIs: Array<{
+      codeLetter: string;
+      name?: string;
+      latitude: number;
+      longitude: number;
+      distance: number;
+      bearing?: number;
+    }> = [];
+
+    if (this.poiService) {
+      const enabledCategories = this.configService.getEnabledPOICategories();
+      if (enabledCategories.length > 0) {
+        const poiResult = await this.poiService.getNearbyPOIs(
+          { latitude: centerLat, longitude: centerLon, timestamp: new Date() },
+          enabledCategories,
+          50000, // 50km radius for route overview
+          20, // More POIs for overview
+        );
+        if (poiResult.success && poiResult.data) {
+          nearbyPOIs = poiResult.data.map((poi) => ({
+            codeLetter: poi.codeLetter,
+            name: poi.name,
+            latitude: poi.latitude,
+            longitude: poi.longitude,
+            distance: poi.distance,
+            bearing: poi.bearing,
+          }));
+          logger.info(`Found ${nearbyPOIs.length} POIs for route overview`);
+        }
+      }
+    }
+
     // Create minimal navigation info for rendering
     const info = {
       speed: 0,
@@ -652,6 +685,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       distanceRemaining: route.totalDistance,
       progress: 0,
       speedUnit: this.configService.getSpeedUnit(),
+      nearbyPOIs,
     };
 
     // Disable current position marker for route overview (just show the route and flag)
