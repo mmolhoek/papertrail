@@ -1031,8 +1031,8 @@ export class SVGService implements ISVGService {
         }
       }
 
-      // Draw POIs on the map (at zoom level 19+)
-      const showPOIs = viewport.zoomLevel >= 19;
+      // Draw POIs on the map (at zoom level 15+)
+      const showPOIs = viewport.zoomLevel >= 15;
       if (showPOIs && info.nearbyPOIs && info.nearbyPOIs.length > 0) {
         logger.info(
           `Rendering ${info.nearbyPOIs.length} POIs at zoom level ${viewport.zoomLevel}`,
