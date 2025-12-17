@@ -404,10 +404,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
     }
 
-    // Ensure route has an ID for caching purposes
+    // Ensure route has a stable ID for caching purposes
+    // Generate ID based on route content so same route gets same ID
     if (!route.id) {
-      route.id = `route_${Date.now()}`;
-      logger.info(`Generated route ID: ${route.id}`);
+      route.id = this.generateRouteId(route);
+      logger.info(`Generated stable route ID: ${route.id}`);
     }
 
     // Prefetch speed limits for the route in the background (while internet is available)
@@ -519,9 +520,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return success(undefined);
     }
 
-    // Ensure route has an ID
+    // Ensure route has a stable ID
     if (!route.id) {
-      route.id = `route_${Date.now()}`;
+      route.id = this.generateRouteId(route);
     }
 
     const enabledPOICategories = this.configService.getEnabledPOICategories();
@@ -1031,6 +1032,29 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     );
 
     return zoom;
+  }
+
+  /**
+   * Generate a stable route ID based on route content.
+   * This ensures the same route gets the same ID for caching purposes,
+   * even across simulation stop/start cycles.
+   */
+  private generateRouteId(route: DriveRoute): string {
+    // Use origin, destination coordinates and destination name to create stable ID
+    const origin = route.geometry?.[0];
+    const dest = route.geometry?.[route.geometry.length - 1];
+
+    if (origin && dest) {
+      // Round coordinates to 4 decimal places (~11m precision) for stability
+      const originKey = `${origin[0].toFixed(4)}_${origin[1].toFixed(4)}`;
+      const destKey = `${dest[0].toFixed(4)}_${dest[1].toFixed(4)}`;
+      return `route_${originKey}_${destKey}`;
+    }
+
+    // Fallback if no geometry
+    const destName =
+      route.destination?.replace(/[^a-zA-Z0-9]/g, "_") || "unknown";
+    return `route_${destName}_${route.totalDistance || 0}`;
   }
 
   /**
