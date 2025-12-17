@@ -354,6 +354,23 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
+      // Initialize reverse geocoding service (if provided)
+      if (this.reverseGeocodingService) {
+        logger.info("Initializing ReverseGeocodingService...");
+        const reverseGeoResult =
+          await this.reverseGeocodingService.initialize();
+        if (!reverseGeoResult.success) {
+          logger.error(
+            "Failed to initialize ReverseGeocodingService:",
+            reverseGeoResult.error,
+          );
+          // Non-fatal - location names are optional
+          logger.warn("Location name display will not be available");
+        } else {
+          logger.info("✓ ReverseGeocodingService initialized");
+        }
+      }
+
       this.isInitialized = true;
 
       // Set drive coordinator as initialized
