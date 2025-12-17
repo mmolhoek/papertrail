@@ -529,6 +529,11 @@ export class WebController {
     return this.config.setPOICategory(req, res);
   }
 
+  /** @see ConfigController.setShowLocationName */
+  async setShowLocationName(req: Request, res: Response): Promise<void> {
+    return this.config.setShowLocationName(req, res);
+  }
+
   /** @see ConfigController.getRecentDestinations */
   async getRecentDestinations(req: Request, res: Response): Promise<void> {
     return this.config.getRecentDestinations(req, res);

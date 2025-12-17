@@ -114,6 +114,13 @@ export const setPOICategorySchema = z.object({
 });
 
 /**
+ * Set show location name enabled/disabled request
+ */
+export const setShowLocationNameSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Add recent destination request
  */
 export const addRecentDestinationSchema = z.object({
@@ -335,6 +342,9 @@ export type SetRotateWithBearingInput = z.infer<
 export type SetActiveScreenInput = z.infer<typeof setActiveScreenSchema>;
 export type SetSpeedUnitInput = z.infer<typeof setSpeedUnitSchema>;
 export type SetPOICategoryInput = z.infer<typeof setPOICategorySchema>;
+export type SetShowLocationNameInput = z.infer<
+  typeof setShowLocationNameSchema
+>;
 export type AddRecentDestinationInput = z.infer<
   typeof addRecentDestinationSchema
 >;

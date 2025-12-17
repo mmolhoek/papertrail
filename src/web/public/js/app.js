@@ -317,6 +317,15 @@ class PapertrailClient {
       });
     });
 
+    // Show location name toggle
+    const showLocationNameToggle =
+      document.getElementById("show-location-name");
+    if (showLocationNameToggle) {
+      showLocationNameToggle.addEventListener("change", (e) => {
+        this.setShowLocationName(e.target.checked);
+      });
+    }
+
     // Screen selection
     const screenSelect = document.getElementById("screen-select");
     if (screenSelect) {
@@ -490,6 +499,14 @@ class PapertrailClient {
           checkbox.checked = settings.enabledPOICategories.includes(category);
         }
       });
+    }
+
+    // Update show location name toggle
+    if (settings.showLocationName !== undefined) {
+      const checkbox = document.getElementById("show-location-name");
+      if (checkbox) {
+        checkbox.checked = settings.showLocationName;
+      }
     }
   }
 
@@ -720,6 +737,35 @@ class PapertrailClient {
       this.showMessage("Failed to change POI setting", "error");
       // Revert the checkbox
       const checkbox = document.getElementById(`poi-${category}`);
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show location name enabled/disabled
+  async setShowLocationName(enabled) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/config/show-location-name`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Location name ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set location name setting");
+      }
+    } catch (error) {
+      console.error("Failed to set location name setting:", error);
+      this.showMessage("Failed to change location name setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-location-name");
       if (checkbox) checkbox.checked = !enabled;
     }
   }

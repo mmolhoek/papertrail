@@ -360,6 +360,50 @@ export class ConfigController {
     });
   }
 
+  /**
+   * Set show location name enabled/disabled
+   */
+  async setShowLocationName(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn(
+        "Set show location name called with invalid enabled parameter",
+      );
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show location name to: ${enabled}`);
+    this.configService.setShowLocationName(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show location name ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Location name display ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
   // Recent Destinations Endpoints
 
   /**

@@ -33,6 +33,7 @@ import {
   setActiveScreenSchema,
   setSpeedUnitSchema,
   setPOICategorySchema,
+  setShowLocationNameSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
   resolveGoogleMapsLinkSchema,
@@ -476,6 +477,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/poi-category`,
       validateBody(setPOICategorySchema),
       (req, res) => this.controller.setPOICategory(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-location-name`,
+      validateBody(setShowLocationNameSchema),
+      (req, res) => this.controller.setShowLocationName(req, res),
     );
 
     // Recent destinations endpoints
