@@ -206,6 +206,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.speedUnit = unit;
   }
 
+  // Location name display
+
+  getShowLocationName(): boolean {
+    return this.userState.displayPreferences.showLocationName ?? true;
+  }
+
+  setShowLocationName(enabled: boolean): void {
+    this.userState.displayPreferences.showLocationName = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<
@@ -585,6 +595,7 @@ export class ConfigService implements IConfigService {
         autoRefreshInterval: 30,
         showSpeedLimit: true,
         speedUnit: "kmh",
+        showLocationName: true,
       },
       recentFiles: [],
       customWaypoints: [],

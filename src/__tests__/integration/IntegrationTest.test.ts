@@ -309,6 +309,7 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     onDriveNavigationUpdate: jest.fn().mockReturnValue(() => {}),
     onSpeedLimitPrefetchProgress: jest.fn().mockReturnValue(() => {}),
     onPOIPrefetchProgress: jest.fn().mockReturnValue(() => {}),
+    onLocationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
     refreshRoutePOIs: jest.fn().mockResolvedValue(success(undefined)),
     getMockDisplayImage: jest.fn().mockReturnValue(null),
     hasMockDisplayImage: jest.fn().mockReturnValue(false),
@@ -368,6 +369,8 @@ function createMockConfigService(): IConfigService {
     setShowSpeedLimit: jest.fn(),
     getSpeedUnit: jest.fn().mockReturnValue("kmh"),
     setSpeedUnit: jest.fn(),
+    getShowLocationName: jest.fn().mockReturnValue(true),
+    setShowLocationName: jest.fn(),
     getEnabledPOICategories: jest
       .fn()
       .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),

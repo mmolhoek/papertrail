@@ -11,6 +11,7 @@ import {
   IDriveNavigationService,
   ISpeedLimitService,
   IPOIService,
+  IReverseGeocodingService,
 } from "@core/interfaces";
 import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
@@ -81,6 +82,7 @@ import { TrackSimulationService } from "@services/simulation/TrackSimulationServ
 import { DriveNavigationService } from "@services/drive/DriveNavigationService";
 import { SpeedLimitService } from "@services/speedLimit/SpeedLimitService";
 import { POIService } from "@services/poi/POIService";
+import { ReverseGeocodingService } from "@services/reverseGeocoding/ReverseGeocodingService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -112,6 +114,7 @@ export class ServiceContainer {
     driveNavigation?: IDriveNavigationService;
     speedLimit?: ISpeedLimitService;
     poi?: IPOIService;
+    reverseGeocoding?: IReverseGeocodingService;
   } = {};
 
   /**
@@ -349,6 +352,7 @@ export class ServiceContainer {
         this.getDriveNavigationService(),
         this.getSpeedLimitService(),
         this.getPOIService(),
+        this.getReverseGeocodingService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -425,6 +429,16 @@ export class ServiceContainer {
       this.services.poi = new POIService();
     }
     return this.services.poi;
+  }
+
+  /**
+   * Get Reverse Geocoding Service
+   */
+  getReverseGeocodingService(): IReverseGeocodingService {
+    if (!this.services.reverseGeocoding) {
+      this.services.reverseGeocoding = new ReverseGeocodingService();
+    }
+    return this.services.reverseGeocoding;
   }
 
   // Configuration getters
@@ -732,6 +746,13 @@ export class ServiceContainer {
    */
   setPOIService(service: IPOIService): void {
     this.services.poi = service;
+  }
+
+  /**
+   * Set Reverse Geocoding Service (for testing)
+   */
+  setReverseGeocodingService(service: IReverseGeocodingService): void {
+    this.services.reverseGeocoding = service;
   }
 
   // Security/Credential helpers

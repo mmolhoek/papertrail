@@ -18,6 +18,7 @@ export * from "./ITrackSimulationService";
 export * from "./IDriveNavigationService";
 export * from "./ISpeedLimitService";
 export * from "./IPOIService";
+export * from "./IReverseGeocodingService";
 
 // Display driver abstraction interfaces
 export * from "./IDisplayDriver";

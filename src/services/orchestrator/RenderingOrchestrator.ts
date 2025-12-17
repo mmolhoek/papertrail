@@ -11,8 +11,10 @@ import {
   IDriveNavigationService,
   ISpeedLimitService,
   IPOIService,
+  IReverseGeocodingService,
   SpeedLimitPrefetchProgress,
   POIPrefetchProgress,
+  LocationPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -87,6 +89,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   > = [];
   private poiPrefetchCallbacks: Array<(progress: POIPrefetchProgress) => void> =
     [];
+  private locationPrefetchCallbacks: Array<
+    (progress: LocationPrefetchProgress) => void
+  > = [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -118,6 +123,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly driveNavigationService?: IDriveNavigationService,
     private readonly speedLimitService?: ISpeedLimitService,
     private readonly poiService?: IPOIService,
+    private readonly reverseGeocodingService?: IReverseGeocodingService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -156,6 +162,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       simulationService ?? null,
       speedLimitService ?? null,
       poiService ?? null,
+      reverseGeocodingService ?? null,
       this.gpsCoordinator,
       this.onboardingCoordinator,
     );
@@ -477,6 +484,44 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           .catch(() => {
             // Mark prefetch as complete even on error
             this.driveCoordinator?.setPOIPrefetchActive(false);
+          });
+      }
+    }
+
+    // Prefetch location names for the route in the background (while internet is available)
+    // Skip if already cached for this route
+    if (
+      this.reverseGeocodingService &&
+      this.configService.getShowLocationName()
+    ) {
+      if (this.reverseGeocodingService.hasRouteCache(route.id)) {
+        logger.info(
+          `Location names already cached for route ${route.id}, skipping prefetch`,
+        );
+      } else {
+        logger.info("Starting location name prefetch for route");
+        // Mark prefetch as active
+        this.driveCoordinator?.setLocationPrefetchActive(true);
+        // Run in background - don't block navigation start
+        this.reverseGeocodingService
+          .prefetchRouteLocations(route, (progress) => {
+            this.notifyLocationPrefetchProgress(progress);
+          })
+          .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setLocationPrefetchActive(false);
+            if (result.success) {
+              logger.info(`Prefetched ${result.data} location names`);
+            } else {
+              logger.warn(
+                "Failed to prefetch location names:",
+                result.error?.message,
+              );
+            }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setLocationPrefetchActive(false);
           });
       }
     }
@@ -803,6 +848,39 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         callback(progress);
       } catch (error) {
         logger.error("Error in POI prefetch progress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Register a callback for location prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onLocationPrefetchProgress(
+    callback: (progress: LocationPrefetchProgress) => void,
+  ): () => void {
+    this.locationPrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.locationPrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.locationPrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all location prefetch progress callbacks
+   */
+  private notifyLocationPrefetchProgress(
+    progress: LocationPrefetchProgress,
+  ): void {
+    for (const callback of this.locationPrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error("Error in location prefetch progress callback:", error);
       }
     }
   }

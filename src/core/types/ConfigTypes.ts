@@ -185,6 +185,9 @@ export type UserState = {
     /** Speed unit preference: 'kmh' for kilometers per hour, 'mph' for miles per hour */
     speedUnit: "kmh" | "mph";
 
+    /** Whether to show location name during drive navigation */
+    showLocationName?: boolean;
+
     /** Enabled POI categories for display during navigation */
     enabledPOICategories?: Array<
       "fuel" | "parking" | "food" | "restroom" | "viewpoint"

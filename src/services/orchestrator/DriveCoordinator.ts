@@ -6,6 +6,7 @@ import {
   ITrackSimulationService,
   ISpeedLimitService,
   IPOIService,
+  IReverseGeocodingService,
   DriveNavigationInfo,
   NearbyPOI,
 } from "@core/interfaces";
@@ -69,9 +70,14 @@ export class DriveCoordinator {
   private cachedNearbyPOIs: NearbyPOI[] = [];
   private lastPOIPosition: { lat: number; lon: number } | null = null;
 
+  // Cached location name
+  private cachedLocationName: string | null = null;
+  private lastLocationNamePosition: { lat: number; lon: number } | null = null;
+
   // Background fetch tracking (POI or speed limit prefetch in progress)
   private poiPrefetchActive: boolean = false;
   private speedLimitPrefetchActive: boolean = false;
+  private locationPrefetchActive: boolean = false;
 
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
@@ -81,6 +87,7 @@ export class DriveCoordinator {
     private readonly simulationService: ITrackSimulationService | null,
     private readonly speedLimitService: ISpeedLimitService | null,
     private readonly poiService: IPOIService | null,
+    private readonly reverseGeocodingService: IReverseGeocodingService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
@@ -356,6 +363,10 @@ export class DriveCoordinator {
             // Get nearby POIs (async but cached)
             const nearbyPOIs = await this.getCurrentNearbyPOIs(lastPosition);
 
+            // Get current location name (async but cached)
+            const locationName =
+              await this.getCurrentLocationName(lastPosition);
+
             // Push speed limit to simulation service to adjust simulation speed
             if (this.simulationService?.isSimulating()) {
               this.simulationService.setCurrentSpeedLimit(speedLimit);
@@ -378,6 +389,7 @@ export class DriveCoordinator {
               timeRemaining: status.timeRemaining,
               speedLimit: speedLimit,
               speedUnit: this.configService.getSpeedUnit(),
+              locationName: locationName,
               nearbyPOIs: nearbyPOIs.map((poi) => ({
                 codeLetter: poi.codeLetter,
                 name: poi.name,
@@ -508,10 +520,22 @@ export class DriveCoordinator {
   }
 
   /**
-   * Check if any background fetch is active (POI or speed limit).
+   * Set location prefetch active state.
+   */
+  setLocationPrefetchActive(active: boolean): void {
+    this.locationPrefetchActive = active;
+    logger.debug(`Location prefetch active: ${active}`);
+  }
+
+  /**
+   * Check if any background fetch is active (POI, speed limit, or location).
    */
   isBackgroundFetchActive(): boolean {
-    return this.poiPrefetchActive || this.speedLimitPrefetchActive;
+    return (
+      this.poiPrefetchActive ||
+      this.speedLimitPrefetchActive ||
+      this.locationPrefetchActive
+    );
   }
 
   /**
@@ -543,6 +567,8 @@ export class DriveCoordinator {
     this.lastSpeedLimitPosition = null;
     this.cachedNearbyPOIs = [];
     this.lastPOIPosition = null;
+    this.cachedLocationName = null;
+    this.lastLocationNamePosition = null;
 
     logger.info("✓ DriveCoordinator disposed");
   }
@@ -710,5 +736,50 @@ export class DriveCoordinator {
     }
 
     return this.cachedNearbyPOIs;
+  }
+
+  /**
+   * Get current location name for position (uses cache to avoid excessive lookups)
+   */
+  private async getCurrentLocationName(
+    position: GPSCoordinate,
+  ): Promise<string | null> {
+    // Check if location name display is enabled
+    if (!this.configService.getShowLocationName()) {
+      return null;
+    }
+
+    if (!this.reverseGeocodingService) {
+      return null;
+    }
+
+    // Check if we should update the cache (moved significantly)
+    // Use a larger threshold (200m) since location names don't change often
+    const shouldUpdate =
+      !this.lastLocationNamePosition ||
+      Math.abs(position.latitude - this.lastLocationNamePosition.lat) > 0.002 ||
+      Math.abs(position.longitude - this.lastLocationNamePosition.lon) > 0.002;
+
+    if (shouldUpdate) {
+      try {
+        const result =
+          await this.reverseGeocodingService.getLocationName(position);
+        if (result.success && result.data) {
+          this.cachedLocationName = result.data.displayName;
+          logger.debug(`Location name updated: ${this.cachedLocationName}`);
+        } else {
+          // Keep previous value if no new data found
+          logger.debug("No location name found for position");
+        }
+        this.lastLocationNamePosition = {
+          lat: position.latitude,
+          lon: position.longitude,
+        };
+      } catch (error) {
+        logger.warn("Failed to fetch location name:", error);
+      }
+    }
+
+    return this.cachedLocationName;
   }
 }

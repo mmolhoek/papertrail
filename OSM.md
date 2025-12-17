@@ -11,7 +11,7 @@ general implementation notes:
 ## Features
 
 ### OSM-1: Reverse Geocoding
-**Status:** Not started
+**Status:** Implemented
 **Priority:** High
 **Complexity:** Low
 
@@ -23,12 +23,14 @@ Display human-readable location names instead of just coordinates.
 - Show when entering/leaving towns or regions
 - Log location names in track history
 
-**Implementation notes:**
-- Use Nominatim API (public or self-hosted)
-- Cache results to reduce API calls (location doesn't change rapidly)
-- Rate limit: max 1 request/second for public Nominatim
-- Endpoint: `https://nominatim.openstreetmap.org/reverse?lat={lat}&lon={lon}&format=json`
-- Add to DriveCoordinator and display in info panel
+**Implementation:**
+- Created `ReverseGeocodingService` using Nominatim API
+- Location names are prefetched along the route when navigation starts (while internet available)
+- Cached in `data/locations/` directory for offline use during driving
+- Location name passed to `DriveNavigationInfo` for display
+- Configurable via `showLocationName` in user display preferences
+- Rate limiting (1.1s between requests) to respect Nominatim API terms
+- Parses address components to show concise display name (street + city)
 
 ---
 

@@ -172,6 +172,18 @@ export interface IConfigService {
   setSpeedUnit(unit: "kmh" | "mph"): void;
 
   /**
+   * Get show location name preference
+   * @returns true if location name should be displayed during drive navigation
+   */
+  getShowLocationName(): boolean;
+
+  /**
+   * Set show location name preference
+   * @param enabled Whether to show location name
+   */
+  setShowLocationName(enabled: boolean): void;
+
+  /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names
    */

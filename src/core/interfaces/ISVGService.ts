@@ -78,6 +78,8 @@ export interface DriveNavigationInfo {
   speedLimit?: number | null;
   /** Speed unit for display ('kmh' or 'mph') */
   speedUnit?: "kmh" | "mph";
+  /** Current location name (e.g., "Main Street, London") */
+  locationName?: string | null;
   /** Nearby POIs for display */
   nearbyPOIs?: Array<{
     /** POI category code letter (F, P, E, R, V) */
