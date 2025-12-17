@@ -114,7 +114,7 @@ Run OSRM locally for navigation without internet.
 ---
 
 ### OSM-5: Alternative Routing Profiles
-**Status:** Not started
+**Status:** Implemented ✓
 **Priority:** Medium
 **Complexity:** Low
 
@@ -126,12 +126,13 @@ Support different transport modes beyond car.
 - Option to avoid tolls, ferries, motorways
 - Profile selection in web interface
 
-**Implementation notes:**
-- OSRM supports profiles: `car`, `bike`, `foot`
-- Change route endpoint: `/route/v1/{profile}/{coordinates}`
-- Add profile selector to drive mode UI
-- Store preferred profile in config
-- Different turn instructions per profile
+**Implementation:**
+- Added `routingProfile` to user display preferences (`car`, `bike`, `foot`)
+- DriveController uses profile from ConfigService when calling OSRM API
+- Route endpoint changes to `/route/v1/{profile}/{coordinates}` based on selection
+- Profile selector dropdown added to web UI Display Controls panel
+- Persists to user config, so profile choice is remembered across sessions
+- API endpoint: `POST /api/config/routing-profile` with `{ profile: "car"|"bike"|"foot" }`
 
 ---
 
@@ -233,9 +234,8 @@ Snap GPS traces to actual roads.
 4. **OSM-5: Routing Profiles** - Simple OSRM parameter change
 5. **OSM-4: Offline Routing** - Reliability for remote areas
 6. **OSM-7: Elevation** - Useful for cycling/hiking
-7. **OSM-6: Surface Info** - Niche but useful
-8. **OSM-9: Map Matching** - Nice to have
-9. **OSM-8: Vector Maps** - High complexity, significant undertaking
+7. **OSM-9: Map Matching** - Nice to have
+8. **OSM-8: Vector Maps** - High complexity, significant undertaking
 
 ---
 

@@ -21,6 +21,7 @@ class PapertrailClient {
     this.isPaused = false;
     this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
     this.currentSpeedUnit = "kmh"; // 'kmh' or 'mph'
+    this.currentRoutingProfile = "car"; // 'car', 'bike', or 'foot'
 
     // Drive navigation state
     this.driveMap = null;
@@ -339,6 +340,16 @@ class PapertrailClient {
       });
     }
 
+    // Routing profile selection
+    const routingProfileSelect = document.getElementById(
+      "routing-profile-select",
+    );
+    if (routingProfileSelect) {
+      routingProfileSelect.addEventListener("change", (e) => {
+        this.setRoutingProfile(e.target.value);
+      });
+    }
+
     // WiFi settings
     document.getElementById("save-wifi-btn").addEventListener("click", () => {
       this.saveWiFiConfig();
@@ -512,6 +523,15 @@ class PapertrailClient {
       if (checkbox) {
         checkbox.checked = settings.showLocationName;
       }
+    }
+
+    // Update routing profile selector
+    if (settings.routingProfile !== undefined) {
+      const select = document.getElementById("routing-profile-select");
+      if (select) {
+        select.value = settings.routingProfile;
+      }
+      this.currentRoutingProfile = settings.routingProfile;
     }
   }
 
@@ -772,6 +792,39 @@ class PapertrailClient {
       // Revert the checkbox
       const checkbox = document.getElementById("show-location-name");
       if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set routing profile for OSRM route calculation
+  async setRoutingProfile(profile) {
+    const profileNames = {
+      car: "Driving",
+      bike: "Bicycle",
+      foot: "Walking",
+    };
+
+    try {
+      const response = await fetch(`${this.apiBase}/config/routing-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile }),
+      });
+
+      if (response.ok) {
+        this.currentRoutingProfile = profile;
+        this.showMessage(
+          `Routing profile: ${profileNames[profile]}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set routing profile");
+      }
+    } catch (error) {
+      console.error("Failed to set routing profile:", error);
+      this.showMessage("Failed to change routing profile", "error");
+      // Revert the select
+      const select = document.getElementById("routing-profile-select");
+      if (select) select.value = this.currentRoutingProfile;
     }
   }
 

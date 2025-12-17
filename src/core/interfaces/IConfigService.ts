@@ -218,6 +218,18 @@ export interface IConfigService {
     enabled: boolean,
   ): void;
 
+  /**
+   * Get routing profile for OSRM route calculation
+   * @returns 'car' for driving, 'bike' for bicycle, 'foot' for walking
+   */
+  getRoutingProfile(): "car" | "bike" | "foot";
+
+  /**
+   * Set routing profile for OSRM route calculation
+   * @param profile Routing profile ('car', 'bike', or 'foot')
+   */
+  setRoutingProfile(profile: "car" | "bike" | "foot"): void;
+
   // Active screen management
 
   /**

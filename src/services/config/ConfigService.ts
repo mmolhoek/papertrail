@@ -261,6 +261,16 @@ export class ConfigService implements IConfigService {
     }
   }
 
+  // Routing profile preference
+
+  getRoutingProfile(): "car" | "bike" | "foot" {
+    return this.userState.displayPreferences.routingProfile ?? "car";
+  }
+
+  setRoutingProfile(profile: "car" | "bike" | "foot"): void {
+    this.userState.displayPreferences.routingProfile = profile;
+  }
+
   // Active screen management
 
   getActiveScreen(): ScreenType {
@@ -596,6 +606,7 @@ export class ConfigService implements IConfigService {
         showSpeedLimit: true,
         speedUnit: "kmh",
         showLocationName: true,
+        routingProfile: "car",
       },
       recentFiles: [],
       customWaypoints: [],

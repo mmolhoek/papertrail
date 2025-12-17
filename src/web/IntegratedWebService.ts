@@ -34,6 +34,7 @@ import {
   setSpeedUnitSchema,
   setPOICategorySchema,
   setShowLocationNameSchema,
+  setRoutingProfileSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
   resolveGoogleMapsLinkSchema,
@@ -484,6 +485,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-location-name`,
       validateBody(setShowLocationNameSchema),
       (req, res) => this.controller.setShowLocationName(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/routing-profile`,
+      validateBody(setRoutingProfileSchema),
+      (req, res) => this.controller.setRoutingProfile(req, res),
     );
 
     // Recent destinations endpoints

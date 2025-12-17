@@ -377,6 +377,8 @@ function createMockConfigService(): IConfigService {
     setEnabledPOICategories: jest.fn(),
     isPOICategoryEnabled: jest.fn().mockReturnValue(true),
     setPOICategoryEnabled: jest.fn(),
+    getRoutingProfile: jest.fn().mockReturnValue("car"),
+    setRoutingProfile: jest.fn(),
     getRecentFiles: jest.fn().mockReturnValue([]),
     addRecentFile: jest.fn(),
     clearRecentFiles: jest.fn(),

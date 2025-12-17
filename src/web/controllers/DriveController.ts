@@ -565,10 +565,20 @@ export class DriveController {
       return;
     }
 
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+    // Get routing profile from config (default: car)
+    // Map internal profile names to OSRM profile names
+    const profileMap: Record<string, string> = {
+      car: "driving",
+      bike: "bike",
+      foot: "foot",
+    };
+    const configProfile = this.configService?.getRoutingProfile() ?? "car";
+    const osrmProfile = profileMap[configProfile] ?? "driving";
+
+    const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
 
     logger.info(
-      `Proxying OSRM request: ${startLon},${startLat} -> ${endLon},${endLat}`,
+      `Proxying OSRM request (profile: ${osrmProfile}): ${startLon},${startLat} -> ${endLon},${endLat}`,
     );
 
     try {

@@ -257,6 +257,27 @@ describe("ConfigService", () => {
     it("should throw error for negative refresh interval", () => {
       expect(() => configService.setAutoRefreshInterval(-1)).toThrow();
     });
+
+    it("should return default routing profile as car", () => {
+      expect(configService.getRoutingProfile()).toBe("car");
+    });
+
+    it("should set routing profile to bike", () => {
+      configService.setRoutingProfile("bike");
+      expect(configService.getRoutingProfile()).toBe("bike");
+    });
+
+    it("should set routing profile to foot", () => {
+      configService.setRoutingProfile("foot");
+      expect(configService.getRoutingProfile()).toBe("foot");
+    });
+
+    it("should persist routing profile across get/set cycles", () => {
+      configService.setRoutingProfile("foot");
+      configService.setRoutingProfile("bike");
+      configService.setRoutingProfile("car");
+      expect(configService.getRoutingProfile()).toBe("car");
+    });
   });
 
   describe("recent files", () => {

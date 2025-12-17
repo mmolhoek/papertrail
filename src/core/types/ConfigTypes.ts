@@ -192,6 +192,9 @@ export type UserState = {
     enabledPOICategories?: Array<
       "fuel" | "parking" | "food" | "restroom" | "viewpoint"
     >;
+
+    /** Routing profile for OSRM route calculation: car, bike, or foot */
+    routingProfile?: "car" | "bike" | "foot";
   };
 
   /** Recently used GPX files */

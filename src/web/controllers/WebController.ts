@@ -534,6 +534,11 @@ export class WebController {
     return this.config.setShowLocationName(req, res);
   }
 
+  /** @see ConfigController.setRoutingProfile */
+  async setRoutingProfile(req: Request, res: Response): Promise<void> {
+    return this.config.setRoutingProfile(req, res);
+  }
+
   /** @see ConfigController.getRecentDestinations */
   async getRecentDestinations(req: Request, res: Response): Promise<void> {
     return this.config.getRecentDestinations(req, res);

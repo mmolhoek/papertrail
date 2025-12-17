@@ -121,6 +121,15 @@ export const setShowLocationNameSchema = z.object({
 });
 
 /**
+ * Set routing profile for OSRM route calculation
+ */
+export const setRoutingProfileSchema = z.object({
+  profile: z.enum(["car", "bike", "foot"], {
+    message: "profile must be 'car', 'bike', or 'foot'",
+  }),
+});
+
+/**
  * Add recent destination request
  */
 export const addRecentDestinationSchema = z.object({
@@ -345,6 +354,7 @@ export type SetPOICategoryInput = z.infer<typeof setPOICategorySchema>;
 export type SetShowLocationNameInput = z.infer<
   typeof setShowLocationNameSchema
 >;
+export type SetRoutingProfileInput = z.infer<typeof setRoutingProfileSchema>;
 export type AddRecentDestinationInput = z.infer<
   typeof addRecentDestinationSchema
 >;

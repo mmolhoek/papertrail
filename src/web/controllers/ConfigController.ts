@@ -50,6 +50,7 @@ export class ConfigController {
         activeScreen: this.configService.getActiveScreen(),
         speedUnit: this.configService.getSpeedUnit(),
         enabledPOICategories: this.configService.getEnabledPOICategories(),
+        routingProfile: this.configService.getRoutingProfile(),
       },
     });
   }
@@ -357,6 +358,57 @@ export class ConfigController {
     res.json({
       success: true,
       message: `POI category ${category} ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set routing profile for OSRM route calculation
+   */
+  async setRoutingProfile(req: Request, res: Response): Promise<void> {
+    const { profile } = req.body;
+
+    if (
+      typeof profile !== "string" ||
+      !["car", "bike", "foot"].includes(profile)
+    ) {
+      logger.warn("Set routing profile called with invalid profile parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "profile must be 'car', 'bike', or 'foot'",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting routing profile to: ${profile}`);
+    this.configService.setRoutingProfile(profile as "car" | "bike" | "foot");
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    const profileNames: Record<string, string> = {
+      car: "Driving",
+      bike: "Bicycle",
+      foot: "Walking",
+    };
+
+    logger.info(`Routing profile set to ${profile}`);
+    res.json({
+      success: true,
+      message: `Routing profile set to ${profileNames[profile]}`,
     });
   }
 

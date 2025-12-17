@@ -150,6 +150,8 @@ const createMockConfigService = () => ({
   setEnabledPOICategories: jest.fn(),
   isPOICategoryEnabled: jest.fn().mockReturnValue(true),
   setPOICategoryEnabled: jest.fn(),
+  getRoutingProfile: jest.fn().mockReturnValue("car"),
+  setRoutingProfile: jest.fn(),
   getAutoRefreshInterval: jest.fn().mockReturnValue(5),
   setAutoRefreshInterval: jest.fn(),
   getRecentFiles: jest.fn(),
