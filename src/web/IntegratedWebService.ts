@@ -79,6 +79,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private driveNavigationUnsubscribe: (() => void) | null = null;
   private speedLimitPrefetchUnsubscribe: (() => void) | null = null;
   private poiPrefetchUnsubscribe: (() => void) | null = null;
+  private locationPrefetchUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
@@ -933,6 +934,20 @@ export class IntegratedWebService implements IWebInterfaceService {
         });
       },
     );
+
+    // Subscribe to location prefetch progress updates
+    this.locationPrefetchUnsubscribe =
+      this.orchestrator.onLocationPrefetchProgress((progress) => {
+        logger.debug(
+          `Location prefetch progress: ${progress.current}/${progress.total} (${progress.locationsCached} locations)`,
+        );
+        this.broadcast("location:prefetch", {
+          current: progress.current,
+          total: progress.total,
+          locationsCached: progress.locationsCached,
+          complete: progress.complete,
+        });
+      });
   }
 
   /**
@@ -987,6 +1002,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.poiPrefetchUnsubscribe) {
       this.poiPrefetchUnsubscribe();
       this.poiPrefetchUnsubscribe = null;
+    }
+
+    if (this.locationPrefetchUnsubscribe) {
+      this.locationPrefetchUnsubscribe();
+      this.locationPrefetchUnsubscribe = null;
     }
   }
 
