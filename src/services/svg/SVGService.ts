@@ -1477,15 +1477,38 @@ export class SVGService implements ISVGService {
       currentY += calculateBitmapTextHeight(valueScale) + 20;
     }
 
+    // Location name section (if available)
+    if (info.locationName) {
+      logger.info(
+        `renderDriveInfoPanel: step 6b - location name: ${info.locationName}`,
+      );
+      renderBitmapText(bitmap, "LOCATION", x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + 4;
+
+      // Truncate long location names to fit panel
+      const maxChars = Math.floor((width - padding * 2) / 7);
+      let locationDisplay = info.locationName.toUpperCase();
+      if (locationDisplay.length > maxChars) {
+        locationDisplay = locationDisplay.substring(0, maxChars - 2) + "..";
+      }
+      renderBitmapText(bitmap, locationDisplay, x + padding, currentY, {
+        scale: labelScale,
+        bold: true,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + 16;
+    }
+
     // Zoom level section (if available)
     if (info.zoomLevel !== undefined) {
-      logger.info("renderDriveInfoPanel: step 6b - zoom label");
+      logger.info("renderDriveInfoPanel: step 6d - zoom label");
       renderBitmapText(bitmap, "ZOOM", x + padding, currentY, {
         scale: labelScale,
       });
       currentY += calculateBitmapTextHeight(labelScale) + 4;
 
-      logger.info("renderDriveInfoPanel: step 6c - zoom value");
+      logger.info("renderDriveInfoPanel: step 6e - zoom value");
       renderBitmapText(
         bitmap,
         info.zoomLevel.toString(),
