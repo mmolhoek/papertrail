@@ -431,6 +431,21 @@ class PapertrailClient {
       if (displayResponse && displayResponse.data) {
         this.updateDisplaySettings(displayResponse.data);
       }
+
+      // Load simulation status (to restore UI state after page reload)
+      const simResponse = await this.fetchJSON(
+        `${this.apiBase}/simulation/status`,
+      );
+      if (simResponse && simResponse.data) {
+        const state = simResponse.data.state;
+        if (state === "running" || state === "paused") {
+          this.isSimulating = true;
+          this.isPaused = state === "paused";
+          this.updateSimulationUI();
+          this.updateSimulationStatus(simResponse.data);
+          this.startSimulationPolling();
+        }
+      }
     } catch (error) {
       console.error("Error loading initial data:", error);
     }
