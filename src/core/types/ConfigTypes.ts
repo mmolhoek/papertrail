@@ -188,6 +188,9 @@ export type UserState = {
     /** Whether to show location name during drive navigation */
     showLocationName?: boolean;
 
+    /** Whether to show elevation data during drive navigation */
+    showElevation?: boolean;
+
     /** Enabled POI categories for display during navigation */
     enabledPOICategories?: Array<
       "fuel" | "parking" | "food" | "restroom" | "viewpoint"

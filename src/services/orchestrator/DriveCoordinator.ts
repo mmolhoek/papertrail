@@ -78,6 +78,7 @@ export class DriveCoordinator {
   private poiPrefetchActive: boolean = false;
   private speedLimitPrefetchActive: boolean = false;
   private locationPrefetchActive: boolean = false;
+  private elevationPrefetchActive: boolean = false;
 
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
@@ -528,13 +529,22 @@ export class DriveCoordinator {
   }
 
   /**
-   * Check if any background fetch is active (POI, speed limit, or location).
+   * Set elevation prefetch active state.
+   */
+  setElevationPrefetchActive(active: boolean): void {
+    this.elevationPrefetchActive = active;
+    logger.debug(`Elevation prefetch active: ${active}`);
+  }
+
+  /**
+   * Check if any background fetch is active (POI, speed limit, location, or elevation).
    */
   isBackgroundFetchActive(): boolean {
     return (
       this.poiPrefetchActive ||
       this.speedLimitPrefetchActive ||
-      this.locationPrefetchActive
+      this.locationPrefetchActive ||
+      this.elevationPrefetchActive
     );
   }
 

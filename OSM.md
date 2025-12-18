@@ -159,7 +159,7 @@ Show road surface type from OSM tags.
 ---
 
 ### OSM-7: Elevation Profiles
-**Status:** Not started
+**Status:** Implemented
 **Priority:** Low
 **Complexity:** Medium
 
@@ -171,13 +171,17 @@ Show elevation data for routes.
 - Elevation profile visualization in web interface
 - Warn about steep sections
 
-**Implementation notes:**
-- Use Open-Elevation API or SRTM data
-- Endpoint: `https://api.open-elevation.com/api/v1/lookup`
-- Batch query route points for elevation
-- Calculate gradients between points
-- Add elevation graph to route preview
-- E-paper: show climb remaining in info panel
+**Implementation:**
+- Created `ElevationService` using Open-Elevation API (`https://api.open-elevation.com/api/v1/lookup`)
+- Elevations are prefetched along the route when navigation starts (while internet available)
+- Uses batch queries (up to 100 points per request) for efficient API usage
+- Cached in `data/elevation/` directory for offline use during driving
+- Route metrics calculated: total climb, total descent, min/max elevation, start/end elevation
+- Remaining climb calculation from current position to destination
+- Configurable via `showElevation` in user display preferences
+- Web UI shows elevation prefetch progress during route loading
+- Rate limiting (500ms between requests) to respect API terms
+- Filters small elevation changes (<2m) to reduce GPS noise in metrics
 
 ---
 
@@ -232,10 +236,9 @@ Snap GPS traces to actual roads.
 2. **OSM-3: POI** - Practical utility during drives
 3. **OSM-1: Reverse Geocoding** - Low complexity, high user value
 4. **OSM-5: Routing Profiles** - Simple OSRM parameter change
-5. **OSM-4: Offline Routing** - Reliability for remote areas
-6. **OSM-7: Elevation** - Useful for cycling/hiking
-7. **OSM-9: Map Matching** - Nice to have
-8. **OSM-8: Vector Maps** - High complexity, significant undertaking
+5. **OSM-7: Elevation** - Useful for cycling/hiking
+6. **OSM-9: Map Matching** - Nice to have
+7. **OSM-8: Vector Maps** - High complexity, significant undertaking
 
 ---
 

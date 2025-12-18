@@ -184,6 +184,18 @@ export interface IConfigService {
   setShowLocationName(enabled: boolean): void;
 
   /**
+   * Get show elevation preference
+   * @returns true if elevation data should be displayed during drive navigation
+   */
+  getShowElevation(): boolean;
+
+  /**
+   * Set show elevation preference
+   * @param enabled Whether to show elevation data
+   */
+  setShowElevation(enabled: boolean): void;
+
+  /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names
    */

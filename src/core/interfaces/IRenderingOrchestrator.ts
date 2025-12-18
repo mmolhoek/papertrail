@@ -10,6 +10,7 @@ import {
 import { SpeedLimitPrefetchProgress } from "./ISpeedLimitService";
 import { POIPrefetchProgress } from "./IPOIService";
 import { LocationPrefetchProgress } from "./IReverseGeocodingService";
+import { ElevationPrefetchProgress } from "./IElevationService";
 
 /**
  * Rendering Orchestrator Interface
@@ -249,6 +250,15 @@ export interface IRenderingOrchestrator {
    */
   onLocationPrefetchProgress(
     callback: (progress: LocationPrefetchProgress) => void,
+  ): () => void;
+
+  /**
+   * Register a callback for elevation prefetch progress
+   * @param callback Function to call on prefetch progress updates
+   * @returns Unsubscribe function
+   */
+  onElevationPrefetchProgress(
+    callback: (progress: ElevationPrefetchProgress) => void,
   ): () => void;
 
   /**

@@ -12,9 +12,11 @@ import {
   ISpeedLimitService,
   IPOIService,
   IReverseGeocodingService,
+  IElevationService,
   SpeedLimitPrefetchProgress,
   POIPrefetchProgress,
   LocationPrefetchProgress,
+  ElevationPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -92,6 +94,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private locationPrefetchCallbacks: Array<
     (progress: LocationPrefetchProgress) => void
   > = [];
+  private elevationPrefetchCallbacks: Array<
+    (progress: ElevationPrefetchProgress) => void
+  > = [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -124,6 +129,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly speedLimitService?: ISpeedLimitService,
     private readonly poiService?: IPOIService,
     private readonly reverseGeocodingService?: IReverseGeocodingService,
+    private readonly elevationService?: IElevationService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -371,6 +377,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
+      // Initialize elevation service (if provided)
+      if (this.elevationService) {
+        logger.info("Initializing ElevationService...");
+        const elevationResult = await this.elevationService.initialize();
+        if (!elevationResult.success) {
+          logger.error(
+            "Failed to initialize ElevationService:",
+            elevationResult.error,
+          );
+          // Non-fatal - elevation data is optional
+          logger.warn("Elevation display will not be available");
+        } else {
+          logger.info("✓ ElevationService initialized");
+        }
+      }
+
       this.isInitialized = true;
 
       // Set drive coordinator as initialized
@@ -539,6 +561,48 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           .catch(() => {
             // Mark prefetch as complete even on error
             this.driveCoordinator?.setLocationPrefetchActive(false);
+          });
+      }
+    }
+
+    // Prefetch elevation data for the route in the background (while internet is available)
+    // Skip if already cached for this route
+    if (this.elevationService && this.configService.getShowElevation()) {
+      if (this.elevationService.hasRouteCache(route.id)) {
+        logger.info(
+          `Elevations already cached for route ${route.id}, skipping prefetch`,
+        );
+      } else {
+        logger.info("Starting elevation prefetch for route");
+        // Mark prefetch as active
+        this.driveCoordinator?.setElevationPrefetchActive(true);
+        // Run in background - don't block navigation start
+        this.elevationService
+          .prefetchRouteElevations(route, (progress) => {
+            this.notifyElevationPrefetchProgress(progress);
+          })
+          .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setElevationPrefetchActive(false);
+            if (result.success) {
+              logger.info(`Prefetched ${result.data} elevation points`);
+              // Log route metrics
+              const metrics = this.elevationService?.getRouteMetrics(route.id);
+              if (metrics) {
+                logger.info(
+                  `Route elevation: +${metrics.totalClimb}m / -${metrics.totalDescent}m`,
+                );
+              }
+            } else {
+              logger.warn(
+                "Failed to prefetch elevations:",
+                result.error?.message,
+              );
+            }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setElevationPrefetchActive(false);
           });
       }
     }
@@ -898,6 +962,39 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         callback(progress);
       } catch (error) {
         logger.error("Error in location prefetch progress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Register a callback for elevation prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onElevationPrefetchProgress(
+    callback: (progress: ElevationPrefetchProgress) => void,
+  ): () => void {
+    this.elevationPrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.elevationPrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.elevationPrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all elevation prefetch progress callbacks
+   */
+  private notifyElevationPrefetchProgress(
+    progress: ElevationPrefetchProgress,
+  ): void {
+    for (const callback of this.elevationPrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error("Error in elevation prefetch progress callback:", error);
       }
     }
   }

@@ -12,6 +12,7 @@ import {
   ISpeedLimitService,
   IPOIService,
   IReverseGeocodingService,
+  IElevationService,
 } from "@core/interfaces";
 import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
@@ -83,6 +84,7 @@ import { DriveNavigationService } from "@services/drive/DriveNavigationService";
 import { SpeedLimitService } from "@services/speedLimit/SpeedLimitService";
 import { POIService } from "@services/poi/POIService";
 import { ReverseGeocodingService } from "@services/reverseGeocoding/ReverseGeocodingService";
+import { ElevationService } from "@services/elevation/ElevationService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -115,6 +117,7 @@ export class ServiceContainer {
     speedLimit?: ISpeedLimitService;
     poi?: IPOIService;
     reverseGeocoding?: IReverseGeocodingService;
+    elevation?: IElevationService;
   } = {};
 
   /**
@@ -353,6 +356,7 @@ export class ServiceContainer {
         this.getSpeedLimitService(),
         this.getPOIService(),
         this.getReverseGeocodingService(),
+        this.getElevationService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -439,6 +443,16 @@ export class ServiceContainer {
       this.services.reverseGeocoding = new ReverseGeocodingService();
     }
     return this.services.reverseGeocoding;
+  }
+
+  /**
+   * Get Elevation Service
+   */
+  getElevationService(): IElevationService {
+    if (!this.services.elevation) {
+      this.services.elevation = new ElevationService();
+    }
+    return this.services.elevation;
   }
 
   // Configuration getters
@@ -753,6 +767,13 @@ export class ServiceContainer {
    */
   setReverseGeocodingService(service: IReverseGeocodingService): void {
     this.services.reverseGeocoding = service;
+  }
+
+  /**
+   * Set Elevation Service (for testing)
+   */
+  setElevationService(service: IElevationService): void {
+    this.services.elevation = service;
   }
 
   // Security/Credential helpers

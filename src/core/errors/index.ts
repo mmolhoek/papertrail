@@ -26,4 +26,5 @@ export * from "./DriveError";
 export * from "./SpeedLimitError";
 export * from "./POIError";
 export * from "./ReverseGeocodingError";
+export * from "./ElevationError";
 export * from "./ErrorMessages";

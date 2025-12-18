@@ -216,6 +216,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showLocationName = enabled;
   }
 
+  // Elevation display
+
+  getShowElevation(): boolean {
+    return this.userState.displayPreferences.showElevation ?? true;
+  }
+
+  setShowElevation(enabled: boolean): void {
+    this.userState.displayPreferences.showElevation = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<
@@ -606,6 +616,7 @@ export class ConfigService implements IConfigService {
         showSpeedLimit: true,
         speedUnit: "kmh",
         showLocationName: true,
+        showElevation: true,
         routingProfile: "car",
       },
       recentFiles: [],
