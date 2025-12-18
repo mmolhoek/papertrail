@@ -69,6 +69,15 @@
             <span id="drive-indicator" class="nav-check hidden">✓</span>
           </button>
           <button
+            id="menu-simulate"
+            class="nav-item"
+            data-panel="simulation-panel"
+          >
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Simulate</span>
+            <span id="simulate-indicator" class="nav-check hidden">✓</span>
+          </button>
+          <button
             id="menu-display-controls"
             class="nav-item"
             data-panel="display-controls-panel"
@@ -213,49 +222,12 @@
               <span class="track-stat-value" id="track-waypoints">0</span>
             </div>
           </div>
-          <!-- Simulation Controls (shown when track is loaded) -->
-          <!-- Note: Simulation speed is determined by the Routing Profile setting in Display Controls -->
-          <div id="simulation-controls" class="simulation-controls hidden">
-            <div class="section-header simulation-section-header">
-              <span class="section-marker">SIMULATE</span>
-            </div>
-            <div class="simulation-actions">
-              <button
-                id="start-simulation-btn"
-                class="btn btn-primary btn-large"
-              >
-                <span class="btn-icon">▶</span>
-                <span class="btn-text">Start</span>
-              </button>
-              <button id="stop-simulation-btn" class="btn btn-danger hidden">
-                <span class="btn-icon">■</span>
-                <span class="btn-text">Stop</span>
-              </button>
-              <button
-                id="pause-simulation-btn"
-                class="btn btn-secondary hidden"
-              >
-                <span class="btn-icon">⏸</span>
-                <span class="btn-text">Pause</span>
-              </button>
-            </div>
-            <div id="simulation-status" class="simulation-status hidden">
-              <div class="sim-stat">
-                <span class="sim-stat-label">Progress</span>
-                <div class="progress-bar">
-                  <div
-                    id="sim-progress-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
-                </div>
-                <span class="sim-stat-value" id="sim-progress">0%</span>
-              </div>
-              <div class="sim-stat">
-                <span class="sim-stat-label">Remaining</span>
-                <span class="sim-stat-value" id="sim-remaining">--</span>
-              </div>
-            </div>
+          <!-- Simulate button (shown when track is loaded) -->
+          <div id="track-simulate-btn-container" class="hidden">
+            <button id="track-simulate-btn" class="btn btn-primary btn-large">
+              <span class="btn-icon">▶</span>
+              <span class="btn-text">Simulation Menu</span>
+            </button>
           </div>
         </section>
 
@@ -368,7 +340,7 @@
                 class="btn btn-secondary btn-large"
               >
                 <span class="btn-icon">⏩</span>
-                <span class="btn-text">Simulate</span>
+                <span class="btn-text">Simulation Menu</span>
               </button>
               <button
                 id="drive-show-route-btn"
@@ -455,8 +427,63 @@
                 >0 locations cached</span
               >
             </div>
+          </div>
+        </section>
 
-            <!-- Navigation Status -->
+        <!-- Simulation Panel -->
+        <section class="panel-card hidden" id="simulation-panel">
+          <div class="section-header">
+            <span class="section-marker">SIMULATION</span>
+          </div>
+          <div class="panel-content">
+            <!-- Simulation Mode Selection -->
+            <div class="simulation-mode-control">
+              <label class="control-label">Simulation Speed</label>
+              <div class="select-wrapper">
+                <select id="simulation-mode-select" class="custom-select">
+                  <option value="car">🚗 Driving (~100 km/h)</option>
+                  <option value="bike">🚴 Bicycle (~25 km/h)</option>
+                  <option value="foot">🚶 Walking (~5 km/h)</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+              <p class="control-hint">Speed for track and route simulation</p>
+            </div>
+
+            <!-- Active Track/Route Info -->
+            <div id="simulation-source-info" class="simulation-source-info">
+              <div class="source-label">Simulating:</div>
+              <div class="source-name" id="simulation-source-name">
+                No track or route selected
+              </div>
+            </div>
+
+            <!-- Simulation Controls -->
+            <div id="simulation-controls" class="simulation-controls">
+              <div class="simulation-actions">
+                <button
+                  id="start-simulation-btn"
+                  class="btn btn-primary btn-large"
+                  disabled
+                >
+                  <span class="btn-icon">▶</span>
+                  <span class="btn-text">Start</span>
+                </button>
+                <button id="stop-simulation-btn" class="btn btn-danger hidden">
+                  <span class="btn-icon">■</span>
+                  <span class="btn-text">Stop</span>
+                </button>
+                <button
+                  id="pause-simulation-btn"
+                  class="btn btn-secondary hidden"
+                >
+                  <span class="btn-icon">⏸</span>
+                  <span class="btn-text">Pause</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Navigation Status (shown during simulation) -->
             <div id="drive-nav-status" class="drive-nav-status hidden">
               <div class="nav-status-header">
                 <span class="nav-state" id="drive-nav-state">Navigating</span>
@@ -474,40 +501,42 @@
                     style="width: 0%"
                   ></div>
                 </div>
-                <span class="nav-remaining" id="drive-remaining"
-                  >-- remaining</span
-                >
+              </div>
+              <div class="nav-stats">
+                <div class="nav-stat-row">
+                  <span class="nav-stat-label">Distance</span>
+                  <span class="nav-stat-value" id="drive-distance-remaining"
+                    >--</span
+                  >
+                </div>
+                <div class="nav-stat-row">
+                  <span class="nav-stat-label">Time</span>
+                  <span class="nav-stat-value" id="drive-remaining">--</span>
+                </div>
               </div>
             </div>
 
-            <!-- Simulation Status (shown during drive simulation) -->
-            <div id="drive-sim-status" class="simulation-status hidden">
-              <div class="sim-header">
-                <span class="sim-indicator">🚗 SIMULATING @ 100 km/h</span>
-              </div>
+            <!-- Simulation Status -->
+            <div id="simulation-status" class="simulation-status hidden">
               <div class="sim-stat">
                 <span class="sim-stat-label">Progress</span>
                 <div class="progress-bar">
                   <div
-                    id="drive-sim-progress-bar"
+                    id="sim-progress-bar"
                     class="progress-fill"
                     style="width: 0%"
                   ></div>
                 </div>
-                <span class="sim-stat-value" id="drive-sim-progress">0%</span>
+                <span class="sim-stat-value" id="sim-progress">0%</span>
               </div>
               <div class="sim-stat">
                 <span class="sim-stat-label">Distance</span>
-                <span class="sim-stat-value" id="drive-sim-distance">--</span>
+                <span class="sim-stat-value" id="sim-distance">--</span>
               </div>
               <div class="sim-stat">
                 <span class="sim-stat-label">Time</span>
-                <span class="sim-stat-value" id="drive-sim-time">--</span>
+                <span class="sim-stat-value" id="sim-remaining">--</span>
               </div>
-              <button id="drive-sim-stop-btn" class="btn btn-danger btn-large">
-                <span class="btn-icon">■</span>
-                <span class="btn-text">Stop Simulation</span>
-              </button>
             </div>
           </div>
         </section>
@@ -601,21 +630,6 @@
                 <span class="speed-unit-text">km/h</span>
               </button>
               <p class="control-hint">Tap to switch: km/h ↔ mph</p>
-            </div>
-
-            <div class="routing-profile-control">
-              <label class="control-label">Routing Profile</label>
-              <div class="select-wrapper">
-                <select id="routing-profile-select" class="custom-select">
-                  <option value="car">🚗 Driving</option>
-                  <option value="bike">🚴 Bicycle</option>
-                  <option value="foot">🚶 Walking</option>
-                </select>
-                <span class="select-arrow">▾</span>
-              </div>
-              <p class="control-hint">
-                Route calculation mode for drive navigation
-              </p>
             </div>
 
             <div class="toggle-group">

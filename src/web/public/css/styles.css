@@ -1572,6 +1572,59 @@ body {
 }
 
 /* ============================================
+   SIMULATION PANEL
+   ============================================ */
+
+/* Simulation Mode Control (Speed Selection) */
+.simulation-mode-control {
+  margin-bottom: var(--space-lg);
+}
+
+.simulation-mode-control .control-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-slate);
+  margin-bottom: var(--space-sm);
+}
+
+.simulation-mode-control .control-hint {
+  font-size: 0.75rem;
+  color: var(--color-slate);
+  margin-top: var(--space-xs);
+  opacity: 0.8;
+}
+
+/* Simulation Source Info */
+.simulation-source-info {
+  background: var(--color-cream);
+  border: 1px solid var(--color-parchment-dark);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.simulation-source-info .source-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-slate);
+  margin-bottom: var(--space-xs);
+}
+
+.simulation-source-info .source-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--color-forest);
+  word-break: break-word;
+}
+
+/* ============================================
    TRACK SIMULATION CONTROLS
    ============================================ */
 
@@ -2073,6 +2126,34 @@ body {
   font-size: 0.85rem;
   opacity: 0.8;
   white-space: nowrap;
+}
+
+/* Navigation Stats - Distance and Time */
+.nav-stats {
+  margin-top: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.nav-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.nav-stat-value {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 500;
 }
 
 /* Turn Icons - CSS arrows using borders */

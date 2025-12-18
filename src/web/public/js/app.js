@@ -22,6 +22,9 @@ class PapertrailClient {
     this.currentSpeedUnit = "kmh"; // 'kmh' or 'mph'
     this.currentRoutingProfile = "car"; // 'car', 'bike', or 'foot'
 
+    // Simulation source tracking
+    this.simulationSource = null; // { type: 'track' | 'route', name: string, path?: string }
+
     // Drive navigation state
     this.driveMap = null;
     this.driveDestination = null; // { lat, lon, name }
@@ -125,6 +128,50 @@ class PapertrailClient {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
+    }
+
+    // Special handling for Simulation panel - auto-set source from loaded track
+    if (panelId === "simulation-panel") {
+      this.initSimulationPanel();
+    }
+  }
+
+  // Initialize simulation panel - set source from loaded track if available
+  initSimulationPanel() {
+    const sourceNameEl = document.getElementById("simulation-source-name");
+    const startBtn = document.getElementById("start-simulation-btn");
+
+    // If we already have a simulation source, keep it
+    if (this.simulationSource) {
+      if (sourceNameEl) {
+        const prefix =
+          this.simulationSource.type === "track" ? "Track" : "Route";
+        sourceNameEl.textContent = `${prefix}: ${this.simulationSource.name}`;
+      }
+      if (startBtn) startBtn.disabled = false;
+      return;
+    }
+
+    // Otherwise, check if a track is loaded and use it as the source
+    const select = document.getElementById("track-select");
+    const trackPath = select?.value;
+    const selectedOption = select?.options[select?.selectedIndex];
+
+    if (trackPath && selectedOption) {
+      this.simulationSource = {
+        type: "track",
+        name: selectedOption.textContent,
+        path: trackPath,
+      };
+      if (sourceNameEl) {
+        sourceNameEl.textContent = `Track: ${selectedOption.textContent}`;
+      }
+      if (startBtn) startBtn.disabled = false;
+    } else {
+      if (sourceNameEl) {
+        sourceNameEl.textContent = "No track or route selected";
+      }
+      if (startBtn) startBtn.disabled = true;
     }
   }
 
@@ -339,13 +386,21 @@ class PapertrailClient {
       });
     }
 
-    // Routing profile selection
-    const routingProfileSelect = document.getElementById(
-      "routing-profile-select",
+    // Simulation mode selection (replaces routing profile)
+    const simulationModeSelect = document.getElementById(
+      "simulation-mode-select",
     );
-    if (routingProfileSelect) {
-      routingProfileSelect.addEventListener("change", (e) => {
+    if (simulationModeSelect) {
+      simulationModeSelect.addEventListener("change", (e) => {
         this.setRoutingProfile(e.target.value);
+      });
+    }
+
+    // Track simulate button - navigate to simulation panel
+    const trackSimulateBtn = document.getElementById("track-simulate-btn");
+    if (trackSimulateBtn) {
+      trackSimulateBtn.addEventListener("click", () => {
+        this.navigateToSimulateWithTrack();
       });
     }
 
@@ -529,9 +584,9 @@ class PapertrailClient {
       }
     }
 
-    // Update routing profile selector
+    // Update simulation mode selector (formerly routing profile)
     if (settings.routingProfile !== undefined) {
-      const select = document.getElementById("routing-profile-select");
+      const select = document.getElementById("simulation-mode-select");
       if (select) {
         select.value = settings.routingProfile;
       }
@@ -837,7 +892,7 @@ class PapertrailClient {
       console.error("Failed to set routing profile:", error);
       this.showMessage("Failed to change routing profile", "error");
       // Revert the select
-      const select = document.getElementById("routing-profile-select");
+      const select = document.getElementById("simulation-mode-select");
       if (select) select.value = this.currentRoutingProfile;
     }
   }
@@ -1317,17 +1372,28 @@ class PapertrailClient {
     }
   }
 
-  // Update simulation controls visibility based on whether a track is loaded
+  // Update track simulate button visibility based on whether a track is loaded
   updateSimulationPanel(hasActiveTrack) {
-    const simulationControls = document.getElementById("simulation-controls");
+    const trackSimulateContainer = document.getElementById(
+      "track-simulate-btn-container",
+    );
+    const startBtn = document.getElementById("start-simulation-btn");
 
     if (hasActiveTrack) {
-      if (simulationControls) {
-        simulationControls.classList.remove("hidden");
+      if (trackSimulateContainer) {
+        trackSimulateContainer.classList.remove("hidden");
+      }
+      // Enable start button in simulation panel
+      if (startBtn) {
+        startBtn.disabled = false;
       }
     } else {
-      if (simulationControls) {
-        simulationControls.classList.add("hidden");
+      if (trackSimulateContainer) {
+        trackSimulateContainer.classList.add("hidden");
+      }
+      // Disable start button in simulation panel if no source
+      if (startBtn && !this.simulationSource) {
+        startBtn.disabled = true;
       }
     }
   }
@@ -1485,14 +1551,6 @@ class PapertrailClient {
   // Simulation Methods
 
   async startSimulation() {
-    const select = document.getElementById("track-select");
-    const trackPath = select.value;
-
-    if (!trackPath) {
-      this.showMessage("Please select a track first", "error");
-      return;
-    }
-
     const btn = document.getElementById("start-simulation-btn");
     btn.disabled = true;
 
@@ -1505,13 +1563,71 @@ class PapertrailClient {
       };
       const speed = profileToSpeed[this.currentRoutingProfile] || "walk";
 
-      const result = await this.fetchJSON(`${this.apiBase}/simulation/start`, {
-        method: "POST",
-        body: JSON.stringify({
-          trackPath: trackPath,
-          speed: speed,
-        }),
-      });
+      let result;
+
+      // Check if we have a simulation source set (from navigation)
+      if (this.simulationSource) {
+        if (this.simulationSource.type === "route") {
+          // Simulate a drive route
+          const route = this.simulationSource.route;
+
+          // Set mock GPS to the route's starting point before simulation
+          const startPoint = route.startPoint;
+          if (startPoint) {
+            const isMockGPS = await this.checkMockGPS();
+            if (isMockGPS) {
+              await this.setMockGPSPosition(
+                startPoint.latitude,
+                startPoint.longitude,
+              );
+              this.currentPosition = {
+                lat: startPoint.latitude,
+                lon: startPoint.longitude,
+              };
+            }
+          }
+
+          result = await this.fetchJSON(`${this.apiBase}/drive/simulate`, {
+            method: "POST",
+            body: JSON.stringify({
+              route: route,
+              speed: speed === "drive" ? 100 : speed === "bicycle" ? 25 : 5,
+            }),
+          });
+
+          if (result.success) {
+            this.isDriveNavigating = true;
+            this.isDriveSimulating = true;
+          }
+        } else {
+          // Simulate a track
+          result = await this.fetchJSON(`${this.apiBase}/simulation/start`, {
+            method: "POST",
+            body: JSON.stringify({
+              trackPath: this.simulationSource.path,
+              speed: speed,
+            }),
+          });
+        }
+      } else {
+        // Fallback: use selected track from dropdown
+        const select = document.getElementById("track-select");
+        const trackPath = select.value;
+
+        if (!trackPath) {
+          this.showMessage("Please select a track first", "error");
+          btn.disabled = false;
+          return;
+        }
+
+        result = await this.fetchJSON(`${this.apiBase}/simulation/start`, {
+          method: "POST",
+          body: JSON.stringify({
+            trackPath: trackPath,
+            speed: speed,
+          }),
+        });
+      }
 
       if (result.success) {
         this.isSimulating = true;
@@ -1540,16 +1656,28 @@ class PapertrailClient {
 
   async stopSimulation() {
     try {
-      const result = await this.fetchJSON(`${this.apiBase}/simulation/stop`, {
-        method: "POST",
-      });
+      let result;
+
+      // If simulating a route, stop drive navigation
+      if (this.simulationSource?.type === "route" || this.isDriveSimulating) {
+        result = await this.fetchJSON(`${this.apiBase}/drive/stop`, {
+          method: "POST",
+        });
+        this.isDriveNavigating = false;
+        this.isDriveSimulating = false;
+      } else {
+        result = await this.fetchJSON(`${this.apiBase}/simulation/stop`, {
+          method: "POST",
+        });
+      }
 
       if (result.success) {
         this.isSimulating = false;
         this.isPaused = false;
+        // Keep simulationSource so user can restart
         this.stopSimulationPolling();
         this.updateSimulationUI();
-        this.showMessage("Simulation stopped", "info");
+        this.showMessage("Simulation stopped - ready to restart", "info");
       } else {
         this.showMessage(
           result.error?.message || "Failed to stop simulation",
@@ -1659,6 +1787,8 @@ class PapertrailClient {
     const stopBtn = document.getElementById("stop-simulation-btn");
     const pauseBtn = document.getElementById("pause-simulation-btn");
     const statusEl = document.getElementById("simulation-status");
+    const navStatusEl = document.getElementById("drive-nav-status");
+    const navStateEl = document.getElementById("drive-nav-state");
     const pauseBtnText = pauseBtn.querySelector(".btn-text");
 
     if (this.isSimulating) {
@@ -1668,10 +1798,26 @@ class PapertrailClient {
       pauseBtn.classList.remove("hidden");
       statusEl.classList.remove("hidden");
 
+      // Show navigation status panel for both track and route simulation
+      if (navStatusEl) {
+        navStatusEl.classList.remove("hidden");
+        // Set appropriate state text based on simulation type
+        if (navStateEl) {
+          if (this.simulationSource?.type === "route") {
+            navStateEl.textContent = "Navigating";
+          } else {
+            navStateEl.textContent = this.isPaused
+              ? "Paused"
+              : "Simulating Track";
+          }
+        }
+      }
+
       if (this.isPaused) {
         controls.classList.add("paused");
         pauseBtnText.textContent = "Resume";
         pauseBtn.querySelector(".btn-icon").textContent = "▶";
+        if (navStateEl) navStateEl.textContent = "Paused";
       } else {
         controls.classList.remove("paused");
         pauseBtnText.textContent = "Pause";
@@ -1683,6 +1829,11 @@ class PapertrailClient {
       stopBtn.classList.add("hidden");
       pauseBtn.classList.add("hidden");
       statusEl.classList.add("hidden");
+      if (navStatusEl) navStatusEl.classList.add("hidden");
+      // Keep start button enabled if we have a simulation source
+      if (this.simulationSource) {
+        startBtn.disabled = false;
+      }
     }
   }
 
@@ -1695,6 +1846,7 @@ class PapertrailClient {
   updateSimulationStatus(data) {
     const progressBar = document.getElementById("sim-progress-bar");
     const progressText = document.getElementById("sim-progress");
+    const distanceText = document.getElementById("sim-distance");
     const remainingText = document.getElementById("sim-remaining");
 
     if (progressBar && progressText) {
@@ -1702,15 +1854,127 @@ class PapertrailClient {
       progressText.textContent = `${data.progress.toFixed(1)}%`;
     }
 
+    if (distanceText && data.distanceRemaining !== undefined) {
+      distanceText.textContent = this.formatDistance(data.distanceRemaining);
+    }
+
     if (remainingText && data.estimatedTimeRemaining !== undefined) {
       const mins = Math.floor(data.estimatedTimeRemaining / 60);
-      const secs = data.estimatedTimeRemaining % 60;
+      const secs = Math.round(data.estimatedTimeRemaining % 60);
       if (mins > 0) {
         remainingText.textContent = `${mins}m ${secs}s`;
       } else {
         remainingText.textContent = `${secs}s`;
       }
     }
+
+    // Also update the navigation status panel - but only for track simulation
+    // Route simulation gets its updates from updateDriveNavigationStatus via WebSocket
+    if (this.simulationSource?.type === "track") {
+      const driveProgressBar = document.getElementById("drive-progress-bar");
+      const driveDistanceRemaining = document.getElementById(
+        "drive-distance-remaining",
+      );
+      const driveRemaining = document.getElementById("drive-remaining");
+      const driveInstruction = document.getElementById("drive-instruction");
+
+      if (driveProgressBar && data.progress !== undefined) {
+        driveProgressBar.style.width = `${data.progress}%`;
+      }
+
+      // Show distance remaining
+      if (driveDistanceRemaining && data.distanceRemaining !== undefined) {
+        driveDistanceRemaining.textContent = this.formatDistance(
+          data.distanceRemaining,
+        );
+      }
+
+      // Show time remaining
+      if (driveRemaining && data.estimatedTimeRemaining !== undefined) {
+        const mins = Math.floor(data.estimatedTimeRemaining / 60);
+        const secs = Math.round(data.estimatedTimeRemaining % 60);
+        if (mins > 0) {
+          driveRemaining.textContent = `${mins}m ${secs}s`;
+        } else {
+          driveRemaining.textContent = `${secs}s`;
+        }
+      }
+
+      // Show track name as instruction
+      if (driveInstruction) {
+        driveInstruction.textContent = this.simulationSource.name;
+      }
+    }
+  }
+
+  // Navigate to simulation panel with track as the source
+  navigateToSimulateWithTrack() {
+    const select = document.getElementById("track-select");
+    const trackPath = select.value;
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (!trackPath) {
+      this.showMessage("Please select a track first", "error");
+      return;
+    }
+
+    // Set simulation source
+    this.simulationSource = {
+      type: "track",
+      name: selectedOption.textContent,
+      path: trackPath,
+    };
+
+    // Update the simulation panel source info
+    const sourceNameEl = document.getElementById("simulation-source-name");
+    if (sourceNameEl) {
+      sourceNameEl.textContent = `Track: ${selectedOption.textContent}`;
+    }
+
+    // Enable the start button
+    const startBtn = document.getElementById("start-simulation-btn");
+    if (startBtn) {
+      startBtn.disabled = false;
+    }
+
+    // Navigate to the simulation panel
+    const menuItem = document.getElementById("menu-simulate");
+    this.switchToPanel("simulation-panel", menuItem);
+
+    this.showMessage("Track ready for simulation", "info");
+  }
+
+  // Navigate to simulation panel with route as the source
+  navigateToSimulateWithRoute() {
+    if (!this.driveRoute) {
+      this.showMessage("Please calculate a route first", "error");
+      return;
+    }
+
+    // Set simulation source
+    this.simulationSource = {
+      type: "route",
+      name: this.driveRoute.destination,
+      route: this.driveRoute,
+    };
+
+    // Update the simulation panel source info
+    const sourceNameEl = document.getElementById("simulation-source-name");
+    if (sourceNameEl) {
+      sourceNameEl.textContent = `Route: ${this.driveRoute.destination}`;
+    }
+
+    // Enable the start button
+    const startBtn = document.getElementById("start-simulation-btn");
+    if (startBtn) {
+      startBtn.disabled = false;
+    }
+
+    // Navigate to the simulation panel
+    const menuItem = document.getElementById("menu-simulate");
+    this.switchToPanel("simulation-panel", menuItem);
+
+    this.showMessage("Route ready for simulation", "info");
   }
 
   // Utility Methods
@@ -1819,11 +2083,11 @@ class PapertrailClient {
       });
     }
 
-    // Simulate drive button
+    // Simulate drive button - navigate to simulation panel
     const simulateBtn = document.getElementById("drive-simulate-btn");
     if (simulateBtn) {
       simulateBtn.addEventListener("click", () => {
-        this.simulateDriveRoute();
+        this.navigateToSimulateWithRoute();
       });
     }
 
@@ -2773,6 +3037,10 @@ class PapertrailClient {
     preview.classList.remove("hidden");
     if (displayOptions) displayOptions.classList.remove("hidden");
     controls.classList.remove("hidden");
+
+    // Ensure buttons are in correct state (not navigating yet)
+    this.isDriveNavigating = false;
+    this.updateDriveUI();
   }
 
   async startDriveNavigation() {
@@ -2819,8 +3087,6 @@ class PapertrailClient {
       if (result.success) {
         this.isDriveNavigating = false;
         this.isDriveSimulating = false;
-        // Hide simulation status
-        document.getElementById("drive-sim-status")?.classList.add("hidden");
         this.updateDriveUI();
         this.showMessage("Navigation stopped", "info");
       } else {
@@ -2895,8 +3161,6 @@ class PapertrailClient {
         simulateBtn.classList.add("hidden");
         startBtn.classList.add("hidden");
         stopBtn.classList.remove("hidden");
-        // Show simulation status
-        document.getElementById("drive-sim-status").classList.remove("hidden");
       } else {
         this.showMessage(
           result.error?.message || "Failed to start simulation",
@@ -3026,47 +3290,38 @@ class PapertrailClient {
     }
 
     // Update remaining distance
-    const remaining = document.getElementById("drive-remaining");
-    if (remaining && data.distanceRemaining !== undefined) {
-      remaining.textContent = `${this.formatDistance(data.distanceRemaining)} remaining`;
+    const distanceRemaining = document.getElementById(
+      "drive-distance-remaining",
+    );
+    if (distanceRemaining && data.distanceRemaining !== undefined) {
+      distanceRemaining.textContent = this.formatDistance(
+        data.distanceRemaining,
+      );
     }
 
-    // Update simulation status if simulating
-    if (this.isDriveSimulating) {
-      const simProgressBar = document.getElementById("drive-sim-progress-bar");
-      const simProgress = document.getElementById("drive-sim-progress");
-      const simDistance = document.getElementById("drive-sim-distance");
-      const simTime = document.getElementById("drive-sim-time");
-
-      if (simProgressBar && data.progress !== undefined) {
-        simProgressBar.style.width = `${data.progress}%`;
-      }
-      if (simProgress && data.progress !== undefined) {
-        simProgress.textContent = `${data.progress.toFixed(1)}%`;
-      }
-      if (simDistance && data.distanceRemaining !== undefined) {
-        simDistance.textContent = this.formatDistance(data.distanceRemaining);
-      }
-      if (simTime && data.timeRemaining !== undefined) {
-        const mins = Math.floor(data.timeRemaining / 60);
-        const secs = Math.round(data.timeRemaining % 60);
-        if (mins > 0) {
-          simTime.textContent = `${mins}m ${secs}s`;
-        } else {
-          simTime.textContent = `${secs}s`;
-        }
+    // Update remaining time
+    const timeRemaining = document.getElementById("drive-remaining");
+    if (timeRemaining && data.timeRemaining !== undefined) {
+      const mins = Math.floor(data.timeRemaining / 60);
+      const secs = Math.round(data.timeRemaining % 60);
+      if (mins > 0) {
+        timeRemaining.textContent = `${mins}m ${secs}s`;
+      } else {
+        timeRemaining.textContent = `${secs}s`;
       }
     }
 
-    // Show navigation status if navigating
+    // Update navigation state based on server state
     if (data.state === "navigating" || data.state === "off_road") {
       this.isDriveNavigating = true;
       this.updateDriveUI();
-    } else if (data.state === "arrived" || data.state === "cancelled") {
+    } else if (
+      data.state === "idle" ||
+      data.state === "arrived" ||
+      data.state === "cancelled"
+    ) {
       this.isDriveNavigating = false;
       this.isDriveSimulating = false;
-      // Hide simulation status
-      document.getElementById("drive-sim-status")?.classList.add("hidden");
       this.updateDriveUI();
     }
   }
