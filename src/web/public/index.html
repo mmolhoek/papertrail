@@ -115,594 +115,868 @@
       </nav>
 
       <main class="main-content">
-        <!-- Status Panel - Combined Position and System Status -->
+        <!-- Status Panel - Aviation Instrument Style -->
         <section
-          class="unified-status-panel panel-card hidden"
+          class="panel-card instrument-panel status-instrument-panel hidden"
           id="status-panel"
         >
-          <div class="unified-status-header">
-            <span class="unified-status-marker">STATUS</span>
-            <div class="unified-status-indicator">
-              <span class="pulse-dot" id="gps-pulse"></span>
-              <span id="gps-status-mini">Acquiring</span>
+          <div class="instrument-clusters">
+            <!-- Primary Position Display - GPS/INS Style -->
+            <div class="position-instrument">
+              <div class="position-display-frame">
+                <div class="position-display-bezel">
+                  <div class="position-display-screen">
+                    <!-- GPS Status Indicator -->
+                    <div class="gps-signal-indicator">
+                      <span class="signal-icon" id="gps-pulse">●</span>
+                      <span class="signal-status" id="gps-status-mini"
+                        >ACQUIRING</span
+                      >
+                    </div>
+
+                    <!-- Coordinate Readouts -->
+                    <div class="coord-readout-group">
+                      <div class="coord-readout lat">
+                        <span class="coord-prefix">LAT</span>
+                        <span class="coord-digits" id="latitude"
+                          >--°--'--"</span
+                        >
+                        <span class="coord-hemisphere" id="lat-hemisphere"
+                          >N</span
+                        >
+                      </div>
+                      <div class="coord-readout lon">
+                        <span class="coord-prefix">LON</span>
+                        <span class="coord-digits" id="longitude"
+                          >---°--'--"</span
+                        >
+                        <span class="coord-hemisphere" id="lon-hemisphere"
+                          >E</span
+                        >
+                      </div>
+                    </div>
+
+                    <!-- Altitude Tape -->
+                    <div class="altitude-tape">
+                      <div class="tape-label">ALT</div>
+                      <div class="tape-value" id="altitude">----</div>
+                      <div class="tape-unit">M</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="unified-status-grid">
-            <div class="unified-status-row">
-              <span class="unified-status-label">LAT</span>
-              <span class="unified-status-value" id="latitude">--°</span>
+
+            <!-- Satellite & Signal Quality Gauges -->
+            <div class="signal-gauges-row">
+              <!-- Satellite Count Gauge -->
+              <div class="mini-gauge satellite-gauge">
+                <div class="mini-gauge-frame">
+                  <svg viewBox="0 0 80 80" class="mini-gauge-svg">
+                    <defs>
+                      <linearGradient
+                        id="sat-gauge-bg"
+                        x1="0%"
+                        y1="0%"
+                        x2="0%"
+                        y2="100%"
+                      >
+                        <stop offset="0%" style="stop-color: #1a2a24" />
+                        <stop offset="100%" style="stop-color: #0d1512" />
+                      </linearGradient>
+                    </defs>
+                    <!-- Gauge background -->
+                    <circle cx="40" cy="40" r="36" class="mini-gauge-bezel" />
+                    <circle cx="40" cy="40" r="32" class="mini-gauge-face" />
+                    <!-- Signal arc background -->
+                    <path
+                      d="M 12 40 A 28 28 0 0 1 68 40"
+                      class="signal-arc-bg"
+                    />
+                    <!-- Signal arc filled -->
+                    <path
+                      d="M 12 40 A 28 28 0 0 1 68 40"
+                      class="signal-arc"
+                      id="sat-signal-arc"
+                    />
+                    <!-- Satellite icon -->
+                    <text x="40" y="52" class="gauge-icon">📡</text>
+                  </svg>
+                  <div class="mini-gauge-readout">
+                    <span class="readout-value" id="satellites">0</span>
+                    <span class="readout-label">SATS</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- HDOP Quality Gauge -->
+              <div class="mini-gauge hdop-gauge">
+                <div class="mini-gauge-frame">
+                  <svg viewBox="0 0 80 80" class="mini-gauge-svg">
+                    <!-- Gauge background -->
+                    <circle cx="40" cy="40" r="36" class="mini-gauge-bezel" />
+                    <circle cx="40" cy="40" r="32" class="mini-gauge-face" />
+                    <!-- Quality segments -->
+                    <path
+                      d="M 12 40 A 28 28 0 0 1 26 18"
+                      class="quality-arc excellent"
+                    />
+                    <path
+                      d="M 26 18 A 28 28 0 0 1 54 18"
+                      class="quality-arc good"
+                    />
+                    <path
+                      d="M 54 18 A 28 28 0 0 1 68 40"
+                      class="quality-arc poor"
+                    />
+                    <!-- Needle -->
+                    <g class="hdop-needle-group" id="hdop-needle">
+                      <line
+                        x1="40"
+                        y1="40"
+                        x2="40"
+                        y2="16"
+                        class="hdop-needle"
+                      />
+                      <circle cx="40" cy="40" r="4" class="needle-cap-small" />
+                    </g>
+                  </svg>
+                  <div class="mini-gauge-readout">
+                    <span class="readout-value" id="gps-hdop">--</span>
+                    <span class="readout-label">HDOP</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">LON</span>
-              <span class="unified-status-value" id="longitude">--°</span>
+
+            <!-- Status Annunciator Panel -->
+            <div class="annunciator-panel">
+              <div class="annunciator-label-plate">SYSTEM STATUS</div>
+              <div class="annunciator-grid">
+                <div class="annunciator-lamp" id="ann-gps">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">GPS</span>
+                  <span class="lamp-value" id="gps-status">INIT</span>
+                </div>
+                <div class="annunciator-lamp" id="ann-fix">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">FIX</span>
+                  <span class="lamp-value" id="gps-fix-status">NONE</span>
+                </div>
+                <div class="annunciator-lamp" id="ann-display">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">DISP</span>
+                  <span class="lamp-value" id="display-status">STBY</span>
+                </div>
+              </div>
             </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">ELEV</span>
-              <span class="unified-status-value" id="altitude">--</span>
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">GPS</span>
-              <span class="unified-status-value" id="gps-status">Unknown</span>
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">FIX</span>
-              <span class="unified-status-value" id="gps-fix-status"
-                >Unknown</span
-              >
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">SATS</span>
-              <span class="unified-status-value" id="satellites">0</span>
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">HDOP</span>
-              <span class="unified-status-value" id="gps-hdop">--</span>
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">DISPLAY</span>
-              <span class="unified-status-value" id="display-status"
-                >Unknown</span
-              >
-            </div>
-            <div class="unified-status-row">
-              <span class="unified-status-label">TRACK</span>
-              <span class="unified-status-value truncate" id="active-track"
-                >None</span
-              >
+
+            <!-- Active Flight Plan / Track -->
+            <div class="flight-plan-display">
+              <div class="fp-label-plate">ACTIVE ROUTE</div>
+              <div class="fp-content">
+                <div class="fp-icon">▸</div>
+                <div class="fp-track-name" id="active-track">
+                  NO ROUTE LOADED
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
         <!-- GPX Track Selection Panel -->
-        <section class="panel-card" id="track-selection-panel">
-          <div class="section-header">
-            <span class="section-marker">TRACK SELECTION</span>
-          </div>
-          <div class="panel-content">
-            <div class="select-wrapper">
-              <select id="track-select" class="custom-select">
-                <option value="">Select a track...</option>
-              </select>
-              <span class="select-arrow">▾</span>
+        <!-- Track Selection Panel -->
+        <section class="panel-card instrument-panel" id="track-selection-panel">
+          <div class="instrument-clusters">
+            <!-- Track Selector -->
+            <div class="data-selector-cluster">
+              <div class="cluster-label">SELECT ROUTE</div>
+              <div class="instrument-select-wrapper">
+                <select id="track-select" class="instrument-select">
+                  <option value="">-- NO ROUTE SELECTED --</option>
+                </select>
+                <span class="instrument-select-indicator"></span>
+              </div>
             </div>
-            <div class="track-actions">
-              <button id="upload-track-btn" class="btn btn-secondary">
-                <span class="btn-icon">+</span>
-                Upload
-              </button>
-              <button id="delete-track-btn" class="btn btn-danger">
-                <span class="btn-icon">×</span>
-                Delete
-              </button>
-            </div>
-            <div class="track-name-option">
-              <label class="checkbox-label">
+
+            <!-- Track Actions -->
+            <div class="action-cluster">
+              <div class="cluster-label">FILE OPERATIONS</div>
+              <div class="instrument-btn-row">
+                <button id="upload-track-btn" class="instrument-btn upload">
+                  <span class="instrument-btn-icon">↑</span>
+                  <span class="instrument-btn-label">UPLOAD</span>
+                </button>
+                <button id="delete-track-btn" class="instrument-btn danger">
+                  <span class="instrument-btn-icon">×</span>
+                  <span class="instrument-btn-label">DELETE</span>
+                </button>
+              </div>
+              <label class="instrument-checkbox">
                 <input type="checkbox" id="use-track-name" />
-                <span>Use track name from GPX file</span>
+                <span class="checkbox-housing">
+                  <span class="checkbox-indicator"></span>
+                </span>
+                <span class="checkbox-label-text">USE GPX TRACK NAME</span>
               </label>
             </div>
+
             <input
               type="file"
               id="gpx-file-input"
               accept=".gpx"
               class="hidden"
             />
-          </div>
-          <div id="track-info" class="track-info hidden">
-            <div class="track-stat">
-              <span class="track-stat-label">Points</span>
-              <span class="track-stat-value" id="track-points">0</span>
+
+            <!-- Track Data Display -->
+            <div id="track-info" class="data-readout-panel hidden">
+              <div class="readout-label-plate">ROUTE DATA</div>
+              <div class="data-readout-grid">
+                <div class="data-readout-item">
+                  <span class="readout-prefix">PTS</span>
+                  <span class="readout-digits" id="track-points">0</span>
+                </div>
+                <div class="data-readout-item">
+                  <span class="readout-prefix">DIST</span>
+                  <span class="readout-digits" id="track-distance">0 km</span>
+                </div>
+                <div class="data-readout-item">
+                  <span class="readout-prefix">WPT</span>
+                  <span class="readout-digits" id="track-waypoints">0</span>
+                </div>
+              </div>
             </div>
-            <div class="track-stat">
-              <span class="track-stat-label">Distance</span>
-              <span class="track-stat-value" id="track-distance">0 km</span>
+
+            <!-- Simulate Button -->
+            <div id="track-simulate-btn-container" class="hidden">
+              <button
+                id="track-simulate-btn"
+                class="command-btn primary full-width"
+              >
+                <span class="btn-symbol">▶</span>
+                <span class="btn-label">SIMULATION MENU</span>
+                <span class="btn-status-light"></span>
+              </button>
             </div>
-            <div class="track-stat">
-              <span class="track-stat-label">Waypoints</span>
-              <span class="track-stat-value" id="track-waypoints">0</span>
-            </div>
-          </div>
-          <!-- Simulate button (shown when track is loaded) -->
-          <div id="track-simulate-btn-container" class="hidden">
-            <button id="track-simulate-btn" class="btn btn-primary btn-large">
-              <span class="btn-icon">▶</span>
-              <span class="btn-text">Simulation Menu</span>
-            </button>
           </div>
         </section>
 
         <!-- Drive Navigation Panel -->
-        <section class="panel-card hidden" id="drive-panel">
-          <div class="section-header">
-            <span class="section-marker">DRIVE NAVIGATION</span>
-          </div>
-          <div class="panel-content">
-            <!-- Address Search -->
-            <div class="form-field">
-              <label class="field-label">Search Address</label>
-              <input
-                type="text"
-                id="drive-address-input"
-                class="field-input"
-                placeholder="Enter address or paste Google Maps link..."
-              />
-              <div id="drive-address-results" class="address-results hidden">
-                <!-- Autocomplete results will be added here -->
+        <section class="panel-card instrument-panel hidden" id="drive-panel">
+          <div class="instrument-clusters">
+            <!-- Destination Entry -->
+            <div class="input-cluster">
+              <div class="cluster-label">DESTINATION</div>
+              <div class="instrument-input-wrapper">
+                <input
+                  type="text"
+                  id="drive-address-input"
+                  class="instrument-input"
+                  placeholder="ENTER ADDRESS OR COORDINATES..."
+                />
+                <span class="input-indicator"></span>
               </div>
+              <div
+                id="drive-address-results"
+                class="instrument-results hidden"
+              ></div>
             </div>
 
             <!-- Recent Destinations -->
-            <div id="recent-destinations" class="recent-destinations hidden">
-              <label class="field-label">Recent Destinations</label>
+            <div id="recent-destinations" class="recent-cluster hidden">
+              <div class="cluster-label">RECENT</div>
+              <div id="recent-destinations-list" class="recent-list"></div>
+            </div>
+
+            <!-- Selected Destination -->
+            <div id="drive-destination" class="waypoint-display hidden">
+              <div class="waypoint-marker dest">▼</div>
+              <div class="waypoint-info">
+                <span class="waypoint-type">DEST</span>
+                <span id="drive-dest-text" class="waypoint-name">--</span>
+              </div>
+              <button id="drive-clear-dest" class="waypoint-clear">×</button>
+            </div>
+
+            <!-- Starting Point -->
+            <div id="starting-point-section" class="input-cluster hidden">
+              <div class="cluster-label">
+                ORIGIN <span class="label-hint">(OPTIONAL)</span>
+              </div>
+              <div class="instrument-input-wrapper">
+                <input
+                  type="text"
+                  id="drive-start-input"
+                  class="instrument-input"
+                  placeholder="USE GPS POSITION IF EMPTY..."
+                />
+                <span class="input-indicator"></span>
+              </div>
               <div
-                id="recent-destinations-list"
-                class="recent-destinations-list"
-              >
-                <!-- Recent destination items will be added here -->
-              </div>
-            </div>
+                id="drive-start-results"
+                class="instrument-results hidden"
+              ></div>
 
-            <!-- Selected Destination Display -->
-            <div id="drive-destination" class="drive-destination hidden">
-              <span class="dest-label">Destination:</span>
-              <span id="drive-dest-text" class="dest-text">--</span>
-              <button id="drive-clear-dest" class="dest-clear">×</button>
-            </div>
-
-            <!-- Starting Point (Optional) -->
-            <div id="starting-point-section" class="form-field hidden">
-              <label class="field-label"
-                >Starting Point
-                <span class="field-hint">(optional - uses GPS if empty)</span>
-              </label>
-              <input
-                type="text"
-                id="drive-start-input"
-                class="field-input"
-                placeholder="Enter address or paste Google Maps link..."
-              />
-              <div id="drive-start-results" class="address-results hidden">
-                <!-- Autocomplete results will be added here -->
+              <div id="recent-starts" class="recent-cluster hidden">
+                <div id="recent-starts-list" class="recent-list"></div>
               </div>
-              <!-- Recent Starting Points -->
-              <div id="recent-starts" class="recent-destinations hidden">
-                <label class="field-label field-label-small"
-                  >Recent Locations</label
-                >
-                <div id="recent-starts-list" class="recent-destinations-list">
-                  <!-- Recent start items will be added here -->
+
+              <div id="drive-start-point" class="waypoint-display hidden">
+                <div class="waypoint-marker origin">▲</div>
+                <div class="waypoint-info">
+                  <span class="waypoint-type">FROM</span>
+                  <span id="drive-start-text" class="waypoint-name">--</span>
                 </div>
-              </div>
-              <!-- Selected Starting Point Display -->
-              <div id="drive-start-point" class="drive-destination hidden">
-                <span class="dest-label">From:</span>
-                <span id="drive-start-text" class="dest-text">--</span>
-                <button id="drive-clear-start" class="dest-clear">×</button>
+                <button id="drive-clear-start" class="waypoint-clear">×</button>
               </div>
             </div>
 
-            <!-- Calculate Route Button -->
+            <!-- Calculate Button -->
             <button
               id="drive-calc-route"
-              class="btn btn-primary btn-large"
+              class="command-btn primary full-width"
               disabled
             >
-              <span class="btn-icon">⟳</span>
-              <span class="btn-text">Calculate Route</span>
+              <span class="btn-symbol">⟳</span>
+              <span class="btn-label">CALCULATE ROUTE</span>
+              <span class="btn-status-light"></span>
             </button>
 
-            <!-- Route Preview -->
-            <div id="drive-route-preview" class="route-preview hidden">
-              <div class="route-stat">
-                <span class="route-stat-label">Distance</span>
-                <span id="drive-route-distance" class="route-stat-value"
-                  >--</span
-                >
-              </div>
-              <div class="route-stat">
-                <span class="route-stat-label">Est. Time</span>
-                <span id="drive-route-time" class="route-stat-value">--</span>
-              </div>
-              <div class="route-stat">
-                <span class="route-stat-label">Turns</span>
-                <span id="drive-route-turns" class="route-stat-value">--</span>
+            <!-- Route Data Display -->
+            <div id="drive-route-preview" class="data-readout-panel hidden">
+              <div class="readout-label-plate">ROUTE DATA</div>
+              <div class="data-readout-grid">
+                <div class="data-readout-item">
+                  <span class="readout-prefix">DIST</span>
+                  <span class="readout-digits" id="drive-route-distance"
+                    >--</span
+                  >
+                </div>
+                <div class="data-readout-item">
+                  <span class="readout-prefix">ETE</span>
+                  <span class="readout-digits" id="drive-route-time">--</span>
+                </div>
+                <div class="data-readout-item">
+                  <span class="readout-prefix">TURN</span>
+                  <span class="readout-digits" id="drive-route-turns">--</span>
+                </div>
               </div>
             </div>
 
             <!-- Navigation Controls -->
-            <div id="drive-nav-controls" class="drive-nav-controls hidden">
-              <button id="drive-start-btn" class="btn btn-primary btn-large">
-                <span class="btn-icon">▶</span>
-                <span class="btn-text">Start Navigation</span>
+            <div id="drive-nav-controls" class="command-grid hidden">
+              <button id="drive-start-btn" class="command-btn primary">
+                <span class="btn-symbol">▶</span>
+                <span class="btn-label">START NAV</span>
+                <span class="btn-status-light"></span>
               </button>
-              <button
-                id="drive-simulate-btn"
-                class="btn btn-secondary btn-large"
-              >
-                <span class="btn-icon">⏩</span>
-                <span class="btn-text">Simulation Menu</span>
+              <button id="drive-simulate-btn" class="command-btn">
+                <span class="btn-symbol">⏩</span>
+                <span class="btn-label">SIMULATE</span>
+                <span class="btn-status-light"></span>
               </button>
-              <button
-                id="drive-show-route-btn"
-                class="btn btn-secondary btn-large"
-              >
-                <span class="btn-icon">🗺</span>
-                <span class="btn-text">Show Route</span>
+              <button id="drive-show-route-btn" class="command-btn">
+                <span class="btn-symbol">◎</span>
+                <span class="btn-label">VIEW MAP</span>
+                <span class="btn-status-light"></span>
               </button>
-              <button
-                id="drive-stop-btn"
-                class="btn btn-danger btn-large hidden"
-              >
-                <span class="btn-icon">■</span>
-                <span class="btn-text">Stop</span>
+              <button id="drive-stop-btn" class="command-btn danger hidden">
+                <span class="btn-symbol">■</span>
+                <span class="btn-label">STOP</span>
+                <span class="btn-status-light"></span>
               </button>
             </div>
 
-            <!-- Speed Limit Prefetch Status -->
-            <div id="speedlimit-prefetch-status" class="prefetch-status hidden">
-              <div class="prefetch-header">
-                <span class="prefetch-indicator"
-                  >⏳ Loading speed limits...</span
-                >
+            <!-- Data Loading Status -->
+            <div
+              id="speedlimit-prefetch-status"
+              class="loading-indicator hidden"
+            >
+              <div class="loading-header">
+                <span class="loading-spinner"></span>
+                <span class="loading-text">LOADING SPEED DATA</span>
               </div>
-              <div class="prefetch-progress">
-                <div class="progress-bar">
-                  <div
-                    id="speedlimit-prefetch-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
+              <div class="loading-progress">
+                <div class="progress-track">
+                  <div id="speedlimit-prefetch-bar" class="progress-fill"></div>
                 </div>
-                <span class="prefetch-text" id="speedlimit-prefetch-text"
-                  >0/0 points</span
+                <span class="progress-text" id="speedlimit-prefetch-text"
+                  >0/0</span
                 >
               </div>
-              <span class="prefetch-segments" id="speedlimit-prefetch-segments"
-                >0 segments found</span
+              <span class="loading-detail" id="speedlimit-prefetch-segments"
+                >0 SEGMENTS</span
               >
             </div>
 
-            <!-- POI Prefetch Status -->
-            <div id="poi-prefetch-status" class="prefetch-status hidden">
-              <div class="prefetch-header">
-                <span class="prefetch-indicator">⏳ Loading POIs...</span>
+            <div id="poi-prefetch-status" class="loading-indicator hidden">
+              <div class="loading-header">
+                <span class="loading-spinner"></span>
+                <span class="loading-text">LOADING POI DATA</span>
               </div>
-              <div class="prefetch-progress">
-                <div class="progress-bar">
-                  <div
-                    id="poi-prefetch-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
+              <div class="loading-progress">
+                <div class="progress-track">
+                  <div id="poi-prefetch-bar" class="progress-fill"></div>
                 </div>
-                <span class="prefetch-text" id="poi-prefetch-text"
-                  >0/0 points</span
-                >
+                <span class="progress-text" id="poi-prefetch-text">0/0</span>
               </div>
-              <span class="prefetch-segments" id="poi-prefetch-pois"
-                >0 POIs found</span
-              >
+              <span class="loading-detail" id="poi-prefetch-pois">0 POIS</span>
             </div>
 
-            <!-- Location Prefetch Status -->
-            <div id="location-prefetch-status" class="prefetch-status hidden">
-              <div class="prefetch-header">
-                <span class="prefetch-indicator"
-                  >⏳ Loading street names...</span
-                >
+            <div id="location-prefetch-status" class="loading-indicator hidden">
+              <div class="loading-header">
+                <span class="loading-spinner"></span>
+                <span class="loading-text">LOADING LOCATION DATA</span>
               </div>
-              <div class="prefetch-progress">
-                <div class="progress-bar">
-                  <div
-                    id="location-prefetch-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
+              <div class="loading-progress">
+                <div class="progress-track">
+                  <div id="location-prefetch-bar" class="progress-fill"></div>
                 </div>
-                <span class="prefetch-text" id="location-prefetch-text"
-                  >0/0 points</span
+                <span class="progress-text" id="location-prefetch-text"
+                  >0/0</span
                 >
               </div>
-              <span class="prefetch-segments" id="location-prefetch-locations"
-                >0 locations cached</span
+              <span class="loading-detail" id="location-prefetch-locations"
+                >0 CACHED</span
               >
             </div>
           </div>
         </section>
 
         <!-- Simulation Panel -->
-        <section class="panel-card hidden" id="simulation-panel">
-          <div class="section-header">
-            <span class="section-marker">SIMULATION</span>
-          </div>
-          <div class="panel-content">
-            <!-- Simulation Mode Selection -->
-            <div class="simulation-mode-control">
-              <label class="control-label">Simulation Speed</label>
-              <div class="select-wrapper">
-                <select id="simulation-mode-select" class="custom-select">
-                  <option value="car">🚗 Driving (~100 km/h)</option>
-                  <option value="bike">🚴 Bicycle (~25 km/h)</option>
-                  <option value="foot">🚶 Walking (~5 km/h)</option>
-                </select>
-                <span class="select-arrow">▾</span>
+        <section
+          class="panel-card instrument-panel hidden"
+          id="simulation-panel"
+        >
+          <div class="instrument-clusters">
+            <!-- Speed Mode Selector -->
+            <div class="mode-selector-cluster">
+              <div class="cluster-label">SIMULATION SPEED</div>
+              <div class="mode-buttons">
+                <label class="mode-btn">
+                  <input type="radio" name="sim-mode" value="car" checked />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚗</span>
+                    <span class="mode-label">DRIVE</span>
+                    <span class="mode-speed">100 KM/H</span>
+                  </span>
+                </label>
+                <label class="mode-btn">
+                  <input type="radio" name="sim-mode" value="bike" />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚴</span>
+                    <span class="mode-label">CYCLE</span>
+                    <span class="mode-speed">25 KM/H</span>
+                  </span>
+                </label>
+                <label class="mode-btn">
+                  <input type="radio" name="sim-mode" value="foot" />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚶</span>
+                    <span class="mode-label">WALK</span>
+                    <span class="mode-speed">5 KM/H</span>
+                  </span>
+                </label>
               </div>
-              <p class="control-hint">Speed for track and route simulation</p>
+              <select id="simulation-mode-select" class="hidden">
+                <option value="car">Driving</option>
+                <option value="bike">Bicycle</option>
+                <option value="foot">Walking</option>
+              </select>
             </div>
 
-            <!-- Active Track/Route Info -->
-            <div id="simulation-source-info" class="simulation-source-info">
-              <div class="source-label">Simulating:</div>
-              <div class="source-name" id="simulation-source-name">
-                No track or route selected
+            <!-- Active Source Display -->
+            <div id="simulation-source-info" class="source-display">
+              <div class="source-display-label">ACTIVE ROUTE</div>
+              <div class="source-display-content">
+                <span class="source-icon">▸</span>
+                <span class="source-name" id="simulation-source-name"
+                  >NO ROUTE SELECTED</span
+                >
               </div>
             </div>
 
-            <!-- Simulation Controls -->
-            <div id="simulation-controls" class="simulation-controls">
-              <div class="simulation-actions">
+            <!-- Transport Controls -->
+            <div id="simulation-controls" class="transport-controls">
+              <div class="transport-btn-row">
                 <button
                   id="start-simulation-btn"
-                  class="btn btn-primary btn-large"
+                  class="transport-btn play"
                   disabled
                 >
-                  <span class="btn-icon">▶</span>
-                  <span class="btn-text">Start</span>
-                </button>
-                <button id="stop-simulation-btn" class="btn btn-danger hidden">
-                  <span class="btn-icon">■</span>
-                  <span class="btn-text">Stop</span>
+                  <span class="transport-icon">▶</span>
+                  <span class="transport-label">START</span>
                 </button>
                 <button
                   id="pause-simulation-btn"
-                  class="btn btn-secondary hidden"
+                  class="transport-btn pause hidden"
                 >
-                  <span class="btn-icon">⏸</span>
-                  <span class="btn-text">Pause</span>
+                  <span class="transport-icon">⏸</span>
+                  <span class="transport-label">PAUSE</span>
+                </button>
+                <button
+                  id="stop-simulation-btn"
+                  class="transport-btn stop hidden"
+                >
+                  <span class="transport-icon">■</span>
+                  <span class="transport-label">STOP</span>
                 </button>
               </div>
             </div>
 
-            <!-- Navigation Status (shown during simulation) -->
-            <div id="drive-nav-status" class="drive-nav-status hidden">
+            <!-- Navigation Status Display -->
+            <div id="drive-nav-status" class="nav-status-display hidden">
               <div class="nav-status-header">
-                <span class="nav-state" id="drive-nav-state">Navigating</span>
+                <span class="nav-state-indicator active"></span>
+                <span class="nav-state-text" id="drive-nav-state"
+                  >NAVIGATING</span
+                >
               </div>
-              <div class="nav-next-turn">
-                <span class="turn-icon" id="drive-turn-icon">→</span>
-                <span class="turn-distance" id="drive-turn-distance">--</span>
-              </div>
-              <div class="nav-instruction" id="drive-instruction">--</div>
-              <div class="nav-progress">
-                <div class="progress-bar">
-                  <div
-                    id="drive-progress-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
-                </div>
-              </div>
-              <div class="nav-stats">
-                <div class="nav-stat-row">
-                  <span class="nav-stat-label">Distance</span>
-                  <span class="nav-stat-value" id="drive-distance-remaining"
+
+              <div class="turn-display">
+                <div class="turn-icon-large" id="drive-turn-icon">→</div>
+                <div class="turn-info">
+                  <span class="turn-distance" id="drive-turn-distance">--</span>
+                  <span class="turn-instruction" id="drive-instruction"
                     >--</span
                   >
                 </div>
-                <div class="nav-stat-row">
-                  <span class="nav-stat-label">Time</span>
-                  <span class="nav-stat-value" id="drive-remaining">--</span>
+              </div>
+
+              <div class="nav-progress-display">
+                <div class="progress-track">
+                  <div id="drive-progress-bar" class="progress-fill"></div>
+                </div>
+              </div>
+
+              <div class="nav-data-row">
+                <div class="nav-data-item">
+                  <span class="nav-data-label">DIST</span>
+                  <span class="nav-data-value" id="drive-distance-remaining"
+                    >--</span
+                  >
+                </div>
+                <div class="nav-data-item">
+                  <span class="nav-data-label">ETE</span>
+                  <span class="nav-data-value" id="drive-remaining">--</span>
                 </div>
               </div>
             </div>
 
-            <!-- Simulation Status -->
-            <div id="simulation-status" class="simulation-status hidden">
-              <div class="sim-stat">
-                <span class="sim-stat-label">Progress</span>
-                <div class="progress-bar">
-                  <div
-                    id="sim-progress-bar"
-                    class="progress-fill"
-                    style="width: 0%"
-                  ></div>
+            <!-- Simulation Progress -->
+            <div id="simulation-status" class="sim-progress-display hidden">
+              <div class="sim-progress-header">
+                <span class="progress-label">SIMULATION PROGRESS</span>
+                <span class="progress-percent" id="sim-progress">0%</span>
+              </div>
+              <div class="progress-track large">
+                <div id="sim-progress-bar" class="progress-fill animated"></div>
+              </div>
+              <div class="sim-data-row">
+                <div class="sim-data-item">
+                  <span class="sim-data-label">DIST</span>
+                  <span class="sim-data-value" id="sim-distance">--</span>
                 </div>
-                <span class="sim-stat-value" id="sim-progress">0%</span>
-              </div>
-              <div class="sim-stat">
-                <span class="sim-stat-label">Distance</span>
-                <span class="sim-stat-value" id="sim-distance">--</span>
-              </div>
-              <div class="sim-stat">
-                <span class="sim-stat-label">Time</span>
-                <span class="sim-stat-value" id="sim-remaining">--</span>
+                <div class="sim-data-item">
+                  <span class="sim-data-label">TIME</span>
+                  <span class="sim-data-value" id="sim-remaining">--</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
         <!-- Display Controls Panel -->
-        <section class="panel-card hidden" id="display-controls-panel">
-          <div class="section-header">
-            <span class="section-marker">DISPLAY CONTROLS</span>
-          </div>
-          <div class="panel-content">
-            <div class="zoom-control">
-              <label class="control-label">
-                Zoom Level
-                <span class="zoom-badge" id="zoom-value">14</span>
-              </label>
-              <div class="zoom-slider-group">
-                <button id="zoom-out-btn" class="zoom-btn">−</button>
+        <section
+          class="panel-card instrument-panel hidden"
+          id="display-controls-panel"
+        >
+          <div class="instrument-clusters">
+            <!-- Primary Gauge Cluster - Zoom -->
+            <div class="gauge-cluster primary-cluster">
+              <div class="cluster-label">MAGNIFICATION</div>
+              <div class="circular-gauge" id="zoom-gauge">
+                <svg viewBox="0 0 120 120" class="gauge-svg">
+                  <defs>
+                    <linearGradient
+                      id="gauge-bezel"
+                      x1="0%"
+                      y1="0%"
+                      x2="100%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" style="stop-color: #d4a574" />
+                      <stop offset="50%" style="stop-color: #8b6914" />
+                      <stop offset="100%" style="stop-color: #d4a574" />
+                    </linearGradient>
+                    <linearGradient
+                      id="gauge-face"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop offset="0%" style="stop-color: #1a2a24" />
+                      <stop offset="100%" style="stop-color: #0d1512" />
+                    </linearGradient>
+                  </defs>
+                  <!-- Outer bezel -->
+                  <circle cx="60" cy="60" r="58" class="gauge-bezel-outer" />
+                  <circle cx="60" cy="60" r="54" class="gauge-bezel-inner" />
+                  <!-- Gauge face -->
+                  <circle cx="60" cy="60" r="50" class="gauge-face" />
+                  <!-- Scale marks -->
+                  <g class="gauge-scale">
+                    <line
+                      x1="60"
+                      y1="14"
+                      x2="60"
+                      y2="20"
+                      class="scale-mark major"
+                    />
+                    <line x1="97" y1="35" x2="92" y2="39" class="scale-mark" />
+                    <line
+                      x1="106"
+                      y1="60"
+                      x2="100"
+                      y2="60"
+                      class="scale-mark major"
+                    />
+                    <line x1="97" y1="85" x2="92" y2="81" class="scale-mark" />
+                    <line
+                      x1="60"
+                      y1="106"
+                      x2="60"
+                      y2="100"
+                      class="scale-mark major"
+                    />
+                    <line x1="23" y1="85" x2="28" y2="81" class="scale-mark" />
+                    <line
+                      x1="14"
+                      y1="60"
+                      x2="20"
+                      y2="60"
+                      class="scale-mark major"
+                    />
+                    <line x1="23" y1="35" x2="28" y2="39" class="scale-mark" />
+                  </g>
+                  <!-- Scale numbers -->
+                  <text x="60" y="28" class="gauge-number">20</text>
+                  <text x="95" y="63" class="gauge-number">15</text>
+                  <text x="60" y="98" class="gauge-number">10</text>
+                  <text x="25" y="63" class="gauge-number">5</text>
+                  <!-- Needle -->
+                  <g class="gauge-needle-group" id="zoom-needle">
+                    <polygon
+                      points="60,20 57,60 60,65 63,60"
+                      class="gauge-needle"
+                    />
+                    <circle cx="60" cy="60" r="8" class="needle-cap" />
+                  </g>
+                </svg>
+                <div class="gauge-readout">
+                  <span class="readout-value" id="zoom-value">14</span>
+                  <span class="readout-unit">×</span>
+                </div>
+              </div>
+              <div class="gauge-controls">
+                <button
+                  id="zoom-out-btn"
+                  class="dial-btn decrease"
+                  aria-label="Decrease zoom"
+                >
+                  <span class="dial-icon">−</span>
+                </button>
                 <input
                   type="range"
                   id="zoom-control"
                   min="1"
                   max="20"
                   value="14"
-                  class="zoom-slider"
+                  class="hidden-range"
                 />
-                <button id="zoom-in-btn" class="zoom-btn">+</button>
+                <button
+                  id="zoom-in-btn"
+                  class="dial-btn increase"
+                  aria-label="Increase zoom"
+                >
+                  <span class="dial-icon">+</span>
+                </button>
               </div>
             </div>
 
-            <div class="screen-selection">
-              <label class="control-label">Display Screen</label>
-              <div class="select-wrapper">
-                <select id="screen-select" class="custom-select">
-                  <option value="track">Track (Map + Info)</option>
-                  <option value="turn_by_turn">Turn-by-Turn</option>
-                </select>
-                <span class="select-arrow">▾</span>
+            <!-- Switch Panel - Display Mode -->
+            <div class="switch-panel">
+              <div class="switch-cluster">
+                <div class="switch-label-plate">DISPLAY MODE</div>
+                <div class="rotary-switch-container">
+                  <div class="rotary-switch" id="screen-rotary">
+                    <div class="rotary-base">
+                      <div class="rotary-position" data-pos="track">MAP</div>
+                      <div class="rotary-position" data-pos="turn_by_turn">
+                        NAV
+                      </div>
+                    </div>
+                    <div class="rotary-knob" id="screen-knob">
+                      <div class="knob-indicator"></div>
+                    </div>
+                  </div>
+                  <select id="screen-select" class="hidden-select">
+                    <option value="track">Track (Map + Info)</option>
+                    <option value="turn_by_turn">Turn-by-Turn</option>
+                  </select>
+                </div>
               </div>
-              <p class="control-hint">
-                Choose the screen layout for both track and drive modes
-              </p>
+
+              <div class="switch-cluster">
+                <div class="switch-label-plate">ORIENTATION</div>
+                <button
+                  id="orientation-btn"
+                  class="rocker-switch"
+                  data-state="north"
+                >
+                  <span class="rocker-option north">N↑</span>
+                  <span class="rocker-indicator"></span>
+                  <span class="rocker-option track">TRK</span>
+                </button>
+              </div>
+
+              <div class="switch-cluster">
+                <div class="switch-label-plate">UNITS</div>
+                <button
+                  id="speed-unit-btn"
+                  class="rocker-switch"
+                  data-state="kmh"
+                >
+                  <span class="rocker-option kmh">KM/H</span>
+                  <span class="rocker-indicator"></span>
+                  <span class="rocker-option mph">MPH</span>
+                </button>
+              </div>
             </div>
 
-            <div class="action-buttons">
-              <button id="refresh-btn" class="btn btn-primary btn-large">
-                <span class="btn-icon">↻</span>
-                <span class="btn-text">Refresh Display</span>
-              </button>
-              <button id="clear-btn" class="btn btn-secondary">
-                <span class="btn-icon">✕</span>
-                <span class="btn-text">Clear</span>
-              </button>
+            <!-- Toggle Bank - System Switches -->
+            <div class="toggle-bank">
+              <div class="bank-label-plate">SYSTEM</div>
+              <div class="toggle-row">
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="auto-center"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">AUTO CTR</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="auto-refresh"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">AUTO REF</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="show-location-name"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">LOC NAME</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+              </div>
             </div>
 
-            <div class="toggle-group">
-              <label class="toggle-item">
-                <input
-                  type="checkbox"
-                  id="auto-center"
-                  checked
-                  class="toggle-input"
-                />
-                <span class="toggle-switch"></span>
-                <span class="toggle-label">Auto-center on GPS</span>
-              </label>
-              <label class="toggle-item">
-                <input type="checkbox" id="auto-refresh" class="toggle-input" />
-                <span class="toggle-switch"></span>
-                <span class="toggle-label">Auto-refresh (5s)</span>
-              </label>
+            <!-- Action Buttons - Command Panel -->
+            <div class="command-panel">
+              <div class="command-label-plate">COMMANDS</div>
+              <div class="command-buttons">
+                <button id="refresh-btn" class="command-btn primary">
+                  <span class="btn-symbol">↻</span>
+                  <span class="btn-label">REFRESH</span>
+                  <span class="btn-status-light"></span>
+                </button>
+                <button id="clear-btn" class="command-btn">
+                  <span class="btn-symbol">✕</span>
+                  <span class="btn-label">CLEAR</span>
+                  <span class="btn-status-light"></span>
+                </button>
+              </div>
             </div>
 
-            <div class="orientation-control">
-              <label class="control-label">Map Orientation</label>
-              <button
-                id="orientation-btn"
-                class="btn btn-secondary orientation-btn"
-              >
-                <span class="orientation-icon">↑</span>
-                <span class="orientation-text">North Up</span>
-              </button>
-              <p class="control-hint">Tap to cycle: North Up → Track Up</p>
-            </div>
-
-            <div class="speed-unit-control">
-              <label class="control-label">Speed Unit</label>
-              <button
-                id="speed-unit-btn"
-                class="btn btn-secondary speed-unit-btn"
-              >
-                <span class="speed-unit-text">km/h</span>
-              </button>
-              <p class="control-hint">Tap to switch: km/h ↔ mph</p>
-            </div>
-
-            <div class="toggle-group">
-              <label class="toggle-item">
-                <input
-                  type="checkbox"
-                  id="show-location-name"
-                  checked
-                  class="toggle-input"
-                />
-                <span class="toggle-switch"></span>
-                <span class="toggle-label">Show location name</span>
-              </label>
-            </div>
-
-            <div class="poi-categories-control">
-              <label class="control-label">Points of Interest</label>
-              <p class="control-hint">Show during drive navigation</p>
-              <div class="poi-toggles">
-                <label class="toggle-item">
+            <!-- POI Panel - Waypoint Markers -->
+            <div class="poi-panel">
+              <div class="poi-label-plate">WAYPOINT MARKERS</div>
+              <div class="poi-indicator-row">
+                <label class="poi-indicator">
                   <input
                     type="checkbox"
                     id="poi-fuel"
-                    class="toggle-input poi-toggle"
+                    class="poi-toggle"
                     data-category="fuel"
                     checked
                   />
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-label">⛽ Fuel</span>
+                  <span class="indicator-lamp fuel"></span>
+                  <span class="indicator-label">FUEL</span>
                 </label>
-                <label class="toggle-item">
+                <label class="poi-indicator">
                   <input
                     type="checkbox"
                     id="poi-parking"
-                    class="toggle-input poi-toggle"
+                    class="poi-toggle"
                     data-category="parking"
                     checked
                   />
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-label">🅿️ Parking</span>
+                  <span class="indicator-lamp parking"></span>
+                  <span class="indicator-label">PARK</span>
                 </label>
-                <label class="toggle-item">
+                <label class="poi-indicator">
                   <input
                     type="checkbox"
                     id="poi-food"
-                    class="toggle-input poi-toggle"
+                    class="poi-toggle"
                     data-category="food"
                     checked
                   />
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-label">🍽️ Food</span>
+                  <span class="indicator-lamp food"></span>
+                  <span class="indicator-label">FOOD</span>
                 </label>
-                <label class="toggle-item">
+                <label class="poi-indicator">
                   <input
                     type="checkbox"
                     id="poi-restroom"
-                    class="toggle-input poi-toggle"
+                    class="poi-toggle"
                     data-category="restroom"
                     checked
                   />
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-label">🚻 Restroom</span>
+                  <span class="indicator-lamp restroom"></span>
+                  <span class="indicator-label">REST</span>
                 </label>
-                <label class="toggle-item">
+                <label class="poi-indicator">
                   <input
                     type="checkbox"
                     id="poi-viewpoint"
-                    class="toggle-input poi-toggle"
+                    class="poi-toggle"
                     data-category="viewpoint"
                     checked
                   />
-                  <span class="toggle-switch"></span>
-                  <span class="toggle-label">🏞️ Viewpoint</span>
+                  <span class="indicator-lamp viewpoint"></span>
+                  <span class="indicator-label">VIEW</span>
                 </label>
               </div>
             </div>
@@ -710,108 +984,137 @@
         </section>
 
         <!-- WiFi Settings Panel -->
-        <section class="panel-card hidden" id="wifi-settings-panel">
-          <div class="section-header">
-            <span class="section-marker">WIFI HOTSPOT</span>
-          </div>
-          <p class="panel-description">
-            Configure the mobile hotspot your device will connect to.
-          </p>
-          <div class="panel-content">
-            <div class="form-field">
-              <label for="wifi-ssid" class="field-label"
-                >Network Name (SSID)</label
-              >
-              <input
-                type="text"
-                id="wifi-ssid"
-                class="field-input"
-                placeholder="Enter hotspot name"
-                maxlength="32"
-              />
+        <section
+          class="panel-card instrument-panel hidden"
+          id="wifi-settings-panel"
+        >
+          <div class="instrument-clusters">
+            <div class="config-description">
+              Configure mobile hotspot connection for data link.
             </div>
-            <div class="form-field">
-              <label for="wifi-password" class="field-label">Password</label>
-              <div class="password-field">
+
+            <!-- SSID Input -->
+            <div class="input-cluster">
+              <div class="cluster-label">NETWORK SSID</div>
+              <div class="instrument-input-wrapper">
+                <input
+                  type="text"
+                  id="wifi-ssid"
+                  class="instrument-input"
+                  placeholder="ENTER NETWORK NAME..."
+                  maxlength="32"
+                />
+                <span class="input-indicator"></span>
+              </div>
+            </div>
+
+            <!-- Password Input -->
+            <div class="input-cluster">
+              <div class="cluster-label">SECURITY KEY</div>
+              <div class="instrument-input-wrapper password">
                 <input
                   type="password"
                   id="wifi-password"
-                  class="field-input"
-                  placeholder="Min 8 characters"
+                  class="instrument-input"
+                  placeholder="MIN 8 CHARACTERS..."
                   minlength="8"
                 />
                 <button
                   type="button"
                   id="toggle-password"
-                  class="password-toggle"
+                  class="input-toggle-btn"
                 >
-                  Show
+                  <span class="toggle-icon">◉</span>
                 </button>
               </div>
             </div>
-            <div class="wifi-current">
-              <span id="wifi-current-ssid">No hotspot configured</span>
+
+            <!-- Current Status -->
+            <div class="status-readout">
+              <span class="status-label">CURRENT:</span>
+              <span class="status-value" id="wifi-current-ssid"
+                >NOT CONFIGURED</span
+              >
             </div>
-            <button id="save-wifi-btn" class="btn btn-primary btn-full">
-              <span class="btn-icon">✓</span>
-              Save Settings
+
+            <!-- Save Button -->
+            <button id="save-wifi-btn" class="command-btn primary full-width">
+              <span class="btn-symbol">✓</span>
+              <span class="btn-label">SAVE CONFIGURATION</span>
+              <span class="btn-status-light"></span>
             </button>
           </div>
         </section>
 
         <!-- Reset Panel -->
-        <section class="panel-card hidden" id="reset-panel">
-          <div class="section-header">
-            <span class="section-marker">FACTORY RESET</span>
-          </div>
-          <div class="panel-content">
-            <div class="warning-box">
-              <div class="warning-icon">⚠</div>
-              <div class="warning-text">
-                <strong>Warning:</strong> This will reset all settings to their
-                defaults, including:
-                <ul>
-                  <li>WiFi hotspot configuration</li>
-                  <li>Display preferences</li>
-                  <li>Zoom level and active track</li>
-                  <li>Recent files list</li>
-                </ul>
-                The device will disconnect from WiFi and you may need to
-                reconnect.
+        <section class="panel-card instrument-panel hidden" id="reset-panel">
+          <div class="instrument-clusters">
+            <!-- Warning Display -->
+            <div class="warning-display">
+              <div class="warning-lamp">
+                <span class="lamp-glow"></span>
+                <span class="lamp-icon">⚠</span>
+              </div>
+              <div class="warning-content">
+                <div class="warning-title">CAUTION: FACTORY RESET</div>
+                <div class="warning-details">
+                  This will clear all configuration:
+                  <ul class="warning-list">
+                    <li>COMM SETTINGS</li>
+                    <li>DISPLAY PREFERENCES</li>
+                    <li>ZOOM AND TRACK DATA</li>
+                    <li>RECENT FILES</li>
+                  </ul>
+                  Connection will be terminated.
+                </div>
               </div>
             </div>
-            <button id="reset-btn" class="btn btn-danger btn-full">
-              <span class="btn-icon">↺</span>
-              Reset All Settings
+
+            <!-- Reset Button -->
+            <button
+              id="reset-btn"
+              class="command-btn danger full-width guarded"
+            >
+              <span class="btn-symbol">↺</span>
+              <span class="btn-label">EXECUTE RESET</span>
+              <span class="btn-status-light"></span>
             </button>
           </div>
         </section>
 
         <!-- Mock Display Panel -->
-        <section class="panel-card hidden" id="mock-display-panel">
-          <div class="section-header">
-            <span class="section-marker">MOCK DISPLAY</span>
-          </div>
-          <div class="panel-content">
-            <p class="mock-display-description">
-              Live view of what would be displayed on the e-paper screen.
-              Updates automatically when the display changes. Only available in
-              development mode (mock e-paper service).
-            </p>
-            <div id="mock-display-container" class="mock-display-container">
-              <div id="mock-display-status" class="mock-display-status">
-                Checking availability...
-              </div>
-              <img
-                id="mock-display-image"
-                class="mock-display-image hidden"
-                alt="Mock E-Paper Display"
-              />
+        <section
+          class="panel-card instrument-panel hidden"
+          id="mock-display-panel"
+        >
+          <div class="instrument-clusters">
+            <div class="config-description">
+              Live preview of e-paper display output. Auto-updates on changes.
+              Development mode only.
             </div>
+
+            <!-- Display Preview -->
+            <div class="display-preview-frame">
+              <div class="preview-bezel">
+                <div id="mock-display-container" class="preview-screen">
+                  <div id="mock-display-status" class="preview-status">
+                    CHECKING AVAILABILITY...
+                  </div>
+                  <img
+                    id="mock-display-image"
+                    class="preview-image hidden"
+                    alt="E-Paper Display Preview"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Refresh Button -->
             <div class="mock-display-actions">
-              <button id="mock-display-refresh" class="btn btn-primary">
-                <span class="btn-icon">↻</span>
-                Refresh
+              <button id="mock-display-refresh" class="command-btn primary">
+                <span class="btn-symbol">↻</span>
+                <span class="btn-label">REFRESH</span>
+                <span class="btn-status-light"></span>
               </button>
             </div>
           </div>

@@ -383,6 +383,20 @@ class PapertrailClient {
     if (screenSelect) {
       screenSelect.addEventListener("change", (e) => {
         this.setActiveScreen(e.target.value);
+        // Update rotary knob position for instrument panel
+        this.updateRotaryKnob(e.target.value);
+      });
+    }
+
+    // Rotary knob click handler for instrument panel
+    const rotaryKnob = document.getElementById("screen-knob");
+    if (rotaryKnob) {
+      rotaryKnob.addEventListener("click", () => {
+        // Toggle between track and turn_by_turn
+        const currentValue = screenSelect.value;
+        const newValue = currentValue === "track" ? "turn_by_turn" : "track";
+        screenSelect.value = newValue;
+        screenSelect.dispatchEvent(new Event("change"));
       });
     }
 
@@ -513,6 +527,8 @@ class PapertrailClient {
     const valueDisplay = document.getElementById("zoom-value");
     if (control) control.value = zoomLevel;
     if (valueDisplay) valueDisplay.textContent = zoomLevel;
+    // Update gauge needle for instrument panel
+    this.updateZoomGauge(zoomLevel);
   }
 
   updateDisplaySettings(settings) {
@@ -531,12 +547,18 @@ class PapertrailClient {
         this.currentOrientation = "track-up";
         if (icon) icon.textContent = "⬆";
         if (text) text.textContent = "Track Up";
-        if (btn) btn.classList.add("track-up");
+        if (btn) {
+          btn.classList.add("track-up");
+          btn.setAttribute("data-state", "track");
+        }
       } else {
         this.currentOrientation = "north-up";
         if (icon) icon.textContent = "↑";
         if (text) text.textContent = "North Up";
-        if (btn) btn.classList.remove("track-up");
+        if (btn) {
+          btn.classList.remove("track-up");
+          btn.setAttribute("data-state", "north");
+        }
       }
     }
 
@@ -546,6 +568,8 @@ class PapertrailClient {
       if (screenSelect) {
         screenSelect.value = settings.activeScreen;
       }
+      // Update rotary knob for instrument panel
+      this.updateRotaryKnob(settings.activeScreen);
     }
 
     // Update speed unit button
@@ -556,7 +580,10 @@ class PapertrailClient {
       this.currentSpeedUnit = settings.speedUnit;
       if (text)
         text.textContent = settings.speedUnit === "kmh" ? "km/h" : "mph";
-      if (btn) btn.classList.toggle("mph", settings.speedUnit === "mph");
+      if (btn) {
+        btn.classList.toggle("mph", settings.speedUnit === "mph");
+        btn.setAttribute("data-state", settings.speedUnit);
+      }
     }
 
     // Update POI category toggles
@@ -646,6 +673,9 @@ class PapertrailClient {
     control.value = level;
     valueDisplay.textContent = level;
 
+    // Update gauge needle for instrument panel
+    this.updateZoomGauge(level);
+
     try {
       await this.fetchJSON(`${this.apiBase}/config/zoom`, {
         method: "POST",
@@ -653,6 +683,44 @@ class PapertrailClient {
       });
     } catch (error) {
       console.error("Error setting zoom:", error);
+    }
+  }
+
+  // Update the zoom gauge needle rotation
+  updateZoomGauge(level) {
+    const needleGroup = document.getElementById("zoom-needle");
+    if (needleGroup) {
+      // Map zoom level 1-20 to rotation -135 to +135 degrees
+      // Level 5 = -135deg (left), Level 20 = 0deg (top), Level 10 = 135deg (bottom-ish)
+      // Actually, let's make: level 1 = ~225deg, level 20 = ~-45deg (clockwise from top)
+      // Simpler: map 1-20 to rotation where needle points to the value on the dial
+      // Dial has: 20 at top (0deg), 15 at right (90deg), 10 at bottom (180deg), 5 at left (270deg)
+      // So level maps to: (20 - level) / 20 * 360 degrees, but constrained to our range
+      // Let's use: level 5 = 270deg, level 10 = 180deg, level 15 = 90deg, level 20 = 0deg
+      const normalizedLevel = Math.max(1, Math.min(20, level));
+      // Map: 5->270, 10->180, 15->90, 20->0
+      // Formula: rotation = (20 - level) * (360/20) = (20 - level) * 18
+      // But we only have quadrants for 5,10,15,20 so:
+      // rotation = (20 - level) / 15 * 270 (maps 5-20 to 270-0)
+      const rotation = ((20 - normalizedLevel) / 15) * 270 - 45;
+      needleGroup.style.transform = `rotate(${rotation}deg)`;
+    }
+  }
+
+  // Update rotary knob visual position
+  updateRotaryKnob(value) {
+    const knob = document.getElementById("screen-knob");
+    if (knob) {
+      knob.setAttribute("data-position", value);
+      // Update rotation: track = 0deg (pointing left), turn_by_turn = 180deg (pointing right)
+      const rotation = value === "turn_by_turn" ? 90 : -90;
+      knob.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+      // Update position labels
+      const positions = document.querySelectorAll(".rotary-position");
+      positions.forEach((pos) => {
+        pos.classList.toggle("active", pos.dataset.pos === value);
+      });
     }
   }
 
@@ -725,20 +793,27 @@ class PapertrailClient {
   // Cycle through map orientation modes
   async cycleOrientation() {
     const btn = document.getElementById("orientation-btn");
-    const icon = btn.querySelector(".orientation-icon");
-    const text = btn.querySelector(".orientation-text");
 
     // Toggle between modes
     if (this.currentOrientation === "north-up") {
       this.currentOrientation = "track-up";
-      icon.textContent = "⬆";
-      text.textContent = "Track Up";
+      // Update classic button style if present
+      const icon = btn.querySelector(".orientation-icon");
+      const text = btn.querySelector(".orientation-text");
+      if (icon) icon.textContent = "⬆";
+      if (text) text.textContent = "Track Up";
       btn.classList.add("track-up");
+      // Update instrument panel rocker switch
+      btn.setAttribute("data-state", "track");
     } else {
       this.currentOrientation = "north-up";
-      icon.textContent = "↑";
-      text.textContent = "North Up";
+      const icon = btn.querySelector(".orientation-icon");
+      const text = btn.querySelector(".orientation-text");
+      if (icon) icon.textContent = "↑";
+      if (text) text.textContent = "North Up";
       btn.classList.remove("track-up");
+      // Update instrument panel rocker switch
+      btn.setAttribute("data-state", "north");
     }
 
     // Send to backend
@@ -777,8 +852,10 @@ class PapertrailClient {
 
       if (response.ok) {
         this.currentSpeedUnit = newUnit;
-        text.textContent = newUnit === "kmh" ? "km/h" : "mph";
+        if (text) text.textContent = newUnit === "kmh" ? "km/h" : "mph";
         btn.classList.toggle("mph", newUnit === "mph");
+        // Update instrument panel rocker switch
+        btn.setAttribute("data-state", newUnit);
         this.showMessage(
           `Speed unit: ${newUnit === "kmh" ? "km/h" : "mph"}`,
           "success",
@@ -1099,26 +1176,53 @@ class PapertrailClient {
       // Store current position for drive navigation
       this.currentPosition = { lat: data.latitude, lon: data.longitude };
 
-      document.getElementById("latitude").textContent =
-        data.latitude.toFixed(6) + "°";
-      document.getElementById("longitude").textContent =
-        data.longitude.toFixed(6) + "°";
+      // Format coordinates for instrument panel display
+      const latEl = document.getElementById("latitude");
+      const lonEl = document.getElementById("longitude");
 
-      const altitudeEl = document.getElementById("altitude");
-      if (data.altitude) {
-        altitudeEl.textContent = data.altitude.toFixed(1);
-      } else {
-        altitudeEl.textContent = "--";
+      if (latEl) {
+        latEl.textContent = this.formatCoordinate(data.latitude, true);
+      }
+      if (lonEl) {
+        lonEl.textContent = this.formatCoordinate(data.longitude, false);
       }
 
-      // Update mini status in position card
+      // Update hemisphere indicators
+      const latHemi = document.getElementById("lat-hemisphere");
+      const lonHemi = document.getElementById("lon-hemisphere");
+      if (latHemi) latHemi.textContent = data.latitude >= 0 ? "N" : "S";
+      if (lonHemi) lonHemi.textContent = data.longitude >= 0 ? "E" : "W";
+
+      const altitudeEl = document.getElementById("altitude");
+      if (altitudeEl) {
+        if (data.altitude) {
+          altitudeEl.textContent = Math.round(data.altitude);
+        } else {
+          altitudeEl.textContent = "----";
+        }
+      }
+
+      // Update signal status in position display
       const gpsPulse = document.getElementById("gps-pulse");
       const gpsStatusMini = document.getElementById("gps-status-mini");
       if (gpsPulse && gpsStatusMini) {
         gpsPulse.classList.add("active");
-        gpsStatusMini.textContent = "Tracking";
+        gpsStatusMini.textContent = "TRACKING";
+        gpsStatusMini.classList.add("active");
       }
     }
+  }
+
+  // Format coordinate as degrees/minutes/seconds
+  formatCoordinate(decimal, isLatitude) {
+    const abs = Math.abs(decimal);
+    const degrees = Math.floor(abs);
+    const minutesDecimal = (abs - degrees) * 60;
+    const minutes = Math.floor(minutesDecimal);
+    const seconds = ((minutesDecimal - minutes) * 60).toFixed(1);
+
+    const degPad = isLatitude ? 2 : 3;
+    return `${degrees.toString().padStart(degPad, "0")}°${minutes.toString().padStart(2, "0")}'${seconds.padStart(4, "0")}"`;
   }
 
   updateGPSStatus(data) {
@@ -1127,78 +1231,105 @@ class PapertrailClient {
       const gpsStatusElement = document.getElementById("gps-status");
       const gpsPulse = document.getElementById("gps-pulse");
       const gpsStatusMini = document.getElementById("gps-status-mini");
+      const annGps = document.getElementById("ann-gps");
+
+      const isActive = data.isTracking !== undefined ? data.isTracking : true;
 
       if (gpsStatusElement) {
-        const isActive = data.isTracking !== undefined ? data.isTracking : true;
-        gpsStatusElement.textContent = isActive ? "Active" : "Inactive";
-        gpsStatusElement.className = isActive
-          ? "status-value status-good"
-          : "status-value status-bad";
+        gpsStatusElement.textContent = isActive ? "ACTIVE" : "INIT";
+      }
 
-        // Update mini status
-        if (gpsPulse && gpsStatusMini) {
-          if (isActive) {
-            gpsPulse.classList.add("active");
-            gpsStatusMini.textContent = "Tracking";
-          } else {
-            gpsPulse.classList.remove("active");
-            gpsStatusMini.textContent = "Inactive";
-          }
+      // Update GPS annunciator lamp
+      if (annGps) {
+        annGps.classList.remove("active", "warning", "error");
+        if (isActive) {
+          annGps.classList.add("active");
+        }
+      }
+
+      // Update signal indicator
+      if (gpsPulse && gpsStatusMini) {
+        if (isActive) {
+          gpsPulse.classList.add("active");
+          gpsStatusMini.textContent = "TRACKING";
+          gpsStatusMini.classList.add("active");
+        } else {
+          gpsPulse.classList.remove("active");
+          gpsStatusMini.textContent = "ACQUIRING";
+          gpsStatusMini.classList.remove("active");
         }
       }
 
       // Update fix status display
       const fixElement = document.getElementById("gps-fix-status");
+      const annFix = document.getElementById("ann-fix");
       if (fixElement) {
         const fixQualityNames = [
-          "No Fix",
-          "GPS Fix",
-          "DGPS Fix",
-          "PPS Fix",
-          "RTK Fix",
-          "Float RTK",
-          "Estimated",
-          "Manual",
-          "Simulation",
+          "NONE",
+          "GPS",
+          "DGPS",
+          "PPS",
+          "RTK",
+          "FRTK",
+          "EST",
+          "MAN",
+          "SIM",
         ];
-        const fixName = fixQualityNames[data.fixQuality] || "Unknown";
+        const fixName = fixQualityNames[data.fixQuality] || "UNK";
         const hasFix = data.fixQuality > 0;
 
         fixElement.textContent = fixName;
-        fixElement.className = hasFix
-          ? "status-value status-good"
-          : "status-value status-bad";
+
+        // Update fix annunciator lamp
+        if (annFix) {
+          annFix.classList.remove("active", "warning", "error");
+          if (hasFix) {
+            annFix.classList.add("active");
+          } else {
+            annFix.classList.add("warning");
+          }
+        }
       }
 
-      // Update satellites count
+      // Update satellites count and gauge
       if (data.satellitesInUse !== undefined) {
         const satellitesElement = document.getElementById("satellites");
-        satellitesElement.textContent = data.satellitesInUse;
+        if (satellitesElement) {
+          satellitesElement.textContent = data.satellitesInUse;
+        }
 
-        // Color-code satellites: green if 4+, yellow if 1-3, red if 0
-        if (data.satellitesInUse >= 4) {
-          satellitesElement.className = "status-value status-good";
-        } else if (data.satellitesInUse > 0) {
-          satellitesElement.className = "status-value status-unknown";
-        } else {
-          satellitesElement.className = "status-value status-bad";
+        // Update satellite signal arc (max 12 satellites for full arc)
+        const satArc = document.getElementById("sat-signal-arc");
+        if (satArc) {
+          const arcLength = 88; // Total arc length
+          const fillPercent = Math.min(data.satellitesInUse / 12, 1);
+          satArc.style.strokeDashoffset = arcLength * (1 - fillPercent);
+
+          // Color based on satellite count
+          if (data.satellitesInUse >= 6) {
+            satArc.style.stroke = "#7fff7f";
+          } else if (data.satellitesInUse >= 4) {
+            satArc.style.stroke = "#f5a623";
+          } else {
+            satArc.style.stroke = "#ff6b35";
+          }
         }
       }
 
       // Update HDOP (Horizontal Dilution of Precision - lower is better)
       const hdopElement = document.getElementById("gps-hdop");
+      const hdopNeedle = document.getElementById("hdop-needle");
+
       if (hdopElement && data.hdop !== undefined) {
         hdopElement.textContent = data.hdop.toFixed(1);
 
-        // Color-code HDOP: <2=excellent, 2-5=good, 5-10=moderate, >10=poor
-        if (data.hdop < 2) {
-          hdopElement.className = "status-value status-good";
-        } else if (data.hdop < 5) {
-          hdopElement.className = "status-value status-good";
-        } else if (data.hdop < 10) {
-          hdopElement.className = "status-value status-unknown";
-        } else {
-          hdopElement.className = "status-value status-bad";
+        // Update HDOP needle rotation
+        // HDOP: 1 = excellent (left), 5 = good (center), 10+ = poor (right)
+        // Map to -90deg to +90deg rotation
+        if (hdopNeedle) {
+          const normalizedHdop = Math.min(Math.max(data.hdop, 1), 10);
+          const rotation = ((normalizedHdop - 1) / 9) * 180 - 90;
+          hdopNeedle.style.transform = `rotate(${rotation}deg)`;
         }
       }
     }
@@ -1208,25 +1339,36 @@ class PapertrailClient {
     if (data) {
       if (data.gps) {
         // Note: GPS Status is now updated via real-time gps:update/gps:status events
-        // Only update on initial load if element still shows "Unknown"
+        // Only update on initial load if element still shows initial values
         const gpsStatusElement = document.getElementById("gps-status");
-        if (gpsStatusElement && gpsStatusElement.textContent === "Unknown") {
-          const gpsStatus = data.gps.connected ? "Active" : "Inactive";
-          gpsStatusElement.textContent = gpsStatus;
-          gpsStatusElement.className = data.gps.connected
-            ? "status-value status-good"
-            : "status-value status-bad";
+        const annGps = document.getElementById("ann-gps");
 
-          // Update mini status
+        if (
+          gpsStatusElement &&
+          (gpsStatusElement.textContent === "Unknown" ||
+            gpsStatusElement.textContent === "INIT")
+        ) {
+          gpsStatusElement.textContent = data.gps.connected ? "ACTIVE" : "INIT";
+
+          if (annGps) {
+            annGps.classList.remove("active", "warning", "error");
+            if (data.gps.connected) {
+              annGps.classList.add("active");
+            }
+          }
+
+          // Update signal indicator
           const gpsPulse = document.getElementById("gps-pulse");
           const gpsStatusMini = document.getElementById("gps-status-mini");
           if (gpsPulse && gpsStatusMini) {
             if (data.gps.connected) {
               gpsPulse.classList.add("active");
-              gpsStatusMini.textContent = "Tracking";
+              gpsStatusMini.textContent = "TRACKING";
+              gpsStatusMini.classList.add("active");
             } else {
               gpsPulse.classList.remove("active");
-              gpsStatusMini.textContent = "Acquiring";
+              gpsStatusMini.textContent = "ACQUIRING";
+              gpsStatusMini.classList.remove("active");
             }
           }
         }
@@ -1242,27 +1384,39 @@ class PapertrailClient {
         }
       }
 
+      // Update display status and annunciator
+      const displayElement = document.getElementById("display-status");
+      const annDisplay = document.getElementById("ann-display");
+
       if (data.display) {
-        const displayElement = document.getElementById("display-status");
         if (data.display.initialized) {
-          // Show display model if available, otherwise just "Ready"
-          const displayInfo = data.display.model || "Ready";
-          displayElement.textContent = displayInfo;
-          displayElement.className = "status-value status-good";
+          if (displayElement) displayElement.textContent = "READY";
+          if (annDisplay) {
+            annDisplay.classList.remove("warning", "error");
+            annDisplay.classList.add("active");
+          }
         } else {
-          displayElement.textContent = "Not Ready";
-          displayElement.className = "status-value status-bad";
+          if (displayElement) displayElement.textContent = "STBY";
+          if (annDisplay) {
+            annDisplay.classList.remove("active", "error");
+            annDisplay.classList.add("warning");
+          }
         }
       } else {
-        // No display data available
-        const displayElement = document.getElementById("display-status");
-        displayElement.textContent = "Unknown";
-        displayElement.className = "status-value status-unknown";
+        if (displayElement) displayElement.textContent = "STBY";
+        if (annDisplay) {
+          annDisplay.classList.remove("active", "warning", "error");
+        }
       }
 
-      // Update active track display (show "None" if no track)
-      document.getElementById("active-track").textContent =
-        data.activeTrack?.name || "None";
+      // Update active track display (show "NO ROUTE LOADED" if no track)
+      const activeTrackEl = document.getElementById("active-track");
+      if (activeTrackEl) {
+        const trackName = data.activeTrack?.name;
+        activeTrackEl.textContent = trackName
+          ? trackName.toUpperCase()
+          : "NO ROUTE LOADED";
+      }
 
       // Update the dropdown to show the active track
       if (data.activeTrack?.path) {
