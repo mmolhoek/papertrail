@@ -75,8 +75,8 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: var(--color-parchment);
-  color: var(--color-charcoal);
+  background: #0a0f0d;
+  color: #c4d4cc;
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
@@ -93,28 +93,28 @@ body {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  opacity: 0.4;
+  opacity: 0.6;
   background-image:
     repeating-radial-gradient(
       circle at 50% 50%,
       transparent 0,
       transparent 10px,
-      rgba(26, 60, 52, 0.03) 10px,
-      rgba(26, 60, 52, 0.03) 11px
+      rgba(127, 255, 127, 0.015) 10px,
+      rgba(127, 255, 127, 0.015) 11px
     ),
     repeating-radial-gradient(
       circle at 30% 70%,
       transparent 0,
       transparent 15px,
-      rgba(26, 60, 52, 0.02) 15px,
-      rgba(26, 60, 52, 0.02) 16px
+      rgba(127, 255, 127, 0.01) 15px,
+      rgba(127, 255, 127, 0.01) 16px
     ),
     repeating-radial-gradient(
       circle at 70% 30%,
       transparent 0,
       transparent 20px,
-      rgba(26, 60, 52, 0.025) 20px,
-      rgba(26, 60, 52, 0.025) 21px
+      rgba(127, 255, 127, 0.012) 20px,
+      rgba(127, 255, 127, 0.012) 21px
     );
 }
 
@@ -154,53 +154,54 @@ body {
 
 .compass-outer {
   fill: none;
-  stroke: var(--color-forest);
+  stroke: #d4a574;
   stroke-width: 1.5;
 }
 
 .compass-inner {
   fill: none;
-  stroke: var(--color-forest-light);
+  stroke: #8b6914;
   stroke-width: 1;
   stroke-dasharray: 4 2;
 }
 
 .compass-tick {
-  stroke: var(--color-forest);
+  stroke: #d4a574;
   stroke-width: 2;
 }
 
 .compass-north {
-  fill: var(--color-sienna);
+  fill: #ff6b35;
 }
 
 .compass-south {
-  fill: var(--color-forest);
+  fill: #7fff7f;
 }
 
 .compass-label {
   font-family: var(--font-display);
   font-size: 8px;
-  fill: var(--color-sienna);
+  fill: #ff6b35;
   text-anchor: middle;
   font-weight: 700;
 }
 
 .header-text h1 {
-  font-family: var(--font-display);
-  font-size: 2rem;
+  font-family: "Orbitron", var(--font-display);
+  font-size: 1.8rem;
   font-weight: 700;
-  color: var(--color-forest-dark);
-  letter-spacing: -0.02em;
+  color: #7fff7f;
+  letter-spacing: 0.05em;
   line-height: 1.1;
+  text-shadow: 0 0 10px rgba(127, 255, 127, 0.3);
 }
 
 .tagline {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-sienna);
+  font-family: "Share Tech Mono", var(--font-mono);
+  font-size: 0.7rem;
+  color: #d4a574;
   text-transform: uppercase;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.2em;
   margin-top: var(--space-xs);
 }
 
@@ -217,19 +218,22 @@ body {
 .nav-toggle {
   width: 44px;
   height: 44px;
-  background: var(--color-forest);
-  border: none;
+  background: linear-gradient(180deg, #1a2a24 0%, #0d1815 100%);
+  border: 2px solid #d4a574;
   border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: var(--transition-base);
-  box-shadow: var(--shadow-md);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .nav-toggle:hover {
-  background: var(--color-forest-light);
+  background: linear-gradient(180deg, #243832 0%, #1a2a24 100%);
+  border-color: #7fff7f;
   transform: scale(1.05);
 }
 
@@ -240,9 +244,10 @@ body {
 .nav-icon {
   width: 20px;
   height: 2px;
-  background: var(--color-parchment);
+  background: #7fff7f;
   position: relative;
   border-radius: 1px;
+  box-shadow: 0 0 4px rgba(127, 255, 127, 0.5);
 }
 
 .nav-icon::before,
@@ -251,10 +256,11 @@ body {
   position: absolute;
   width: 20px;
   height: 2px;
-  background: var(--color-parchment);
+  background: #7fff7f;
   border-radius: 1px;
   left: 0;
   transition: var(--transition-fast);
+  box-shadow: 0 0 4px rgba(127, 255, 127, 0.5);
 }
 
 .nav-icon::before {
@@ -269,10 +275,12 @@ body {
   position: absolute;
   top: 52px;
   right: 0;
-  background: var(--color-cream);
-  border: 1px solid var(--color-parchment-dark);
+  background: linear-gradient(180deg, #1a2a24 0%, #0d1512 100%);
+  border: 1px solid #3d4a45;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
   padding: var(--space-sm);
   min-width: 200px;
   animation: menuSlideIn 0.2s ease-out;
@@ -292,28 +300,32 @@ body {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-family: var(--font-body);
-  font-size: 0.9rem;
-  color: var(--color-charcoal);
+  font-family: "Share Tech Mono", var(--font-mono);
+  font-size: 0.85rem;
+  color: #a8b8b0;
   text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   transition: var(--transition-fast);
 }
 
 .nav-item:hover {
-  background: var(--color-parchment);
+  background: rgba(127, 255, 127, 0.1);
+  color: #7fff7f;
 }
 
 .nav-item.active {
-  background: var(--color-forest);
-  color: var(--color-parchment);
+  background: rgba(127, 255, 127, 0.15);
+  color: #7fff7f;
+  text-shadow: 0 0 6px rgba(127, 255, 127, 0.4);
 }
 
 .nav-item.active .nav-item-icon {
-  color: var(--color-sienna-light);
+  color: #7fff7f;
 }
 
 .nav-item-icon {
-  color: var(--color-forest);
+  color: #d4a574;
   font-size: 1.1rem;
 }
 
@@ -322,8 +334,9 @@ body {
 }
 
 .nav-check {
-  color: var(--color-success);
+  color: #7fff7f;
   font-weight: 600;
+  text-shadow: 0 0 4px rgba(127, 255, 127, 0.5);
 }
 
 .nav-check.hidden {
@@ -1228,8 +1241,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--color-cream);
-  border-top: 1px solid var(--color-parchment-dark);
+  background: linear-gradient(180deg, #1a2a24 0%, #0d1512 100%);
+  border-top: 1px solid #3d4a45;
   padding: var(--space-md);
   z-index: 100;
 }
@@ -1239,28 +1252,38 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--space-sm);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-family: "Share Tech Mono", var(--font-mono);
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-slate);
+  letter-spacing: 0.15em;
+  color: #7a8a82;
 }
 
 .connection-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-slate);
+  background: #7a8a82;
   transition: var(--transition-base);
 }
 
 .connection-status.connected .connection-dot {
-  background: var(--color-success);
+  background: #7fff7f;
+  box-shadow: 0 0 8px rgba(127, 255, 127, 0.6);
   animation: pulse 2s ease-in-out infinite;
 }
 
+.connection-status.connected {
+  color: #7fff7f;
+}
+
 .connection-status.disconnected .connection-dot {
-  background: var(--color-danger);
+  background: #ff5252;
+  box-shadow: 0 0 8px rgba(255, 82, 82, 0.6);
+}
+
+.connection-status.disconnected {
+  color: #ff5252;
 }
 
 /* ============================================
@@ -1282,11 +1305,15 @@ body {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: var(--color-charcoal);
-  color: var(--color-parchment);
+  background: linear-gradient(180deg, #1a2a24 0%, #0d1512 100%);
+  border: 1px solid #3d4a45;
+  color: #7fff7f;
   border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  box-shadow: var(--shadow-lg);
+  font-family: "Share Tech Mono", var(--font-mono);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
   animation: toastSlideIn 0.3s ease-out;
   max-width: 100%;
   pointer-events: auto;
@@ -1296,6 +1323,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-shadow: 0 0 6px rgba(127, 255, 127, 0.4);
 }
 
 .toast.hidden {
@@ -1306,20 +1334,47 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--color-info);
+  background: #7fff7f;
   flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(127, 255, 127, 0.6);
 }
 
 .toast.info .toast-icon {
-  background: var(--color-info);
+  background: #4fc3f7;
+  box-shadow: 0 0 6px rgba(79, 195, 247, 0.6);
+}
+
+.toast.info {
+  color: #4fc3f7;
+  border-color: #4fc3f7;
+}
+
+.toast.info #message-text {
+  text-shadow: 0 0 6px rgba(79, 195, 247, 0.4);
 }
 
 .toast.success .toast-icon {
-  background: var(--color-success);
+  background: #7fff7f;
+  box-shadow: 0 0 6px rgba(127, 255, 127, 0.6);
+}
+
+.toast.success {
+  color: #7fff7f;
+  border-color: #7fff7f;
 }
 
 .toast.error .toast-icon {
-  background: var(--color-danger);
+  background: #ff5252;
+  box-shadow: 0 0 6px rgba(255, 82, 82, 0.6);
+}
+
+.toast.error {
+  color: #ff5252;
+  border-color: #ff5252;
+}
+
+.toast.error #message-text {
+  text-shadow: 0 0 6px rgba(255, 82, 82, 0.4);
 }
 
 /* ============================================
@@ -1332,10 +1387,10 @@ body {
 }
 
 .footer p {
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
-  color: var(--color-slate);
-  letter-spacing: 0.1em;
+  font-family: "Share Tech Mono", var(--font-mono);
+  font-size: 0.65rem;
+  color: #5a6a62;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
