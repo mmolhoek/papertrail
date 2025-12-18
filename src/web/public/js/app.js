@@ -436,11 +436,13 @@ class PapertrailClient {
       const simResponse = await this.fetchJSON(
         `${this.apiBase}/simulation/status`,
       );
-      if (simResponse && simResponse.data) {
+      if (simResponse && simResponse.success && simResponse.data) {
         const state = simResponse.data.state;
         if (state === "running" || state === "paused") {
           this.isSimulating = true;
           this.isPaused = state === "paused";
+          // Ensure simulation controls are visible (in case activeTrack wasn't loaded yet)
+          this.updateSimulationPanel(true);
           this.updateSimulationUI();
           this.updateSimulationStatus(simResponse.data);
           this.startSimulationPolling();
