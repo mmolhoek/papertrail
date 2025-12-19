@@ -692,116 +692,52 @@
           id="display-controls-panel"
         >
           <div class="instrument-clusters">
-            <!-- Primary Gauge Cluster - Zoom -->
-            <div class="gauge-cluster primary-cluster">
-              <div class="cluster-label">MAGNIFICATION</div>
-              <div class="circular-gauge" id="zoom-gauge">
-                <svg viewBox="0 0 120 120" class="gauge-svg">
-                  <defs>
-                    <linearGradient
-                      id="gauge-bezel"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" style="stop-color: #d4a574" />
-                      <stop offset="50%" style="stop-color: #8b6914" />
-                      <stop offset="100%" style="stop-color: #d4a574" />
-                    </linearGradient>
-                    <linearGradient
-                      id="gauge-face"
-                      x1="0%"
-                      y1="0%"
-                      x2="0%"
-                      y2="100%"
-                    >
-                      <stop offset="0%" style="stop-color: #1a2a24" />
-                      <stop offset="100%" style="stop-color: #0d1512" />
-                    </linearGradient>
-                  </defs>
-                  <!-- Outer bezel -->
-                  <circle cx="60" cy="60" r="58" class="gauge-bezel-outer" />
-                  <circle cx="60" cy="60" r="54" class="gauge-bezel-inner" />
-                  <!-- Gauge face -->
-                  <circle cx="60" cy="60" r="50" class="gauge-face" />
-                  <!-- Scale marks -->
-                  <g class="gauge-scale">
-                    <line
-                      x1="60"
-                      y1="14"
-                      x2="60"
-                      y2="20"
-                      class="scale-mark major"
-                    />
-                    <line x1="97" y1="35" x2="92" y2="39" class="scale-mark" />
-                    <line
-                      x1="106"
-                      y1="60"
-                      x2="100"
-                      y2="60"
-                      class="scale-mark major"
-                    />
-                    <line x1="97" y1="85" x2="92" y2="81" class="scale-mark" />
-                    <line
-                      x1="60"
-                      y1="106"
-                      x2="60"
-                      y2="100"
-                      class="scale-mark major"
-                    />
-                    <line x1="23" y1="85" x2="28" y2="81" class="scale-mark" />
-                    <line
-                      x1="14"
-                      y1="60"
-                      x2="20"
-                      y2="60"
-                      class="scale-mark major"
-                    />
-                    <line x1="23" y1="35" x2="28" y2="39" class="scale-mark" />
-                  </g>
-                  <!-- Scale numbers -->
-                  <text x="60" y="28" class="gauge-number">20</text>
-                  <text x="95" y="63" class="gauge-number">15</text>
-                  <text x="60" y="98" class="gauge-number">10</text>
-                  <text x="25" y="63" class="gauge-number">5</text>
-                  <!-- Needle -->
-                  <g class="gauge-needle-group" id="zoom-needle">
-                    <polygon
-                      points="60,20 57,60 60,65 63,60"
-                      class="gauge-needle"
-                    />
-                    <circle cx="60" cy="60" r="8" class="needle-cap" />
-                  </g>
-                </svg>
-                <div class="gauge-readout">
-                  <span class="readout-value" id="zoom-value">14</span>
-                  <span class="readout-unit">×</span>
-                </div>
-              </div>
-              <div class="gauge-controls">
+            <!-- Zoom Level Control - Horizontal Slider -->
+            <div class="zoom-control-cluster">
+              <div class="cluster-label">ZOOM LEVEL</div>
+              <div class="zoom-slider-container">
                 <button
                   id="zoom-out-btn"
-                  class="dial-btn decrease"
+                  class="zoom-step-btn decrease"
                   aria-label="Decrease zoom"
                 >
-                  <span class="dial-icon">−</span>
+                  <span class="zoom-step-icon">−</span>
                 </button>
-                <input
-                  type="range"
-                  id="zoom-control"
-                  min="1"
-                  max="20"
-                  value="14"
-                  class="hidden-range"
-                />
+                <div class="zoom-slider-track">
+                  <div class="zoom-slider-fill" id="zoom-fill"></div>
+                  <div class="zoom-slider-markers">
+                    <span class="zoom-marker" data-level="1"></span>
+                    <span class="zoom-marker" data-level="5"></span>
+                    <span class="zoom-marker" data-level="10"></span>
+                    <span class="zoom-marker" data-level="15"></span>
+                    <span class="zoom-marker" data-level="20"></span>
+                  </div>
+                  <div class="zoom-slider-labels">
+                    <span class="zoom-label">1</span>
+                    <span class="zoom-label">5</span>
+                    <span class="zoom-label">10</span>
+                    <span class="zoom-label">15</span>
+                    <span class="zoom-label">20</span>
+                  </div>
+                  <input
+                    type="range"
+                    id="zoom-control"
+                    min="1"
+                    max="20"
+                    value="14"
+                    class="zoom-slider-input"
+                  />
+                </div>
                 <button
                   id="zoom-in-btn"
-                  class="dial-btn increase"
+                  class="zoom-step-btn increase"
                   aria-label="Increase zoom"
                 >
-                  <span class="dial-icon">+</span>
+                  <span class="zoom-step-icon">+</span>
                 </button>
+              </div>
+              <div class="zoom-readout">
+                <span class="zoom-readout-value" id="zoom-value">14</span>
               </div>
             </div>
 
@@ -872,19 +808,6 @@
                 <label class="aviation-toggle">
                   <input
                     type="checkbox"
-                    id="auto-refresh"
-                    class="toggle-input"
-                  />
-                  <span class="toggle-housing">
-                    <span class="toggle-lever"></span>
-                  </span>
-                  <span class="toggle-nameplate">AUTO REF</span>
-                  <span class="toggle-indicator"></span>
-                </label>
-
-                <label class="aviation-toggle">
-                  <input
-                    type="checkbox"
                     id="show-location-name"
                     checked
                     class="toggle-input"
@@ -902,11 +825,6 @@
             <div class="command-panel">
               <div class="command-label-plate">COMMANDS</div>
               <div class="command-buttons">
-                <button id="refresh-btn" class="command-btn primary">
-                  <span class="btn-symbol">↻</span>
-                  <span class="btn-label">REFRESH</span>
-                  <span class="btn-status-light"></span>
-                </button>
                 <button id="clear-btn" class="command-btn">
                   <span class="btn-symbol">✕</span>
                   <span class="btn-label">CLEAR</span>

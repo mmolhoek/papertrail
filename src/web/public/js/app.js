@@ -14,7 +14,6 @@ class PapertrailClient {
   constructor() {
     this.socket = null;
     this.apiBase = "/api";
-    this.autoRefreshInterval = null;
     this.simulationPollingInterval = null;
     this.isSimulating = false;
     this.isPaused = false;
@@ -327,10 +326,6 @@ class PapertrailClient {
     });
 
     // Display controls
-    document.getElementById("refresh-btn").addEventListener("click", () => {
-      this.refreshDisplay();
-    });
-
     document.getElementById("clear-btn").addEventListener("click", () => {
       this.clearDisplay();
     });
@@ -338,10 +333,6 @@ class PapertrailClient {
     // Settings
     document.getElementById("auto-center").addEventListener("change", (e) => {
       this.setAutoCenter(e.target.checked);
-    });
-
-    document.getElementById("auto-refresh").addEventListener("change", (e) => {
-      this.setAutoRefresh(e.target.checked);
     });
 
     // Orientation control
@@ -527,8 +518,8 @@ class PapertrailClient {
     const valueDisplay = document.getElementById("zoom-value");
     if (control) control.value = zoomLevel;
     if (valueDisplay) valueDisplay.textContent = zoomLevel;
-    // Update gauge needle for instrument panel
-    this.updateZoomGauge(zoomLevel);
+    // Update slider for instrument panel
+    this.updateZoomSlider(zoomLevel);
   }
 
   updateDisplaySettings(settings) {
@@ -673,8 +664,8 @@ class PapertrailClient {
     control.value = level;
     valueDisplay.textContent = level;
 
-    // Update gauge needle for instrument panel
-    this.updateZoomGauge(level);
+    // Update slider for instrument panel
+    this.updateZoomSlider(level);
 
     try {
       await this.fetchJSON(`${this.apiBase}/config/zoom`, {
@@ -686,24 +677,21 @@ class PapertrailClient {
     }
   }
 
-  // Update the zoom gauge needle rotation
-  updateZoomGauge(level) {
-    const needleGroup = document.getElementById("zoom-needle");
-    if (needleGroup) {
-      // Map zoom level 1-20 to rotation -135 to +135 degrees
-      // Level 5 = -135deg (left), Level 20 = 0deg (top), Level 10 = 135deg (bottom-ish)
-      // Actually, let's make: level 1 = ~225deg, level 20 = ~-45deg (clockwise from top)
-      // Simpler: map 1-20 to rotation where needle points to the value on the dial
-      // Dial has: 20 at top (0deg), 15 at right (90deg), 10 at bottom (180deg), 5 at left (270deg)
-      // So level maps to: (20 - level) / 20 * 360 degrees, but constrained to our range
-      // Let's use: level 5 = 270deg, level 10 = 180deg, level 15 = 90deg, level 20 = 0deg
+  // Update the zoom slider visual state
+  updateZoomSlider(level) {
+    const fill = document.getElementById("zoom-fill");
+    const track = document.querySelector(".zoom-slider-track");
+
+    if (fill && track) {
+      // Map zoom level 1-20 to percentage 0-100%
       const normalizedLevel = Math.max(1, Math.min(20, level));
-      // Map: 5->270, 10->180, 15->90, 20->0
-      // Formula: rotation = (20 - level) * (360/20) = (20 - level) * 18
-      // But we only have quadrants for 5,10,15,20 so:
-      // rotation = (20 - level) / 15 * 270 (maps 5-20 to 270-0)
-      const rotation = ((20 - normalizedLevel) / 15) * 270 - 45;
-      needleGroup.style.transform = `rotate(${rotation}deg)`;
+      const percentage = ((normalizedLevel - 1) / 19) * 100;
+
+      // Update fill width
+      fill.style.width = `${percentage}%`;
+
+      // Update thumb position via CSS custom property
+      track.style.setProperty("--thumb-position", `${percentage}%`);
     }
   }
 
@@ -712,42 +700,6 @@ class PapertrailClient {
     const btn = document.getElementById("screen-mode-btn");
     if (btn) {
       btn.setAttribute("data-state", value);
-    }
-  }
-
-  async refreshDisplay() {
-    const btn = document.getElementById("refresh-btn");
-    const btnText = btn.querySelector(".btn-text");
-    const btnIcon = btn.querySelector(".btn-icon");
-
-    btn.disabled = true;
-    if (btnIcon) btnIcon.textContent = "⏳";
-    if (btnText) btnText.textContent = "Refreshing...";
-
-    try {
-      await this.fetchJSON(`${this.apiBase}/display/update`, {
-        method: "POST",
-      });
-
-      if (btnIcon) btnIcon.textContent = "✓";
-      if (btnText) btnText.textContent = "Refreshed";
-
-      setTimeout(() => {
-        if (btnIcon) btnIcon.textContent = "↻";
-        if (btnText) btnText.textContent = "Refresh Display";
-        btn.disabled = false;
-      }, 2000);
-    } catch (error) {
-      console.error("Error refreshing display:", error);
-
-      if (btnIcon) btnIcon.textContent = "✕";
-      if (btnText) btnText.textContent = "Failed";
-
-      setTimeout(() => {
-        if (btnIcon) btnIcon.textContent = "↻";
-        if (btnText) btnText.textContent = "Refresh Display";
-        btn.disabled = false;
-      }, 2000);
     }
   }
 
@@ -765,20 +717,11 @@ class PapertrailClient {
 
   setAutoCenter(enabled) {
     console.log("Auto-center:", enabled);
+    this.showMessage(
+      `Auto-center ${enabled ? "enabled" : "disabled"}`,
+      "success",
+    );
     // Will be implemented when connected to backend
-  }
-
-  setAutoRefresh(enabled) {
-    if (enabled) {
-      this.autoRefreshInterval = setInterval(() => {
-        this.refreshDisplay();
-      }, 5000);
-    } else {
-      if (this.autoRefreshInterval) {
-        clearInterval(this.autoRefreshInterval);
-        this.autoRefreshInterval = null;
-      }
-    }
   }
 
   // Cycle through map orientation modes
