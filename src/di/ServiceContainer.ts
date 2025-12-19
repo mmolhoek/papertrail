@@ -13,6 +13,7 @@ import {
   IPOIService,
   IReverseGeocodingService,
   IElevationService,
+  IVectorMapService,
 } from "@core/interfaces";
 import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
@@ -85,6 +86,7 @@ import { SpeedLimitService } from "@services/speedLimit/SpeedLimitService";
 import { POIService } from "@services/poi/POIService";
 import { ReverseGeocodingService } from "@services/reverseGeocoding/ReverseGeocodingService";
 import { ElevationService } from "@services/elevation/ElevationService";
+import { VectorMapService } from "@services/vectorMap/VectorMapService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -118,6 +120,7 @@ export class ServiceContainer {
     poi?: IPOIService;
     reverseGeocoding?: IReverseGeocodingService;
     elevation?: IElevationService;
+    vectorMap?: IVectorMapService;
   } = {};
 
   /**
@@ -357,6 +360,7 @@ export class ServiceContainer {
         this.getPOIService(),
         this.getReverseGeocodingService(),
         this.getElevationService(),
+        this.getVectorMapService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -453,6 +457,16 @@ export class ServiceContainer {
       this.services.elevation = new ElevationService();
     }
     return this.services.elevation;
+  }
+
+  /**
+   * Get Vector Map Service
+   */
+  getVectorMapService(): IVectorMapService {
+    if (!this.services.vectorMap) {
+      this.services.vectorMap = new VectorMapService();
+    }
+    return this.services.vectorMap;
   }
 
   // Configuration getters
@@ -774,6 +788,13 @@ export class ServiceContainer {
    */
   setElevationService(service: IElevationService): void {
     this.services.elevation = service;
+  }
+
+  /**
+   * Set Vector Map Service (for testing)
+   */
+  setVectorMapService(service: IVectorMapService): void {
+    this.services.vectorMap = service;
   }
 
   // Security/Credential helpers

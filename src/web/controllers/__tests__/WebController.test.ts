@@ -144,6 +144,12 @@ const createMockConfigService = () => ({
   setActiveScreen: jest.fn(),
   getSpeedUnit: jest.fn().mockReturnValue("kmh"),
   setSpeedUnit: jest.fn(),
+  getShowLocationName: jest.fn().mockReturnValue(true),
+  setShowLocationName: jest.fn(),
+  getShowElevation: jest.fn().mockReturnValue(true),
+  setShowElevation: jest.fn(),
+  getShowRoads: jest.fn().mockReturnValue(true),
+  setShowRoads: jest.fn(),
   getEnabledPOICategories: jest
     .fn()
     .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),

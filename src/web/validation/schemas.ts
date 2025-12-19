@@ -121,6 +121,13 @@ export const setShowLocationNameSchema = z.object({
 });
 
 /**
+ * Set show roads enabled/disabled request
+ */
+export const setShowRoadsSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Set routing profile for OSRM route calculation
  */
 export const setRoutingProfileSchema = z.object({

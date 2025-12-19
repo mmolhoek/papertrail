@@ -9,6 +9,7 @@ import {
   DriveRoute,
   DriveWaypoint,
 } from "@core/types";
+import { CachedRoad } from "./IVectorMapService";
 
 /**
  * Follow Track screen info for the split layout display
@@ -250,6 +251,7 @@ export interface ISVGService {
     viewport: ViewportConfig,
     info: DriveNavigationInfo,
     options?: Partial<RenderOptions>,
+    roads?: CachedRoad[],
   ): Promise<Result<Bitmap1Bit>>;
 
   /**

@@ -369,6 +369,14 @@ class PapertrailClient {
       });
     }
 
+    // Show roads toggle
+    const showRoadsToggle = document.getElementById("show-roads");
+    if (showRoadsToggle) {
+      showRoadsToggle.addEventListener("change", (e) => {
+        this.setShowRoads(e.target.checked);
+      });
+    }
+
     // Screen selection
     const screenSelect = document.getElementById("screen-select");
     if (screenSelect) {
@@ -599,6 +607,14 @@ class PapertrailClient {
       const checkbox = document.getElementById("show-location-name");
       if (checkbox) {
         checkbox.checked = settings.showLocationName;
+      }
+    }
+
+    // Update show roads toggle
+    if (settings.showRoads !== undefined) {
+      const checkbox = document.getElementById("show-roads");
+      if (checkbox) {
+        checkbox.checked = settings.showRoads;
       }
     }
 
@@ -861,6 +877,32 @@ class PapertrailClient {
       this.showMessage("Failed to change location name setting", "error");
       // Revert the checkbox
       const checkbox = document.getElementById("show-location-name");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show roads enabled/disabled
+  async setShowRoads(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-roads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Road layer ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set roads setting");
+      }
+    } catch (error) {
+      console.error("Failed to set roads setting:", error);
+      this.showMessage("Failed to change roads setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-roads");
       if (checkbox) checkbox.checked = !enabled;
     }
   }

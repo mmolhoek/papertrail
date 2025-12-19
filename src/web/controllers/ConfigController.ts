@@ -50,6 +50,8 @@ export class ConfigController {
         activeScreen: this.configService.getActiveScreen(),
         speedUnit: this.configService.getSpeedUnit(),
         enabledPOICategories: this.configService.getEnabledPOICategories(),
+        showLocationName: this.configService.getShowLocationName(),
+        showRoads: this.configService.getShowRoads(),
         routingProfile: this.configService.getRoutingProfile(),
       },
     });
@@ -453,6 +455,48 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Location name display ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show roads enabled/disabled
+   */
+  async setShowRoads(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show roads called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show roads to: ${enabled}`);
+    this.configService.setShowRoads(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show roads ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Road layer ${enabled ? "enabled" : "disabled"}`,
     });
   }
 

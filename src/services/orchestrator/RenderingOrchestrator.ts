@@ -13,10 +13,12 @@ import {
   IPOIService,
   IReverseGeocodingService,
   IElevationService,
+  IVectorMapService,
   SpeedLimitPrefetchProgress,
   POIPrefetchProgress,
   LocationPrefetchProgress,
   ElevationPrefetchProgress,
+  RoadPrefetchProgress,
 } from "@core/interfaces";
 import {
   Result,
@@ -97,6 +99,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private elevationPrefetchCallbacks: Array<
     (progress: ElevationPrefetchProgress) => void
   > = [];
+  private roadPrefetchCallbacks: Array<
+    (progress: RoadPrefetchProgress) => void
+  > = [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -130,6 +135,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly poiService?: IPOIService,
     private readonly reverseGeocodingService?: IReverseGeocodingService,
     private readonly elevationService?: IElevationService,
+    private readonly vectorMapService?: IVectorMapService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -169,6 +175,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       speedLimitService ?? null,
       poiService ?? null,
       reverseGeocodingService ?? null,
+      vectorMapService ?? null,
       this.gpsCoordinator,
       this.onboardingCoordinator,
     );
@@ -393,6 +400,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         }
       }
 
+      // Initialize vector map service (if provided)
+      if (this.vectorMapService) {
+        logger.info("Initializing VectorMapService...");
+        const vectorMapResult = await this.vectorMapService.initialize();
+        if (!vectorMapResult.success) {
+          logger.error(
+            "Failed to initialize VectorMapService:",
+            vectorMapResult.error,
+          );
+          // Non-fatal - road rendering is optional
+          logger.warn("Road rendering will not be available");
+        } else {
+          logger.info("✓ VectorMapService initialized");
+        }
+      }
+
       this.isInitialized = true;
 
       // Set drive coordinator as initialized
@@ -603,6 +626,53 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           .catch(() => {
             // Mark prefetch as complete even on error
             this.driveCoordinator?.setElevationPrefetchActive(false);
+          });
+      }
+    }
+
+    // Prefetch roads along the route corridor in the background (while internet is available)
+    // Skip if already cached for this route
+    if (this.vectorMapService) {
+      if (this.vectorMapService.hasRouteCache(route.id)) {
+        logger.info(
+          `Roads already cached for route ${route.id}, skipping prefetch`,
+        );
+        // Load cached roads into DriveCoordinator
+        const cachedRoads = this.vectorMapService.getAllCachedRoads();
+        this.driveCoordinator?.setCachedRoads(cachedRoads);
+      } else {
+        logger.info("Starting road prefetch for route corridor");
+        // Mark prefetch as active
+        this.driveCoordinator?.setRoadPrefetchActive(true);
+        // Run in background - don't block navigation start
+        this.vectorMapService
+          .prefetchRouteRoads(route, 5000, (progress) => {
+            this.notifyRoadPrefetchProgress(progress);
+            // Incrementally update cached roads in DriveCoordinator
+            if (progress.roadsFound > 0) {
+              const currentRoads = this.vectorMapService?.getAllCachedRoads();
+              if (currentRoads) {
+                this.driveCoordinator?.setCachedRoads(currentRoads);
+              }
+            }
+          })
+          .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setRoadPrefetchActive(false);
+            if (result.success) {
+              logger.info(`Prefetched ${result.data} roads for route`);
+              // Final update of cached roads
+              const allRoads = this.vectorMapService?.getAllCachedRoads();
+              if (allRoads) {
+                this.driveCoordinator?.setCachedRoads(allRoads);
+              }
+            } else {
+              logger.warn("Failed to prefetch roads:", result.error?.message);
+            }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setRoadPrefetchActive(false);
           });
       }
     }
@@ -995,6 +1065,37 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         callback(progress);
       } catch (error) {
         logger.error("Error in elevation prefetch progress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Register a callback for road prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onRoadPrefetchProgress(
+    callback: (progress: RoadPrefetchProgress) => void,
+  ): () => void {
+    this.roadPrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.roadPrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.roadPrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all road prefetch progress callbacks
+   */
+  private notifyRoadPrefetchProgress(progress: RoadPrefetchProgress): void {
+    for (const callback of this.roadPrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error("Error in road prefetch progress callback:", error);
       }
     }
   }

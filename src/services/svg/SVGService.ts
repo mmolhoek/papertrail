@@ -2,6 +2,7 @@ import {
   ISVGService,
   FollowTrackInfo,
   DriveNavigationInfo,
+  CachedRoad,
 } from "@core/interfaces";
 import {
   Result,
@@ -29,6 +30,7 @@ import { ProjectionService } from "./ProjectionService";
 import { TrackRenderer } from "./TrackRenderer";
 import { UIRenderer } from "./UIRenderer";
 import { ManeuverRenderer } from "./ManeuverRenderer";
+import { RoadRenderer } from "./RoadRenderer";
 
 const logger = getLogger("SVGService");
 
@@ -886,6 +888,7 @@ export class SVGService implements ISVGService {
     viewport: ViewportConfig,
     info: DriveNavigationInfo,
     options?: Partial<RenderOptions>,
+    roads?: CachedRoad[],
   ): Promise<Result<Bitmap1Bit>> {
     const methodStart = Date.now();
     logger.info("renderDriveMapScreen: starting...");
@@ -910,6 +913,20 @@ export class SVGService implements ISVGService {
         width: mapWidth,
         centerPoint: currentPosition,
       };
+
+      // Render roads as background layer (before route)
+      if (roads && roads.length > 0) {
+        const roadsRendered = RoadRenderer.renderRoads(
+          bitmap,
+          roads,
+          mapViewport,
+          renderOpts.rotateWithBearing ?? false,
+          mapWidth,
+        );
+        logger.info(
+          `renderDriveMapScreen: rendered ${roadsRendered} roads as background (${Date.now() - methodStart}ms)`,
+        );
+      }
 
       // Draw route line using geometry via TrackRenderer
       if (route.geometry && route.geometry.length > 1) {

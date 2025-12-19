@@ -207,6 +207,8 @@ describe("Drive Navigation Flow Integration", () => {
       getShowSpeedLimit: jest.fn().mockReturnValue(true),
       getSpeedUnit: jest.fn().mockReturnValue("kmh"),
       getShowLocationName: jest.fn().mockReturnValue(true),
+      getShowElevation: jest.fn().mockReturnValue(true),
+      getShowRoads: jest.fn().mockReturnValue(true),
       getEnabledPOICategories: jest
         .fn()
         .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),

@@ -7,8 +7,10 @@ import {
   ISpeedLimitService,
   IPOIService,
   IReverseGeocodingService,
+  IVectorMapService,
   DriveNavigationInfo,
   NearbyPOI,
+  CachedRoad,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -79,6 +81,10 @@ export class DriveCoordinator {
   private speedLimitPrefetchActive: boolean = false;
   private locationPrefetchActive: boolean = false;
   private elevationPrefetchActive: boolean = false;
+  private roadPrefetchActive: boolean = false;
+
+  // Cached roads for rendering
+  private cachedRoads: CachedRoad[] = [];
 
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
@@ -89,6 +95,7 @@ export class DriveCoordinator {
     private readonly speedLimitService: ISpeedLimitService | null,
     private readonly poiService: IPOIService | null,
     private readonly reverseGeocodingService: IReverseGeocodingService | null,
+    private readonly vectorMapService: IVectorMapService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
@@ -407,8 +414,11 @@ export class DriveCoordinator {
               rotateWithBearing: this.configService.getRotateWithBearing(),
             };
 
+            // Get roads from vectorMapService cache if available
+            const roads = this.getCurrentRoads();
+
             logger.info(
-              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
+              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, ${roads.length} roads, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
             );
             renderResult = await this.svgService.renderDriveMapScreen(
               status.route,
@@ -417,6 +427,7 @@ export class DriveCoordinator {
               viewport,
               info,
               renderOptions,
+              roads,
             );
             logger.info(
               `Map screen render completed in ${Date.now() - renderStartTime}ms`,
@@ -537,15 +548,39 @@ export class DriveCoordinator {
   }
 
   /**
-   * Check if any background fetch is active (POI, speed limit, location, or elevation).
+   * Check if any background fetch is active (POI, speed limit, location, elevation, or roads).
    */
   isBackgroundFetchActive(): boolean {
     return (
       this.poiPrefetchActive ||
       this.speedLimitPrefetchActive ||
       this.locationPrefetchActive ||
-      this.elevationPrefetchActive
+      this.elevationPrefetchActive ||
+      this.roadPrefetchActive
     );
+  }
+
+  /**
+   * Set road prefetch active state.
+   */
+  setRoadPrefetchActive(active: boolean): void {
+    this.roadPrefetchActive = active;
+    logger.debug(`Road prefetch active: ${active}`);
+  }
+
+  /**
+   * Set cached roads from VectorMapService prefetch.
+   */
+  setCachedRoads(roads: CachedRoad[]): void {
+    this.cachedRoads = roads;
+    logger.info(`Cached ${roads.length} roads for rendering`);
+  }
+
+  /**
+   * Get cached roads for rendering.
+   */
+  getCachedRoads(): CachedRoad[] {
+    return this.cachedRoads;
   }
 
   /**
@@ -579,6 +614,7 @@ export class DriveCoordinator {
     this.lastPOIPosition = null;
     this.cachedLocationName = null;
     this.lastLocationNamePosition = null;
+    this.cachedRoads = [];
 
     logger.info("✓ DriveCoordinator disposed");
   }
@@ -746,6 +782,28 @@ export class DriveCoordinator {
     }
 
     return this.cachedNearbyPOIs;
+  }
+
+  /**
+   * Get current roads for rendering (from cached data)
+   */
+  private getCurrentRoads(): CachedRoad[] {
+    // Check if road layer display is enabled
+    if (!this.configService.getShowRoads()) {
+      return [];
+    }
+
+    // First check locally cached roads
+    if (this.cachedRoads.length > 0) {
+      return this.cachedRoads;
+    }
+
+    // Fall back to vectorMapService's cache if available
+    if (this.vectorMapService) {
+      return this.vectorMapService.getAllCachedRoads();
+    }
+
+    return [];
   }
 
   /**

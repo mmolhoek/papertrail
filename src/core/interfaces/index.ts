@@ -20,6 +20,7 @@ export * from "./ISpeedLimitService";
 export * from "./IPOIService";
 export * from "./IReverseGeocodingService";
 export * from "./IElevationService";
+export * from "./IVectorMapService";
 
 // Display driver abstraction interfaces
 export * from "./IDisplayDriver";

@@ -34,6 +34,7 @@ import {
   setSpeedUnitSchema,
   setPOICategorySchema,
   setShowLocationNameSchema,
+  setShowRoadsSchema,
   setRoutingProfileSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
@@ -486,6 +487,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-location-name`,
       validateBody(setShowLocationNameSchema),
       (req, res) => this.controller.setShowLocationName(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-roads`,
+      validateBody(setShowRoadsSchema),
+      (req, res) => this.controller.setShowRoads(req, res),
     );
 
     this.app.post(

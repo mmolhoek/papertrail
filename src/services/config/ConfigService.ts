@@ -226,6 +226,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showElevation = enabled;
   }
 
+  // Road layer display
+
+  getShowRoads(): boolean {
+    return this.userState.displayPreferences.showRoads ?? true;
+  }
+
+  setShowRoads(enabled: boolean): void {
+    this.userState.displayPreferences.showRoads = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<
@@ -617,6 +627,7 @@ export class ConfigService implements IConfigService {
         speedUnit: "kmh",
         showLocationName: true,
         showElevation: true,
+        showRoads: true,
         routingProfile: "car",
       },
       recentFiles: [],

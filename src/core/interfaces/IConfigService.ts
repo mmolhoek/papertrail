@@ -196,6 +196,18 @@ export interface IConfigService {
   setShowElevation(enabled: boolean): void;
 
   /**
+   * Get show roads preference
+   * @returns true if road layer should be displayed during drive navigation
+   */
+  getShowRoads(): boolean;
+
+  /**
+   * Set show roads preference
+   * @param enabled Whether to show road layer
+   */
+  setShowRoads(enabled: boolean): void;
+
+  /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names
    */

@@ -191,6 +191,9 @@ export type UserState = {
     /** Whether to show elevation data during drive navigation */
     showElevation?: boolean;
 
+    /** Whether to show road layer during drive navigation */
+    showRoads?: boolean;
+
     /** Enabled POI categories for display during navigation */
     enabledPOICategories?: Array<
       "fuel" | "parking" | "food" | "restroom" | "viewpoint"
