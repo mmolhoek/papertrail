@@ -20,6 +20,7 @@ class PapertrailClient {
     this.currentOrientation = "north-up"; // 'north-up' or 'track-up'
     this.currentSpeedUnit = "kmh"; // 'kmh' or 'mph'
     this.currentRoutingProfile = "car"; // 'car', 'bike', or 'foot'
+    this.currentTheme = "dark"; // 'dark' or 'light'
 
     // Simulation source tracking
     this.simulationSource = null; // { type: 'track' | 'route', name: string, path?: string }
@@ -193,6 +194,9 @@ class PapertrailClient {
   }
 
   init() {
+    // Initialize theme from localStorage
+    this.initializeTheme();
+
     // Initialize WebSocket
     this.initWebSocket();
 
@@ -334,6 +338,14 @@ class PapertrailClient {
     document.getElementById("auto-center").addEventListener("change", (e) => {
       this.setAutoCenter(e.target.checked);
     });
+
+    // Theme toggle control
+    const themeBtn = document.getElementById("theme-btn");
+    if (themeBtn) {
+      themeBtn.addEventListener("click", () => {
+        this.toggleTheme();
+      });
+    }
 
     // Orientation control
     const orientationBtn = document.getElementById("orientation-btn");
@@ -816,6 +828,45 @@ class PapertrailClient {
     } catch (error) {
       console.error("Failed to set speed unit:", error);
       this.showMessage("Failed to change speed unit", "error");
+    }
+  }
+
+  // Toggle theme between dark (dusk) and light (dawn)
+  toggleTheme() {
+    const btn = document.getElementById("theme-btn");
+    const newTheme = this.currentTheme === "dark" ? "light" : "dark";
+
+    this.currentTheme = newTheme;
+
+    // Update the document theme attribute
+    document.documentElement.setAttribute("data-theme", newTheme);
+
+    // Update the button state
+    if (btn) {
+      btn.setAttribute("data-state", newTheme);
+    }
+
+    // Persist to localStorage
+    localStorage.setItem("papertrail-theme", newTheme);
+
+    this.showMessage(
+      `Theme: ${newTheme === "dark" ? "Dusk" : "Dawn"}`,
+      "success",
+    );
+  }
+
+  // Initialize theme from localStorage
+  initializeTheme() {
+    const savedTheme = localStorage.getItem("papertrail-theme") || "dark";
+    this.currentTheme = savedTheme;
+
+    // Apply the theme
+    document.documentElement.setAttribute("data-theme", savedTheme);
+
+    // Update the button state
+    const btn = document.getElementById("theme-btn");
+    if (btn) {
+      btn.setAttribute("data-state", savedTheme);
     }
   }
 

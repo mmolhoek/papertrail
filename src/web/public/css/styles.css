@@ -56,6 +56,853 @@
   --transition-slow: 400ms ease;
 }
 
+/* ============================================
+   LIGHT THEME - Desert Dawn
+   Warm sunrise colors over sand dunes
+   ============================================ */
+[data-theme="light"] {
+  /* Primary Colors - Warm Sand */
+  --color-forest: #e8ddd0;
+  --color-forest-light: #f5ede3;
+  --color-forest-dark: #d4c4b0;
+
+  /* Accent Colors - Sunrise Terracotta & Gold */
+  --color-sienna: #c2552e;
+  --color-sienna-light: #d4714e;
+  --color-rust: #a84525;
+
+  /* Neutral Colors - Desert palette */
+  --color-parchment: #4a3f35;
+  --color-parchment-dark: #3d332a;
+  --color-cream: #fdf9f4;
+  --color-slate: #6b5d50;
+  --color-charcoal: #3d332a;
+
+  /* Semantic Colors */
+  --color-success: #5d7a28;
+  --color-warning: #c48820;
+  --color-danger: #bf4040;
+  --color-info: #8b6b40;
+
+  /* Refined shadows with warm tint */
+  --shadow-sm: 0 1px 3px rgba(74, 63, 53, 0.1);
+  --shadow-md: 0 4px 12px rgba(74, 63, 53, 0.12);
+  --shadow-lg: 0 8px 24px rgba(74, 63, 53, 0.15);
+  --shadow-inset: inset 0 2px 4px rgba(74, 63, 53, 0.06);
+}
+
+[data-theme="light"] body {
+  background: linear-gradient(180deg, #faf5ed 0%, #f0e6d8 100%);
+  color: #3d332a;
+}
+
+[data-theme="light"] .topo-bg {
+  opacity: 0.35;
+  background-image:
+    repeating-radial-gradient(
+      circle at 50% 50%,
+      transparent 0,
+      transparent 10px,
+      rgba(196, 136, 32, 0.04) 10px,
+      rgba(196, 136, 32, 0.04) 11px
+    ),
+    repeating-radial-gradient(
+      circle at 30% 70%,
+      transparent 0,
+      transparent 15px,
+      rgba(194, 85, 46, 0.03) 15px,
+      rgba(194, 85, 46, 0.03) 16px
+    ),
+    repeating-radial-gradient(
+      circle at 70% 30%,
+      transparent 0,
+      transparent 20px,
+      rgba(212, 113, 78, 0.025) 20px,
+      rgba(212, 113, 78, 0.025) 21px
+    );
+}
+
+/* Light theme header */
+[data-theme="light"] .header-text h1 {
+  color: #b86d1a;
+  text-shadow: 0 2px 8px rgba(184, 109, 26, 0.15);
+}
+
+[data-theme="light"] .tagline {
+  color: #7a6550;
+}
+
+[data-theme="light"] .compass-outer {
+  stroke: #c2552e;
+}
+
+[data-theme="light"] .compass-inner {
+  stroke: #d4a574;
+}
+
+[data-theme="light"] .compass-tick {
+  stroke: #b86d1a;
+}
+
+[data-theme="light"] .compass-north {
+  fill: #c2552e;
+}
+
+[data-theme="light"] .compass-south {
+  fill: #d4a574;
+}
+
+[data-theme="light"] .compass-label {
+  fill: #c2552e;
+}
+
+/* Light theme navigation */
+[data-theme="light"] .nav-toggle {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 2px solid #c2552e;
+  box-shadow:
+    0 4px 12px rgba(74, 63, 53, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .nav-toggle:hover {
+  background: linear-gradient(180deg, #fff 0%, #faf5ed 100%);
+  border-color: #d4714e;
+  box-shadow:
+    0 6px 16px rgba(194, 85, 46, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .nav-icon,
+[data-theme="light"] .nav-icon::before,
+[data-theme="light"] .nav-icon::after {
+  background: #c2552e;
+  box-shadow: none;
+}
+
+[data-theme="light"] .nav-menu {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+  box-shadow:
+    0 12px 40px rgba(74, 63, 53, 0.18),
+    0 4px 12px rgba(74, 63, 53, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .nav-item {
+  color: #4a3f35;
+}
+
+[data-theme="light"] .nav-item:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(194, 85, 46, 0.08) 0%,
+    rgba(194, 85, 46, 0.04) 100%
+  );
+}
+
+[data-theme="light"] .nav-item.active {
+  background: linear-gradient(
+    90deg,
+    rgba(194, 85, 46, 0.12) 0%,
+    rgba(194, 85, 46, 0.06) 100%
+  );
+  border-left: 3px solid #c2552e;
+}
+
+[data-theme="light"] .nav-item-icon {
+  color: #c2552e;
+}
+
+[data-theme="light"] .nav-check {
+  color: #5d7a28;
+}
+
+/* Light theme panels */
+[data-theme="light"] .panel-card {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #e0d4c4;
+  box-shadow:
+    0 4px 20px rgba(74, 63, 53, 0.08),
+    0 1px 3px rgba(74, 63, 53, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .instrument-clusters {
+  background: transparent;
+}
+
+/* Light theme instrument displays - keep dark screens for contrast */
+[data-theme="light"] .position-display-bezel {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+  box-shadow:
+    inset 0 2px 6px rgba(74, 63, 53, 0.15),
+    0 2px 4px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="light"] .position-display-screen {
+  background: linear-gradient(180deg, #2a2420 0%, #1e1a18 100%);
+  color: #e8ddd0;
+}
+
+[data-theme="light"] .coord-digits,
+[data-theme="light"] .tape-value {
+  color: #f0c060;
+}
+
+[data-theme="light"] .gps-signal-indicator .signal-icon {
+  color: #7dba3d;
+}
+
+/* Light theme gauges */
+[data-theme="light"] .mini-gauge-bezel {
+  fill: #c4b4a0;
+  stroke: #a89880;
+}
+
+[data-theme="light"] .mini-gauge-face {
+  fill: #1e1a18;
+}
+
+[data-theme="light"] .mini-gauge-readout .readout-value {
+  color: #f0c060;
+}
+
+/* Light theme annunciator */
+[data-theme="light"] .annunciator-panel {
+  background: linear-gradient(180deg, #e8ddd0 0%, #d4c4b0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .annunciator-label-plate {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+  color: #4a3f35;
+  border-color: #b4a490;
+}
+
+[data-theme="light"] .annunciator-lamp {
+  background: linear-gradient(180deg, #2a2420 0%, #1e1a18 100%);
+}
+
+/* Light theme flight plan display */
+[data-theme="light"] .flight-plan-display {
+  background: linear-gradient(180deg, #e8ddd0 0%, #d4c4b0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .fp-label-plate {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+  color: #4a3f35;
+  border-color: #b4a490;
+}
+
+[data-theme="light"] .fp-content {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .fp-icon {
+  color: #c2552e;
+}
+
+[data-theme="light"] .fp-track-name {
+  color: #4a3f35;
+}
+
+/* Light theme clusters and labels */
+[data-theme="light"] .cluster-label,
+[data-theme="light"] .switch-label-plate,
+[data-theme="light"] .bank-label-plate,
+[data-theme="light"] .command-label-plate,
+[data-theme="light"] .poi-label-plate,
+[data-theme="light"] .readout-label-plate {
+  color: #6b5d50;
+  border-color: #d4c4b0;
+}
+
+/* Light theme inputs */
+[data-theme="light"] .instrument-input-wrapper {
+  background: linear-gradient(180deg, #e0d4c4 0%, #d4c4b0 100%);
+}
+
+[data-theme="light"] .instrument-input {
+  background: #fdfaf6;
+  border: 1px solid #c4b4a0;
+  color: #3d332a;
+}
+
+[data-theme="light"] .instrument-input::placeholder {
+  color: #9a8a78;
+}
+
+[data-theme="light"] .instrument-input:focus {
+  border-color: #c2552e;
+  box-shadow: 0 0 0 3px rgba(194, 85, 46, 0.15);
+}
+
+/* Light theme select */
+[data-theme="light"] .instrument-select-wrapper {
+  background: linear-gradient(180deg, #e0d4c4 0%, #d4c4b0 100%);
+}
+
+[data-theme="light"] .instrument-select {
+  background: #fdfaf6;
+  border: 1px solid #c4b4a0;
+  color: #3d332a;
+}
+
+[data-theme="light"] .instrument-select:focus {
+  border-color: #c2552e;
+  box-shadow: 0 0 0 3px rgba(194, 85, 46, 0.15);
+}
+
+/* Light theme buttons */
+[data-theme="light"] .instrument-btn {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+  box-shadow:
+    0 2px 4px rgba(74, 63, 53, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .instrument-btn:hover {
+  background: linear-gradient(180deg, #fff 0%, #faf5ed 100%);
+  border-color: #b86d1a;
+  box-shadow:
+    0 4px 8px rgba(184, 109, 26, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .instrument-btn.danger {
+  background: linear-gradient(180deg, #fdf0f0 0%, #f5dede 100%);
+  border-color: #bf4040;
+  color: #8a2a2a;
+}
+
+[data-theme="light"] .instrument-btn.danger:hover {
+  background: linear-gradient(180deg, #fff5f5 0%, #fde8e8 100%);
+}
+
+[data-theme="light"] .command-btn {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+}
+
+[data-theme="light"] .command-btn:hover {
+  background: linear-gradient(180deg, #fff 0%, #faf5ed 100%);
+  border-color: #b86d1a;
+}
+
+[data-theme="light"] .command-btn.primary {
+  background: linear-gradient(180deg, #c2552e 0%, #a84525 100%);
+  border: 1px solid #8a3820;
+  color: #fff;
+  box-shadow:
+    0 2px 8px rgba(194, 85, 46, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+[data-theme="light"] .command-btn.primary:hover {
+  background: linear-gradient(180deg, #d4714e 0%, #c2552e 100%);
+  box-shadow:
+    0 4px 12px rgba(194, 85, 46, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="light"] .command-btn.danger {
+  background: linear-gradient(180deg, #bf4040 0%, #a03535 100%);
+  border: 1px solid #802a2a;
+  color: #fff;
+}
+
+[data-theme="light"] .command-btn.danger:hover {
+  background: linear-gradient(180deg, #d04545 0%, #bf4040 100%);
+}
+
+/* Light theme switches */
+[data-theme="light"] .rocker-switch {
+  background: linear-gradient(180deg, #e8ddd0 0%, #d4c4b0 100%);
+  border: 1px solid #b4a490;
+}
+
+[data-theme="light"] .rocker-option {
+  color: #6b5d50;
+}
+
+[data-theme="light"] .rocker-indicator {
+  background: linear-gradient(180deg, #c2552e 0%, #a84525 100%);
+  box-shadow: 0 2px 6px rgba(194, 85, 46, 0.3);
+}
+
+/* Light theme toggles */
+[data-theme="light"] .toggle-housing {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+  border: 1px solid #a89880;
+}
+
+[data-theme="light"] .toggle-input:checked + .toggle-housing {
+  background: linear-gradient(180deg, #c2552e 0%, #a84525 100%);
+  border-color: #8a3820;
+}
+
+[data-theme="light"] .toggle-lever {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  box-shadow: 0 1px 3px rgba(74, 63, 53, 0.2);
+}
+
+[data-theme="light"] .toggle-nameplate {
+  color: #6b5d50;
+}
+
+/* Light theme checkboxes */
+[data-theme="light"] .checkbox-housing {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+  border: 1px solid #a89880;
+}
+
+[data-theme="light"] .instrument-checkbox input:checked + .checkbox-housing {
+  background: linear-gradient(180deg, #c2552e 0%, #a84525 100%);
+  border-color: #8a3820;
+}
+
+[data-theme="light"] .checkbox-label-text {
+  color: #6b5d50;
+}
+
+/* Light theme data readout panels */
+[data-theme="light"] .data-readout-panel {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .data-readout-grid {
+  background: transparent;
+}
+
+[data-theme="light"] .data-readout-item {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .readout-prefix {
+  color: #7a6550;
+}
+
+[data-theme="light"] .readout-digits {
+  color: #c2552e;
+  text-shadow: none;
+}
+
+/* Light theme zoom slider */
+[data-theme="light"] .zoom-slider-container {
+  background: linear-gradient(180deg, #e8ddd0 0%, #d4c4b0 100%);
+  border: 1px solid #c4b4a0;
+  border-radius: 8px;
+}
+
+[data-theme="light"] .zoom-step-btn {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+}
+
+[data-theme="light"] .zoom-step-btn:hover {
+  background: linear-gradient(180deg, #fff 0%, #faf5ed 100%);
+  border-color: #c2552e;
+  color: #c2552e;
+}
+
+[data-theme="light"] .zoom-slider-track {
+  background: linear-gradient(180deg, #c4b4a0 0%, #b4a490 100%);
+}
+
+[data-theme="light"] .zoom-slider-fill {
+  background: linear-gradient(90deg, #c2552e, #d4714e);
+}
+
+[data-theme="light"] .zoom-label {
+  color: #7a6550;
+}
+
+[data-theme="light"] .zoom-readout {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .zoom-readout-value {
+  color: #c2552e;
+}
+
+/* Light theme POI indicators */
+[data-theme="light"] .poi-indicator {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  justify-content: center;
+}
+
+[data-theme="light"] .poi-indicator:hover {
+  border-color: #c2552e;
+  box-shadow: 0 2px 8px rgba(194, 85, 46, 0.15);
+}
+
+[data-theme="light"] .indicator-lamp {
+  background: #e8ddd0;
+  border-color: #c4b4a0;
+  box-shadow: inset 0 2px 4px rgba(74, 63, 53, 0.15);
+}
+
+[data-theme="light"] .indicator-label {
+  color: #6b5d50;
+}
+
+/* Light theme mode buttons */
+[data-theme="light"] .mode-btn .mode-btn-face {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+}
+
+[data-theme="light"] .mode-btn .mode-btn-face:hover {
+  border-color: #b86d1a;
+}
+
+[data-theme="light"] .mode-btn input:checked + .mode-btn-face {
+  background: linear-gradient(180deg, #c2552e 0%, #a84525 100%);
+  border-color: #8a3820;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(194, 85, 46, 0.25);
+}
+
+[data-theme="light"] .mode-btn .mode-speed {
+  color: #7a6550;
+}
+
+[data-theme="light"] .mode-btn input:checked + .mode-btn-face .mode-speed {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* Light theme transport controls */
+[data-theme="light"] .transport-btn {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f0e6d8 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+}
+
+[data-theme="light"] .transport-btn:hover {
+  border-color: #b86d1a;
+}
+
+[data-theme="light"] .transport-btn.play {
+  background: linear-gradient(180deg, #5d7a28 0%, #4a6520 100%);
+  border-color: #3d5518;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(93, 122, 40, 0.3);
+}
+
+[data-theme="light"] .transport-btn.play:hover {
+  background: linear-gradient(180deg, #6d8a30 0%, #5d7a28 100%);
+}
+
+[data-theme="light"] .transport-btn.stop {
+  background: linear-gradient(180deg, #bf4040 0%, #a03535 100%);
+  border-color: #802a2a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(191, 64, 64, 0.3);
+}
+
+[data-theme="light"] .transport-btn.pause {
+  background: linear-gradient(180deg, #c48820 0%, #a07018 100%);
+  border-color: #806010;
+  color: #fff;
+}
+
+/* Light theme source display */
+[data-theme="light"] .source-display {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .source-display-label {
+  color: #6b5d50;
+}
+
+[data-theme="light"] .source-display-content {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .source-icon {
+  color: #c2552e;
+}
+
+[data-theme="light"] .source-name {
+  color: #4a3f35;
+  text-shadow: none;
+}
+
+/* Light theme progress */
+[data-theme="light"] .progress-track {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+}
+
+[data-theme="light"] .progress-fill {
+  background: linear-gradient(90deg, #c2552e 0%, #d4714e 100%);
+}
+
+/* Light theme warning display */
+[data-theme="light"] .warning-display {
+  background: linear-gradient(180deg, #fdf0ec 0%, #f8e0d8 100%);
+  border: 2px solid #c2552e;
+  box-shadow: 0 4px 12px rgba(194, 85, 46, 0.12);
+}
+
+[data-theme="light"] .warning-title {
+  color: #a84525;
+}
+
+[data-theme="light"] .warning-details {
+  color: #6b5d50;
+}
+
+[data-theme="light"] .warning-list li {
+  color: #4a3f35;
+}
+
+/* Light theme status readout */
+[data-theme="light"] .status-readout {
+  background: linear-gradient(180deg, #f0e6d8 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .status-label {
+  color: #7a6550;
+}
+
+[data-theme="light"] .status-value {
+  color: #4a3f35;
+}
+
+/* Light theme config description */
+[data-theme="light"] .config-description {
+  color: #7a6550;
+  border-color: #d4c4b0;
+}
+
+/* Light theme waypoint displays */
+[data-theme="light"] .waypoint-display {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .waypoint-marker.dest {
+  color: #c2552e;
+}
+
+[data-theme="light"] .waypoint-marker.origin {
+  color: #5d7a28;
+}
+
+[data-theme="light"] .waypoint-type {
+  color: #7a6550;
+}
+
+[data-theme="light"] .waypoint-name {
+  color: #4a3f35;
+}
+
+[data-theme="light"] .waypoint-clear {
+  color: #bf4040;
+}
+
+[data-theme="light"] .waypoint-clear:hover {
+  background: rgba(191, 64, 64, 0.1);
+}
+
+/* Light theme recent destinations */
+[data-theme="light"] .recent-cluster {
+  background: rgba(212, 196, 176, 0.3);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .recent-dest-item {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .recent-dest-item:hover {
+  background: linear-gradient(180deg, #fff 0%, #fdfaf6 100%);
+  border-color: #c2552e;
+  box-shadow: 0 2px 8px rgba(194, 85, 46, 0.1);
+}
+
+[data-theme="light"] .recent-dest-name {
+  color: #4a3f35;
+  text-shadow: none;
+}
+
+[data-theme="light"] .recent-dest-remove {
+  background: rgba(191, 64, 64, 0.08);
+  border-color: #bf4040;
+  color: #bf4040;
+}
+
+[data-theme="light"] .recent-dest-remove:hover {
+  background: #bf4040;
+  color: #fff;
+}
+
+/* Light theme instrument results */
+[data-theme="light"] .instrument-results {
+  background: #fdfaf6;
+  border: 1px solid #c4b4a0;
+  box-shadow: 0 4px 12px rgba(74, 63, 53, 0.12);
+}
+
+[data-theme="light"] .result-item {
+  color: #4a3f35;
+  border-color: #e8ddd0;
+}
+
+[data-theme="light"] .result-item:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(194, 85, 46, 0.06) 0%,
+    transparent 100%
+  );
+}
+
+/* Light theme loading indicators */
+[data-theme="light"] .loading-indicator {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .loading-text {
+  color: #4a3f35;
+}
+
+[data-theme="light"] .loading-detail {
+  color: #7a6550;
+}
+
+[data-theme="light"] .loading-spinner {
+  border-color: #d4c4b0;
+  border-top-color: #c2552e;
+}
+
+/* Light theme display preview */
+[data-theme="light"] .display-preview-frame {
+  background: linear-gradient(180deg, #d4c4b0 0%, #c4b4a0 100%);
+}
+
+[data-theme="light"] .preview-bezel {
+  background: linear-gradient(180deg, #e8ddd0 0%, #d4c4b0 100%);
+  border: 1px solid #b4a490;
+}
+
+/* Light theme nav status */
+[data-theme="light"] .nav-status-display {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .nav-state-indicator.active {
+  background: #5d7a28;
+  box-shadow: 0 0 8px rgba(93, 122, 40, 0.5);
+}
+
+[data-theme="light"] .nav-state-text {
+  color: #4a3f35;
+}
+
+[data-theme="light"] .turn-display {
+  background: linear-gradient(180deg, #2a2420 0%, #1e1a18 100%);
+}
+
+[data-theme="light"] .turn-icon-large {
+  color: #f0c060;
+}
+
+[data-theme="light"] .turn-distance,
+[data-theme="light"] .turn-instruction {
+  color: #e8ddd0;
+}
+
+[data-theme="light"] .nav-data-label {
+  color: #7a6550;
+}
+
+[data-theme="light"] .nav-data-value {
+  color: #c2552e;
+}
+
+/* Light theme simulation progress */
+[data-theme="light"] .sim-progress-display {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border: 1px solid #c4b4a0;
+}
+
+[data-theme="light"] .progress-label,
+[data-theme="light"] .sim-data-label {
+  color: #6b5d50;
+}
+
+[data-theme="light"] .progress-percent,
+[data-theme="light"] .sim-data-value {
+  color: #c2552e;
+}
+
+/* Light theme connection bar */
+[data-theme="light"] .connection-bar {
+  background: linear-gradient(180deg, #f5ede3 0%, #e8ddd0 100%);
+  border-top: 1px solid #d4c4b0;
+}
+
+[data-theme="light"] .connection-status {
+  color: #6b5d50;
+}
+
+[data-theme="light"] .connection-status.connected .connection-dot {
+  background: #5d7a28;
+  box-shadow: 0 0 8px rgba(93, 122, 40, 0.6);
+}
+
+[data-theme="light"] .connection-status.disconnected .connection-dot {
+  background: #bf4040;
+}
+
+/* Light theme footer */
+[data-theme="light"] .footer {
+  color: #9a8a78;
+  border-color: #d4c4b0;
+}
+
+/* Light theme toast */
+[data-theme="light"] .toast {
+  background: linear-gradient(180deg, #fdfaf6 0%, #f5ede3 100%);
+  border: 1px solid #c4b4a0;
+  color: #4a3f35;
+  box-shadow:
+    0 8px 24px rgba(74, 63, 53, 0.15),
+    0 2px 8px rgba(74, 63, 53, 0.08);
+}
+
+[data-theme="light"] .toast.success {
+  border-left: 4px solid #5d7a28;
+}
+
+[data-theme="light"] .toast.error {
+  border-left: 4px solid #bf4040;
+}
+
+[data-theme="light"] .toast.warning {
+  border-left: 4px solid #c48820;
+}
+
 /* Reset & Base */
 *,
 *::before,
