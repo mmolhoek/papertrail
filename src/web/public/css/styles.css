@@ -4760,20 +4760,50 @@ body {
     overflow: hidden;
   }
 
-  #mock-display-panel:not(.hidden) .section-header,
-  #mock-display-panel:not(.hidden) .mock-display-description,
+  /* Hide description text and action buttons */
+  #mock-display-panel:not(.hidden) .config-description,
   #mock-display-panel:not(.hidden) .mock-display-actions {
     display: none !important;
   }
 
-  #mock-display-panel:not(.hidden) .panel-content {
+  /* Make instrument-clusters fill the screen */
+  #mock-display-panel:not(.hidden) .instrument-clusters {
     width: 100%;
     height: 100%;
     padding: 0;
     margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  #mock-display-panel:not(.hidden) .mock-display-container {
+  /* Remove decorative frame borders */
+  #mock-display-panel:not(.hidden) .display-preview-frame {
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Remove bezel styling */
+  #mock-display-panel:not(.hidden) .preview-bezel {
+    padding: 0;
+    background: none;
+    border-radius: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Make screen container fill available space */
+  #mock-display-panel:not(.hidden) .preview-screen {
     width: 100vw;
     width: 100dvw;
     height: 100vh;
@@ -4782,12 +4812,14 @@ body {
     padding: 0;
     border-radius: 0;
     background: #000;
+    min-height: unset;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  #mock-display-panel:not(.hidden) .mock-display-image {
+  /* Make image fill screen */
+  #mock-display-panel:not(.hidden) .preview-image {
     max-width: 100vw;
     max-width: 100dvw;
     max-height: 100vh;
@@ -4800,7 +4832,7 @@ body {
     box-shadow: none;
   }
 
-  #mock-display-panel:not(.hidden) .mock-display-status {
+  #mock-display-panel:not(.hidden) .preview-status {
     color: #888;
   }
 }
