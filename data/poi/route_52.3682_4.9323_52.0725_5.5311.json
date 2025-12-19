@@ -1,0 +1,210 @@
+{
+  "routeId": "route_52.3682_4.9323_52.0725_5.5311",
+  "createdAt": "2025-12-18T22:46:28.373Z",
+  "pois": [
+    {
+      "id": 512195029,
+      "category": "restroom",
+      "latitude": 52.3647825,
+      "longitude": 4.961184
+    },
+    {
+      "id": 512195032,
+      "category": "restroom",
+      "latitude": 52.3643347,
+      "longitude": 4.9606833
+    },
+    {
+      "id": 1811697757,
+      "category": "restroom",
+      "latitude": 52.3655521,
+      "longitude": 4.9598746
+    },
+    {
+      "id": 2743280545,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.3669323,
+      "longitude": 4.924394
+    },
+    {
+      "id": 4296431592,
+      "category": "restroom",
+      "latitude": 52.3676821,
+      "longitude": 4.913161
+    },
+    {
+      "id": 4394896690,
+      "category": "restroom",
+      "latitude": 52.3656047,
+      "longitude": 4.9032091
+    },
+    {
+      "id": 5070903434,
+      "category": "restroom",
+      "latitude": 52.3652392,
+      "longitude": 4.9050482
+    },
+    {
+      "id": 5157106093,
+      "category": "restroom",
+      "latitude": 52.3702179,
+      "longitude": 4.9116715
+    },
+    {
+      "id": 5160950376,
+      "category": "restroom",
+      "latitude": 52.3604629,
+      "longitude": 4.9192167
+    },
+    {
+      "id": 5161028316,
+      "category": "restroom",
+      "latitude": 52.3632341,
+      "longitude": 4.91093
+    },
+    {
+      "id": 5887936984,
+      "category": "restroom",
+      "latitude": 52.3763537,
+      "longitude": 4.9116854
+    },
+    {
+      "id": 8743741416,
+      "category": "restroom",
+      "latitude": 52.3766345,
+      "longitude": 4.9131343
+    },
+    {
+      "id": 8932559979,
+      "category": "restroom",
+      "latitude": 52.3608796,
+      "longitude": 4.9189118
+    },
+    {
+      "id": 9680130397,
+      "category": "restroom",
+      "latitude": 52.3665465,
+      "longitude": 4.9191754
+    },
+    {
+      "id": 9680130834,
+      "category": "restroom",
+      "latitude": 52.367256,
+      "longitude": 4.9131558
+    },
+    {
+      "id": 9727914286,
+      "category": "fuel",
+      "name": "Tango Amsterdam Hamerstraat",
+      "latitude": 52.3843803,
+      "longitude": 4.9226008
+    },
+    {
+      "id": 9874469444,
+      "category": "restroom",
+      "latitude": 52.3664754,
+      "longitude": 4.9084177
+    },
+    {
+      "id": 9874469445,
+      "category": "restroom",
+      "latitude": 52.3670577,
+      "longitude": 4.9072472
+    },
+    {
+      "id": 10300899369,
+      "category": "restroom",
+      "latitude": 52.3653163,
+      "longitude": 4.9204525
+    },
+    {
+      "id": 10300929537,
+      "category": "restroom",
+      "latitude": 52.3663854,
+      "longitude": 4.9158514
+    },
+    {
+      "id": 10537665230,
+      "category": "restroom",
+      "latitude": 52.3539358,
+      "longitude": 4.9447747
+    },
+    {
+      "id": 10824517341,
+      "category": "restroom",
+      "latitude": 52.3660059,
+      "longitude": 4.9135569
+    },
+    {
+      "id": 11197595227,
+      "category": "restroom",
+      "latitude": 52.3591124,
+      "longitude": 4.9559305
+    },
+    {
+      "id": 11849590237,
+      "category": "restroom",
+      "latitude": 52.3724746,
+      "longitude": 4.9156353
+    },
+    {
+      "id": 12970714121,
+      "category": "restroom",
+      "latitude": 52.3654384,
+      "longitude": 4.9182855
+    },
+    {
+      "id": 743458908,
+      "category": "fuel",
+      "name": "Garage Lux",
+      "latitude": 52.3526063,
+      "longitude": 4.9288251
+    },
+    {
+      "id": 235194627,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.3869503,
+      "longitude": 4.9247512
+    },
+    {
+      "id": 1599741859,
+      "category": "restroom",
+      "latitude": 52.3859992,
+      "longitude": 4.9221783
+    },
+    {
+      "id": 11369305574,
+      "category": "restroom",
+      "latitude": 52.3827711,
+      "longitude": 4.9622478
+    },
+    {
+      "id": 12498221946,
+      "category": "restroom",
+      "latitude": 52.3866217,
+      "longitude": 4.9323914
+    },
+    {
+      "id": 564422426,
+      "category": "fuel",
+      "name": "Tango Weesp",
+      "latitude": 52.3150226,
+      "longitude": 5.0270403
+    },
+    {
+      "id": 3720019532,
+      "category": "fuel",
+      "name": "BP express Muiden",
+      "latitude": 52.3337341,
+      "longitude": 5.0251148
+    },
+    {
+      "id": 9176335353,
+      "category": "restroom",
+      "latitude": 52.334788,
+      "longitude": 5.0220511
+    }
+  ]
+}

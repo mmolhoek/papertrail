@@ -808,28 +808,24 @@
             <!-- Switch Panel - Display Mode -->
             <div class="switch-panel">
               <div class="switch-cluster">
-                <div class="switch-label-plate">DISPLAY MODE</div>
-                <div class="rotary-switch-container">
-                  <div class="rotary-switch" id="screen-rotary">
-                    <div class="rotary-base">
-                      <div class="rotary-position" data-pos="track">MAP</div>
-                      <div class="rotary-position" data-pos="turn_by_turn">
-                        NAV
-                      </div>
-                    </div>
-                    <div class="rotary-knob" id="screen-knob">
-                      <div class="knob-indicator"></div>
-                    </div>
-                  </div>
-                  <select id="screen-select" class="hidden-select">
-                    <option value="track">Track (Map + Info)</option>
-                    <option value="turn_by_turn">Turn-by-Turn</option>
-                  </select>
-                </div>
+                <div class="switch-label-plate">MODE</div>
+                <button
+                  id="screen-mode-btn"
+                  class="rocker-switch"
+                  data-state="track"
+                >
+                  <span class="rocker-option track">MAP</span>
+                  <span class="rocker-indicator"></span>
+                  <span class="rocker-option turn_by_turn">NAV</span>
+                </button>
+                <select id="screen-select" class="hidden-select">
+                  <option value="track">Track (Map + Info)</option>
+                  <option value="turn_by_turn">Turn-by-Turn</option>
+                </select>
               </div>
 
               <div class="switch-cluster">
-                <div class="switch-label-plate">ORIENTATION</div>
+                <div class="switch-label-plate">ORIENT</div>
                 <button
                   id="orientation-btn"
                   class="rocker-switch"
@@ -1107,15 +1103,6 @@
                   />
                 </div>
               </div>
-            </div>
-
-            <!-- Refresh Button -->
-            <div class="mock-display-actions">
-              <button id="mock-display-refresh" class="command-btn primary">
-                <span class="btn-symbol">↻</span>
-                <span class="btn-label">REFRESH</span>
-                <span class="btn-status-light"></span>
-              </button>
             </div>
           </div>
         </section>

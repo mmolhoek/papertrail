@@ -388,10 +388,10 @@ class PapertrailClient {
       });
     }
 
-    // Rotary knob click handler for instrument panel
-    const rotaryKnob = document.getElementById("screen-knob");
-    if (rotaryKnob) {
-      rotaryKnob.addEventListener("click", () => {
+    // Screen mode button handler for instrument panel
+    const screenModeBtn = document.getElementById("screen-mode-btn");
+    if (screenModeBtn) {
+      screenModeBtn.addEventListener("click", () => {
         // Toggle between track and turn_by_turn
         const currentValue = screenSelect.value;
         const newValue = currentValue === "track" ? "turn_by_turn" : "track";
@@ -707,20 +707,11 @@ class PapertrailClient {
     }
   }
 
-  // Update rotary knob visual position
+  // Update screen mode button visual state
   updateRotaryKnob(value) {
-    const knob = document.getElementById("screen-knob");
-    if (knob) {
-      knob.setAttribute("data-position", value);
-      // Update rotation: track = 0deg (pointing left), turn_by_turn = 180deg (pointing right)
-      const rotation = value === "turn_by_turn" ? 90 : -90;
-      knob.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-
-      // Update position labels
-      const positions = document.querySelectorAll(".rotary-position");
-      positions.forEach((pos) => {
-        pos.classList.toggle("active", pos.dataset.pos === value);
-      });
+    const btn = document.getElementById("screen-mode-btn");
+    if (btn) {
+      btn.setAttribute("data-state", value);
     }
   }
 
@@ -3610,19 +3601,6 @@ class PapertrailClient {
    * Uses WebSocket push for live updates when display changes
    */
   initMockDisplay() {
-    // Setup refresh button listener (only once)
-    const refreshBtn = document.getElementById("mock-display-refresh");
-
-    // Remove existing listeners to avoid duplicates
-    refreshBtn.replaceWith(refreshBtn.cloneNode(true));
-
-    // Re-get the element after cloning
-    const newRefreshBtn = document.getElementById("mock-display-refresh");
-
-    newRefreshBtn.addEventListener("click", () => {
-      this.refreshMockDisplay();
-    });
-
     // Load the initial image
     this.refreshMockDisplay();
   }

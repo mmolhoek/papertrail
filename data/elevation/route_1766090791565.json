@@ -1,0 +1,686 @@
+{
+  "routeId": "route_1766090791565",
+  "createdAt": "2025-12-18T20:49:13.705Z",
+  "elevations": [
+    {
+      "latitude": 52.368205,
+      "longitude": 4.932326,
+      "elevation": 1,
+      "distanceFromStart": 0
+    },
+    {
+      "latitude": 52.372242,
+      "longitude": 4.933922,
+      "elevation": 1,
+      "distanceFromStart": 513.1730500483155
+    },
+    {
+      "latitude": 52.37213,
+      "longitude": 4.940962,
+      "elevation": 3,
+      "distanceFromStart": 1019.9048108945284
+    },
+    {
+      "latitude": 52.373258,
+      "longitude": 4.951171,
+      "elevation": 0,
+      "distanceFromStart": 1724.2254672504364
+    },
+    {
+      "latitude": 52.372632,
+      "longitude": 4.959439,
+      "elevation": 2,
+      "distanceFromStart": 2299.893901278384
+    },
+    {
+      "latitude": 52.37051,
+      "longitude": 4.96642,
+      "elevation": 0,
+      "distanceFromStart": 2834.5565889719314
+    },
+    {
+      "latitude": 52.3671,
+      "longitude": 4.96923,
+      "elevation": 3,
+      "distanceFromStart": 3363.3267037846235
+    },
+    {
+      "latitude": 52.360632,
+      "longitude": 4.968362,
+      "elevation": 0,
+      "distanceFromStart": 4121.34782413187
+    },
+    {
+      "latitude": 52.355721,
+      "longitude": 4.965564,
+      "elevation": 5,
+      "distanceFromStart": 4699.539329105561
+    },
+    {
+      "latitude": 52.351661,
+      "longitude": 4.962454,
+      "elevation": 0,
+      "distanceFromStart": 5202.545702526181
+    },
+    {
+      "latitude": 52.349401,
+      "longitude": 4.965874,
+      "elevation": 0,
+      "distanceFromStart": 5744.61788285392
+    },
+    {
+      "latitude": 52.347133,
+      "longitude": 4.973564,
+      "elevation": 0,
+      "distanceFromStart": 6332.875884205925
+    },
+    {
+      "latitude": 52.34415,
+      "longitude": 4.979718,
+      "elevation": 0,
+      "distanceFromStart": 6867.43795179213
+    },
+    {
+      "latitude": 52.340633,
+      "longitude": 4.984305,
+      "elevation": 3,
+      "distanceFromStart": 7367.865507603965
+    },
+    {
+      "latitude": 52.337062,
+      "longitude": 4.989966,
+      "elevation": 0,
+      "distanceFromStart": 7921.916394952795
+    },
+    {
+      "latitude": 52.334314,
+      "longitude": 4.996685,
+      "elevation": 0,
+      "distanceFromStart": 8473.40974041164
+    },
+    {
+      "latitude": 52.33274,
+      "longitude": 5.004001,
+      "elevation": 0,
+      "distanceFromStart": 9001.786946968521
+    },
+    {
+      "latitude": 52.332302,
+      "longitude": 5.012524,
+      "elevation": -5,
+      "distanceFromStart": 9584.783083732756
+    },
+    {
+      "latitude": 52.332216,
+      "longitude": 5.020155,
+      "elevation": 4,
+      "distanceFromStart": 10104.257746126088
+    },
+    {
+      "latitude": 52.331338,
+      "longitude": 5.027348,
+      "elevation": 4,
+      "distanceFromStart": 10607.57525215346
+    },
+    {
+      "latitude": 52.330319,
+      "longitude": 5.035754,
+      "elevation": -2,
+      "distanceFromStart": 11191.736878701768
+    },
+    {
+      "latitude": 52.328862,
+      "longitude": 5.043354,
+      "elevation": -3,
+      "distanceFromStart": 11733.049576231853
+    },
+    {
+      "latitude": 52.326959,
+      "longitude": 5.051646,
+      "elevation": -3,
+      "distanceFromStart": 12335.05490268727
+    },
+    {
+      "latitude": 52.325126,
+      "longitude": 5.058478,
+      "elevation": -2,
+      "distanceFromStart": 12842.180465832414
+    },
+    {
+      "latitude": 52.322922,
+      "longitude": 5.066961,
+      "elevation": -4,
+      "distanceFromStart": 13468.989739190209
+    },
+    {
+      "latitude": 52.321692,
+      "longitude": 5.074279,
+      "elevation": -4,
+      "distanceFromStart": 13985.08730416509
+    },
+    {
+      "latitude": 52.320629,
+      "longitude": 5.082872,
+      "elevation": 2,
+      "distanceFromStart": 14581.201124247478
+    },
+    {
+      "latitude": 52.319008,
+      "longitude": 5.090495,
+      "elevation": -1,
+      "distanceFromStart": 15130.136846010968
+    },
+    {
+      "latitude": 52.316949,
+      "longitude": 5.097652,
+      "elevation": 0,
+      "distanceFromStart": 15667.826963511057
+    },
+    {
+      "latitude": 52.314785,
+      "longitude": 5.104649,
+      "elevation": 2,
+      "distanceFromStart": 16201.155965376556
+    },
+    {
+      "latitude": 52.313407,
+      "longitude": 5.111963,
+      "elevation": 0,
+      "distanceFromStart": 16722.995673886588
+    },
+    {
+      "latitude": 52.311214,
+      "longitude": 5.11834,
+      "elevation": 1,
+      "distanceFromStart": 17223.71645144601
+    },
+    {
+      "latitude": 52.3076,
+      "longitude": 5.126735,
+      "elevation": -2,
+      "distanceFromStart": 17923.225561542848
+    },
+    {
+      "latitude": 52.305811,
+      "longitude": 5.13354,
+      "elevation": 4,
+      "distanceFromStart": 18429.647522618357
+    },
+    {
+      "latitude": 52.305813,
+      "longitude": 5.143995,
+      "elevation": 0,
+      "distanceFromStart": 19141.959194359344
+    },
+    {
+      "latitude": 52.305996,
+      "longitude": 5.152142,
+      "elevation": 0,
+      "distanceFromStart": 19696.247005217174
+    },
+    {
+      "latitude": 52.305502,
+      "longitude": 5.16046,
+      "elevation": 1,
+      "distanceFromStart": 20267.20449257318
+    },
+    {
+      "latitude": 52.303501,
+      "longitude": 5.167118,
+      "elevation": 1,
+      "distanceFromStart": 20773.637704296027
+    },
+    {
+      "latitude": 52.299982,
+      "longitude": 5.172607,
+      "elevation": 0,
+      "distanceFromStart": 21317.165227571688
+    },
+    {
+      "latitude": 52.292812,
+      "longitude": 5.179116,
+      "elevation": 3,
+      "distanceFromStart": 22229.165746449507
+    },
+    {
+      "latitude": 52.288827,
+      "longitude": 5.182585,
+      "elevation": 3,
+      "distanceFromStart": 22731.369258536135
+    },
+    {
+      "latitude": 52.284111,
+      "longitude": 5.1837,
+      "elevation": 8,
+      "distanceFromStart": 23264.939671713495
+    },
+    {
+      "latitude": 52.279487,
+      "longitude": 5.184273,
+      "elevation": 4,
+      "distanceFromStart": 23782.090719876058
+    },
+    {
+      "latitude": 52.275335,
+      "longitude": 5.188225,
+      "elevation": 10,
+      "distanceFromStart": 24322.945366888194
+    },
+    {
+      "latitude": 52.271817,
+      "longitude": 5.195039,
+      "elevation": 13,
+      "distanceFromStart": 24929.666182433455
+    },
+    {
+      "latitude": 52.267822,
+      "longitude": 5.202532,
+      "elevation": 19,
+      "distanceFromStart": 25605.901505848826
+    },
+    {
+      "latitude": 52.264289,
+      "longitude": 5.207555,
+      "elevation": 29,
+      "distanceFromStart": 26131.309163600767
+    },
+    {
+      "latitude": 52.259404,
+      "longitude": 5.208841,
+      "elevation": 28,
+      "distanceFromStart": 26688.22336155211
+    },
+    {
+      "latitude": 52.254606,
+      "longitude": 5.210076,
+      "elevation": 29,
+      "distanceFromStart": 27233.78089448325
+    },
+    {
+      "latitude": 52.249964,
+      "longitude": 5.212871,
+      "elevation": 15,
+      "distanceFromStart": 27783.906308846123
+    },
+    {
+      "latitude": 52.245778,
+      "longitude": 5.216356,
+      "elevation": 18,
+      "distanceFromStart": 28307.64362926333
+    },
+    {
+      "latitude": 52.242294,
+      "longitude": 5.221328,
+      "elevation": 9,
+      "distanceFromStart": 28823.13096376322
+    },
+    {
+      "latitude": 52.238959,
+      "longitude": 5.227149,
+      "elevation": 6,
+      "distanceFromStart": 29365.92497916259
+    },
+    {
+      "latitude": 52.235675,
+      "longitude": 5.233163,
+      "elevation": 4,
+      "distanceFromStart": 29914.65779262332
+    },
+    {
+      "latitude": 52.231793,
+      "longitude": 5.238875,
+      "elevation": 4,
+      "distanceFromStart": 30495.93932758855
+    },
+    {
+      "latitude": 52.22832,
+      "longitude": 5.24428,
+      "elevation": 1,
+      "distanceFromStart": 31029.833604443636
+    },
+    {
+      "latitude": 52.225681,
+      "longitude": 5.250791,
+      "elevation": 2,
+      "distanceFromStart": 31563.18253703976
+    },
+    {
+      "latitude": 52.224232,
+      "longitude": 5.257975,
+      "elevation": 3,
+      "distanceFromStart": 32079.696546470794
+    },
+    {
+      "latitude": 52.22374,
+      "longitude": 5.266743,
+      "elevation": 1,
+      "distanceFromStart": 32680.019647166228
+    },
+    {
+      "latitude": 52.22348,
+      "longitude": 5.275294,
+      "elevation": 0,
+      "distanceFromStart": 33263.19614028224
+    },
+    {
+      "latitude": 52.22315,
+      "longitude": 5.283297,
+      "elevation": -2,
+      "distanceFromStart": 33809.709211364636
+    },
+    {
+      "latitude": 52.222185,
+      "longitude": 5.290604,
+      "elevation": -3,
+      "distanceFromStart": 34319.53187472454
+    },
+    {
+      "latitude": 52.219846,
+      "longitude": 5.301736,
+      "elevation": 2,
+      "distanceFromStart": 35121.22118830626
+    },
+    {
+      "latitude": 52.21824,
+      "longitude": 5.309283,
+      "elevation": 2,
+      "distanceFromStart": 35665.482495085285
+    },
+    {
+      "latitude": 52.216176,
+      "longitude": 5.319569,
+      "elevation": -1,
+      "distanceFromStart": 36402.903538094346
+    },
+    {
+      "latitude": 52.214332,
+      "longitude": 5.330076,
+      "elevation": -1,
+      "distanceFromStart": 37147.54786407752
+    },
+    {
+      "latitude": 52.211099,
+      "longitude": 5.347797,
+      "elevation": -2,
+      "distanceFromStart": 38407.31823406588
+    },
+    {
+      "latitude": 52.209354,
+      "longitude": 5.357289,
+      "elevation": 1,
+      "distanceFromStart": 39082.54936184079
+    },
+    {
+      "latitude": 52.208328,
+      "longitude": 5.364437,
+      "elevation": 0,
+      "distanceFromStart": 39583.178432153254
+    },
+    {
+      "latitude": 52.207506,
+      "longitude": 5.371722,
+      "elevation": -2,
+      "distanceFromStart": 40087.925708378076
+    },
+    {
+      "latitude": 52.206154,
+      "longitude": 5.380074,
+      "elevation": 1,
+      "distanceFromStart": 40677.42721520573
+    },
+    {
+      "latitude": 52.203855,
+      "longitude": 5.387258,
+      "elevation": 2,
+      "distanceFromStart": 41230.706464791816
+    },
+    {
+      "latitude": 52.200519,
+      "longitude": 5.393621,
+      "elevation": 2,
+      "distanceFromStart": 41802.48791319232
+    },
+    {
+      "latitude": 52.196627,
+      "longitude": 5.399141,
+      "elevation": 4,
+      "distanceFromStart": 42375.95821262106
+    },
+    {
+      "latitude": 52.191016,
+      "longitude": 5.406958,
+      "elevation": 3,
+      "distanceFromStart": 43196.431050196596
+    },
+    {
+      "latitude": 52.184977,
+      "longitude": 5.415205,
+      "elevation": 6,
+      "distanceFromStart": 44072.24403610029
+    },
+    {
+      "latitude": 52.181246,
+      "longitude": 5.420414,
+      "elevation": 2,
+      "distanceFromStart": 44618.460963635305
+    },
+    {
+      "latitude": 52.176702,
+      "longitude": 5.426759,
+      "elevation": 4,
+      "distanceFromStart": 45283.64232738368
+    },
+    {
+      "latitude": 52.173098,
+      "longitude": 5.432956,
+      "elevation": 7,
+      "distanceFromStart": 45866.935828530244
+    },
+    {
+      "latitude": 52.169771,
+      "longitude": 5.440073,
+      "elevation": 6,
+      "distanceFromStart": 46477.20542664733
+    },
+    {
+      "latitude": 52.167665,
+      "longitude": 5.446879,
+      "elevation": 3,
+      "distanceFromStart": 47001.53182432209
+    },
+    {
+      "latitude": 52.166712,
+      "longitude": 5.458723,
+      "elevation": 4,
+      "distanceFromStart": 47816.50505791034
+    },
+    {
+      "latitude": 52.165127,
+      "longitude": 5.480328,
+      "elevation": 4,
+      "distanceFromStart": 49300.563563742966
+    },
+    {
+      "latitude": 52.162943,
+      "longitude": 5.510062,
+      "elevation": 4,
+      "distanceFromStart": 51343.12733801912
+    },
+    {
+      "latitude": 52.162687,
+      "longitude": 5.51808,
+      "elevation": 7,
+      "distanceFromStart": 51891.26936313901
+    },
+    {
+      "latitude": 52.162904,
+      "longitude": 5.525651,
+      "elevation": 6,
+      "distanceFromStart": 52408.256896229796
+    },
+    {
+      "latitude": 52.163472,
+      "longitude": 5.533836,
+      "elevation": 9,
+      "distanceFromStart": 52970.425886677265
+    },
+    {
+      "latitude": 52.164488,
+      "longitude": 5.541599,
+      "elevation": 6,
+      "distanceFromStart": 53511.882301880905
+    },
+    {
+      "latitude": 52.166297,
+      "longitude": 5.554669,
+      "elevation": 8,
+      "distanceFromStart": 54425.73734185112
+    },
+    {
+      "latitude": 52.166363,
+      "longitude": 5.561923,
+      "elevation": 8,
+      "distanceFromStart": 54935.39189590199
+    },
+    {
+      "latitude": 52.163437,
+      "longitude": 5.565879,
+      "elevation": 11,
+      "distanceFromStart": 55443.656074462815
+    },
+    {
+      "latitude": 52.157841,
+      "longitude": 5.564981,
+      "elevation": 7,
+      "distanceFromStart": 56070.0540800775
+    },
+    {
+      "latitude": 52.152465,
+      "longitude": 5.563876,
+      "elevation": 8,
+      "distanceFromStart": 56672.572531498656
+    },
+    {
+      "latitude": 52.147524,
+      "longitude": 5.562901,
+      "elevation": 13,
+      "distanceFromStart": 57226.02058897802
+    },
+    {
+      "latitude": 52.141998,
+      "longitude": 5.562306,
+      "elevation": 8,
+      "distanceFromStart": 57841.85249583321
+    },
+    {
+      "latitude": 52.136566,
+      "longitude": 5.561756,
+      "elevation": 11,
+      "distanceFromStart": 58447.02882625605
+    },
+    {
+      "latitude": 52.131646,
+      "longitude": 5.562233,
+      "elevation": 10,
+      "distanceFromStart": 58996.597031259065
+    },
+    {
+      "latitude": 52.126369,
+      "longitude": 5.563901,
+      "elevation": 11,
+      "distanceFromStart": 59594.36167710878
+    },
+    {
+      "latitude": 52.123052,
+      "longitude": 5.561684,
+      "elevation": 9,
+      "distanceFromStart": 60101.33109428756
+    },
+    {
+      "latitude": 52.118822,
+      "longitude": 5.559415,
+      "elevation": 7,
+      "distanceFromStart": 60630.91144029025
+    },
+    {
+      "latitude": 52.114267,
+      "longitude": 5.554483,
+      "elevation": 8,
+      "distanceFromStart": 61239.1412000451
+    },
+    {
+      "latitude": 52.110041,
+      "longitude": 5.551486,
+      "elevation": 9,
+      "distanceFromStart": 61757.23982974772
+    },
+    {
+      "latitude": 52.105741,
+      "longitude": 5.548845,
+      "elevation": 10,
+      "distanceFromStart": 62276.23376002295
+    },
+    {
+      "latitude": 52.101323,
+      "longitude": 5.546618,
+      "elevation": 7,
+      "distanceFromStart": 62803.726804461665
+    },
+    {
+      "latitude": 52.096655,
+      "longitude": 5.543641,
+      "elevation": 14,
+      "distanceFromStart": 63361.32734897693
+    },
+    {
+      "latitude": 52.090957,
+      "longitude": 5.542798,
+      "elevation": 9,
+      "distanceFromStart": 64000.11245497882
+    },
+    {
+      "latitude": 52.086298,
+      "longitude": 5.540718,
+      "elevation": 10,
+      "distanceFromStart": 64539.21727600907
+    },
+    {
+      "latitude": 52.081726,
+      "longitude": 5.539402,
+      "elevation": 8,
+      "distanceFromStart": 65061.809255781875
+    },
+    {
+      "latitude": 52.077058,
+      "longitude": 5.537999,
+      "elevation": 8,
+      "distanceFromStart": 65596.42530448828
+    },
+    {
+      "latitude": 52.075367,
+      "longitude": 5.533356,
+      "elevation": 8,
+      "distanceFromStart": 66160.917109253
+    },
+    {
+      "latitude": 52.072312,
+      "longitude": 5.530579,
+      "elevation": 6,
+      "distanceFromStart": 66714.894156038
+    },
+    {
+      "latitude": 52.072473,
+      "longitude": 5.53108,
+      "elevation": 6,
+      "distanceFromStart": 66794.08959558464
+    }
+  ],
+  "metrics": {
+    "totalClimb": 109,
+    "totalDescent": 98,
+    "minElevation": -5,
+    "maxElevation": 29,
+    "startElevation": 1,
+    "endElevation": 6
+  }
+}

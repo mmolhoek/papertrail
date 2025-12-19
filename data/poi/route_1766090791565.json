@@ -1,0 +1,215 @@
+{
+  "routeId": "route_1766090791565",
+  "createdAt": "2025-12-18T20:52:25.099Z",
+  "pois": [
+    {
+      "id": 235194627,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.3869503,
+      "longitude": 4.9247512
+    },
+    {
+      "id": 2743280545,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.3669323,
+      "longitude": 4.924394
+    },
+    {
+      "id": 9727914286,
+      "category": "fuel",
+      "name": "Tango Amsterdam Hamerstraat",
+      "latitude": 52.3843803,
+      "longitude": 4.9226008
+    },
+    {
+      "id": 553518503,
+      "category": "fuel",
+      "name": "Shell express",
+      "latitude": 52.2989213,
+      "longitude": 5.1545789
+    },
+    {
+      "id": 2161267403,
+      "category": "fuel",
+      "latitude": 52.3093476,
+      "longitude": 5.1462107
+    },
+    {
+      "id": 5576874386,
+      "category": "fuel",
+      "name": "Tamoil",
+      "latitude": 52.271755,
+      "longitude": 5.1644218
+    },
+    {
+      "id": 8596894350,
+      "category": "fuel",
+      "name": "TinQ",
+      "latitude": 52.2738507,
+      "longitude": 5.1678733
+    },
+    {
+      "id": 11554437882,
+      "category": "fuel",
+      "name": "Shell De Gooische Boer",
+      "latitude": 52.2777074,
+      "longitude": 5.1839068
+    },
+    {
+      "id": 612272306,
+      "category": "fuel",
+      "name": "Stam tankstation",
+      "latitude": 52.2750228,
+      "longitude": 5.1745163
+    },
+    {
+      "id": 9161808044,
+      "category": "fuel",
+      "name": "Mobil",
+      "latitude": 52.2584302,
+      "longitude": 5.2234223
+    },
+    {
+      "id": 552539745,
+      "category": "fuel",
+      "name": "Esso Groeneveld",
+      "latitude": 52.2184168,
+      "longitude": 5.2629455
+    },
+    {
+      "id": 9730590941,
+      "category": "fuel",
+      "name": "Tango Baarn",
+      "latitude": 52.2205586,
+      "longitude": 5.2860045
+    },
+    {
+      "id": 12595373594,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.2210991,
+      "longitude": 5.2576902
+    },
+    {
+      "id": 12595373595,
+      "category": "fuel",
+      "name": "Esso",
+      "latitude": 52.2216187,
+      "longitude": 5.2576641
+    },
+    {
+      "id": 1132080565,
+      "category": "fuel",
+      "name": "BP Baarn",
+      "latitude": 52.2147756,
+      "longitude": 5.3022619
+    },
+    {
+      "id": 2708493725,
+      "category": "fuel",
+      "name": "Shell De Slaag",
+      "latitude": 52.2120932,
+      "longitude": 5.3405515
+    },
+    {
+      "id": 2687480867,
+      "category": "fuel",
+      "name": "Esso Kreijne",
+      "latitude": 52.2032456,
+      "longitude": 5.3657594
+    },
+    {
+      "id": 6821280241,
+      "category": "fuel",
+      "name": "Esso Neerduist",
+      "latitude": 52.2055233,
+      "longitude": 5.3845681
+    },
+    {
+      "id": 2675011512,
+      "category": "fuel",
+      "name": "TotalEnergies Zielhorst",
+      "latitude": 52.1861125,
+      "longitude": 5.4128001
+    },
+    {
+      "id": 4070370787,
+      "category": "fuel",
+      "name": "Shell Vathorst",
+      "latitude": 52.182279,
+      "longitude": 5.434469
+    },
+    {
+      "id": 11554369921,
+      "category": "fuel",
+      "name": "Esso Hooglanderveen",
+      "latitude": 52.1890512,
+      "longitude": 5.4390088
+    },
+    {
+      "id": 567226050,
+      "category": "fuel",
+      "name": "TinQ",
+      "latitude": 52.1746995,
+      "longitude": 5.4493892
+    },
+    {
+      "id": 2789262435,
+      "category": "fuel",
+      "name": "Gulf",
+      "latitude": 52.1718352,
+      "longitude": 5.4474179
+    },
+    {
+      "id": 7873492662,
+      "category": "fuel",
+      "name": "OK express",
+      "latitude": 52.162434,
+      "longitude": 5.4226362
+    },
+    {
+      "id": 10591523774,
+      "category": "fuel",
+      "name": "Fountain Fuel waterstofstation",
+      "latitude": 52.1637138,
+      "longitude": 5.4237595
+    },
+    {
+      "id": 562939457,
+      "category": "fuel",
+      "name": "Tango Barneveld Plesmanstraat",
+      "latitude": 52.1246582,
+      "longitude": 5.5662221
+    },
+    {
+      "id": 1298785194,
+      "category": "fuel",
+      "name": "BP de Punt",
+      "latitude": 52.1336428,
+      "longitude": 5.590655
+    },
+    {
+      "id": 1298785197,
+      "category": "fuel",
+      "name": "Tankstation Esso Schoutenstraat",
+      "latitude": 52.1435421,
+      "longitude": 5.5769616
+    },
+    {
+      "id": 1298785198,
+      "category": "fuel",
+      "name": "Argos Barneveld",
+      "latitude": 52.1225486,
+      "longitude": 5.5637757
+    },
+    {
+      "id": 11091320173,
+      "category": "fuel",
+      "name": "Esso Barneveld",
+      "latitude": 52.1504144,
+      "longitude": 5.5679805
+    }
+  ]
+}

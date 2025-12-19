@@ -1,0 +1,1751 @@
+{
+  "routeId": "route_1766090791565",
+  "createdAt": "2025-12-18T20:54:28.583Z",
+  "segments": [
+    {
+      "start": {
+        "latitude": 52.3675481,
+        "longitude": 4.9320044
+      },
+      "end": {
+        "latitude": 52.3705915,
+        "longitude": 4.9327689
+      },
+      "speedLimit": 30,
+      "wayId": 630293396,
+      "roadName": "Keerwal",
+      "highwayType": "residential"
+    },
+    {
+      "start": {
+        "latitude": 52.3711102,
+        "longitude": 4.9342578
+      },
+      "end": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "speedLimit": 50,
+      "wayId": 7045941,
+      "roadName": "Panamalaan",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "end": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "speedLimit": 50,
+      "wayId": 7045949,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "end": {
+        "latitude": 52.3730386,
+        "longitude": 4.9332638
+      },
+      "speedLimit": 50,
+      "wayId": 7045951,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3726002,
+        "longitude": 4.9364069
+      },
+      "end": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "speedLimit": 50,
+      "wayId": 142628395,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "end": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "speedLimit": 50,
+      "wayId": 142628397,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "end": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "speedLimit": 50,
+      "wayId": 322898804,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "end": {
+        "latitude": 52.3724149,
+        "longitude": 4.9362888
+      },
+      "speedLimit": 50,
+      "wayId": 322898805,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "end": {
+        "latitude": 52.371109,
+        "longitude": 4.9340814
+      },
+      "speedLimit": 50,
+      "wayId": 375340269,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3725574,
+        "longitude": 4.933522
+      },
+      "end": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "speedLimit": 50,
+      "wayId": 597894526,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3730494,
+        "longitude": 4.9580377
+      },
+      "end": {
+        "latitude": 52.3726002,
+        "longitude": 4.9364069
+      },
+      "speedLimit": 70,
+      "wayId": 142628385,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3724149,
+        "longitude": 4.9362888
+      },
+      "end": {
+        "latitude": 52.372954,
+        "longitude": 4.9579921
+      },
+      "speedLimit": 70,
+      "wayId": 142628388,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3522343,
+        "longitude": 4.9632337
+      },
+      "end": {
+        "latitude": 52.3501754,
+        "longitude": 4.96137
+      },
+      "speedLimit": 70,
+      "wayId": 7045325,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3462247,
+        "longitude": 4.975664
+      },
+      "end": {
+        "latitude": 52.3438889,
+        "longitude": 4.9800934
+      },
+      "speedLimit": 100,
+      "wayId": 7040615,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.341555,
+        "longitude": 4.9835511
+      },
+      "end": {
+        "latitude": 52.3451543,
+        "longitude": 4.9784654
+      },
+      "speedLimit": 100,
+      "wayId": 322123875,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3399411,
+        "longitude": 4.9856157
+      },
+      "end": {
+        "latitude": 52.341555,
+        "longitude": 4.9835511
+      },
+      "speedLimit": 100,
+      "wayId": 7040613,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3406325,
+        "longitude": 4.9843049
+      },
+      "end": {
+        "latitude": 52.339807,
+        "longitude": 4.9853679
+      },
+      "speedLimit": 100,
+      "wayId": 761331606,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3438889,
+        "longitude": 4.9800934
+      },
+      "end": {
+        "latitude": 52.3406325,
+        "longitude": 4.9843049
+      },
+      "speedLimit": 100,
+      "wayId": 761331607,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3355611,
+        "longitude": 4.9930651
+      },
+      "end": {
+        "latitude": 52.3343136,
+        "longitude": 4.9966851
+      },
+      "speedLimit": 100,
+      "wayId": 7039657,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3329121,
+        "longitude": 5.0043615
+      },
+      "end": {
+        "latitude": 52.336213,
+        "longitude": 4.9922505
+      },
+      "speedLimit": 100,
+      "wayId": 7039701,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3350828,
+        "longitude": 4.9948218
+      },
+      "end": {
+        "latitude": 52.3327361,
+        "longitude": 5.0047605
+      },
+      "speedLimit": 100,
+      "wayId": 320398206,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3343136,
+        "longitude": 4.9966851
+      },
+      "end": {
+        "latitude": 52.3331569,
+        "longitude": 5.0013393
+      },
+      "speedLimit": 100,
+      "wayId": 761331602,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3312792,
+        "longitude": 5.0248602
+      },
+      "end": {
+        "latitude": 52.3309038,
+        "longitude": 5.0307247
+      },
+      "speedLimit": 80,
+      "wayId": 243557732,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3314805,
+        "longitude": 5.021224
+      },
+      "end": {
+        "latitude": 52.3309038,
+        "longitude": 5.0307247
+      },
+      "speedLimit": 80,
+      "wayId": 243557736,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3313731,
+        "longitude": 5.024881
+      },
+      "end": {
+        "latitude": 52.3309762,
+        "longitude": 5.0317181
+      },
+      "speedLimit": 100,
+      "wayId": 243557737,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3305928,
+        "longitude": 5.035306
+      },
+      "end": {
+        "latitude": 52.3243749,
+        "longitude": 5.0616933
+      },
+      "speedLimit": 100,
+      "wayId": 243559287,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3291223,
+        "longitude": 5.0420774
+      },
+      "end": {
+        "latitude": 52.3278756,
+        "longitude": 5.0478227
+      },
+      "speedLimit": 100,
+      "wayId": 491657052,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3293796,
+        "longitude": 5.0396852
+      },
+      "end": {
+        "latitude": 52.326977,
+        "longitude": 5.0507204
+      },
+      "speedLimit": 80,
+      "wayId": 1230919575,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3197688,
+        "longitude": 5.0881909
+      },
+      "end": {
+        "latitude": 52.3160619,
+        "longitude": 5.1014225
+      },
+      "speedLimit": 100,
+      "wayId": 443935686,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3190075,
+        "longitude": 5.0904945
+      },
+      "end": {
+        "latitude": 52.3158949,
+        "longitude": 5.1012922
+      },
+      "speedLimit": 100,
+      "wayId": 556084935,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3196142,
+        "longitude": 5.0879777
+      },
+      "end": {
+        "latitude": 52.3190075,
+        "longitude": 5.0904945
+      },
+      "speedLimit": 100,
+      "wayId": 941900752,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3142026,
+        "longitude": 5.106906
+      },
+      "end": {
+        "latitude": 52.3130889,
+        "longitude": 5.1133726
+      },
+      "speedLimit": 100,
+      "wayId": 438739122,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3076001,
+        "longitude": 5.1267354
+      },
+      "end": {
+        "latitude": 52.3058434,
+        "longitude": 5.1332706
+      },
+      "speedLimit": 100,
+      "wayId": 7035192,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3105498,
+        "longitude": 5.1193473
+      },
+      "end": {
+        "latitude": 52.3076023,
+        "longitude": 5.1263609
+      },
+      "speedLimit": 100,
+      "wayId": 438739123,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.307613,
+        "longitude": 5.1273434
+      },
+      "end": {
+        "latitude": 52.3094016,
+        "longitude": 5.1226056
+      },
+      "speedLimit": 100,
+      "wayId": 466780090,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3076023,
+        "longitude": 5.1263609
+      },
+      "end": {
+        "latitude": 52.304212,
+        "longitude": 5.1360318
+      },
+      "speedLimit": 80,
+      "wayId": 484593625,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3099536,
+        "longitude": 5.1208001
+      },
+      "end": {
+        "latitude": 52.3076001,
+        "longitude": 5.1267354
+      },
+      "speedLimit": 100,
+      "wayId": 491657035,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3056306,
+        "longitude": 5.1443039
+      },
+      "end": {
+        "latitude": 52.3055544,
+        "longitude": 5.1445266
+      },
+      "speedLimit": 50,
+      "wayId": 7035086,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.3056306,
+        "longitude": 5.1443039
+      },
+      "end": {
+        "latitude": 52.3046665,
+        "longitude": 5.1437187
+      },
+      "speedLimit": 50,
+      "wayId": 7035126,
+      "roadName": "IJsselmeerweg",
+      "highwayType": "secondary"
+    },
+    {
+      "start": {
+        "latitude": 52.305683,
+        "longitude": 5.138622
+      },
+      "end": {
+        "latitude": 52.3058131,
+        "longitude": 5.1439946
+      },
+      "speedLimit": 100,
+      "wayId": 7035186,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3059879,
+        "longitude": 5.144811
+      },
+      "end": {
+        "latitude": 52.3059676,
+        "longitude": 5.1440001
+      },
+      "speedLimit": 100,
+      "wayId": 7035190,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3058131,
+        "longitude": 5.1439946
+      },
+      "end": {
+        "latitude": 52.3058315,
+        "longitude": 5.144809
+      },
+      "speedLimit": 100,
+      "wayId": 7035196,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3059676,
+        "longitude": 5.1440001
+      },
+      "end": {
+        "latitude": 52.305839,
+        "longitude": 5.1386128
+      },
+      "speedLimit": 100,
+      "wayId": 7035199,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.306057,
+        "longitude": 5.1442806
+      },
+      "end": {
+        "latitude": 52.3057355,
+        "longitude": 5.1442939
+      },
+      "speedLimit": 50,
+      "wayId": 973139552,
+      "roadName": "IJsselmeerweg",
+      "highwayType": "secondary"
+    },
+    {
+      "start": {
+        "latitude": 52.3057355,
+        "longitude": 5.1442939
+      },
+      "end": {
+        "latitude": 52.3056306,
+        "longitude": 5.1443039
+      },
+      "speedLimit": 50,
+      "wayId": 973139553,
+      "roadName": "IJsselmeerweg",
+      "highwayType": "secondary"
+    },
+    {
+      "start": {
+        "latitude": 52.3062038,
+        "longitude": 5.1536774
+      },
+      "end": {
+        "latitude": 52.3061209,
+        "longitude": 5.1500562
+      },
+      "speedLimit": 100,
+      "wayId": 358442826,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.3059566,
+        "longitude": 5.1504824
+      },
+      "end": {
+        "latitude": 52.3060192,
+        "longitude": 5.1550172
+      },
+      "speedLimit": 100,
+      "wayId": 1092227134,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2916556,
+        "longitude": 5.1677254
+      },
+      "end": {
+        "latitude": 52.2926883,
+        "longitude": 5.17891
+      },
+      "speedLimit": 50,
+      "wayId": 7033515,
+      "roadName": "Huizerstraatweg",
+      "highwayType": "tertiary"
+    },
+    {
+      "start": {
+        "latitude": 52.2924541,
+        "longitude": 5.1797171
+      },
+      "end": {
+        "latitude": 52.2928064,
+        "longitude": 5.1793931
+      },
+      "speedLimit": 100,
+      "wayId": 7033607,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2972101,
+        "longitude": 5.1751481
+      },
+      "end": {
+        "latitude": 52.2928115,
+        "longitude": 5.1791155
+      },
+      "speedLimit": 100,
+      "wayId": 7033608,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2928115,
+        "longitude": 5.1791155
+      },
+      "end": {
+        "latitude": 52.292457,
+        "longitude": 5.1794278
+      },
+      "speedLimit": 100,
+      "wayId": 7033650,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2928064,
+        "longitude": 5.1793931
+      },
+      "end": {
+        "latitude": 52.2969322,
+        "longitude": 5.1756896
+      },
+      "speedLimit": 100,
+      "wayId": 38210967,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2924541,
+        "longitude": 5.1797171
+      },
+      "end": {
+        "latitude": 52.2928051,
+        "longitude": 5.179541
+      },
+      "speedLimit": 100,
+      "wayId": 75296209,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2935839,
+        "longitude": 5.1781238
+      },
+      "end": {
+        "latitude": 52.2928142,
+        "longitude": 5.1789572
+      },
+      "speedLimit": 100,
+      "wayId": 490680581,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2928142,
+        "longitude": 5.1789572
+      },
+      "end": {
+        "latitude": 52.2924582,
+        "longitude": 5.1792953
+      },
+      "speedLimit": 100,
+      "wayId": 490680583,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2928051,
+        "longitude": 5.179541
+      },
+      "end": {
+        "latitude": 52.2932831,
+        "longitude": 5.1792045
+      },
+      "speedLimit": 100,
+      "wayId": 490686110,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2926883,
+        "longitude": 5.17891
+      },
+      "end": {
+        "latitude": 52.2925811,
+        "longitude": 5.1799723
+      },
+      "speedLimit": 50,
+      "wayId": 724304686,
+      "roadName": "Huizerstraatweg",
+      "highwayType": "tertiary"
+    },
+    {
+      "start": {
+        "latitude": 52.2926945,
+        "longitude": 5.1788404
+      },
+      "end": {
+        "latitude": 52.2909958,
+        "longitude": 5.1798226
+      },
+      "speedLimit": 50,
+      "wayId": 1167086057,
+      "roadName": "Huizerstraatweg",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.2842021,
+        "longitude": 5.1832202
+      },
+      "end": {
+        "latitude": 52.2842647,
+        "longitude": 5.184465
+      },
+      "speedLimit": 50,
+      "wayId": 7033535,
+      "roadName": "Oud Blaricummerweg",
+      "highwayType": "secondary"
+    },
+    {
+      "start": {
+        "latitude": 52.2841105,
+        "longitude": 5.1837003
+      },
+      "end": {
+        "latitude": 52.281083,
+        "longitude": 5.18383
+      },
+      "speedLimit": 100,
+      "wayId": 75353995,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2824779,
+        "longitude": 5.1839577
+      },
+      "end": {
+        "latitude": 52.2850491,
+        "longitude": 5.183896
+      },
+      "speedLimit": 100,
+      "wayId": 1092227136,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2841105,
+        "longitude": 5.1837003
+      },
+      "end": {
+        "latitude": 52.2835539,
+        "longitude": 5.1835476
+      },
+      "speedLimit": 100,
+      "wayId": 1192372941,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2845709,
+        "longitude": 5.1836925
+      },
+      "end": {
+        "latitude": 52.2841105,
+        "longitude": 5.1837003
+      },
+      "speedLimit": 100,
+      "wayId": 1192372942,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2501682,
+        "longitude": 5.212582
+      },
+      "end": {
+        "latitude": 52.2492854,
+        "longitude": 5.2114519
+      },
+      "speedLimit": 50,
+      "wayId": 7030797,
+      "roadName": "Hilversumseweg",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.2487552,
+        "longitude": 5.2138782
+      },
+      "end": {
+        "latitude": 52.2499814,
+        "longitude": 5.2130945
+      },
+      "speedLimit": 100,
+      "wayId": 7030821,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2492545,
+        "longitude": 5.2116215
+      },
+      "end": {
+        "latitude": 52.2500316,
+        "longitude": 5.2126631
+      },
+      "speedLimit": 50,
+      "wayId": 7031232,
+      "roadName": "Hilversumseweg",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.2504296,
+        "longitude": 5.2126027
+      },
+      "end": {
+        "latitude": 52.2499638,
+        "longitude": 5.212871
+      },
+      "speedLimit": 100,
+      "wayId": 497011063,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2500316,
+        "longitude": 5.2126631
+      },
+      "end": {
+        "latitude": 52.2503411,
+        "longitude": 5.2130541
+      },
+      "speedLimit": 50,
+      "wayId": 724047051,
+      "roadName": "Hilversumseweg",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.2499814,
+        "longitude": 5.2130945
+      },
+      "end": {
+        "latitude": 52.2500882,
+        "longitude": 5.2130292
+      },
+      "speedLimit": 100,
+      "wayId": 1092227141,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2500882,
+        "longitude": 5.2130292
+      },
+      "end": {
+        "latitude": 52.2505457,
+        "longitude": 5.2127485
+      },
+      "speedLimit": 100,
+      "wayId": 1092227142,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2499638,
+        "longitude": 5.212871
+      },
+      "end": {
+        "latitude": 52.249687,
+        "longitude": 5.2130451
+      },
+      "speedLimit": 100,
+      "wayId": 1092227145,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2498346,
+        "longitude": 5.2133442
+      },
+      "end": {
+        "latitude": 52.2499814,
+        "longitude": 5.2130945
+      },
+      "speedLimit": 130,
+      "wayId": 1094268280,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2468713,
+        "longitude": 5.2152387
+      },
+      "end": {
+        "latitude": 52.2422941,
+        "longitude": 5.2213284
+      },
+      "speedLimit": 100,
+      "wayId": 7019340,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2419126,
+        "longitude": 5.2224746
+      },
+      "end": {
+        "latitude": 52.2459838,
+        "longitude": 5.2163941
+      },
+      "speedLimit": 100,
+      "wayId": 7030826,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2459838,
+        "longitude": 5.2163941
+      },
+      "end": {
+        "latitude": 52.2487552,
+        "longitude": 5.2138782
+      },
+      "speedLimit": 100,
+      "wayId": 497011065,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.226056,
+        "longitude": 5.2491315
+      },
+      "end": {
+        "latitude": 52.2245511,
+        "longitude": 5.2549308
+      },
+      "speedLimit": 100,
+      "wayId": 7017513,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.2247688,
+        "longitude": 5.255511
+      },
+      "end": {
+        "latitude": 52.2367424,
+        "longitude": 5.2316237
+      },
+      "speedLimit": 100,
+      "wayId": 7019266,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2308402,
+        "longitude": 5.2402932
+      },
+      "end": {
+        "latitude": 52.2246027,
+        "longitude": 5.2554405
+      },
+      "speedLimit": 100,
+      "wayId": 264195846,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2230544,
+        "longitude": 5.2865401
+      },
+      "end": {
+        "latitude": 52.223852,
+        "longitude": 5.2703377
+      },
+      "speedLimit": 100,
+      "wayId": 6996428,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2237398,
+        "longitude": 5.2667429
+      },
+      "end": {
+        "latitude": 52.2219519,
+        "longitude": 5.2917785
+      },
+      "speedLimit": 100,
+      "wayId": 6998207,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2214324,
+        "longitude": 5.2953744
+      },
+      "end": {
+        "latitude": 52.2223984,
+        "longitude": 5.2907251
+      },
+      "speedLimit": 100,
+      "wayId": 643510853,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2223984,
+        "longitude": 5.2907251
+      },
+      "end": {
+        "latitude": 52.2227159,
+        "longitude": 5.2889246
+      },
+      "speedLimit": 100,
+      "wayId": 956315064,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2085551,
+        "longitude": 5.3644245
+      },
+      "end": {
+        "latitude": 52.2189297,
+        "longitude": 5.3071874
+      },
+      "speedLimit": 100,
+      "wayId": 643510854,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2186966,
+        "longitude": 5.3071273
+      },
+      "end": {
+        "latitude": 52.2182402,
+        "longitude": 5.3092827
+      },
+      "speedLimit": 100,
+      "wayId": 677356271,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2180449,
+        "longitude": 5.3094247
+      },
+      "end": {
+        "latitude": 52.2185084,
+        "longitude": 5.309824
+      },
+      "speedLimit": 60,
+      "wayId": 908410094,
+      "roadName": "Zuidereind",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.2168125,
+        "longitude": 5.3086617
+      },
+      "end": {
+        "latitude": 52.2180449,
+        "longitude": 5.3094247
+      },
+      "speedLimit": 60,
+      "wayId": 908410095,
+      "roadName": "Zuidereind",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.2182402,
+        "longitude": 5.3092827
+      },
+      "end": {
+        "latitude": 52.2138199,
+        "longitude": 5.3329587
+      },
+      "speedLimit": 100,
+      "wayId": 941857161,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2102018,
+        "longitude": 5.3526835
+      },
+      "end": {
+        "latitude": 52.2093539,
+        "longitude": 5.3572887
+      },
+      "speedLimit": 100,
+      "wayId": 510021510,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2093539,
+        "longitude": 5.3572887
+      },
+      "end": {
+        "latitude": 52.2088904,
+        "longitude": 5.359987
+      },
+      "speedLimit": 100,
+      "wayId": 845533513,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2065251,
+        "longitude": 5.378328
+      },
+      "end": {
+        "latitude": 52.199884,
+        "longitude": 5.3945646
+      },
+      "speedLimit": 100,
+      "wayId": 6984460,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.2042149,
+        "longitude": 5.3869069
+      },
+      "end": {
+        "latitude": 52.2069507,
+        "longitude": 5.3771668
+      },
+      "speedLimit": 100,
+      "wayId": 510021507,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1976221,
+        "longitude": 5.3977542
+      },
+      "end": {
+        "latitude": 52.1932938,
+        "longitude": 5.4037625
+      },
+      "speedLimit": 100,
+      "wayId": 6983350,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1904499,
+        "longitude": 5.4081497
+      },
+      "end": {
+        "latitude": 52.1983954,
+        "longitude": 5.397063
+      },
+      "speedLimit": 100,
+      "wayId": 6983364,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1976221,
+        "longitude": 5.3977542
+      },
+      "end": {
+        "latitude": 52.1961936,
+        "longitude": 5.3993666
+      },
+      "speedLimit": 100,
+      "wayId": 6984459,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1766017,
+        "longitude": 5.4274045
+      },
+      "end": {
+        "latitude": 52.1771734,
+        "longitude": 5.4265941
+      },
+      "speedLimit": 100,
+      "wayId": 6977500,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1785078,
+        "longitude": 5.4240196
+      },
+      "end": {
+        "latitude": 52.1762081,
+        "longitude": 5.4271541
+      },
+      "speedLimit": 100,
+      "wayId": 6977501,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1823498,
+        "longitude": 5.4187995
+      },
+      "end": {
+        "latitude": 52.173669,
+        "longitude": 5.4317964
+      },
+      "speedLimit": 100,
+      "wayId": 6977503,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1718737,
+        "longitude": 5.4358562
+      },
+      "end": {
+        "latitude": 52.1811886,
+        "longitude": 5.4207289
+      },
+      "speedLimit": 100,
+      "wayId": 6983354,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1695675,
+        "longitude": 5.4401636
+      },
+      "end": {
+        "latitude": 52.1684238,
+        "longitude": 5.4432053
+      },
+      "speedLimit": 100,
+      "wayId": 6977927,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1715898,
+        "longitude": 5.436179
+      },
+      "end": {
+        "latitude": 52.1688725,
+        "longitude": 5.4421726
+      },
+      "speedLimit": 100,
+      "wayId": 6977936,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.168377,
+        "longitude": 5.4439905
+      },
+      "end": {
+        "latitude": 52.1716791,
+        "longitude": 5.4362754
+      },
+      "speedLimit": 100,
+      "wayId": 6977938,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1711664,
+        "longitude": 5.4367484
+      },
+      "end": {
+        "latitude": 52.1695675,
+        "longitude": 5.4401636
+      },
+      "speedLimit": 100,
+      "wayId": 6977944,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1696283,
+        "longitude": 5.4410018
+      },
+      "end": {
+        "latitude": 52.1702071,
+        "longitude": 5.4397699
+      },
+      "speedLimit": 100,
+      "wayId": 6977947,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1699097,
+        "longitude": 5.4365801
+      },
+      "end": {
+        "latitude": 52.1695675,
+        "longitude": 5.4401636
+      },
+      "speedLimit": 130,
+      "wayId": 400768361,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1640587,
+        "longitude": 5.5376156
+      },
+      "end": {
+        "latitude": 52.1650195,
+        "longitude": 5.4833795
+      },
+      "speedLimit": 100,
+      "wayId": 315171134,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1673779,
+        "longitude": 5.4496291
+      },
+      "end": {
+        "latitude": 52.1629037,
+        "longitude": 5.525651
+      },
+      "speedLimit": 100,
+      "wayId": 941857164,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1644881,
+        "longitude": 5.5415985
+      },
+      "end": {
+        "latitude": 52.1668202,
+        "longitude": 5.5588118
+      },
+      "speedLimit": 100,
+      "wayId": 189277269,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1672541,
+        "longitude": 5.561665
+      },
+      "end": {
+        "latitude": 52.1664067,
+        "longitude": 5.5546396
+      },
+      "speedLimit": 100,
+      "wayId": 363478499,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1664067,
+        "longitude": 5.5546396
+      },
+      "end": {
+        "latitude": 52.1658318,
+        "longitude": 5.5504156
+      },
+      "speedLimit": 100,
+      "wayId": 647244267,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1635893,
+        "longitude": 5.5662232
+      },
+      "end": {
+        "latitude": 52.1656566,
+        "longitude": 5.5660707
+      },
+      "speedLimit": 70,
+      "wayId": 70497169,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1631495,
+        "longitude": 5.5661988
+      },
+      "end": {
+        "latitude": 52.1635893,
+        "longitude": 5.5662232
+      },
+      "speedLimit": 70,
+      "wayId": 315171135,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1644404,
+        "longitude": 5.5657881
+      },
+      "end": {
+        "latitude": 52.1627989,
+        "longitude": 5.5659461
+      },
+      "speedLimit": 80,
+      "wayId": 390077694,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1635893,
+        "longitude": 5.5662232
+      },
+      "end": {
+        "latitude": 52.1648586,
+        "longitude": 5.5663281
+      },
+      "speedLimit": 70,
+      "wayId": 647244256,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1640179,
+        "longitude": 5.5659042
+      },
+      "end": {
+        "latitude": 52.1627989,
+        "longitude": 5.5659461
+      },
+      "speedLimit": 80,
+      "wayId": 858679783,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1620027,
+        "longitude": 5.5658286
+      },
+      "end": {
+        "latitude": 52.1578411,
+        "longitude": 5.5649806
+      },
+      "speedLimit": 100,
+      "wayId": 6959324,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1578658,
+        "longitude": 5.5652116
+      },
+      "end": {
+        "latitude": 52.1590393,
+        "longitude": 5.5654487
+      },
+      "speedLimit": 80,
+      "wayId": 308587370,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1578411,
+        "longitude": 5.5649806
+      },
+      "end": {
+        "latitude": 52.1576352,
+        "longitude": 5.5649377
+      },
+      "speedLimit": 100,
+      "wayId": 308587372,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1577092,
+        "longitude": 5.5651796
+      },
+      "end": {
+        "latitude": 52.1578658,
+        "longitude": 5.5652116
+      },
+      "speedLimit": 80,
+      "wayId": 308587375,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1576352,
+        "longitude": 5.5649377
+      },
+      "end": {
+        "latitude": 52.156554,
+        "longitude": 5.5647168
+      },
+      "speedLimit": 100,
+      "wayId": 308587378,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.157571,
+        "longitude": 5.5651514
+      },
+      "end": {
+        "latitude": 52.1577092,
+        "longitude": 5.5651796
+      },
+      "speedLimit": 80,
+      "wayId": 390077696,
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.1521578,
+        "longitude": 5.5640295
+      },
+      "end": {
+        "latitude": 52.1541577,
+        "longitude": 5.5644454
+      },
+      "speedLimit": 90,
+      "wayId": 140992334,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1540659,
+        "longitude": 5.5642061
+      },
+      "end": {
+        "latitude": 52.1503538,
+        "longitude": 5.5634399
+      },
+      "speedLimit": 100,
+      "wayId": 526052160,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1528048,
+        "longitude": 5.5637009
+      },
+      "end": {
+        "latitude": 52.1516227,
+        "longitude": 5.5631371
+      },
+      "speedLimit": 100,
+      "wayId": 543985727,
+      "highwayType": "motorway_link"
+    },
+    {
+      "start": {
+        "latitude": 52.1243032,
+        "longitude": 5.564922
+      },
+      "end": {
+        "latitude": 52.1323363,
+        "longitude": 5.5622712
+      },
+      "speedLimit": 100,
+      "wayId": 6959322,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.1323239,
+        "longitude": 5.5620481
+      },
+      "end": {
+        "latitude": 52.1263691,
+        "longitude": 5.5639005
+      },
+      "speedLimit": 100,
+      "wayId": 6959338,
+      "highwayType": "motorway"
+    },
+    {
+      "start": {
+        "latitude": 52.0802254,
+        "longitude": 5.5392283
+      },
+      "end": {
+        "latitude": 52.1017582,
+        "longitude": 5.5468838
+      },
+      "speedLimit": 80,
+      "wayId": 6960971,
+      "roadName": "Barneveldsestraat",
+      "highwayType": "tertiary"
+    },
+    {
+      "start": {
+        "latitude": 52.0817255,
+        "longitude": 5.5394018
+      },
+      "end": {
+        "latitude": 52.0817178,
+        "longitude": 5.5393197
+      },
+      "speedLimit": 30,
+      "wayId": 164408297,
+      "highwayType": "service"
+    },
+    {
+      "start": {
+        "latitude": 52.0817255,
+        "longitude": 5.5394018
+      },
+      "end": {
+        "latitude": 52.0817248,
+        "longitude": 5.5410925
+      },
+      "speedLimit": 30,
+      "wayId": 164408298,
+      "highwayType": "service"
+    },
+    {
+      "start": {
+        "latitude": 52.0765771,
+        "longitude": 5.5408119
+      },
+      "end": {
+        "latitude": 52.0769756,
+        "longitude": 5.5380031
+      },
+      "speedLimit": 30,
+      "wayId": 6960797,
+      "roadName": "Meidoornlaan",
+      "highwayType": "residential"
+    },
+    {
+      "start": {
+        "latitude": 52.0751826,
+        "longitude": 5.5380066
+      },
+      "end": {
+        "latitude": 52.0799248,
+        "longitude": 5.5391104
+      },
+      "speedLimit": 50,
+      "wayId": 6960988,
+      "roadName": "Barneveldsestraat",
+      "highwayType": "tertiary"
+    },
+    {
+      "start": {
+        "latitude": 52.0717989,
+        "longitude": 5.5329282
+      },
+      "end": {
+        "latitude": 52.0723118,
+        "longitude": 5.5305787
+      },
+      "speedLimit": 30,
+      "wayId": 6960824,
+      "roadName": "Pynssen van der Aalaan",
+      "highwayType": "residential"
+    },
+    {
+      "start": {
+        "latitude": 52.0697075,
+        "longitude": 5.5300175
+      },
+      "end": {
+        "latitude": 52.0730983,
+        "longitude": 5.5306389
+      },
+      "speedLimit": 50,
+      "wayId": 285885590,
+      "roadName": "Oude Holleweg",
+      "highwayType": "unclassified"
+    }
+  ]
+}
