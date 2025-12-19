@@ -6,9 +6,9 @@
 /* CSS Variables - Desert Palette */
 :root {
   /* Primary Colors - Sand & Dune */
-  --color-forest: #3d2e1f;
-  --color-forest-light: #5c4a35;
-  --color-forest-dark: #1f1710;
+  --color-forest: #4a4035;
+  --color-forest-light: #6d6055;
+  --color-forest-dark: #352d28;
 
   /* Accent Colors - Burnt Sienna & Rust */
   --color-sienna: #c45d3a;
@@ -19,8 +19,8 @@
   --color-parchment: #f5ebe0;
   --color-parchment-dark: #e6d5c3;
   --color-cream: #faf6f0;
-  --color-slate: #4a4035;
-  --color-charcoal: #352d25;
+  --color-slate: #5c5045;
+  --color-charcoal: #4a4035;
 
   /* Semantic Colors */
   --color-success: #7d8a2e;
@@ -75,8 +75,8 @@ html {
 
 body {
   font-family: var(--font-body);
-  background: #1a1510;
-  color: #d4c4b0;
+  background: #2d2520;
+  color: #e8ddd0;
   line-height: 1.6;
   min-height: 100vh;
   overflow-x: hidden;
@@ -218,7 +218,7 @@ body {
 .nav-toggle {
   width: 44px;
   height: 44px;
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
   border: 2px solid #d4a574;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -232,7 +232,7 @@ body {
 }
 
 .nav-toggle:hover {
-  background: linear-gradient(180deg, #3d3025 0%, #2a2218 100%);
+  background: linear-gradient(180deg, #504538 0%, #3d3530 100%);
   border-color: #e8c170;
   transform: scale(1.05);
 }
@@ -275,8 +275,8 @@ body {
   position: absolute;
   top: 52px;
   right: 0;
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
-  border: 1px solid #4a3d30;
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
+  border: 1px solid #5c5045;
   border-radius: var(--radius-lg);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.6),
@@ -1241,8 +1241,8 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
-  border-top: 1px solid #4a3d30;
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
+  border-top: 1px solid #5c5045;
   padding: var(--space-md);
   z-index: 100;
 }
@@ -1256,14 +1256,14 @@ body {
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: #8a8075;
+  color: #a09590;
 }
 
 .connection-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #8a8075;
+  background: #a09590;
   transition: var(--transition-base);
 }
 
@@ -1305,8 +1305,8 @@ body {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
-  border: 1px solid #4a3d30;
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
+  border: 1px solid #5c5045;
   color: #e8c170;
   border-radius: var(--radius-md);
   font-family: "Share Tech Mono", var(--font-mono);
@@ -1902,15 +1902,15 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
-  border: 1px solid #4a3d30;
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
+  border: 1px solid #5c5045;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: var(--transition-fast);
 }
 
 .recent-dest-item:hover {
-  background: linear-gradient(180deg, #3d3025 0%, #2a2218 100%);
+  background: linear-gradient(180deg, #504538 0%, #3d3530 100%);
   border-color: #e8c170;
 }
 
@@ -1947,7 +1947,7 @@ body {
 
 .recent-dest-remove:hover {
   background: #ff5252;
-  color: #1a1510;
+  color: #2d2520;
   box-shadow: 0 0 8px rgba(255, 82, 82, 0.5);
 }
 
@@ -2313,7 +2313,7 @@ body {
 
 /* Panel Base */
 .instrument-panel {
-  background: linear-gradient(145deg, #352d25 0%, #2a2218 50%, #1f1a15 100%);
+  background: linear-gradient(145deg, #4a4035 0%, #3d3530 50%, #352d28 100%);
   border: none;
   border-radius: var(--radius-lg);
   padding: 0;
@@ -2379,7 +2379,7 @@ body {
 }
 
 .panel-title-plate {
-  background: linear-gradient(180deg, #4a3d30 0%, #352d25 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #4a4035 100%);
   padding: var(--space-xs) var(--space-lg);
   border-radius: 2px;
   border: 1px solid rgba(212, 165, 116, 0.2);
@@ -2421,7 +2421,7 @@ body {
   font-family: "Share Tech Mono", "DM Mono", monospace;
   font-size: 0.65rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
 }
 
@@ -2452,7 +2452,7 @@ body {
 
 .gauge-face {
   fill: url(#gauge-face);
-  stroke: #130f0a;
+  stroke: #252018;
   stroke-width: 1;
 }
 
@@ -2521,7 +2521,7 @@ body {
 .readout-unit {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.7rem;
-  color: #a09080;
+  color: #b8a898;
 }
 
 /* Gauge Controls */
@@ -2536,7 +2536,7 @@ body {
   height: 44px;
   border-radius: 50%;
   border: 2px solid #5a4510;
-  background: linear-gradient(145deg, #4a3d30 0%, #352d25 50%, #2a2218 100%);
+  background: linear-gradient(145deg, #5c5045 0%, #4a4035 50%, #3d3530 100%);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -2598,7 +2598,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.15em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   white-space: nowrap;
@@ -2627,7 +2627,7 @@ body {
 .rotary-position {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.5rem;
-  color: #6a5d50;
+  color: #8a7d70;
   letter-spacing: 0.05em;
   transition: color 0.2s ease;
 }
@@ -2644,7 +2644,7 @@ body {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #5a4d40 0%, #352d25 50%, #2a2218 100%);
+  background: linear-gradient(145deg, #6d6055 0%, #4a4035 50%, #3d3530 100%);
   border: 2px solid #5a4510;
   cursor: pointer;
   box-shadow:
@@ -2678,7 +2678,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: 4px 8px;
-  background: linear-gradient(180deg, #352d25 0%, #2a2218 100%);
+  background: linear-gradient(180deg, #4a4035 0%, #3d3530 100%);
   border: 1px solid #5a4510;
   border-radius: 4px;
   cursor: pointer;
@@ -2695,7 +2695,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.05em;
-  color: #6a5d50;
+  color: #8a7d70;
   transition: color 0.2s ease;
 }
 
@@ -2703,7 +2703,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4a3d30;
+  background: #5c5045;
   border: 1px solid #5a4510;
   transition: all 0.2s ease;
 }
@@ -2744,7 +2744,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -2774,7 +2774,7 @@ body {
 .toggle-housing {
   width: 24px;
   height: 40px;
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
   border: 2px solid #5a4510;
   border-radius: 4px;
   position: relative;
@@ -2790,7 +2790,7 @@ body {
   transform: translateX(-50%) rotateX(0deg);
   width: 16px;
   height: 28px;
-  background: linear-gradient(180deg, #7a6d60 0%, #5a4d40 50%, #4a3d30 100%);
+  background: linear-gradient(180deg, #8d8075 0%, #6d6055 50%, #5c5045 100%);
   border-radius: 3px;
   transition:
     transform 0.15s ease,
@@ -2808,21 +2808,21 @@ body {
   transform: translateX(-50%);
   width: 10px;
   height: 3px;
-  background: #352d25;
+  background: #4a4035;
   border-radius: 1px;
 }
 
 .aviation-toggle .toggle-input:checked + .toggle-housing .toggle-lever {
   top: 8px;
   transform: translateX(-50%) rotateX(180deg);
-  background: linear-gradient(180deg, #4a3d30 0%, #5a4d40 50%, #7a6d60 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #6d6055 50%, #8d8075 100%);
 }
 
 .toggle-nameplate {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.5rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
   text-align: center;
   max-width: 50px;
 }
@@ -2831,7 +2831,7 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4a3d30;
+  background: #5c5045;
   border: 1px solid #5a4510;
   transition: all 0.2s ease;
 }
@@ -2853,7 +2853,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -2871,7 +2871,7 @@ body {
   align-items: center;
   gap: 6px;
   padding: var(--space-md);
-  background: linear-gradient(180deg, #4a3d30 0%, #352d25 50%, #2a2218 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #4a4035 50%, #3d3530 100%);
   border: 2px solid #5a4510;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -2922,14 +2922,14 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.15em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 .btn-status-light {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4a3d30;
+  background: #5c5045;
   border: 1px solid #5a4510;
 }
 
@@ -2955,7 +2955,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -2986,7 +2986,7 @@ body {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #352d25;
+  background: #4a4035;
   border: 2px solid #5a4510;
   transition: all 0.2s ease;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
@@ -3036,7 +3036,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.5rem;
   letter-spacing: 0.05em;
-  color: #6a5d50;
+  color: #8a7d70;
   text-align: center;
   transition: color 0.2s ease;
 }
@@ -3093,12 +3093,12 @@ body {
 
 .position-display-bezel {
   padding: 3px;
-  background: #352d25;
+  background: #4a4035;
   border-radius: calc(var(--radius-md) - 2px);
 }
 
 .position-display-screen {
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 50%, #130f0a 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 50%, #252018 100%);
   border-radius: calc(var(--radius-md) - 4px);
   padding: var(--space-md);
   position: relative;
@@ -3305,14 +3305,14 @@ body {
 
 .mini-gauge-face {
   fill: url(#gauge-face);
-  stroke: #130f0a;
+  stroke: #252018;
   stroke-width: 1;
 }
 
 /* Signal Arc */
 .signal-arc-bg {
   fill: none;
-  stroke: #352d25;
+  stroke: #4a4035;
   stroke-width: 8;
   stroke-linecap: round;
 }
@@ -3399,7 +3399,7 @@ body {
 .mini-gauge-readout .readout-label {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.45rem;
-  color: #a09080;
+  color: #b8a898;
   letter-spacing: 0.1em;
   margin-top: 1px;
 }
@@ -3416,7 +3416,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -3434,16 +3434,16 @@ body {
   align-items: center;
   gap: 4px;
   padding: var(--space-sm);
-  background: linear-gradient(180deg, #2a2218 0%, #1f1a15 100%);
+  background: linear-gradient(180deg, #3d3530 0%, #352d28 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .lamp-indicator {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #352d25;
+  background: #4a4035;
   border: 2px solid #5a4510;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
   transition: all 0.3s ease;
@@ -3453,14 +3453,14 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.5rem;
   letter-spacing: 0.1em;
-  color: #6a5d50;
+  color: #8a7d70;
 }
 
 .lamp-value {
   font-family: "Orbitron", monospace;
   font-size: 0.55rem;
   font-weight: 500;
-  color: #a09080;
+  color: #b8a898;
   letter-spacing: 0.05em;
   text-align: center;
   min-height: 14px;
@@ -3526,7 +3526,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-sm);
@@ -3537,9 +3537,9 @@ body {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .fp-icon {
@@ -3563,7 +3563,7 @@ body {
 .fp-track-name:empty::after,
 .fp-track-name:contains("None")::after {
   content: "NO ROUTE LOADED";
-  color: #6a5d50;
+  color: #8a7d70;
   text-shadow: none;
 }
 
@@ -3587,7 +3587,7 @@ body {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
   padding-right: var(--space-xl);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border: 2px solid #5a4510;
   border-radius: var(--radius-sm);
   color: #e8c170;
@@ -3611,7 +3611,7 @@ body {
 }
 
 .instrument-select option {
-  background: #2a2218;
+  background: #3d3530;
   color: #e8c170;
   padding: var(--space-sm);
 }
@@ -3653,7 +3653,7 @@ body {
   align-items: center;
   gap: 4px;
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #4a3d30 0%, #352d25 50%, #2a2218 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #4a4035 50%, #3d3530 100%);
   border: 2px solid #5a4510;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -3702,7 +3702,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 /* Instrument Checkbox */
@@ -3723,7 +3723,7 @@ body {
 .checkbox-housing {
   width: 18px;
   height: 18px;
-  background: linear-gradient(180deg, #2a2218 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #3d3530 0%, #2d2520 100%);
   border: 2px solid #5a4510;
   border-radius: 2px;
   display: flex;
@@ -3753,7 +3753,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.6rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 /* Data Readout Panel */
@@ -3768,7 +3768,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   text-transform: uppercase;
   text-align: center;
   margin-bottom: var(--space-md);
@@ -3786,9 +3786,9 @@ body {
   align-items: center;
   gap: 2px;
   padding: var(--space-sm);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .readout-prefix {
@@ -3827,7 +3827,7 @@ body {
 
 .label-hint {
   font-size: 0.5rem;
-  color: #6a5d50;
+  color: #8a7d70;
   font-weight: 400;
 }
 
@@ -3841,7 +3841,7 @@ body {
 .instrument-input {
   width: 100%;
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border: 2px solid #5a4510;
   border-radius: var(--radius-sm);
   color: #e8c170;
@@ -3853,7 +3853,7 @@ body {
 }
 
 .instrument-input::placeholder {
-  color: #6a5d50;
+  color: #8a7d70;
   text-shadow: none;
   font-size: 0.6rem;
 }
@@ -3874,7 +3874,7 @@ body {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #4a3d30;
+  background: #5c5045;
   border: 1px solid #5a4510;
 }
 
@@ -3892,7 +3892,7 @@ body {
   right: 4px;
   width: 32px;
   height: 32px;
-  background: linear-gradient(180deg, #4a3d30 0%, #352d25 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #4a4035 100%);
   border: 1px solid #5a4510;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -3908,7 +3908,7 @@ body {
 
 .toggle-icon {
   font-size: 0.8rem;
-  color: #a09080;
+  color: #b8a898;
 }
 
 /* Instrument Results (autocomplete) */
@@ -3917,7 +3917,7 @@ body {
   top: 100%;
   left: 0;
   right: 0;
-  background: linear-gradient(180deg, #2a2218 0%, #1f1a15 100%);
+  background: linear-gradient(180deg, #3d3530 0%, #352d28 100%);
   border: 2px solid #5a4510;
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
@@ -3949,9 +3949,9 @@ body {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .waypoint-marker {
@@ -4005,7 +4005,7 @@ body {
 .waypoint-clear {
   width: 24px;
   height: 24px;
-  background: linear-gradient(180deg, #4a3d30 0%, #352d25 100%);
+  background: linear-gradient(180deg, #5c5045 0%, #4a4035 100%);
   border: 1px solid #5a4510;
   border-radius: 50%;
   color: #d4a574;
@@ -4040,7 +4040,7 @@ body {
 .loading-spinner {
   width: 12px;
   height: 12px;
-  border: 2px solid #4a3d30;
+  border: 2px solid #5c5045;
   border-top-color: #e8c170;
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -4056,7 +4056,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 .loading-progress {
@@ -4069,10 +4069,10 @@ body {
 .progress-track {
   flex: 1;
   height: 6px;
-  background: #2a2218;
+  background: #3d3530;
   border-radius: 3px;
   overflow: hidden;
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .progress-track.large {
@@ -4114,7 +4114,7 @@ body {
 .loading-detail {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.5rem;
-  color: #6a5d50;
+  color: #8a7d70;
   letter-spacing: 0.05em;
 }
 
@@ -4147,8 +4147,8 @@ body {
   align-items: center;
   gap: 4px;
   padding: var(--space-md) var(--space-sm);
-  background: linear-gradient(180deg, #352d25 0%, #2a2218 100%);
-  border: 2px solid #4a3d30;
+  background: linear-gradient(180deg, #4a4035 0%, #3d3530 100%);
+  border: 2px solid #5c5045;
   border-radius: var(--radius-md);
   transition: all 0.15s ease;
 }
@@ -4171,7 +4171,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 .mode-btn input:checked + .mode-btn-face .mode-label {
@@ -4181,7 +4181,7 @@ body {
 .mode-speed {
   font-family: "Orbitron", monospace;
   font-size: 0.5rem;
-  color: #6a5d50;
+  color: #8a7d70;
 }
 
 .mode-btn input:checked + .mode-btn-face .mode-speed {
@@ -4200,7 +4200,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.2em;
-  color: #a09080;
+  color: #b8a898;
   margin-bottom: var(--space-sm);
 }
 
@@ -4209,9 +4209,9 @@ body {
   align-items: center;
   gap: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: var(--radius-sm);
-  border: 1px solid #4a3d30;
+  border: 1px solid #5c5045;
 }
 
 .source-icon {
@@ -4250,7 +4250,7 @@ body {
   height: 64px;
   border-radius: 50%;
   border: 3px solid #5a4510;
-  background: linear-gradient(145deg, #4a3d30 0%, #352d25 50%, #2a2218 100%);
+  background: linear-gradient(145deg, #5c5045 0%, #4a4035 50%, #3d3530 100%);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -4316,7 +4316,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.45rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 /* Navigation Status Display */
@@ -4339,7 +4339,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4a3d30;
+  background: #5c5045;
 }
 
 .nav-state-indicator.active {
@@ -4372,7 +4372,7 @@ body {
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md);
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-md);
 }
@@ -4400,7 +4400,7 @@ body {
 .turn-instruction {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.65rem;
-  color: #a09080;
+  color: #b8a898;
   margin-top: 4px;
 }
 
@@ -4454,7 +4454,7 @@ body {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
   letter-spacing: 0.1em;
-  color: #a09080;
+  color: #b8a898;
 }
 
 .progress-percent {
@@ -4497,7 +4497,7 @@ body {
 .config-description {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.6rem;
-  color: #6a5d50;
+  color: #8a7d70;
   text-align: center;
   line-height: 1.5;
   padding: var(--space-sm) var(--space-md);
@@ -4600,7 +4600,7 @@ body {
 .warning-details {
   font-family: "Share Tech Mono", monospace;
   font-size: 0.55rem;
-  color: #a09080;
+  color: #b8a898;
   line-height: 1.6;
 }
 
@@ -4660,12 +4660,12 @@ body {
 
 .preview-bezel {
   padding: 4px;
-  background: #352d25;
+  background: #4a4035;
   border-radius: calc(var(--radius-md) - 2px);
 }
 
 .preview-screen {
-  background: linear-gradient(180deg, #130f0a 0%, #1a1510 100%);
+  background: linear-gradient(180deg, #252018 0%, #2d2520 100%);
   border-radius: calc(var(--radius-md) - 4px);
   min-height: 200px;
   display: flex;
@@ -4677,7 +4677,7 @@ body {
 .preview-status {
   font-family: "Orbitron", monospace;
   font-size: 0.7rem;
-  color: #6a5d50;
+  color: #8a7d70;
   letter-spacing: 0.1em;
 }
 
