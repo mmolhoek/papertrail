@@ -217,6 +217,7 @@ export class TrackRenderer {
             projectedPoints[i],
             projectedPoints[i + 1],
             options.lineWidth,
+            maxX,
           );
         }
       }
@@ -527,6 +528,7 @@ export class TrackRenderer {
             projectedPoints[i],
             projectedPoints[i + 1],
             options.lineWidth,
+            maxX,
           );
         }
       }

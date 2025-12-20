@@ -140,7 +140,7 @@ export class RoadRenderer {
         continue;
       }
 
-      BitmapUtils.drawLine(bitmap, p1, p2, lineWidth);
+      BitmapUtils.drawLine(bitmap, p1, p2, lineWidth, maxX);
     }
 
     return true;

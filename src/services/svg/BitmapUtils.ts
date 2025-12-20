@@ -122,12 +122,19 @@ export class BitmapUtils {
   /**
    * Draw a line between two points using Bresenham's algorithm
    * Optimized with pre-computed bytesPerRow for better performance
+   *
+   * @param bitmap - Target bitmap
+   * @param p1 - Start point
+   * @param p2 - End point
+   * @param width - Line width (default 1)
+   * @param maxX - Optional max X coordinate for clipping (pixels beyond this are not drawn)
    */
   static drawLine(
     bitmap: Bitmap1Bit,
     p1: Point2D,
     p2: Point2D,
     width: number = 1,
+    maxX?: number,
   ): void {
     // Round coordinates to integers - Bresenham requires integer math
     // Without this, floating point coordinates can cause infinite loops
@@ -150,15 +157,18 @@ export class BitmapUtils {
     const data = bitmap.data;
     const bitmapWidth = bitmap.width;
     const bitmapHeight = bitmap.height;
+    // Use maxX for clipping if provided, otherwise use full bitmap width
+    const effectiveMaxX =
+      maxX !== undefined ? Math.min(maxX, bitmapWidth) : bitmapWidth;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      // Draw pixel with width
+      // Draw pixel with width, respecting maxX clipping
       if (width === 1) {
         BitmapUtils.setPixelFast(
           data,
           bytesPerRow,
-          bitmapWidth,
+          effectiveMaxX,
           bitmapHeight,
           x,
           y,
@@ -168,7 +178,7 @@ export class BitmapUtils {
         BitmapUtils.drawFilledCircleFast(
           data,
           bytesPerRow,
-          bitmapWidth,
+          effectiveMaxX,
           bitmapHeight,
           x,
           y,
