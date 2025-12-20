@@ -14,7 +14,13 @@ import {
 } from "@core/types";
 import { GPSError, GPSErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
-import { haversineDistance, calculateBearing } from "@utils/geo";
+import {
+  haversineDistance,
+  calculateBearing,
+  calculateCurvature,
+  calculateCorneringSpeed,
+  calculateSpeedForUpcomingCurve,
+} from "@utils/geo";
 
 const logger = getLogger("TrackSimulationService");
 
@@ -46,6 +52,14 @@ export class TrackSimulationService implements ITrackSimulationService {
 
   // Update interval in ms (for smooth movement)
   private readonly UPDATE_INTERVAL_MS = 500;
+
+  // Curve speed adjustment settings
+  private readonly LOOKAHEAD_DISTANCE_M = 200; // Look ahead 200m for curves
+  private readonly LATERAL_ACCEL_LIMIT = 2.5; // m/s², comfortable lateral acceleration
+  private readonly DECELERATION_RATE = 2.0; // m/s², comfortable braking
+
+  // Current curve-adjusted speed (km/h)
+  private curveAdjustedSpeed: number | null = null;
 
   constructor() {
     logger.info("TrackSimulationService created");
@@ -165,6 +179,7 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.totalDistance = 0;
     this.segmentDistances = [];
     this.currentSpeedLimit = null;
+    this.curveAdjustedSpeed = null;
 
     this.notifyStateChange();
 
@@ -391,11 +406,14 @@ export class TrackSimulationService implements ITrackSimulationService {
         ? p1.altitude + (p2.altitude - p1.altitude) * fraction
         : p1.altitude;
 
-    // Use speed limit if set and lower than configured speed
-    const effectiveSpeed =
-      this.currentSpeedLimit !== null
-        ? Math.min(this.speed, this.currentSpeedLimit)
-        : this.speed;
+    // Use minimum of: base speed, speed limit, and curve-adjusted speed
+    let effectiveSpeed = this.speed;
+    if (this.currentSpeedLimit !== null) {
+      effectiveSpeed = Math.min(effectiveSpeed, this.currentSpeedLimit);
+    }
+    if (this.curveAdjustedSpeed !== null) {
+      effectiveSpeed = Math.min(effectiveSpeed, this.curveAdjustedSpeed);
+    }
 
     return {
       latitude: lat,
@@ -461,12 +479,18 @@ export class TrackSimulationService implements ITrackSimulationService {
       return;
     }
 
+    // Calculate curve-adjusted speed based on upcoming turns
+    this.curveAdjustedSpeed = this.calculateCurveSpeed();
+
     // Calculate how far we move in this update interval
-    // Use speed limit if set and lower than configured speed
-    const effectiveSpeed =
-      this.currentSpeedLimit !== null
-        ? Math.min(this.speed, this.currentSpeedLimit)
-        : this.speed;
+    // Use minimum of: base speed, speed limit, and curve-adjusted speed
+    let effectiveSpeed = this.speed;
+    if (this.currentSpeedLimit !== null) {
+      effectiveSpeed = Math.min(effectiveSpeed, this.currentSpeedLimit);
+    }
+    if (this.curveAdjustedSpeed !== null) {
+      effectiveSpeed = Math.min(effectiveSpeed, this.curveAdjustedSpeed);
+    }
     const speedMs = (effectiveSpeed * 1000) / 3600; // m/s
     const distanceThisUpdate = speedMs * (this.UPDATE_INTERVAL_MS / 1000);
 
@@ -569,6 +593,87 @@ export class TrackSimulationService implements ITrackSimulationService {
     this.notifyPositionUpdate(this.currentPosition);
     // Note: Don't call notifyStateChange() here - state hasn't changed, only position has.
     // State change notifications should only happen when state actually transitions.
+  }
+
+  /**
+   * Calculate speed adjustment based on upcoming curves.
+   * Looks ahead on the track to find curves and calculates appropriate speed
+   * to navigate them comfortably.
+   */
+  private calculateCurveSpeed(): number {
+    if (!this.currentTrack) return this.speed;
+
+    const points = this.currentTrack.segments[0].points;
+    const startIdx = this.currentPointIndex;
+
+    // Need at least 3 points ahead for curvature calculation
+    if (startIdx >= points.length - 2) return this.speed;
+
+    // Build points array for lookahead analysis
+    let accumulatedDistance = 0;
+    let maxCurvature = 0;
+    let distanceToMaxCurvature = 0;
+
+    // Account for current position within segment
+    if (startIdx < points.length - 1) {
+      const segmentDistance = this.segmentDistances[startIdx] || 0;
+      const remainingInSegment = segmentDistance * (1 - this.segmentFraction);
+      accumulatedDistance = -remainingInSegment; // Start negative to account for partial segment
+    }
+
+    // Scan ahead for curves
+    for (let i = startIdx; i < points.length - 2; i++) {
+      const dist = this.segmentDistances[i] || 0;
+      accumulatedDistance += dist;
+
+      // Stop if we've looked far enough ahead
+      if (accumulatedDistance > this.LOOKAHEAD_DISTANCE_M) break;
+
+      // Calculate curvature at this point (using 3 consecutive points)
+      const curvature = calculateCurvature(
+        points[i].latitude,
+        points[i].longitude,
+        points[i + 1].latitude,
+        points[i + 1].longitude,
+        points[i + 2].latitude,
+        points[i + 2].longitude,
+      );
+
+      if (curvature > maxCurvature) {
+        maxCurvature = curvature;
+        distanceToMaxCurvature = Math.max(0, accumulatedDistance);
+      }
+    }
+
+    // If no significant curvature found, return base speed
+    if (maxCurvature < 0.1) {
+      return this.speed;
+    }
+
+    // Calculate the safe cornering speed for the curve
+    const corneringSpeed = calculateCorneringSpeed(
+      maxCurvature,
+      this.speed,
+      this.LATERAL_ACCEL_LIMIT,
+    );
+
+    // Calculate what speed we need now to decelerate in time
+    const speedNow = calculateSpeedForUpcomingCurve(
+      this.speed,
+      corneringSpeed,
+      distanceToMaxCurvature,
+      this.DECELERATION_RATE,
+    );
+
+    // Log significant speed reductions for debugging
+    if (speedNow < this.speed * 0.9) {
+      logger.debug(
+        `Curve ahead: curvature=${maxCurvature.toFixed(2)} deg/m at ${Math.round(distanceToMaxCurvature)}m, ` +
+          `cornering=${Math.round(corneringSpeed)} km/h, current=${Math.round(speedNow)} km/h`,
+      );
+    }
+
+    return speedNow;
   }
 
   private notifyPositionUpdate(position: GPSCoordinate): void {
