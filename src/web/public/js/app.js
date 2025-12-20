@@ -1991,7 +1991,7 @@ class PapertrailClient {
     const statusEl = document.getElementById("simulation-status");
     const navStatusEl = document.getElementById("drive-nav-status");
     const navStateEl = document.getElementById("drive-nav-state");
-    const pauseBtnText = pauseBtn.querySelector(".btn-text");
+    const pauseBtnText = pauseBtn?.querySelector(".transport-label");
 
     if (this.isSimulating) {
       controls.classList.add("running");
@@ -2017,13 +2017,15 @@ class PapertrailClient {
 
       if (this.isPaused) {
         controls.classList.add("paused");
-        pauseBtnText.textContent = "Resume";
-        pauseBtn.querySelector(".btn-icon").textContent = "▶";
+        if (pauseBtnText) pauseBtnText.textContent = "RESUME";
+        const pauseIcon = pauseBtn?.querySelector(".transport-icon");
+        if (pauseIcon) pauseIcon.textContent = "▶";
         if (navStateEl) navStateEl.textContent = "Paused";
       } else {
         controls.classList.remove("paused");
-        pauseBtnText.textContent = "Pause";
-        pauseBtn.querySelector(".btn-icon").textContent = "⏸";
+        if (pauseBtnText) pauseBtnText.textContent = "PAUSE";
+        const pauseIcon = pauseBtn?.querySelector(".transport-icon");
+        if (pauseIcon) pauseIcon.textContent = "⏸";
       }
     } else {
       controls.classList.remove("running", "paused");
