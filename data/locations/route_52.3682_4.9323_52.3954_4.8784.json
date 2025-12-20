@@ -1,0 +1,104 @@
+{
+  "routeId": "route_52.3682_4.9323_52.3954_4.8784",
+  "createdAt": "2025-12-20T16:44:50.774Z",
+  "locations": [
+    {
+      "latitude": 52.368205,
+      "longitude": 4.932326,
+      "location": {
+        "displayName": "Keerwal, Amsterdam",
+        "street": "Keerwal",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1018 AK",
+        "placeId": 143442167
+      },
+      "cachedAt": 1766249084154
+    },
+    {
+      "latitude": 52.375162,
+      "longitude": 4.928736,
+      "location": {
+        "displayName": "Piet Heinkade, Amsterdam",
+        "street": "Piet Heinkade",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1019 HM",
+        "placeId": 142709004
+      },
+      "cachedAt": 1766249085183
+    },
+    {
+      "latitude": 52.377336,
+      "longitude": 4.913582,
+      "location": {
+        "displayName": "Piet Heinkade, Amsterdam",
+        "street": "Piet Heinkade",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1019 BR",
+        "placeId": 144034842
+      },
+      "cachedAt": 1766249086132
+    },
+    {
+      "latitude": 52.380481,
+      "longitude": 4.89892,
+      "location": {
+        "displayName": "Michiel de Ruijtertunnel, Amsterdam",
+        "street": "Michiel de Ruijtertunnel",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1012 AA",
+        "placeId": 419300413
+      },
+      "cachedAt": 1766249087219
+    },
+    {
+      "latitude": 52.387508,
+      "longitude": 4.892392,
+      "location": {
+        "displayName": "Westerdoksdijk, Amsterdam",
+        "street": "Westerdoksdijk",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1013 AE",
+        "placeId": 142670323
+      },
+      "cachedAt": 1766249088372
+    },
+    {
+      "latitude": 52.392576,
+      "longitude": 4.882743,
+      "location": {
+        "displayName": "Memeleiland, Amsterdam",
+        "street": "Memeleiland",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1014 ZL",
+        "placeId": 143034500
+      },
+      "cachedAt": 1766249089396
+    },
+    {
+      "latitude": 52.395395,
+      "longitude": 4.878414,
+      "location": {
+        "displayName": "Haparandaweg, Amsterdam",
+        "street": "Haparandaweg",
+        "locality": "Amsterdam",
+        "region": "Noord-Holland",
+        "country": "Nederland",
+        "postcode": "1013 BD",
+        "placeId": 143906276
+      },
+      "cachedAt": 1766249090772
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "routeId": "route_52.3682_4.9323_52.3954_4.8784",
+  "createdAt": "2025-12-20T16:44:44.024Z",
+  "elevations": [
+    {
+      "latitude": 52.368205,
+      "longitude": 4.932326,
+      "elevation": 1,
+      "distanceFromStart": 0
+    },
+    {
+      "latitude": 52.372242,
+      "longitude": 4.933922,
+      "elevation": 1,
+      "distanceFromStart": 513.1730500483155
+    },
+    {
+      "latitude": 52.375255,
+      "longitude": 4.928273,
+      "elevation": 2,
+      "distanceFromStart": 1037.6545025832518
+    },
+    {
+      "latitude": 52.376472,
+      "longitude": 4.920574,
+      "elevation": 3,
+      "distanceFromStart": 1577.6920389084032
+    },
+    {
+      "latitude": 52.377376,
+      "longitude": 4.913126,
+      "elevation": 1,
+      "distanceFromStart": 2093.3990271021194
+    },
+    {
+      "latitude": 52.378201,
+      "longitude": 4.905698,
+      "elevation": 2,
+      "distanceFromStart": 2606.6485242424674
+    },
+    {
+      "latitude": 52.380481,
+      "longitude": 4.89892,
+      "elevation": 6,
+      "distanceFromStart": 3133.3138804359164
+    },
+    {
+      "latitude": 52.383271,
+      "longitude": 4.893174,
+      "elevation": 6,
+      "distanceFromStart": 3653.0077776386856
+    },
+    {
+      "latitude": 52.38901,
+      "longitude": 4.891727,
+      "elevation": 2,
+      "distanceFromStart": 4308.913150176913
+    },
+    {
+      "latitude": 52.390663,
+      "longitude": 4.885152,
+      "elevation": 3,
+      "distanceFromStart": 4816.170520823033
+    },
+    {
+      "latitude": 52.393083,
+      "longitude": 4.880125,
+      "elevation": -1,
+      "distanceFromStart": 5402.92165154583
+    },
+    {
+      "latitude": 52.395355,
+      "longitude": 4.878019,
+      "elevation": 3,
+      "distanceFromStart": 5908.602729535632
+    },
+    {
+      "latitude": 52.395395,
+      "longitude": 4.878414,
+      "elevation": 3,
+      "distanceFromStart": 5945.763496920142
+    }
+  ],
+  "metrics": {
+    "totalClimb": 8,
+    "totalDescent": 8,
+    "minElevation": -1,
+    "maxElevation": 6,
+    "startElevation": 1,
+    "endElevation": 3
+  }
+}

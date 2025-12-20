@@ -368,8 +368,16 @@ export class DriveCoordinator {
             // Get current speed limit (async but cached)
             const speedLimit = await this.getCurrentSpeedLimit(lastPosition);
 
-            // Get nearby POIs (async but cached)
-            const nearbyPOIs = await this.getCurrentNearbyPOIs(lastPosition);
+            // Calculate distance from route start for POI filtering
+            const distanceFromStart =
+              status.route.totalDistance - status.distanceRemaining;
+
+            // Get nearby POIs with route context for smart filtering
+            // This ensures we only show POIs that are actually on the route
+            const nearbyPOIs = await this.getCurrentNearbyPOIs(lastPosition, {
+              geometry: status.route.geometry,
+              distanceFromStart,
+            });
 
             // Get current location name (async but cached)
             const locationName =
@@ -727,9 +735,17 @@ export class DriveCoordinator {
 
   /**
    * Get nearby POIs for position (uses cache to avoid excessive lookups)
+   *
+   * When route context is provided, POIs are filtered to only show those
+   * that are actually on/near the route (within 200m perpendicular distance)
+   * and sorted by distance along route rather than crow-fly distance.
    */
   private async getCurrentNearbyPOIs(
     position: GPSCoordinate,
+    routeContext?: {
+      geometry: [number, number][];
+      distanceFromStart: number;
+    },
   ): Promise<NearbyPOI[]> {
     // Only show POIs at zoom level 15+ during navigation
     const zoomLevel = this.configService.getZoomLevel();
@@ -755,17 +771,34 @@ export class DriveCoordinator {
 
     if (shouldUpdate) {
       try {
+        // Build route context for route-aware POI filtering
+        // Use 100m threshold - POIs should be directly accessible from route
+        const poiRouteContext = routeContext
+          ? {
+              geometry: routeContext.geometry,
+              maxDistanceToRoute: 100, // Only show POIs within 100m of route line
+              distanceFromStart: routeContext.distanceFromStart,
+            }
+          : undefined;
+
+        if (poiRouteContext) {
+          logger.info(
+            `POI query with route context: ${poiRouteContext.geometry.length} geometry points, ${Math.round(poiRouteContext.distanceFromStart)}m from start`,
+          );
+        }
+
         const result = await this.poiService.getNearbyPOIs(
           position,
           enabledCategories,
           5000, // 5km max distance
           5, // Max 5 POIs
+          poiRouteContext,
         );
         if (result.success) {
           this.cachedNearbyPOIs = result.data;
           if (this.cachedNearbyPOIs.length > 0) {
             logger.debug(
-              `Found ${this.cachedNearbyPOIs.length} nearby POIs: ${this.cachedNearbyPOIs.map((p) => `${p.codeLetter}:${p.name || "unnamed"}`).join(", ")}`,
+              `Found ${this.cachedNearbyPOIs.length} nearby POIs: ${this.cachedNearbyPOIs.map((p) => `${p.codeLetter}:${p.name || "unnamed"}${p.distanceAlongRoute !== undefined ? ` (${Math.round(p.distanceAlongRoute)}m along route)` : ""}`).join(", ")}`,
             );
           }
         } else {

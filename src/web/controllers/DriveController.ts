@@ -327,6 +327,15 @@ export class DriveController {
       return;
     }
 
+    // Stop any active simulation (for drive simulation case)
+    if (this.simulationService) {
+      const simStatus = this.simulationService.getStatus();
+      if (simStatus.state === "running" || simStatus.state === "paused") {
+        logger.info("Stopping simulation along with drive navigation");
+        await this.simulationService.stopSimulation();
+      }
+    }
+
     // Disable simulation mode when stopping navigation
     this.driveNavigationService.setSimulationMode(false);
 

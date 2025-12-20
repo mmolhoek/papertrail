@@ -1,0 +1,240 @@
+{
+  "routeId": "route_52.3682_4.9323_52.3954_4.8784",
+  "createdAt": "2025-12-20T16:45:31.465Z",
+  "segments": [
+    {
+      "start": {
+        "latitude": 52.3675481,
+        "longitude": 4.9320044
+      },
+      "end": {
+        "latitude": 52.3705915,
+        "longitude": 4.9327689
+      },
+      "speedLimit": 30,
+      "wayId": 630293396,
+      "roadName": "Keerwal",
+      "highwayType": "residential"
+    },
+    {
+      "start": {
+        "latitude": 52.3711102,
+        "longitude": 4.9342578
+      },
+      "end": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "speedLimit": 50,
+      "wayId": 7045941,
+      "roadName": "Panamalaan",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "end": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "speedLimit": 50,
+      "wayId": 7045949,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "end": {
+        "latitude": 52.3730386,
+        "longitude": 4.9332638
+      },
+      "speedLimit": 50,
+      "wayId": 7045951,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3726002,
+        "longitude": 4.9364069
+      },
+      "end": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "speedLimit": 50,
+      "wayId": 142628395,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "end": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "speedLimit": 50,
+      "wayId": 142628397,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3724793,
+        "longitude": 4.9337617
+      },
+      "end": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "speedLimit": 50,
+      "wayId": 322898804,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723514,
+        "longitude": 4.9338556
+      },
+      "end": {
+        "latitude": 52.3724149,
+        "longitude": 4.9362888
+      },
+      "speedLimit": 50,
+      "wayId": 322898805,
+      "roadName": "Piet Heintunnel",
+      "highwayType": "trunk"
+    },
+    {
+      "start": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "end": {
+        "latitude": 52.371109,
+        "longitude": 4.9340814
+      },
+      "speedLimit": 50,
+      "wayId": 375340269,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3725574,
+        "longitude": 4.933522
+      },
+      "end": {
+        "latitude": 52.3723687,
+        "longitude": 4.9336506
+      },
+      "speedLimit": 50,
+      "wayId": 597894526,
+      "roadName": "Piet Heinkade",
+      "highwayType": "primary"
+    },
+    {
+      "start": {
+        "latitude": 52.3948178,
+        "longitude": 4.876987
+      },
+      "end": {
+        "latitude": 52.3955005,
+        "longitude": 4.878301
+      },
+      "speedLimit": 30,
+      "wayId": 7377900,
+      "roadName": "Haparandaweg",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.3955005,
+        "longitude": 4.878301
+      },
+      "end": {
+        "latitude": 52.3966733,
+        "longitude": 4.8777621
+      },
+      "speedLimit": 30,
+      "wayId": 847140081,
+      "roadName": "Danzigerbocht",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.3952554,
+        "longitude": 4.8781445
+      },
+      "end": {
+        "latitude": 52.3953545,
+        "longitude": 4.8780187
+      },
+      "speedLimit": 30,
+      "wayId": 847943899,
+      "highwayType": "service"
+    },
+    {
+      "start": {
+        "latitude": 52.395501,
+        "longitude": 4.877831
+      },
+      "end": {
+        "latitude": 52.3953545,
+        "longitude": 4.8780187
+      },
+      "speedLimit": 30,
+      "wayId": 847943926,
+      "highwayType": "service"
+    },
+    {
+      "start": {
+        "latitude": 52.3955068,
+        "longitude": 4.8775675
+      },
+      "end": {
+        "latitude": 52.3955068,
+        "longitude": 4.8775675
+      },
+      "speedLimit": 30,
+      "wayId": 847943927,
+      "highwayType": "service"
+    },
+    {
+      "start": {
+        "latitude": 52.3955005,
+        "longitude": 4.878301
+      },
+      "end": {
+        "latitude": 52.3957906,
+        "longitude": 4.8787659
+      },
+      "speedLimit": 30,
+      "wayId": 1134145421,
+      "roadName": "Haparandaweg",
+      "highwayType": "unclassified"
+    },
+    {
+      "start": {
+        "latitude": 52.3953954,
+        "longitude": 4.8784138
+      },
+      "end": {
+        "latitude": 52.3954903,
+        "longitude": 4.8782814
+      },
+      "speedLimit": 30,
+      "wayId": 1134333770,
+      "highwayType": "service"
+    }
+  ]
+}

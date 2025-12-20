@@ -17,7 +17,11 @@ import {
 } from "@core/types";
 import { POIError } from "@core/errors";
 import { getLogger } from "@utils/logger";
-import { haversineDistance, calculateBearing } from "@utils/geo";
+import {
+  haversineDistance,
+  calculateBearing,
+  findClosestPointOnRoute,
+} from "@utils/geo";
 
 const logger = getLogger("POIService");
 
@@ -131,6 +135,11 @@ export class POIService implements IPOIService {
     categories?: POICategory[],
     maxDistance: number = DEFAULT_MAX_DISTANCE,
     maxResults: number = DEFAULT_MAX_RESULTS,
+    routeContext?: {
+      geometry: [number, number][];
+      maxDistanceToRoute?: number;
+      distanceFromStart?: number;
+    },
   ): Promise<Result<NearbyPOI[]>> {
     if (!this.isInitialized) {
       return failure(POIError.serviceNotInitialized());
@@ -147,6 +156,10 @@ export class POIService implements IPOIService {
       ? allCachedPOIs.filter((poi) => categories.includes(poi.category))
       : allCachedPOIs;
 
+    // Default max distance to route (for highway filtering)
+    const maxDistanceToRoute = routeContext?.maxDistanceToRoute ?? 200;
+    const currentDistanceFromStart = routeContext?.distanceFromStart ?? 0;
+
     // Calculate distance and bearing for each POI
     const poisWithDistance: NearbyPOI[] = filteredPOIs.map((poi) => {
       const distance = haversineDistance(
@@ -162,7 +175,7 @@ export class POIService implements IPOIService {
         poi.longitude,
       );
 
-      return {
+      const result: NearbyPOI = {
         id: poi.id,
         category: poi.category,
         name: poi.name,
@@ -172,12 +185,94 @@ export class POIService implements IPOIService {
         bearing,
         codeLetter: POI_CODE_LETTERS[poi.category],
       };
+
+      // If route context is provided, calculate route proximity
+      if (routeContext?.geometry && routeContext.geometry.length >= 2) {
+        const routeProximity = findClosestPointOnRoute(
+          poi.latitude,
+          poi.longitude,
+          routeContext.geometry,
+        );
+        if (routeProximity) {
+          result.distanceToRoute = routeProximity.distanceToRoute;
+          // Distance along route from current position = POI's position on route - current position on route
+          result.distanceAlongRoute = Math.max(
+            0,
+            routeProximity.distanceAlongRoute - currentDistanceFromStart,
+          );
+        }
+      }
+
+      return result;
     });
 
-    // Filter by max distance and sort by distance
-    const nearbyPOIs = poisWithDistance
-      .filter((poi) => poi.distance <= maxDistance)
-      .sort((a, b) => a.distance - b.distance);
+    let nearbyPOIs: NearbyPOI[];
+
+    if (routeContext?.geometry && routeContext.geometry.length >= 2) {
+      // Route-aware filtering: only show POIs that are close to the route line
+      // and are ahead of current position (positive distanceAlongRoute)
+
+      // Log all POIs with their route distances for debugging
+      const poisWithRouteInfo = poisWithDistance.filter(
+        (poi) => poi.distanceToRoute !== undefined,
+      );
+      if (poisWithRouteInfo.length > 0) {
+        logger.info(
+          `POI route filtering: ${poisWithRouteInfo.length} POIs analyzed. ` +
+            `Distances to route: ${poisWithRouteInfo
+              .slice(0, 10)
+              .map(
+                (p) =>
+                  `${p.name || "unnamed"}:${Math.round(p.distanceToRoute!)}m`,
+              )
+              .join(", ")}`,
+        );
+      }
+
+      nearbyPOIs = poisWithDistance
+        .filter((poi) => {
+          // Must have route proximity data
+          if (
+            poi.distanceToRoute === undefined ||
+            poi.distanceAlongRoute === undefined
+          ) {
+            return false;
+          }
+          // Must be close to the route (not just within corridor)
+          // Using strict threshold - POIs should be directly on the route
+          if (poi.distanceToRoute > maxDistanceToRoute) {
+            logger.debug(
+              `Filtered out POI "${poi.name || "unnamed"}": ${Math.round(poi.distanceToRoute)}m from route (max: ${maxDistanceToRoute}m)`,
+            );
+            return false;
+          }
+          // Must be ahead on the route (not behind)
+          if (poi.distanceAlongRoute < 0) {
+            return false;
+          }
+          // Still respect max distance from current position
+          if (poi.distance > maxDistance) {
+            return false;
+          }
+          logger.debug(
+            `Accepted POI "${poi.name || "unnamed"}": ${Math.round(poi.distanceToRoute)}m from route, ${Math.round(poi.distanceAlongRoute)}m ahead`,
+          );
+          return true;
+        })
+        // Sort by distance along route (next POI first, not closest as the crow flies)
+        .sort(
+          (a, b) => (a.distanceAlongRoute ?? 0) - (b.distanceAlongRoute ?? 0),
+        );
+
+      logger.info(
+        `Route-aware filtering result: ${nearbyPOIs.length}/${poisWithDistance.length} POIs within ${maxDistanceToRoute}m of route`,
+      );
+    } else {
+      // No route context: use legacy crow-fly distance filtering
+      nearbyPOIs = poisWithDistance
+        .filter((poi) => poi.distance <= maxDistance)
+        .sort((a, b) => a.distance - b.distance);
+    }
 
     // Deduplicate by ID (same POI might be in multiple route caches)
     const seenIds = new Set<number>();

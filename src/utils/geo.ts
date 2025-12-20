@@ -319,7 +319,8 @@ export function calculateCorneringSpeed(
   comfortLevel: number = 2.5,
 ): number {
   // If curvature is very low, allow max speed
-  if (curvature < 0.1) return maxSpeed; // Less than 0.1 deg/m is essentially straight
+  // 0.05 deg/m = ~1146m radius curve (highway), allow full speed
+  if (curvature < 0.05) return maxSpeed;
 
   // Convert curvature (deg/m) to approximate turn radius (meters)
   // For a circle: arc_length = r * theta (in radians)

@@ -97,6 +97,12 @@ export class SimulationController {
       speedValue = speedMap[speed] || SimulationSpeed.WALK;
     }
 
+    // Stop any active drive navigation first
+    if (this.orchestrator.isDriveNavigating()) {
+      logger.info("Stopping drive navigation before starting track simulation");
+      await this.orchestrator.stopDriveNavigation();
+    }
+
     // Set the track as active for display rendering
     const setActiveResult = await this.orchestrator.setActiveGPX(trackPath);
     if (!isSuccess(setActiveResult)) {
@@ -163,6 +169,12 @@ export class SimulationController {
         },
       });
       return;
+    }
+
+    // Stop any active drive navigation (for drive simulation case)
+    if (this.orchestrator.isDriveNavigating()) {
+      logger.info("Stopping drive navigation along with simulation");
+      await this.orchestrator.stopDriveNavigation();
     }
 
     const result = await this.simulationService.stopSimulation();

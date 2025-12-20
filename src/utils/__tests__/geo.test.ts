@@ -401,7 +401,7 @@ describe("geo utilities", () => {
 
   describe("calculateCorneringSpeed", () => {
     it("should return max speed for straight road", () => {
-      const speed = calculateCorneringSpeed(0.05, 100);
+      const speed = calculateCorneringSpeed(0.03, 100);
       expect(speed).toBe(100);
     });
 

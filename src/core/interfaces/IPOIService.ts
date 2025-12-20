@@ -88,6 +88,10 @@ export interface POIPrefetchProgress {
 export interface NearbyPOI extends POIData {
   /** Code letter for display (F, P, E, R, V) */
   codeLetter: string;
+  /** Distance from POI to the route line (perpendicular), in meters. Only set when route is active. */
+  distanceToRoute?: number;
+  /** Distance along route to reach this POI (from current position), in meters. Only set when route is active. */
+  distanceAlongRoute?: number;
 }
 
 /**
@@ -110,13 +114,22 @@ export interface IPOIService {
    * @param categories POI categories to include (defaults to all enabled)
    * @param maxDistance Maximum distance in meters (default 5000)
    * @param maxResults Maximum number of results (default 10)
-   * @returns Array of nearby POIs sorted by distance
+   * @param routeContext Optional route context for route-aware filtering
+   * @returns Array of nearby POIs sorted by distance (or distance along route if route context provided)
    */
   getNearbyPOIs(
     position: GPSCoordinate,
     categories?: POICategory[],
     maxDistance?: number,
     maxResults?: number,
+    routeContext?: {
+      /** Route geometry for filtering POIs by route proximity */
+      geometry: [number, number][];
+      /** Max perpendicular distance from route to include POIs (default 200m) */
+      maxDistanceToRoute?: number;
+      /** Distance already traveled along route from start */
+      distanceFromStart?: number;
+    },
   ): Promise<Result<NearbyPOI[]>>;
 
   /**

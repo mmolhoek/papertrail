@@ -646,7 +646,14 @@ export class TrackSimulationService implements ITrackSimulationService {
     }
 
     // If no significant curvature found, return base speed
-    if (maxCurvature < 0.1) {
+    // 0.05 deg/m threshold = ~1146m radius curve (gentle highway curve)
+    if (maxCurvature < 0.05) {
+      // Log occasionally to verify curve detection is working
+      if (this.currentPointIndex % 20 === 0) {
+        logger.debug(
+          `Curve scan at point ${this.currentPointIndex}: max curvature=${maxCurvature.toFixed(4)} deg/m (below threshold)`,
+        );
+      }
       return this.speed;
     }
 
@@ -665,11 +672,12 @@ export class TrackSimulationService implements ITrackSimulationService {
       this.DECELERATION_RATE,
     );
 
-    // Log significant speed reductions for debugging
-    if (speedNow < this.speed * 0.9) {
-      logger.debug(
-        `Curve ahead: curvature=${maxCurvature.toFixed(2)} deg/m at ${Math.round(distanceToMaxCurvature)}m, ` +
-          `cornering=${Math.round(corneringSpeed)} km/h, current=${Math.round(speedNow)} km/h`,
+    // Log speed reductions for debugging
+    if (speedNow < this.speed) {
+      logger.info(
+        `Curve speed: ${Math.round(speedNow)} km/h (base ${this.speed}), ` +
+          `curve=${maxCurvature.toFixed(3)} deg/m at ${Math.round(distanceToMaxCurvature)}m, ` +
+          `cornering=${Math.round(corneringSpeed)} km/h`,
       );
     }
 
