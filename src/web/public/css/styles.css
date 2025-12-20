@@ -4709,6 +4709,7 @@ body {
 
 /* Input Cluster */
 .input-cluster {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
@@ -4813,6 +4814,25 @@ body {
   max-height: 200px;
   overflow-y: auto;
   z-index: 100;
+}
+
+.instrument-results .address-result-item {
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: "Orbitron", monospace;
+  color: #e8c170;
+  border-bottom: 1px solid #5a4510;
+  transition: var(--transition-fast);
+}
+
+.instrument-results .address-result-item:last-child {
+  border-bottom: none;
+}
+
+.instrument-results .address-result-item:hover {
+  background: rgba(232, 193, 112, 0.15);
+  color: #f5d89a;
 }
 
 /* Recent Cluster */

@@ -62,6 +62,7 @@ const createMockOrchestrator = () => ({
   createDriveRoute: jest.fn(),
   startDriveNavigation: jest.fn(),
   stopDriveNavigation: jest.fn(),
+  isDriveNavigating: jest.fn().mockReturnValue(false),
   getDriveNavigationStatus: jest.fn(),
   onDriveNavigationUpdate: jest.fn(),
   getSavedDriveRoutes: jest.fn(),
