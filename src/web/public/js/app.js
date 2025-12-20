@@ -421,6 +421,19 @@ class PapertrailClient {
       });
     }
 
+    // Simulation mode radio buttons (visual buttons that sync with hidden select)
+    const simModeRadios = document.querySelectorAll('input[name="sim-mode"]');
+    simModeRadios.forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        // Update the hidden select to stay in sync
+        if (simulationModeSelect) {
+          simulationModeSelect.value = e.target.value;
+        }
+        // Trigger the routing profile change
+        this.setRoutingProfile(e.target.value);
+      });
+    });
+
     // Track simulate button - navigate to simulation panel
     const trackSimulateBtn = document.getElementById("track-simulate-btn");
     if (trackSimulateBtn) {
@@ -635,6 +648,13 @@ class PapertrailClient {
       const select = document.getElementById("simulation-mode-select");
       if (select) {
         select.value = settings.routingProfile;
+      }
+      // Also update the radio buttons
+      const radio = document.querySelector(
+        `input[name="sim-mode"][value="${settings.routingProfile}"]`,
+      );
+      if (radio) {
+        radio.checked = true;
       }
       this.currentRoutingProfile = settings.routingProfile;
     }
