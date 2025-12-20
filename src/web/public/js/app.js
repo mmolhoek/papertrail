@@ -1772,7 +1772,8 @@ class PapertrailClient {
             method: "POST",
             body: JSON.stringify({
               route: route,
-              speed: speed === "drive" ? 100 : speed === "bicycle" ? 25 : 5,
+              // Speed values match SimulationSpeed enum: DRIVE=100, BICYCLE=30, WALK=10
+              speed: speed === "drive" ? 100 : speed === "bicycle" ? 30 : 10,
             }),
           });
 
