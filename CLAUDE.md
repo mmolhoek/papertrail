@@ -128,6 +128,42 @@ Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they requir
 - **Static web files:** `src/web/public/`
 - **GPX files:** `data/gpx-files/`
 - **Config persistence:** `data/config.json`
+- **SSL certificates:** `data/certs/`
 - **Pre-commit hooks:** Husky runs lint-staged (prettier + eslint) on staged files
 
 Run `npm run format` after making changes. Write tests for new code.
+
+## HTTPS Configuration
+
+The web interface supports HTTPS with self-signed certificates.
+
+### Environment Variables
+
+```bash
+WEB_SSL_ENABLED=true              # Enable HTTPS (default: true on Pi, false elsewhere)
+WEB_SSL_CERT_PATH=./data/certs/server.crt   # Path to certificate
+WEB_SSL_KEY_PATH=./data/certs/server.key    # Path to private key
+```
+
+### Certificate Generation
+
+On Raspberry Pi, `scripts/install.sh` automatically:
+1. Generates a self-signed certificate (10-year validity)
+2. Stores it in `data/certs/`
+3. Enables HTTPS in `.env`
+
+For development machines, HTTPS is disabled by default (no certificate generated).
+
+### Manual Certificate Generation
+
+```bash
+mkdir -p data/certs
+openssl req -x509 -nodes -days 3650 \
+  -newkey rsa:2048 \
+  -keyout data/certs/server.key \
+  -out data/certs/server.crt \
+  -subj "/CN=papertrail.local/O=Papertrail GPS"
+chmod 600 data/certs/server.key
+```
+
+Then set `WEB_SSL_ENABLED=true` in `.env`.
