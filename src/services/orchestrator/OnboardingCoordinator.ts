@@ -923,6 +923,7 @@ export class OnboardingCoordinator {
   getDeviceUrl(): string {
     const config = this.configService.getConfig();
     const port = config.web.port;
+    const protocol = process.env.WEB_SSL_ENABLED === "true" ? "https" : "http";
 
     // Try to get IP address from network interfaces
     const interfaces = os.networkInterfaces();
@@ -937,13 +938,13 @@ export class OnboardingCoordinator {
         const isIPv4 = family === "IPv4" || family === 4;
         if (isIPv4 && !info.internal) {
           logger.info(`Found IPv4 address on ${name}: ${info.address}`);
-          return `http://${info.address}:${port}`;
+          return `${protocol}://${info.address}:${port}`;
         }
       }
     }
 
     logger.warn("No IPv4 address found, using fallback");
-    return `http://localhost:${port}`;
+    return `${protocol}://localhost:${port}`;
   }
 
   /**
