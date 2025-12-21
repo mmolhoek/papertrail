@@ -3606,7 +3606,7 @@ class PapertrailClient {
       // Hide the prefetch status when complete
       container.classList.add("hidden");
       if (progressBar) {
-        progressBar.classList.remove("indeterminate");
+        progressBar.classList.remove("animated");
       }
       if (data.poisFound > 0) {
         this.showMessage(`POIs loaded (${data.poisFound} found)`, "success");
@@ -3615,14 +3615,14 @@ class PapertrailClient {
       // Show progress
       container.classList.remove("hidden");
 
-      // Single query mode: show indeterminate progress
+      // Single query mode: show animated progress bar
       if (data.total === 1) {
         if (progressBar) {
           progressBar.style.width = "100%";
-          progressBar.classList.add("indeterminate");
+          progressBar.classList.add("animated");
         }
         if (progressText) {
-          progressText.textContent = "Loading POIs...";
+          progressText.textContent = "Loading...";
         }
       } else {
         // Multi-query mode (legacy): show actual progress
@@ -3630,7 +3630,7 @@ class PapertrailClient {
           data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
         if (progressBar) {
           progressBar.style.width = `${progress}%`;
-          progressBar.classList.remove("indeterminate");
+          progressBar.classList.remove("animated");
         }
         if (progressText) {
           progressText.textContent = `${data.current}/${data.total} points`;

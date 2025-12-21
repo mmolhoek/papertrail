@@ -2674,26 +2674,6 @@ body {
   transition: width var(--transition-fast);
 }
 
-.progress-fill.indeterminate {
-  animation: indeterminate-progress 1.5s ease-in-out infinite;
-  background: linear-gradient(
-    90deg,
-    var(--color-forest) 0%,
-    var(--color-sage) 50%,
-    var(--color-forest) 100%
-  );
-  background-size: 200% 100%;
-}
-
-@keyframes indeterminate-progress {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}
-
 /* Simulation Running State */
 .simulation-controls.running .start-simulation-btn {
   display: none;
