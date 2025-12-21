@@ -15,6 +15,7 @@ import {
   IVectorMapService,
   SpeedLimitPrefetchProgress,
   POIPrefetchProgress,
+  ALL_POI_CATEGORIES,
   LocationPrefetchProgress,
   ElevationPrefetchProgress,
   RoadPrefetchProgress,
@@ -521,21 +522,19 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     // Prefetch POIs for the route in the background (while internet is available)
     // Skip if already cached for this route
-    const enabledPOICategories = this.configService.getEnabledPOICategories();
-    if (this.poiService && enabledPOICategories.length > 0) {
+    // Always prefetch ALL categories so cache is complete - filter by enabled when displaying
+    if (this.poiService) {
       if (this.poiService.hasRouteCache(route.id)) {
         logger.info(
           `POIs already cached for route ${route.id}, skipping prefetch`,
         );
       } else {
-        logger.info(
-          `Starting POI prefetch for route (categories: ${enabledPOICategories.join(", ")})`,
-        );
+        logger.info(`Starting POI prefetch for route (all categories)`);
         // Mark prefetch as active
         this.driveCoordinator?.setPOIPrefetchActive(true);
         // Run in background - don't block navigation start
         this.poiService
-          .prefetchRoutePOIs(route, enabledPOICategories, (progress) => {
+          .prefetchRoutePOIs(route, ALL_POI_CATEGORIES, (progress) => {
             this.notifyPOIPrefetchProgress(progress);
           })
           .then((result) => {
@@ -769,6 +768,24 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Clear all cached POI data.
+   *
+   * Call this when POI categories change while not navigating,
+   * so POIs are re-fetched on next route view.
+   *
+   * @returns Result indicating success or failure
+   */
+  async clearAllPOICache(): Promise<Result<void>> {
+    if (!this.poiService) {
+      logger.warn("POI service not available, cannot clear cache");
+      return success(undefined);
+    }
+
+    logger.info("Clearing all POI cache");
+    return await this.poiService.clearAllCache();
+  }
+
+  /**
    * Check if drive navigation is currently active.
    *
    * @returns true if navigation is in progress, false otherwise
@@ -851,6 +868,26 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }> = [];
 
     if (this.poiService) {
+      // Ensure route has an ID for caching
+      if (!route.id) {
+        route.id = this.generateRouteId(route);
+      }
+
+      // Prefetch ALL POIs if not cached for this route
+      if (!this.poiService.hasRouteCache(route.id)) {
+        logger.info(
+          `POIs not cached for route ${route.id}, prefetching for view...`,
+        );
+        await this.poiService.prefetchRoutePOIs(
+          route,
+          ALL_POI_CATEGORIES,
+          (progress) => {
+            this.notifyPOIPrefetchProgress(progress);
+          },
+        );
+      }
+
+      // Filter by enabled categories when displaying
       const enabledCategories = this.configService.getEnabledPOICategories();
       if (enabledCategories.length > 0) {
         const poiResult = await this.poiService.getNearbyPOIs(
@@ -1670,6 +1707,31 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
     }
     logger.info("✓ Display cleared");
+    // Notify display update callbacks so mock display refreshes
+    this.notifyDisplayUpdate(true);
+    return success(undefined);
+  }
+
+  /**
+   * Display the startup logo on the e-paper screen.
+   *
+   * @returns Result indicating success or failure
+   */
+  async displayLogo(): Promise<Result<void>> {
+    if (!this.isInitialized) {
+      logger.warn("Cannot display logo: orchestrator not initialized");
+      return failure(OrchestratorError.notInitialized());
+    }
+
+    logger.info("Displaying startup logo");
+    const result = await this.displayService.displayLogo();
+    if (!result.success) {
+      logger.error("Failed to display logo:", result.error);
+      return failure(
+        OrchestratorError.updateFailed("Display logo", result.error),
+      );
+    }
+    logger.info("✓ Logo displayed");
     // Notify display update callbacks so mock display refreshes
     this.notifyDisplayUpdate(true);
     return success(undefined);

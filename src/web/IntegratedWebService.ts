@@ -449,6 +449,11 @@ export class IntegratedWebService implements IWebInterfaceService {
       this.controller.clearDisplay(req, res);
     });
 
+    this.app.post(`${api}/display/logo`, (req, res) => {
+      logger.info("Displaying logo via API");
+      this.controller.displayLogo(req, res);
+    });
+
     // System endpoints
     this.app.get(`${api}/system/status`, (req, res) =>
       this.controller.getSystemStatus(req, res),

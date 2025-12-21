@@ -106,6 +106,12 @@ export interface IRenderingOrchestrator {
   clearDisplay(): Promise<Result<void>>;
 
   /**
+   * Display the startup logo on the e-paper screen
+   * @returns Result indicating success or failure
+   */
+  displayLogo(): Promise<Result<void>>;
+
+  /**
    * Put the display to sleep
    * @returns Result indicating success or failure
    */
@@ -267,6 +273,14 @@ export interface IRenderingOrchestrator {
    * @returns Result indicating success or failure
    */
   refreshRoutePOIs(): Promise<Result<void>>;
+
+  /**
+   * Clear all cached POI data.
+   * Call this when POI categories change while not navigating,
+   * so POIs are re-fetched on next route view.
+   * @returns Result indicating success or failure
+   */
+  clearAllPOICache(): Promise<Result<void>>;
 
   /**
    * Clean up resources and shut down all services

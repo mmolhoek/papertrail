@@ -330,27 +330,20 @@ describe("POIService", () => {
 
       const result = await service.prefetchRoutePOIs(mockRoute, ["fuel"]);
 
-      // Should still succeed but with 0 POIs
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toBe(0);
-      }
+      // Single route query: API error means failure
+      expect(result.success).toBe(false);
     });
 
     it("should handle rate limiting", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
-      });
-      mockFetch.mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => mockOverpassResponse,
       });
 
       const result = await service.prefetchRoutePOIs(mockRoute, ["fuel"]);
 
-      expect(result.success).toBe(true);
+      // Rate limiting returns failure
+      expect(result.success).toBe(false);
     });
   });
 

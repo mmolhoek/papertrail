@@ -337,66 +337,33 @@ export class POIService implements IPOIService {
       `Prefetching POIs for route ${route.id} (${route.geometry.length} points, categories: ${categories.join(", ")})`,
     );
 
-    const allPOIs: CachedPOI[] = [];
-    const seenIds = new Set<number>();
-
     try {
-      // Sample points along the route (every ~1000m for POI queries)
-      const samplePoints = this.sampleRoutePoints(route.geometry, 1000);
-      logger.info(`Sampling ${samplePoints.length} points along route`);
-
       // Notify progress start
       onProgress?.({
         current: 0,
-        total: samplePoints.length,
+        total: 1,
         poisFound: 0,
         complete: false,
       });
 
-      // Query each sample point with rate limiting
-      for (let i = 0; i < samplePoints.length; i++) {
-        const point = samplePoints[i];
+      // Query entire route in a single request
+      const result = await this.queryRouteOverpassApi(
+        route.geometry,
+        categories,
+      );
 
-        // Rate limiting
-        await this.waitForRateLimit();
-
-        try {
-          const result = await this.queryOverpassApi(
-            point[0],
-            point[1],
-            categories,
-          );
-          if (result.success && result.data.length > 0) {
-            // Add POIs from this query (avoid duplicates)
-            for (const poi of result.data) {
-              if (!seenIds.has(poi.id)) {
-                seenIds.add(poi.id);
-                allPOIs.push(poi);
-              }
-            }
-            // Update cache incrementally
-            this.routeCache.set(route.id, [...allPOIs]);
-          }
-        } catch (error) {
-          // Log but continue - some failures are acceptable
-          logger.warn(`Failed to fetch POIs for point ${i}:`, error);
-        }
-
-        // Notify progress update
+      if (!result.success) {
+        logger.error("Failed to fetch POIs for route:", result.error);
         onProgress?.({
-          current: i + 1,
-          total: samplePoints.length,
-          poisFound: allPOIs.length,
-          complete: false,
+          current: 1,
+          total: 1,
+          poisFound: 0,
+          complete: true,
         });
-
-        // Log progress
-        if ((i + 1) % 10 === 0 || i === samplePoints.length - 1) {
-          logger.info(
-            `POI prefetch progress: ${i + 1}/${samplePoints.length} points, ${allPOIs.length} POIs found`,
-          );
-        }
+        return failure(result.error);
       }
+
+      const allPOIs = result.data;
 
       // Cache the results
       this.routeCache.set(route.id, allPOIs);
@@ -404,8 +371,8 @@ export class POIService implements IPOIService {
 
       // Notify completion
       onProgress?.({
-        current: samplePoints.length,
-        total: samplePoints.length,
+        current: 1,
+        total: 1,
         poisFound: allPOIs.length,
         complete: true,
       });
@@ -507,7 +474,57 @@ export class POIService implements IPOIService {
   }
 
   /**
-   * Build Overpass query for POI categories
+   * Build Overpass query for POI categories along a route polyline
+   */
+  private buildRouteOverpassQuery(
+    geometry: [number, number][],
+    categories: POICategory[],
+  ): string {
+    // Sample the geometry to avoid overly long queries (max ~100 points)
+    const maxPoints = 100;
+    const step = Math.max(1, Math.floor(geometry.length / maxPoints));
+    const sampledPoints: [number, number][] = [];
+    for (let i = 0; i < geometry.length; i += step) {
+      sampledPoints.push(geometry[i]);
+    }
+    // Always include the last point
+    if (
+      sampledPoints[sampledPoints.length - 1] !== geometry[geometry.length - 1]
+    ) {
+      sampledPoints.push(geometry[geometry.length - 1]);
+    }
+
+    // Build polyline string: lat1,lon1,lat2,lon2,...
+    const polyline = sampledPoints
+      .map(([lat, lon]) => `${lat},${lon}`)
+      .join(",");
+
+    // Build tag filters for all categories using the polyline
+    const filters: string[] = [];
+    for (const category of categories) {
+      const tags = POI_OSM_TAGS[category];
+      for (const tag of tags) {
+        const [key, value] = tag.split("=");
+        filters.push(
+          `node(around:${ROUTE_CORRIDOR_RADIUS},${polyline})[${key}=${value}];`,
+        );
+        filters.push(
+          `way(around:${ROUTE_CORRIDOR_RADIUS},${polyline})[${key}=${value}];`,
+        );
+      }
+    }
+
+    return `
+      [out:json][timeout:60];
+      (
+        ${filters.join("\n        ")}
+      );
+      out center;
+    `;
+  }
+
+  /**
+   * Build Overpass query for POI categories at a single point
    */
   private buildOverpassQuery(
     lat: number,
@@ -536,6 +553,54 @@ export class POIService implements IPOIService {
       );
       out center;
     `;
+  }
+
+  /**
+   * Query Overpass API for POIs along an entire route (single request)
+   */
+  private async queryRouteOverpassApi(
+    geometry: [number, number][],
+    categories: POICategory[],
+  ): Promise<Result<CachedPOI[]>> {
+    const query = this.buildRouteOverpassQuery(geometry, categories);
+    logger.info(
+      `Querying Overpass API for POIs along route (${geometry.length} points)...`,
+    );
+
+    try {
+      const response = await fetch(OVERPASS_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+
+      if (response.status === 429) {
+        return failure(POIError.apiRateLimited());
+      }
+
+      if (!response.ok) {
+        return failure(
+          POIError.apiRequestFailed(
+            `HTTP ${response.status}: ${response.statusText}`,
+          ),
+        );
+      }
+
+      const data = (await response.json()) as OverpassResponse;
+      const pois = this.parseOverpassResponse(data, categories);
+      logger.info(`Overpass API returned ${pois.length} POIs`);
+
+      return success(pois);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return failure(POIError.apiRequestFailed("Request timeout"));
+      }
+      return failure(
+        POIError.apiUnavailable(error instanceof Error ? error : undefined),
+      );
+    }
   }
 
   /**

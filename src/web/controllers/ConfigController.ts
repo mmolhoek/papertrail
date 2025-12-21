@@ -298,6 +298,7 @@ export class ConfigController {
 
     const validCategories = [
       "fuel",
+      "charging",
       "parking",
       "food",
       "restroom",
@@ -310,7 +311,7 @@ export class ConfigController {
         error: {
           code: "INVALID_REQUEST",
           message:
-            "category must be one of: fuel, parking, food, restroom, viewpoint",
+            "category must be one of: fuel, charging, parking, food, restroom, viewpoint",
         },
       });
       return;
@@ -341,20 +342,21 @@ export class ConfigController {
 
     logger.info(`Setting POI category ${category} to: ${enabled}`);
     this.configService.setPOICategoryEnabled(
-      category as "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+      category as
+        | "fuel"
+        | "charging"
+        | "parking"
+        | "food"
+        | "restroom"
+        | "viewpoint",
       enabled,
     );
 
     // Save the setting to persist it
     await this.configService.save();
 
-    // Refresh POIs for active route if navigating (to fetch newly enabled categories)
-    if (this.orchestrator.isDriveNavigating()) {
-      logger.info(
-        "POI categories changed during navigation - triggering POI refresh",
-      );
-      await this.orchestrator.refreshRoutePOIs();
-    }
+    // POI cache contains all categories, so no need to refresh when categories change
+    // The filtering by enabled categories happens at display time
 
     logger.info(`POI category ${category} ${enabled ? "enabled" : "disabled"}`);
     res.json({

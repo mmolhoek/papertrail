@@ -12,6 +12,18 @@ export type POICategory =
   | "viewpoint";
 
 /**
+ * All POI categories for prefetching
+ */
+export const ALL_POI_CATEGORIES: POICategory[] = [
+  "fuel",
+  "charging",
+  "parking",
+  "food",
+  "restroom",
+  "viewpoint",
+];
+
+/**
  * POI code letters for display
  */
 export const POI_CODE_LETTERS: Record<POICategory, string> = {

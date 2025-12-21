@@ -334,6 +334,10 @@ class PapertrailClient {
       this.clearDisplay();
     });
 
+    document.getElementById("logo-btn").addEventListener("click", () => {
+      this.showLogo();
+    });
+
     // Settings
     document.getElementById("auto-center").addEventListener("change", (e) => {
       this.setAutoCenter(e.target.checked);
@@ -761,6 +765,18 @@ class PapertrailClient {
     } catch (error) {
       console.error("Error clearing display:", error);
       this.showMessage("Failed to clear display", "error");
+    }
+  }
+
+  async showLogo() {
+    try {
+      await this.fetchJSON(`${this.apiBase}/display/logo`, {
+        method: "POST",
+      });
+      this.showMessage("Logo displayed successfully", "success");
+    } catch (error) {
+      console.error("Error displaying logo:", error);
+      this.showMessage("Failed to display logo", "error");
     }
   }
 

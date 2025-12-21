@@ -1,3 +1,5 @@
+import * as fs from "fs";
+import * as path from "path";
 import { IEpaperService } from "@core/interfaces";
 import {
   Result,
@@ -98,30 +100,38 @@ export class MockEpaperService implements IEpaperService {
     logger.info("Mock E-Paper: Displaying logo...");
 
     try {
-      this.busy = true;
+      // Construct path to logo file
+      const logoPath = path.join(
+        process.cwd(),
+        "onboarding-screens",
+        "welcome.bmp",
+      );
 
-      // Simulate logo display delay
-      const updateDelay = mode === DisplayUpdateMode.FULL ? 2000 : 500;
-      await this.delay(updateDelay);
-
-      // Update statistics
-      if (mode === DisplayUpdateMode.FULL) {
-        this.fullRefreshCount++;
-      } else if (mode === DisplayUpdateMode.PARTIAL) {
-        this.partialRefreshCount++;
+      if (!fs.existsSync(logoPath)) {
+        logger.warn(
+          `Logo file not found at ${logoPath}, skipping logo display`,
+        );
+        return success(undefined);
       }
 
-      this.lastUpdate = new Date();
-      logger.info("Mock E-Paper: Logo displayed successfully");
-      return success(undefined);
+      // Load logo image using driver
+      logger.info(`Loading logo from ${logoPath}...`);
+      const imageBuffer = await this.driver.loadImage(logoPath);
+
+      const logoBitmap: Bitmap1Bit = {
+        width: this.config.width,
+        height: this.config.height,
+        data: imageBuffer,
+      };
+
+      // Display the logo bitmap
+      return await this.displayBitmap(logoBitmap, mode);
     } catch (error) {
       logger.error("Mock E-Paper: Display logo failed:", error);
       if (error instanceof Error) {
         return failure(DisplayError.updateFailed(error));
       }
       return failure(DisplayError.updateFailed(new Error("Unknown error")));
-    } finally {
-      this.busy = false;
     }
   }
 

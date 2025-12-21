@@ -281,6 +281,42 @@ export class WebController {
   }
 
   /**
+   * Display the startup logo on the e-paper screen.
+   *
+   * @route POST /display/logo
+   * @returns JSON with success status
+   */
+  async displayLogo(_req: Request, res: Response): Promise<void> {
+    logger.info("Display logo requested");
+    try {
+      const result = await this.orchestrator.displayLogo();
+
+      if (isSuccess(result)) {
+        logger.info("Logo displayed successfully");
+        res.json({
+          success: true,
+          message: "Logo displayed successfully",
+        });
+      } else {
+        logger.error("Failed to display logo:", result.error);
+        res.status(500).json({
+          success: false,
+          error: extractErrorInfo(result.error),
+        });
+      }
+    } catch (error) {
+      logger.error("Unexpected error while displaying logo:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "INTERNAL_SERVER_ERROR",
+          message: "An unexpected error occurred while displaying the logo.",
+        },
+      });
+    }
+  }
+
+  /**
    * Get mock display image.
    *
    * Returns a PNG image of what would be shown on the e-paper display.
