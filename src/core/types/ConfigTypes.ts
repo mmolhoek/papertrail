@@ -114,6 +114,13 @@ export type WebConfig = {
     username: string;
     password: string;
   };
+
+  /** SSL/HTTPS configuration */
+  ssl?: {
+    enabled: boolean;
+    certPath: string;
+    keyPath: string;
+  };
 };
 
 /**

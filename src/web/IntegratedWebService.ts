@@ -1,5 +1,6 @@
 import express, { Express } from "express";
 import http from "http";
+import https from "https";
 import path from "path";
 import * as fs from "fs/promises";
 import multer from "multer";
@@ -156,7 +157,16 @@ export class IntegratedWebService implements IWebInterfaceService {
       // Start orphaned upload cleanup timer
       this.startUploadCleanupTimer();
 
-      this.server = http.createServer(this.app);
+      // Create HTTP or HTTPS server based on SSL configuration
+      if (this.config.ssl?.enabled) {
+        const sslOptions = {
+          key: await fs.readFile(this.config.ssl.keyPath),
+          cert: await fs.readFile(this.config.ssl.certPath),
+        };
+        this.server = https.createServer(sslOptions, this.app);
+      } else {
+        this.server = http.createServer(this.app);
+      }
 
       // Setup WebSocket if enabled
       if (this.config.websocket?.enabled) {
@@ -195,8 +205,9 @@ export class IntegratedWebService implements IWebInterfaceService {
       });
 
       this.running = true;
+      const protocol = this.config.ssl?.enabled ? "https" : "http";
       logger.info(
-        `✓ Web interface started on http://${this.config.host}:${this.config.port}`,
+        `✓ Web interface started on ${protocol}://${this.config.host}:${this.config.port}`,
       );
 
       return success(undefined);
@@ -287,7 +298,8 @@ export class IntegratedWebService implements IWebInterfaceService {
   getServerUrl(): string {
     const host =
       this.config.host === "0.0.0.0" ? "localhost" : this.config.host;
-    return `http://${host}:${this.config.port}`;
+    const protocol = this.config.ssl?.enabled ? "https" : "http";
+    return `${protocol}://${host}:${this.config.port}`;
   }
 
   /**

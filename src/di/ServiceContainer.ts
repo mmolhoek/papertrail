@@ -60,6 +60,8 @@ import {
   WEB_DEFAULT_STATIC_DIRECTORY,
   WEB_DEFAULT_AUTH_USERNAME,
   WEB_AUTH_PASSWORD_NOT_SET,
+  WEB_SSL_CERT_PATH_DEFAULT,
+  WEB_SSL_KEY_PATH_DEFAULT,
   WIFI_DEFAULT_PRIMARY_SSID,
   WIFI_PASSWORD_NOT_SET,
   WIFI_DEFAULT_SCAN_INTERVAL_MS,
@@ -640,6 +642,15 @@ export class ServiceContainer {
               username:
                 process.env.WEB_AUTH_USERNAME || WEB_DEFAULT_AUTH_USERNAME,
               password: webAuthPassword!,
+            }
+          : undefined,
+      ssl:
+        process.env.WEB_SSL_ENABLED === "true"
+          ? {
+              enabled: true,
+              certPath:
+                process.env.WEB_SSL_CERT_PATH || WEB_SSL_CERT_PATH_DEFAULT,
+              keyPath: process.env.WEB_SSL_KEY_PATH || WEB_SSL_KEY_PATH_DEFAULT,
             }
           : undefined,
     };

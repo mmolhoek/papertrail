@@ -114,7 +114,7 @@ REBOOT_REQUIRED=false
 
 # Determine number of steps based on platform
 if [ "$IS_PI" = true ]; then
-  TOTAL_STEPS=13
+  TOTAL_STEPS=14
 else
   TOTAL_STEPS=4
 fi
@@ -322,6 +322,28 @@ mkdir -p data/gpx-files
 mkdir -p data/cache
 mkdir -p logs
 echo -e "${GREEN}  ✓ Data directories created${NC}"
+
+# =============================================================================
+# PI-ONLY: Generate SSL certificate
+# =============================================================================
+if [ "$IS_PI" = true ]; then
+  step "Generating SSL certificate..."
+  CERT_DIR="${PROJECT_DIR}/data/certs"
+  if [ ! -f "${CERT_DIR}/server.crt" ]; then
+    mkdir -p "${CERT_DIR}"
+    openssl req -x509 -nodes -days 3650 \
+      -newkey rsa:2048 \
+      -keyout "${CERT_DIR}/server.key" \
+      -out "${CERT_DIR}/server.crt" \
+      -subj "/CN=papertrail.local/O=Papertrail GPS" 2>/dev/null
+    chmod 600 "${CERT_DIR}/server.key"
+    chmod 644 "${CERT_DIR}/server.crt"
+    echo -e "${GREEN}  ✓ SSL certificate generated${NC}"
+    echo -e "${BLUE}  Note: Enable HTTPS by setting WEB_SSL_ENABLED=true in .env${NC}"
+  else
+    echo -e "${GREEN}  ✓ SSL certificate already exists${NC}"
+  fi
+fi
 
 # =============================================================================
 # PI-ONLY: Install systemd service

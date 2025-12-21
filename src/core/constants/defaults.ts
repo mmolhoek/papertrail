@@ -207,6 +207,16 @@ export const WEB_DEFAULT_AUTH_USERNAME = "admin";
  */
 export const WEB_AUTH_PASSWORD_NOT_SET = "__NOT_SET__";
 
+/**
+ * Default path for SSL certificate file
+ */
+export const WEB_SSL_CERT_PATH_DEFAULT = "./data/certs/server.crt";
+
+/**
+ * Default path for SSL private key file
+ */
+export const WEB_SSL_KEY_PATH_DEFAULT = "./data/certs/server.key";
+
 // =============================================================================
 // WiFi Configuration Defaults
 // =============================================================================
