@@ -338,41 +338,84 @@ export class POIService implements IPOIService {
     );
 
     try {
+      // Split route into ~25km segments for smaller, faster queries
+      const segments = this.splitRouteIntoSegments(route.geometry, 25000);
+      const totalSegments = segments.length;
+
+      logger.info(`Split route into ${totalSegments} segments for POI queries`);
+
       // Notify progress start
       onProgress?.({
         current: 0,
-        total: 1,
+        total: totalSegments,
         poisFound: 0,
         complete: false,
       });
 
-      // Query entire route in a single request
-      const result = await this.queryRouteOverpassApi(
-        route.geometry,
-        categories,
-      );
+      const allPOIs: CachedPOI[] = [];
+      const seenIds = new Set<number>();
+      let successfulSegments = 0;
+      let lastError: Error | undefined;
 
-      if (!result.success) {
-        logger.error("Failed to fetch POIs for route:", result.error);
+      // Query each segment
+      for (let i = 0; i < segments.length; i++) {
+        const segment = segments[i];
+
+        // Rate limiting between segment queries
+        if (i > 0) {
+          await this.waitForRateLimit();
+        }
+
+        const result = await this.queryRouteOverpassApi(segment, categories);
+
+        if (result.success) {
+          successfulSegments++;
+          if (result.data.length > 0) {
+            // Add POIs, avoiding duplicates
+            for (const poi of result.data) {
+              if (!seenIds.has(poi.id)) {
+                seenIds.add(poi.id);
+                allPOIs.push(poi);
+              }
+            }
+            // Update cache incrementally
+            this.routeCache.set(route.id, [...allPOIs]);
+          }
+        } else {
+          lastError = new Error(result.error.message);
+          logger.warn(
+            `POI segment ${i + 1}/${totalSegments} failed: ${result.error.message}`,
+          );
+        }
+
+        // Notify progress
         onProgress?.({
-          current: 1,
-          total: 1,
-          poisFound: 0,
-          complete: true,
+          current: i + 1,
+          total: totalSegments,
+          poisFound: allPOIs.length,
+          complete: false,
         });
-        return failure(result.error);
+
+        logger.info(
+          `POI segment ${i + 1}/${totalSegments}: ${result.success ? result.data.length : 0} POIs (total: ${allPOIs.length})`,
+        );
       }
 
-      const allPOIs = result.data;
+      // If ALL segments failed, return failure
+      if (successfulSegments === 0 && segments.length > 0) {
+        return failure(
+          POIError.apiRequestFailed("all segment queries failed", lastError),
+        );
+      }
 
-      // Cache the results
+      // Cache the final results
       this.routeCache.set(route.id, allPOIs);
       await this.saveRouteCache(route.id, allPOIs);
 
       // Notify completion
       onProgress?.({
-        current: 1,
-        total: 1,
+        current: totalSegments,
+        total: totalSegments,
         poisFound: allPOIs.length,
         complete: true,
       });
@@ -763,6 +806,49 @@ export class POIService implements IPOIService {
     }
 
     return samples;
+  }
+
+  /**
+   * Split route geometry into segments of approximately the given length
+   */
+  private splitRouteIntoSegments(
+    geometry: [number, number][],
+    segmentLengthMeters: number,
+  ): [number, number][][] {
+    if (geometry.length === 0) {
+      return [];
+    }
+
+    const segments: [number, number][][] = [];
+    let currentSegment: [number, number][] = [geometry[0]];
+    let segmentDistance = 0;
+
+    for (let i = 1; i < geometry.length; i++) {
+      const prev = geometry[i - 1];
+      const curr = geometry[i];
+      const distance = haversineDistance(prev[0], prev[1], curr[0], curr[1]);
+
+      segmentDistance += distance;
+      currentSegment.push(curr);
+
+      // Start new segment when we exceed the target length
+      if (segmentDistance >= segmentLengthMeters) {
+        segments.push(currentSegment);
+        // Start new segment with overlap (include last point)
+        currentSegment = [curr];
+        segmentDistance = 0;
+      }
+    }
+
+    // Add remaining segment if it has more than just the overlap point
+    if (currentSegment.length > 1) {
+      segments.push(currentSegment);
+    } else if (segments.length === 0) {
+      // Route is shorter than segment length
+      segments.push(geometry);
+    }
+
+    return segments;
   }
 
   /**

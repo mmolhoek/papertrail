@@ -3615,29 +3615,18 @@ class PapertrailClient {
       // Show progress
       container.classList.remove("hidden");
 
-      // Single query mode: show animated progress bar
-      if (data.total === 1) {
-        if (progressBar) {
-          progressBar.style.width = "100%";
-          progressBar.classList.add("animated");
-        }
-        if (progressText) {
-          progressText.textContent = "Loading...";
-        }
-      } else {
-        // Multi-query mode (legacy): show actual progress
-        const progress =
-          data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
-        if (progressBar) {
-          progressBar.style.width = `${progress}%`;
-          progressBar.classList.remove("animated");
-        }
-        if (progressText) {
-          progressText.textContent = `${data.current}/${data.total} points`;
-        }
+      const progress =
+        data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+
+      if (progressBar) {
+        progressBar.style.width = `${Math.max(progress, 5)}%`; // Min 5% so bar is visible
+        progressBar.classList.add("animated");
+      }
+      if (progressText) {
+        progressText.textContent = `${data.current}/${data.total}`;
       }
       if (poisText) {
-        poisText.textContent = `${data.poisFound} POIs found`;
+        poisText.textContent = `${data.poisFound} POIs`;
       }
     }
   }
