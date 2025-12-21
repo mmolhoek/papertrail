@@ -3,22 +3,26 @@ import {
   DisplayCapabilities,
 } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
+import { ColorDepth } from "@core/types";
 import { getLogger } from "@utils/logger";
 import * as magickProcessor from "@utils/magickImageProcessor";
 
 /**
- * Base class for e-paper display drivers
+ * Base class for display drivers
  *
  * Provides common functionality shared across all display drivers:
- * - State management (sleeping, busy)
+ * - State management
  * - Ready polling
  * - Logging
  * - Image loading
+ * - Buffer management
  *
  * Subclasses must implement display-specific:
  * - Command sequences
  * - Initialization routines
  * - Buffer handling
+ *
+ * For e-paper specific functionality (sleep/wake), see BaseEpaperDriver.
  */
 export abstract class BaseDisplayDriver implements IDisplayDriver {
   /**
@@ -35,11 +39,6 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
    * Hardware adapter for GPIO/SPI operations
    */
   protected adapter: IHardwareAdapter | null = null;
-
-  /**
-   * Whether the display is currently sleeping
-   */
-  protected sleeping: boolean = false;
 
   /**
    * Logger instance for this driver
@@ -77,7 +76,6 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
     // Call display-specific initialization
     await this.initDisplay();
 
-    this.sleeping = false;
     this.logger.info(`${this.name} driver initialized successfully`);
   }
 
@@ -92,14 +90,18 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
    */
   async dispose(): Promise<void> {
     this.logger.info(`Disposing ${this.name} driver...`);
-
-    if (!this.sleeping) {
-      await this.sleep();
-    }
-
+    await this.onDispose();
     this.adapter = null;
     this.buffer = null;
     this.logger.info(`${this.name} driver disposed`);
+  }
+
+  /**
+   * Hook for subclasses to perform cleanup before disposal
+   * Override this to add sleep or other cleanup operations
+   */
+  protected async onDispose(): Promise<void> {
+    // Default: no-op. Subclasses can override.
   }
 
   /**
@@ -109,55 +111,10 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
   abstract display(buffer: Buffer, fast: boolean): Promise<void>;
 
   /**
-   * Display with separate color channel (for 3-color displays)
-   * Default implementation throws - override for 3-color displays
-   */
-  async displayWithColor(
-    _buffer: Buffer,
-    _colorBuffer: Buffer,
-    _fast: boolean,
-  ): Promise<void> {
-    throw new Error(
-      `${this.name} does not support 3-color display. Use display() instead.`,
-    );
-  }
-
-  /**
    * Clear the display
    * Subclasses must implement with display-specific commands
    */
   abstract clear(fast: boolean): Promise<void>;
-
-  /**
-   * Put display into deep sleep mode
-   * Subclasses must implement with display-specific commands
-   */
-  abstract sleep(): Promise<void>;
-
-  /**
-   * Wake display from sleep
-   * Default implementation reinitializes the display
-   */
-  async wake(): Promise<void> {
-    if (!this.sleeping) {
-      this.logger.info("Display is not sleeping");
-      return;
-    }
-
-    this.logger.info("Waking display...");
-
-    if (!this.adapter) {
-      throw new Error("Cannot wake: adapter not initialized");
-    }
-
-    // Most displays require full reinitialization after sleep
-    await this.adapter.reset();
-    await this.waitForReady();
-    await this.initDisplay();
-
-    this.sleeping = false;
-    this.logger.info("Display awake");
-  }
 
   /**
    * Check if display is ready (not busy)
@@ -216,7 +173,7 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
    * Uses default timeout based on display refresh time
    */
   protected async waitForReady(): Promise<void> {
-    const timeout = this.capabilities.refreshTimeFullMs + 1000;
+    const timeout = (this.capabilities.refreshTimeFullMs ?? 3000) + 1000;
     await this.waitUntilReady(timeout);
   }
 
@@ -252,8 +209,23 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
    */
   protected calculateBufferSize(): number {
     const { width, height, colorDepth } = this.capabilities;
+    return BaseDisplayDriver.calculateBufferSizeForColorDepth(
+      width,
+      height,
+      colorDepth,
+    );
+  }
 
+  /**
+   * Static helper to calculate buffer size for a given color depth
+   */
+  static calculateBufferSizeForColorDepth(
+    width: number,
+    height: number,
+    colorDepth: ColorDepth,
+  ): number {
     switch (colorDepth) {
+      // E-paper types
       case "1bit":
         // 1 bit per pixel, packed into bytes
         return Math.ceil((width * height) / 8);
@@ -268,7 +240,25 @@ export abstract class BaseDisplayDriver implements IDisplayDriver {
         // Each is 1 bit per pixel
         return Math.ceil((width * height) / 8) * 2;
 
+      // LCD/HDMI types
+      case "8bit-grayscale":
+        // 8 bits per pixel
+        return width * height;
+
+      case "rgb565":
+        // 16 bits per pixel (2 bytes)
+        return width * height * 2;
+
+      case "rgb888":
+        // 24 bits per pixel (3 bytes)
+        return width * height * 3;
+
+      case "rgba8888":
+        // 32 bits per pixel (4 bytes)
+        return width * height * 4;
+
       default:
+        // Default to 1-bit
         return Math.ceil((width * height) / 8);
     }
   }

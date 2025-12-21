@@ -2,11 +2,11 @@ import {
   IGPSService,
   IMapService,
   ISVGService,
-  IEpaperService,
   IConfigService,
   IDriveNavigationService,
   FollowTrackInfo,
   DriveNavigationInfo,
+  IDisplayService,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -65,7 +65,7 @@ export class TrackDisplayCoordinator {
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
     private readonly svgService: ISVGService,
-    private readonly epaperService: IEpaperService,
+    private readonly displayService: IDisplayService,
     private readonly configService: IConfigService,
     private readonly driveNavigationService: IDriveNavigationService | null,
     private simulationCoordinator: SimulationCoordinator | null,
@@ -129,7 +129,7 @@ export class TrackDisplayCoordinator {
 
     // Queue update if one is already in progress
     const canProceed = await this.displayUpdateQueue.queueUpdate(mode, () =>
-      this.epaperService.isBusy(),
+      this.displayService.isBusy(),
     );
     if (!canProceed) {
       return success(undefined);
@@ -237,7 +237,7 @@ export class TrackDisplayCoordinator {
       logger.info(
         `Step 5/5: Sending bitmap to e-paper display (mode: ${mode || "default"})...`,
       );
-      const displayResult = await this.epaperService.displayBitmap(
+      const displayResult = await this.displayService.displayBitmap(
         bitmapResult,
         mode,
       );

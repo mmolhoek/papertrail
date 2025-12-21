@@ -1,9 +1,12 @@
 /**
- * Hardware Adapter Interface
+ * SPI/GPIO Hardware Adapter Interface
  *
  * Abstracts GPIO and SPI hardware operations for e-paper displays.
  * This allows different hardware implementations (real lgpio, mock for testing)
  * to be used interchangeably with display drivers.
+ *
+ * Note: This interface has a specialized init() signature for SPI/GPIO
+ * configuration, which differs from the generic IDisplayAdapter.
  */
 
 /**
@@ -33,11 +36,23 @@ export interface SPIConfig {
 }
 
 /**
+ * SPI adapter configuration
+ */
+export interface SPIAdapterConfig {
+  type: "spi";
+  pins: PinConfig;
+  spi: SPIConfig;
+}
+
+/**
  * Hardware adapter interface for e-paper display GPIO and SPI operations
  *
  * Implementations:
  * - LgpioAdapter: Real hardware using lgpio library
  * - MockAdapter: Mock implementation for testing/development
+ *
+ * This interface provides SPI and GPIO operations for e-paper displays.
+ * For other display types, see IDisplayAdapter.
  */
 export interface IHardwareAdapter {
   /**
@@ -103,3 +118,9 @@ export interface IHardwareAdapter {
    */
   getPins(): PinConfig;
 }
+
+/**
+ * SPI Adapter Interface
+ * Alias for IHardwareAdapter - preferred name for new code
+ */
+export type ISPIAdapter = IHardwareAdapter;

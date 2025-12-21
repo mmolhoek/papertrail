@@ -2,12 +2,14 @@ import { IEpaperService } from "@core/interfaces";
 import {
   Result,
   Bitmap1Bit,
-  EpaperStatus,
+  DisplayStatus,
   EpaperConfig,
   DisplayUpdateMode,
+  DisplayType,
   success,
   failure,
 } from "@core/types";
+import { DisplayCapabilities } from "@core/interfaces/IDisplayDriver";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import { MockAdapter } from "./adapters/MockAdapter";
@@ -357,25 +359,34 @@ export class MockEpaperService implements IEpaperService {
     return success(undefined);
   }
 
-  async getStatus(): Promise<Result<EpaperStatus>> {
+  async getStatus(): Promise<Result<DisplayStatus>> {
     if (!this.initialized) {
       return failure(DisplayError.notInitialized());
     }
 
-    const status: EpaperStatus = {
+    const status: DisplayStatus = {
       initialized: this.initialized,
       busy: this.busy,
-      sleeping: this.sleeping,
+      displayType: DisplayType.MOCK,
       model: this.getDisplayModel(),
       width: this.config.width,
       height: this.config.height,
       lastUpdate: this.lastUpdate || undefined,
+      // E-paper specific fields
+      sleeping: this.sleeping,
       fullRefreshCount: this.fullRefreshCount,
       partialRefreshCount: this.partialRefreshCount,
     };
 
     logger.info("Mock E-Paper: Status retrieved", status);
     return success(status);
+  }
+
+  /**
+   * Get display capabilities
+   */
+  getCapabilities(): DisplayCapabilities {
+    return this.driver.capabilities;
   }
 
   isBusy(): boolean {

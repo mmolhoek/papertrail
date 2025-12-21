@@ -1,9 +1,8 @@
-import { IRenderingOrchestrator } from "@core/interfaces";
 import {
+  IRenderingOrchestrator,
   IGPSService,
   IMapService,
   ISVGService,
-  IEpaperService,
   IConfigService,
   IWiFiService,
   ITextRendererService,
@@ -19,6 +18,8 @@ import {
   LocationPrefetchProgress,
   ElevationPrefetchProgress,
   RoadPrefetchProgress,
+  IDisplayService,
+  isEpaperService,
 } from "@core/interfaces";
 import {
   Result,
@@ -125,7 +126,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly gpsService: IGPSService,
     private readonly mapService: IMapService,
     private readonly svgService: ISVGService,
-    private readonly epaperService: IEpaperService,
+    private readonly displayService: IDisplayService,
     private readonly configService: IConfigService,
     private readonly wifiService?: IWiFiService,
     private readonly textRendererService?: ITextRendererService,
@@ -143,7 +144,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       wifiService ?? null,
       configService,
       textRendererService ?? null,
-      epaperService,
+      displayService,
       simulationService ?? null,
       driveNavigationService ?? null,
     );
@@ -169,7 +170,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     this.driveCoordinator = new DriveCoordinator(
       driveNavigationService ?? null,
       svgService,
-      epaperService,
+      displayService,
       configService,
       simulationService ?? null,
       speedLimitService ?? null,
@@ -203,7 +204,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       gpsService,
       mapService,
       svgService,
-      epaperService,
+      displayService,
       configService,
       driveNavigationService ?? null,
       this.simulationCoordinator,
@@ -262,19 +263,22 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       }
       logger.info("✓ GPSService initialized");
 
-      // Initialize e-paper service
-      logger.info("Initializing EpaperService...");
-      const epaperResult = await this.epaperService.initialize();
-      if (!epaperResult.success) {
-        logger.error("Failed to initialize EpaperService:", epaperResult.error);
+      // Initialize display service
+      logger.info("Initializing DisplayService...");
+      const displayResult = await this.displayService.initialize();
+      if (!displayResult.success) {
+        logger.error(
+          "Failed to initialize DisplayService:",
+          displayResult.error,
+        );
         return failure(
-          OrchestratorError.initFailed("EpaperService", epaperResult.error),
+          OrchestratorError.initFailed("DisplayService", displayResult.error),
         );
       }
-      logger.info("✓ EpaperService initialized");
-      // show the logo on the e-paper display
+      logger.info("✓ DisplayService initialized");
+      // show the logo on the display
       logger.info("Displaying startup logo...");
-      const logoResult = await this.epaperService.displayLogo();
+      const logoResult = await this.displayService.displayLogo();
       if (!logoResult.success) {
         logger.error("Failed to display startup logo:", logoResult.error);
         return failure(
@@ -901,7 +905,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
 
       if (renderResult.success) {
-        await this.epaperService.displayBitmap(renderResult.data);
+        await this.displayService.displayBitmap(renderResult.data);
         logger.info("Full route displayed successfully");
         return success(undefined);
       } else {
@@ -1575,7 +1579,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
 
     try {
       const gpsStatus = await this.gpsService.getStatus();
-      const epaperStatus = await this.epaperService.getStatus();
+      const displayStatus = await this.displayService.getStatus();
       const activeGPXPath = this.configService.getActiveGPXPath();
 
       let activeTrack = undefined;
@@ -1615,16 +1619,16 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           lastUpdate: undefined,
         },
         display: {
-          initialized: epaperStatus.success,
-          busy: epaperStatus.success ? epaperStatus.data.busy : false,
-          model: epaperStatus.success ? epaperStatus.data.model : undefined,
-          width: epaperStatus.success ? epaperStatus.data.width : undefined,
-          height: epaperStatus.success ? epaperStatus.data.height : undefined,
-          lastUpdate: epaperStatus.success
-            ? epaperStatus.data.lastUpdate
+          initialized: displayStatus.success,
+          busy: displayStatus.success ? displayStatus.data.busy : false,
+          model: displayStatus.success ? displayStatus.data.model : undefined,
+          width: displayStatus.success ? displayStatus.data.width : undefined,
+          height: displayStatus.success ? displayStatus.data.height : undefined,
+          lastUpdate: displayStatus.success
+            ? displayStatus.data.lastUpdate
             : undefined,
-          refreshCount: epaperStatus.success
-            ? epaperStatus.data.fullRefreshCount || 0
+          refreshCount: displayStatus.success
+            ? displayStatus.data.fullRefreshCount || 0
             : 0,
         },
         activeTrack,
@@ -1657,8 +1661,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    logger.info("Clearing e-paper display");
-    const result = await this.epaperService.clear();
+    logger.info("Clearing display");
+    const result = await this.displayService.clear();
     if (!result.success) {
       logger.error("Failed to clear display:", result.error);
       return failure(
@@ -1676,6 +1680,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    *
    * Puts the e-paper display into low-power sleep mode.
    * The display must be woken before any updates can be made.
+   * For non-e-paper displays, this is a no-op.
    *
    * @returns Result indicating success or failure
    */
@@ -1685,14 +1690,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    logger.info("Putting e-paper display to sleep");
-    const result = await this.epaperService.sleep();
-    if (result.success) {
-      logger.info("✓ Display is now sleeping");
-    } else {
-      logger.error("Failed to put display to sleep:", result.error);
+    // Only e-paper displays support sleep mode
+    if (isEpaperService(this.displayService)) {
+      logger.info("Putting e-paper display to sleep");
+      const result = await this.displayService.sleep();
+      if (result.success) {
+        logger.info("✓ Display is now sleeping");
+      } else {
+        logger.error("Failed to put display to sleep:", result.error);
+      }
+      return result;
     }
-    return result;
+
+    // Non-e-paper displays don't support sleep - return success (no-op)
+    logger.info("Display does not support sleep mode");
+    return success(undefined);
   }
 
   /**
@@ -1700,6 +1712,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    *
    * Wakes the e-paper display from sleep mode. Must be called
    * before any display updates if the display was put to sleep.
+   * For non-e-paper displays, this is a no-op.
    *
    * @returns Result indicating success or failure
    */
@@ -1709,14 +1722,21 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return failure(OrchestratorError.notInitialized());
     }
 
-    logger.info("Waking e-paper display");
-    const result = await this.epaperService.wake();
-    if (result.success) {
-      logger.info("✓ Display is now awake");
-    } else {
-      logger.error("Failed to wake display:", result.error);
+    // Only e-paper displays support wake mode
+    if (isEpaperService(this.displayService)) {
+      logger.info("Waking e-paper display");
+      const result = await this.displayService.wake();
+      if (result.success) {
+        logger.info("✓ Display is now awake");
+      } else {
+        logger.error("Failed to wake display:", result.error);
+      }
+      return result;
     }
-    return result;
+
+    // Non-e-paper displays don't need wake - return success (no-op)
+    logger.info("Display does not require wake");
+    return success(undefined);
   }
 
   /**
@@ -2012,13 +2032,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       logger.error(`Error disposing GPS service: ${errorMsg}`);
     }
 
-    logger.info("Disposing epaper service");
+    logger.info("Disposing display service");
     try {
-      await this.epaperService.dispose();
-      logger.info("✓ Epaper service disposed");
+      await this.displayService.dispose();
+      logger.info("✓ Display service disposed");
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      logger.error(`Error disposing epaper service: ${errorMsg}`);
+      logger.error(`Error disposing display service: ${errorMsg}`);
     }
 
     this.isInitialized = false;
@@ -2065,10 +2085,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    * @returns PNG buffer of the display contents, or null if not available
    */
   getMockDisplayImage(): Buffer | null {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockService = this.epaperService as any;
-    if (mockService && typeof mockService.getMockDisplayImage === "function") {
-      return mockService.getMockDisplayImage();
+    if (
+      this.displayService.getMockDisplayImage &&
+      typeof this.displayService.getMockDisplayImage === "function"
+    ) {
+      return this.displayService.getMockDisplayImage();
     }
     return null;
   }
@@ -2079,13 +2100,13 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
    * @returns true if using MockEpaperService and an image has been rendered
    */
   hasMockDisplayImage(): boolean {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockService = this.epaperService as any;
-    return (
-      mockService &&
-      typeof mockService.hasMockDisplayImage === "function" &&
-      mockService.hasMockDisplayImage()
-    );
+    if (
+      this.displayService.hasMockDisplayImage &&
+      typeof this.displayService.hasMockDisplayImage === "function"
+    ) {
+      return this.displayService.hasMockDisplayImage();
+    }
+    return false;
   }
 
   /**

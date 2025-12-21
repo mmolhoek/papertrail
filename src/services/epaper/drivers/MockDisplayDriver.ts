@@ -1,6 +1,7 @@
 import { DisplayCapabilities } from "@core/interfaces/IDisplayDriver";
 import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
-import { BaseDisplayDriver } from "./BaseDisplayDriver";
+import { DisplayType } from "@core/types";
+import { BaseEpaperDriver } from "./BaseEpaperDriver";
 import * as imagemagick from "@utils/imagemagick";
 
 /**
@@ -8,11 +9,16 @@ import * as imagemagick from "@utils/imagemagick";
  *
  * Simulates display operations without requiring actual hardware.
  * Converts displayed bitmaps to PNG for web UI viewing.
+ * Extends BaseEpaperDriver to simulate e-paper behavior.
  */
-export class MockDisplayDriver extends BaseDisplayDriver {
+export class MockDisplayDriver extends BaseEpaperDriver {
   readonly name = "mock_display";
 
-  readonly capabilities: DisplayCapabilities;
+  readonly capabilities: DisplayCapabilities & {
+    supportsPartialRefresh: boolean;
+    refreshTimeFullMs: number;
+    refreshTimePartialMs: number;
+  };
 
   private lastDisplayedBuffer: Buffer | null = null;
   private lastDisplayedPng: Buffer | null = null;
@@ -23,9 +29,11 @@ export class MockDisplayDriver extends BaseDisplayDriver {
       width,
       height,
       colorDepth: "1bit",
+      displayType: DisplayType.MOCK,
       supportsPartialRefresh: true,
       refreshTimeFullMs: 2000,
       refreshTimePartialMs: 500,
+      supportsSleep: true,
     };
   }
 
@@ -97,7 +105,7 @@ export class MockDisplayDriver extends BaseDisplayDriver {
    */
   async sleep(): Promise<void> {
     this.logger.info("Mock display sleeping");
-    this.sleeping = true;
+    this.setSleeping(true);
     await this.delay(100);
   }
 
@@ -128,7 +136,7 @@ export class MockDisplayDriver extends BaseDisplayDriver {
     this.logger.info(`Mock display buffer allocated: ${bufferSize} bytes`);
 
     await this.initDisplay();
-    this.sleeping = false;
+    this.setSleeping(false);
   }
 
   // --- Mock-specific methods ---

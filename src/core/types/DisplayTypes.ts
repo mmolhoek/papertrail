@@ -1,13 +1,33 @@
 import { GPSCoordinate } from "./GPSTypes";
 
 /**
- * Color depth supported by e-paper displays
+ * Color depth supported by displays
  */
 export type ColorDepth =
+  // E-paper types
   | "1bit" // Black and white only
   | "4bit-grayscale" // 16 shades of gray
   | "3color-bwr" // Black, White, Red
-  | "3color-bwy"; // Black, White, Yellow
+  | "3color-bwy" // Black, White, Yellow
+  // LCD/HDMI types
+  | "8bit-grayscale" // 256 shades of gray
+  | "rgb565" // 16-bit color (5-6-5)
+  | "rgb888" // 24-bit color
+  | "rgba8888"; // 32-bit color with alpha
+
+/**
+ * Display type discriminator
+ */
+export enum DisplayType {
+  /** E-paper/e-ink display */
+  EPAPER = "epaper",
+  /** LCD display (framebuffer) */
+  LCD = "lcd",
+  /** HDMI display */
+  HDMI = "hdmi",
+  /** Mock display for testing/development */
+  MOCK = "mock",
+}
 
 /**
  * Generic display bitmap that supports different color depths
@@ -201,17 +221,17 @@ export type EpaperConfig = {
 };
 
 /**
- * E-paper display status
+ * Generic display status
  */
-export type EpaperStatus = {
+export interface DisplayStatus {
   /** Whether display is initialized */
   initialized: boolean;
 
   /** Whether display is busy */
   busy: boolean;
 
-  /** Whether display is in sleep mode */
-  sleeping: boolean;
+  /** Display type */
+  displayType: DisplayType;
 
   /** Display model/name */
   model?: string;
@@ -225,12 +245,22 @@ export type EpaperStatus = {
   /** Last update timestamp */
   lastUpdate?: Date;
 
-  /** Number of full refreshes performed */
-  fullRefreshCount: number;
+  // E-paper specific (optional)
+  /** Whether display is in sleep mode (e-paper only) */
+  sleeping?: boolean;
 
-  /** Number of partial refreshes performed */
-  partialRefreshCount: number;
-};
+  /** Number of full refreshes performed (e-paper only) */
+  fullRefreshCount?: number;
+
+  /** Number of partial refreshes performed (e-paper only) */
+  partialRefreshCount?: number;
+}
+
+/**
+ * E-paper display status
+ * @deprecated Use DisplayStatus instead
+ */
+export type EpaperStatus = DisplayStatus;
 
 /**
  * Display update mode

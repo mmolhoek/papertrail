@@ -1,21 +1,13 @@
 import { IHardwareAdapter } from "./IHardwareAdapter";
+import { ColorDepth, DisplayType } from "@core/types";
 
 /**
  * Display Driver Interface
  *
- * Defines the contract for e-paper display drivers. Each display model
- * (Waveshare, Good Display, etc.) implements this interface with its
- * specific command sequences and timing requirements.
+ * Defines the contract for display drivers. Each display model
+ * (Waveshare e-paper, Good Display, LCD, etc.) implements this interface
+ * with its specific command sequences and timing requirements.
  */
-
-/**
- * Color depth supported by the display
- */
-export type ColorDepth =
-  | "1bit" // Black and white only
-  | "4bit-grayscale" // 16 shades of gray
-  | "3color-bwr" // Black, White, Red
-  | "3color-bwy"; // Black, White, Yellow
 
 /**
  * Display capabilities and specifications
@@ -30,14 +22,31 @@ export interface DisplayCapabilities {
   /** Color depth supported by the display */
   colorDepth: ColorDepth;
 
-  /** Whether the display supports partial refresh */
-  supportsPartialRefresh: boolean;
+  /** Display type (e-paper, LCD, HDMI, mock) */
+  displayType: DisplayType;
 
-  /** Typical full refresh time in milliseconds */
-  refreshTimeFullMs: number;
+  // E-paper specific capabilities (optional for other display types)
+  /** Whether the display supports partial refresh (e-paper) */
+  supportsPartialRefresh?: boolean;
 
-  /** Typical partial refresh time in milliseconds */
-  refreshTimePartialMs: number;
+  /** Typical full refresh time in milliseconds (e-paper) */
+  refreshTimeFullMs?: number;
+
+  /** Typical partial refresh time in milliseconds (e-paper) */
+  refreshTimePartialMs?: number;
+
+  /** Whether the display supports sleep mode (e-paper) */
+  supportsSleep?: boolean;
+
+  // LCD/HDMI specific capabilities (optional for e-paper)
+  /** Whether the display supports backlight control (LCD) */
+  supportsBacklight?: boolean;
+
+  /** Maximum backlight brightness (LCD) */
+  maxBrightness?: number;
+
+  /** Display refresh rate in Hz (LCD/HDMI) */
+  refreshRateHz?: number;
 }
 
 /**
@@ -98,16 +107,6 @@ export interface IDisplayDriver {
    * @param fast Use fast/partial refresh if true
    */
   clear(fast: boolean): Promise<void>;
-
-  /**
-   * Put the display into deep sleep mode
-   */
-  sleep(): Promise<void>;
-
-  /**
-   * Wake the display from sleep (usually requires reinit)
-   */
-  wake(): Promise<void>;
 
   /**
    * Check if the display is ready for new commands

@@ -2,10 +2,10 @@ import {
   IWiFiService,
   IConfigService,
   ITextRendererService,
-  IEpaperService,
   ITrackSimulationService,
   IDriveNavigationService,
   TextTemplate,
+  IDisplayService,
 } from "@core/interfaces";
 import {
   Result,
@@ -63,7 +63,7 @@ export class OnboardingCoordinator {
     private readonly wifiService: IWiFiService | null,
     private readonly configService: IConfigService,
     private readonly textRendererService: ITextRendererService | null,
-    private readonly epaperService: IEpaperService,
+    private readonly displayService: IDisplayService,
     private readonly simulationService: ITrackSimulationService | null,
     private readonly driveNavigationService: IDriveNavigationService | null,
   ) {}
@@ -164,7 +164,7 @@ export class OnboardingCoordinator {
     state: WiFiState,
     previousState: WiFiState,
   ): Promise<void> {
-    if (!this.textRendererService || !this.epaperService) {
+    if (!this.textRendererService || !this.displayService) {
       logger.warn(
         "TextRendererService or EpaperService not available for WiFi screens",
       );
@@ -311,7 +311,7 @@ export class OnboardingCoordinator {
     try {
       // Step 1: Display the logo
       logger.info("Step 1: Displaying startup logo...");
-      const logoResult = await this.epaperService.displayLogo();
+      const logoResult = await this.displayService.displayLogo();
       if (!logoResult.success) {
         logger.error("Failed to display startup logo:", logoResult.error);
         return failure(
@@ -555,7 +555,7 @@ export class OnboardingCoordinator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(
+      await this.displayService.displayBitmap(
         renderResult.data,
         DisplayUpdateMode.FULL,
       );
@@ -640,7 +640,7 @@ export class OnboardingCoordinator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(
+      await this.displayService.displayBitmap(
         renderResult.data,
         DisplayUpdateMode.FULL,
       );
@@ -710,7 +710,7 @@ export class OnboardingCoordinator {
     );
 
     if (renderResult.success) {
-      await this.epaperService.displayBitmap(renderResult.data);
+      await this.displayService.displayBitmap(renderResult.data);
       logger.info("Displayed reconnecting screen");
     } else {
       logger.error("Failed to render reconnecting template");
@@ -721,7 +721,7 @@ export class OnboardingCoordinator {
    * Display the "select track" screen with GPS info
    */
   private async displaySelectTrackScreen(fullUpdate: boolean): Promise<void> {
-    if (!this.textRendererService || !this.epaperService) {
+    if (!this.textRendererService || !this.displayService) {
       logger.warn(
         "TextRendererService or EpaperService not available for select track screen",
       );
@@ -841,7 +841,7 @@ export class OnboardingCoordinator {
       const updateMode = fullUpdate
         ? DisplayUpdateMode.FULL
         : DisplayUpdateMode.AUTO;
-      await this.epaperService.displayBitmap(renderResult.data, updateMode);
+      await this.displayService.displayBitmap(renderResult.data, updateMode);
       logger.info(
         `Displayed select track screen with GPS info (${fullUpdate ? "full" : "auto"} update)`,
       );

@@ -1,5 +1,6 @@
 import { DisplayCapabilities } from "@core/interfaces/IDisplayDriver";
-import { BaseDisplayDriver } from "./BaseDisplayDriver";
+import { DisplayType } from "@core/types";
+import { BaseEpaperDriver } from "./BaseEpaperDriver";
 
 /**
  * Waveshare 7.5" Black/White E-Paper Display Driver
@@ -24,16 +25,22 @@ import { BaseDisplayDriver } from "./BaseDisplayDriver";
  * - 0x20: Activate display update sequence
  * - 0x10: Deep sleep mode
  */
-export class Waveshare7in5BWDriver extends BaseDisplayDriver {
+export class Waveshare7in5BWDriver extends BaseEpaperDriver {
   readonly name = "waveshare_7in5_bw";
 
-  readonly capabilities: DisplayCapabilities = {
+  readonly capabilities: DisplayCapabilities & {
+    supportsPartialRefresh: boolean;
+    refreshTimeFullMs: number;
+    refreshTimePartialMs: number;
+  } = {
     width: 800,
     height: 480,
     colorDepth: "1bit",
+    displayType: DisplayType.EPAPER,
     supportsPartialRefresh: true,
     refreshTimeFullMs: 3000,
     refreshTimePartialMs: 500,
+    supportsSleep: true,
   };
 
   // Command codes
@@ -157,7 +164,7 @@ export class Waveshare7in5BWDriver extends BaseDisplayDriver {
     this.sendData(0x01);
     await this.delay(100);
 
-    this.sleeping = true;
+    this.setSleeping(true);
     this.logger.timeEnd("sleep");
     this.logger.info("Display is now sleeping");
   }

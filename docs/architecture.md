@@ -9,6 +9,7 @@ This document provides detailed architectural diagrams and documentation for the
 3. [Track Selection Flow](#track-selection-flow)
 4. [WiFi/Onboarding State Machine](#wifionboarding-state-machine)
 5. [Drive Navigation Flow](#drive-navigation-flow)
+6. [Display Abstraction Layer](#display-abstraction-layer)
 
 ---
 
@@ -670,3 +671,239 @@ ManeuverTypes:
 ### Types and Interfaces
 - `src/core/types/WiFiTypes.ts` - WiFiState enum
 - `src/core/interfaces/*.ts` - Service interfaces
+
+---
+
+## Display Abstraction Layer
+
+The display system is decoupled from specific hardware implementations through a layered abstraction. This allows support for different display types (e-paper brands, LCD, HDMI framebuffer) without changing the core application logic.
+
+### Interface Hierarchy
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Display Interface Hierarchy                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                        ┌─────────────────────┐
+                        │   IDisplayService   │ ◄── Generic display interface
+                        │                     │     (all display types)
+                        │  - initialize()     │
+                        │  - displayBitmap()  │
+                        │  - clear()          │
+                        │  - getStatus()      │
+                        │  - isBusy()         │
+                        │  - dispose()        │
+                        └──────────┬──────────┘
+                                   │ extends
+                                   ▼
+                        ┌─────────────────────┐
+                        │   IEpaperService    │ ◄── E-paper specific interface
+                        │                     │
+                        │  + sleep()          │     (adds power management)
+                        │  + wake()           │
+                        │  + fullRefresh()    │
+                        │  + reset()          │
+                        └─────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Driver Interface Hierarchy                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                        ┌─────────────────────┐
+                        │   IDisplayDriver    │ ◄── Generic driver interface
+                        │                     │
+                        │  - init()           │
+                        │  - display()        │
+                        │  - clear()          │
+                        │  - reset()          │
+                        │  - capabilities     │
+                        └──────────┬──────────┘
+                                   │ extends
+                                   ▼
+                        ┌─────────────────────┐
+                        │   IEpaperDriver     │ ◄── E-paper specific driver
+                        │                     │
+                        │  + displayWithMode()│     (partial/full refresh)
+                        │  + sleep()          │
+                        │  + wake()           │
+                        └─────────────────────┘
+
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         Adapter Interface Hierarchy                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+                        ┌─────────────────────┐
+                        │  IDisplayAdapter    │ ◄── Base adapter interface
+                        │                     │
+                        │  - init()           │
+                        │  - dispose()        │
+                        │  - delay()          │
+                        └─────────────────────┘
+
+                        ┌─────────────────────┐
+                        │  IHardwareAdapter   │ ◄── SPI/GPIO adapter
+                        │  (ISPIAdapter)      │     (for e-paper displays)
+                        │                     │
+                        │  - gpioWrite()      │
+                        │  - gpioRead()       │
+                        │  - spiWrite()       │
+                        │  - sendCommand()    │
+                        │  - sendData()       │
+                        └─────────────────────┘
+```
+
+### Display Types
+
+The `DisplayType` enum identifies the type of display at runtime:
+
+```typescript
+enum DisplayType {
+  EPAPER = "epaper",  // E-paper displays (Waveshare, Good Display, etc.)
+  LCD = "lcd",        // LCD screens (SPI, I2C, parallel)
+  HDMI = "hdmi",      // HDMI framebuffer displays
+  MOCK = "mock",      // Mock display for testing/development
+}
+```
+
+### Color Depth Support
+
+The system supports various color depths for different display technologies:
+
+| Color Depth | Description | Use Case |
+|-------------|-------------|----------|
+| `1bit` | Black/white only | E-paper displays |
+| `4bit-grayscale` | 16 shades of gray | E-paper with grayscale |
+| `3color-bwr` | Black/white/red | 3-color e-paper |
+| `3color-bwy` | Black/white/yellow | 3-color e-paper |
+| `8bit-grayscale` | 256 shades of gray | LCD displays |
+| `rgb565` | 16-bit color (65K colors) | LCD displays |
+| `rgb888` | 24-bit color (16M colors) | HDMI/high-end LCD |
+| `rgba8888` | 32-bit with alpha | Compositing |
+
+### Type Guards
+
+Use the `isEpaperService()` type guard to check for e-paper specific features:
+
+```typescript
+import { IDisplayService, isEpaperService } from "@core/interfaces";
+
+async function sleepDisplay(displayService: IDisplayService): Promise<void> {
+  if (isEpaperService(displayService)) {
+    await displayService.sleep();  // E-paper specific
+  }
+  // No-op for LCD/HDMI displays
+}
+```
+
+### Implementation Classes
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         E-Paper Implementation Stack                         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+    ┌────────────────────┐
+    │   EPaperService    │ ◄── Service layer (implements IEpaperService)
+    │                    │
+    │  Manages lifecycle,│
+    │  update modes,     │
+    │  status tracking   │
+    └─────────┬──────────┘
+              │ uses
+              ▼
+    ┌────────────────────┐     ┌────────────────────────┐
+    │  BaseEpaperDriver  │────►│ Waveshare7in5BWDriver  │ ◄── Concrete driver
+    │                    │     │                        │
+    │  Common e-paper    │     │  Waveshare-specific    │
+    │  functionality     │     │  command sequences     │
+    └─────────┬──────────┘     └────────────────────────┘
+              │ extends
+              ▼
+    ┌────────────────────┐
+    │  BaseDisplayDriver │ ◄── Generic display driver base
+    │                    │
+    │  Buffer management │
+    │  Dimension handling│
+    └────────────────────┘
+
+
+    ┌────────────────────┐
+    │  GPIOSPIAdapter    │ ◄── Hardware adapter
+    │                    │
+    │  GPIO pin control  │
+    │  SPI communication │
+    └────────────────────┘
+```
+
+### Adding a New Display Type
+
+To add support for a new display type (e.g., LCD via framebuffer):
+
+1. **Create Adapter** (if needed):
+   ```
+   src/services/display/adapters/FramebufferAdapter.ts
+   ```
+   Implements `IDisplayAdapter` for `/dev/fb0` operations.
+
+2. **Create Driver**:
+   ```
+   src/services/display/drivers/FramebufferDriver.ts
+   ```
+   Implements `IDisplayDriver` (not `IEpaperDriver` - no sleep/wake needed).
+
+3. **Create Service**:
+   ```
+   src/services/display/LCDDisplayService.ts
+   ```
+   Implements `IDisplayService` (not `IEpaperService`).
+
+4. **Register in ServiceContainer**:
+   ```typescript
+   this.registerDisplayDriver("rpi_lcd", (config) => new FramebufferDriver());
+   ```
+
+5. **Configure via Environment**:
+   ```bash
+   DISPLAY_TYPE=lcd
+   DISPLAY_DRIVER=rpi_lcd
+   ```
+
+### Display Abstraction Files
+
+| File | Purpose |
+|------|---------|
+| `src/core/interfaces/IDisplayService.ts` | Generic display service interface + `isEpaperService` type guard |
+| `src/core/interfaces/IEpaperService.ts` | E-paper specific service interface (extends IDisplayService) |
+| `src/core/interfaces/IDisplayDriver.ts` | Generic display driver interface |
+| `src/core/interfaces/IEpaperDriver.ts` | E-paper specific driver interface |
+| `src/core/interfaces/IDisplayAdapter.ts` | Base adapter interface |
+| `src/core/interfaces/IHardwareAdapter.ts` | SPI/GPIO adapter interface (ISPIAdapter alias) |
+| `src/core/types/DisplayTypes.ts` | DisplayType enum, DisplayStatus, ColorDepth |
+| `src/services/epaper/drivers/BaseDisplayDriver.ts` | Base class for all display drivers |
+| `src/services/epaper/drivers/BaseEpaperDriver.ts` | Base class for e-paper drivers |
+| `src/services/epaper/drivers/Waveshare7in5BWDriver.ts` | Waveshare 7.5" B&W driver |
+| `src/services/epaper/EPaperService.ts` | E-paper service implementation |
+| `src/services/epaper/MockEpaperService.ts` | Mock service for development |
+
+### ServiceContainer Methods
+
+```typescript
+// Get generic display service (works with any display type)
+const displayService: IDisplayService = container.getDisplayService();
+
+// Get e-paper specific service (has sleep/wake/fullRefresh)
+const epaperService: IEpaperService = container.getEpaperService();
+```
+
+### Backwards Compatibility
+
+The refactoring maintains full backwards compatibility:
+
+- `IEpaperService` remains valid and extends `IDisplayService`
+- `EpaperStatus` is a deprecated alias for `DisplayStatus`
+- `IHardwareAdapter` has `ISPIAdapter` alias
+- `getEpaperService()` is preserved in ServiceContainer
+- All existing consumer code continues to work

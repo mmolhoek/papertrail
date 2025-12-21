@@ -1,5 +1,5 @@
 import { IEpaperService } from "@core/interfaces";
-import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
+import { IEpaperDriver } from "@core/interfaces/IEpaperDriver";
 import {
   IHardwareAdapter,
   PinConfig,
@@ -8,12 +8,14 @@ import {
 import {
   Result,
   Bitmap1Bit,
-  EpaperStatus,
+  DisplayStatus,
   EpaperConfig,
   DisplayUpdateMode,
+  DisplayType,
   success,
   failure,
 } from "@core/types";
+import { DisplayCapabilities } from "@core/interfaces/IDisplayDriver";
 import { DisplayError, DisplayErrorCode } from "@core/errors";
 import { getLogger } from "@utils/logger";
 import path from "path";
@@ -39,7 +41,7 @@ export class EpaperService implements IEpaperService {
 
   constructor(
     private readonly config: EpaperConfig,
-    private readonly driver: IDisplayDriver,
+    private readonly driver: IEpaperDriver,
     private readonly adapter: IHardwareAdapter,
   ) {
     this.rotation = config.rotation;
@@ -458,7 +460,7 @@ export class EpaperService implements IEpaperService {
   /**
    * Get the current status of the display
    */
-  async getStatus(): Promise<Result<EpaperStatus>> {
+  async getStatus(): Promise<Result<DisplayStatus>> {
     logger.info(`Getting e-paper display status: ${this.getDisplayModel()}`);
 
     if (!this.isInitialized) {
@@ -466,20 +468,29 @@ export class EpaperService implements IEpaperService {
       return failure(DisplayError.notInitialized());
     }
 
-    const status: EpaperStatus = {
+    const status: DisplayStatus = {
       initialized: this.isInitialized,
       busy: this.busy,
-      sleeping: this.isSleeping,
+      displayType: DisplayType.EPAPER,
       model: this.getDisplayModel(),
       width: this.driver.capabilities.width,
       height: this.driver.capabilities.height,
       lastUpdate: this.lastUpdate || undefined,
+      // E-paper specific fields
+      sleeping: this.isSleeping,
       fullRefreshCount: this.fullRefreshCount,
       partialRefreshCount: this.partialRefreshCount,
     };
 
     logger.info("E-paper display status retrieved", status);
     return success(status);
+  }
+
+  /**
+   * Get display capabilities
+   */
+  getCapabilities(): DisplayCapabilities {
+    return this.driver.capabilities;
   }
 
   /**

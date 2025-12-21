@@ -1,7 +1,6 @@
 import {
   IDriveNavigationService,
   ISVGService,
-  IEpaperService,
   IConfigService,
   ITrackSimulationService,
   ISpeedLimitService,
@@ -11,6 +10,7 @@ import {
   DriveNavigationInfo,
   NearbyPOI,
   CachedRoad,
+  IDisplayService,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -89,7 +89,7 @@ export class DriveCoordinator {
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
     private readonly svgService: ISVGService,
-    private readonly epaperService: IEpaperService,
+    private readonly displayService: IDisplayService,
     private readonly configService: IConfigService,
     private readonly simulationService: ITrackSimulationService | null,
     private readonly speedLimitService: ISpeedLimitService | null,
@@ -262,7 +262,7 @@ export class DriveCoordinator {
     // Queue update if one is already in progress (prevents concurrent renders)
     if (
       !this.driveDisplayUpdateQueue.queueUpdate(() =>
-        this.epaperService.isBusy(),
+        this.displayService.isBusy(),
       )
     ) {
       return success(undefined);
@@ -468,7 +468,7 @@ export class DriveCoordinator {
       }
 
       if (renderResult?.success) {
-        await this.epaperService.displayBitmap(renderResult.data);
+        await this.displayService.displayBitmap(renderResult.data);
         logger.info("Drive display updated successfully");
         // Notify display update callback
         if (this.displayUpdateCallback) {

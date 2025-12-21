@@ -14,9 +14,11 @@ import {
   IReverseGeocodingService,
   IElevationService,
   IVectorMapService,
+  IDisplayService,
+  IDisplayDriver,
+  IEpaperDriver,
+  IHardwareAdapter,
 } from "@core/interfaces";
-import { IDisplayDriver } from "@core/interfaces/IDisplayDriver";
-import { IHardwareAdapter } from "@core/interfaces/IHardwareAdapter";
 import {
   WebConfig,
   GPSConfig,
@@ -251,6 +253,15 @@ export class ServiceContainer {
   }
 
   /**
+   * Get Display Service (generic interface)
+   * Returns the display service as IDisplayService for generic display operations.
+   * For e-paper specific operations (sleep/wake), use getEpaperService() instead.
+   */
+  getDisplayService(): IDisplayService {
+    return this.getEpaperService();
+  }
+
+  /**
    * Get E-paper Service
    * Automatically uses mock service on non-Linux platforms or when USE_MOCK_EPAPER=true
    */
@@ -266,7 +277,10 @@ export class ServiceContainer {
       } else {
         // Create driver and adapter for real hardware
         const driverName = config.driver || "waveshare_7in5_bw";
-        const driver = this.createDisplayDriver(driverName, config);
+        const driver = this.createDisplayDriver(
+          driverName,
+          config,
+        ) as IEpaperDriver;
         const adapter = this.createHardwareAdapter();
 
         // Lazy import to avoid loading lgpio on non-Linux platforms

@@ -41,6 +41,11 @@ Papertrail is a GPS tracker with an e-paper display for Raspberry Pi 5. It:
 - [Testing](#testing)
   - [Test Setup Pattern](#test-setup-pattern)
   - [Run Tests](#run-tests)
+- [Display Abstraction Layer](#display-abstraction-layer)
+  - [Interface Hierarchy](#interface-hierarchy)
+  - [Display Types](#display-types)
+  - [Type Guards](#type-guards)
+  - [Adding a New Display Type](#adding-a-new-display-type)
 - [Adding a New Service](#adding-a-new-service)
 - [Environment Variables](#environment-variables)
 - [Development Notes](#development-notes)
@@ -554,6 +559,136 @@ npm test -- path/to/file.test.ts   # Run single file
 npm run test:watch                 # Watch mode
 npm run test:coverage              # Coverage report
 ```
+
+---
+
+## Display Abstraction Layer
+
+The display system is decoupled from specific hardware implementations, allowing support for different display types (e-paper brands, LCD, HDMI framebuffer) without changing core application logic.
+
+### Interface Hierarchy
+
+```
+Service Layer:
+┌─────────────────────┐
+│   IDisplayService   │ ◄── Generic display interface (all display types)
+│  - initialize()     │
+│  - displayBitmap()  │
+│  - clear()          │
+│  - getStatus()      │
+└──────────┬──────────┘
+           │ extends
+           ▼
+┌─────────────────────┐
+│   IEpaperService    │ ◄── E-paper specific (adds sleep/wake/fullRefresh)
+└─────────────────────┘
+
+Driver Layer:
+┌─────────────────────┐
+│   IDisplayDriver    │ ◄── Generic driver interface
+└──────────┬──────────┘
+           │ extends
+           ▼
+┌─────────────────────┐
+│   IEpaperDriver     │ ◄── E-paper specific (displayWithMode, sleep, wake)
+└─────────────────────┘
+
+Implementation Stack:
+EPaperService → BaseEpaperDriver → BaseDisplayDriver → IHardwareAdapter (SPI/GPIO)
+```
+
+### Display Types
+
+The `DisplayType` enum identifies the display type at runtime:
+
+```typescript
+enum DisplayType {
+  EPAPER = "epaper",  // E-paper (Waveshare, Good Display, etc.)
+  LCD = "lcd",        // LCD screens (SPI, I2C, parallel)
+  HDMI = "hdmi",      // HDMI framebuffer displays
+  MOCK = "mock",      // Mock display for testing
+}
+```
+
+**Supported Color Depths:**
+
+| Color Depth | Description | Use Case |
+|-------------|-------------|----------|
+| `1bit` | Black/white | E-paper |
+| `4bit-grayscale` | 16 shades | Grayscale e-paper |
+| `3color-bwr` | Black/white/red | 3-color e-paper |
+| `rgb565` | 16-bit (65K colors) | LCD |
+| `rgb888` | 24-bit (16M colors) | HDMI/LCD |
+
+### Type Guards
+
+Use `isEpaperService()` to check for e-paper specific features:
+
+```typescript
+import { IDisplayService, isEpaperService } from "@core/interfaces";
+
+async function sleepDisplay(displayService: IDisplayService): Promise<void> {
+  if (isEpaperService(displayService)) {
+    await displayService.sleep();  // E-paper only
+  }
+  // No-op for LCD/HDMI
+}
+```
+
+### ServiceContainer Methods
+
+```typescript
+// Generic display service (works with any display type)
+const displayService: IDisplayService = ServiceContainer.getDisplayService();
+
+// E-paper specific (has sleep/wake/fullRefresh)
+const epaperService: IEpaperService = ServiceContainer.getEpaperService();
+```
+
+### Adding a New Display Type
+
+To add support for a new display (e.g., LCD via framebuffer):
+
+1. **Create Adapter** (if needed):
+   ```
+   src/services/display/adapters/FramebufferAdapter.ts
+   ```
+   Implements `IDisplayAdapter` for `/dev/fb0` operations.
+
+2. **Create Driver**:
+   ```
+   src/services/display/drivers/FramebufferDriver.ts
+   ```
+   Implements `IDisplayDriver` (not `IEpaperDriver` - no sleep/wake).
+
+3. **Create Service**:
+   ```
+   src/services/display/LCDDisplayService.ts
+   ```
+   Implements `IDisplayService` (not `IEpaperService`).
+
+4. **Register in ServiceContainer**:
+   ```typescript
+   this.registerDisplayDriver("rpi_lcd", (config) => new FramebufferDriver());
+   ```
+
+5. **Configure via Environment**:
+   ```bash
+   DISPLAY_TYPE=lcd
+   DISPLAY_DRIVER=rpi_lcd
+   ```
+
+**Key Files:**
+
+| File | Purpose |
+|------|---------|
+| `src/core/interfaces/IDisplayService.ts` | Generic service interface + `isEpaperService` type guard |
+| `src/core/interfaces/IEpaperService.ts` | E-paper service (extends IDisplayService) |
+| `src/core/interfaces/IDisplayDriver.ts` | Generic driver interface |
+| `src/core/interfaces/IEpaperDriver.ts` | E-paper driver interface |
+| `src/core/types/DisplayTypes.ts` | DisplayType enum, DisplayStatus, ColorDepth |
+| `src/services/epaper/drivers/BaseDisplayDriver.ts` | Base class for all drivers |
+| `src/services/epaper/drivers/BaseEpaperDriver.ts` | Base class for e-paper drivers |
 
 ---
 

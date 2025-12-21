@@ -161,7 +161,8 @@ describe("EpaperService", () => {
       const status = await epaperService.getStatus();
       if (status.success) {
         expect(
-          status.data.fullRefreshCount + status.data.partialRefreshCount,
+          (status.data.fullRefreshCount ?? 0) +
+            (status.data.partialRefreshCount ?? 0),
         ).toBeGreaterThan(0);
       }
     });

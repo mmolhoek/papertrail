@@ -4,377 +4,66 @@ A GPS tracker with e-paper display for Raspberry Pi 5, featuring a mobile web in
 
 ## Features
 
-- 📍 Real-time GPS tracking
-- 🗺️ GPX track visualization
-- 📱 Mobile-responsive web interface
-- 🖥️ E-paper display output
-- 🔄 Auto-update display
-- ⚙️ Configurable zoom and display options
-- 🔌 WebSocket support for live updates
+- Real-time GPS tracking
+- GPX track visualization on 800x480 e-paper display
+- Turn-by-turn navigation with offline route calculation
+- Mobile-responsive web interface via WebSocket
+- WiFi management with mobile hotspot pairing
+- Track simulation for testing and demos
 
-## Hardware Requirements
-
-- Raspberry Pi 5
-- GPS module connected to `/dev/ttyAMA0`
-- E-paper display (800x480) connected via SPI
-- WiFi adapter (for access point mode)
-
-## Project Structure
-
-```
-papertrail/
-├── src/
-│   ├── core/              # Core types, interfaces, and errors
-│   ├── services/          # Service implementations
-│   ├── di/                # Dependency injection container
-│   ├── web/               # Web interface
-│   │   ├── public/        # Static web files
-│   │   └── ...
-│   └── index.ts           # Main entry point
-├── scripts/
-│   ├── install.sh         # One-time installation script
-│   ├── start.sh           # Development start script
-│   └── stop.sh            # Stop script (dev and production)
-├── config/
-│   ├── 50-gps.rules                 # Udev rules for GPS serial port
-│   ├── logrotate                    # Logrotate configuration
-│   ├── papertrail-sudoers           # Sudoers for nmcli
-│   └── papertrail.service.example   # Systemd service template
-├── data/                  # Runtime data
-│   ├── gpx-files/         # GPX tracks
-│   └── cache/             # Cached data
-└── logs/                  # Application logs
-```
-
-## Installation
-
-### First-Time Setup
-
-Deploy to your Raspberry Pi and run the install script:
+## Quick Start
 
 ```bash
-# On your Pi
-cd ~
+# Clone and install
 git clone <your-repo> papertrail
 cd papertrail
 ./scripts/install.sh
+
+# Run
+sudo systemctl start papertrail
+
+# Access web interface
+open http://your-pi-ip:3000
 ```
 
-The install script automatically:
-- Installs system packages (nodejs, npm, screen, build-essential, gpiod)
-- Sets up GPS udev rules for serial port permissions
-- Disables getty on ttyAMA0 (frees serial port for GPS)
-- Configures SPI buffer size for e-paper display (requires reboot)
-- Adds user to dialout group for serial port access
-- Sets up sudoers for WiFi management (nmcli)
-- Creates log file at `/var/log/papertrail.log`
-- Configures logrotate
-- Creates `.env` from `.env.example`
-- Installs npm dependencies
-- Builds the project
-- Installs the systemd service
+## Documentation
 
-**Note:** If the SPI buffer size is configured for the first time, a reboot is required before the e-paper display will work correctly.
+| Document | Description |
+|----------|-------------|
+| [Installation Guide](docs/installation.md) | Hardware requirements, setup, running, troubleshooting |
+| [Configuration](docs/configuration.md) | Environment variables, security, CORS |
+| [Developer Guide](docs/developer-guide.md) | Architecture, services, testing, adding features |
+| [Architecture](docs/architecture.md) | System diagrams and data flows |
 
-### Enable Auto-Start on Boot
+## Common Commands
 
 ```bash
-sudo systemctl enable papertrail
+# Production
+sudo systemctl start papertrail
+sudo systemctl stop papertrail
+sudo systemctl status papertrail
+tail -f /var/log/papertrail.log
+
+# Development
+npm run dev              # Dev mode with auto-reload
+npm test                 # Run tests
+npm run build            # Build for production
 ```
 
-## Running the Application
-
-### Production Mode (Recommended)
-
-Use systemd to manage the service:
-
-```bash
-sudo systemctl start papertrail     # Start
-sudo systemctl stop papertrail      # Stop
-sudo systemctl restart papertrail   # Restart
-sudo systemctl status papertrail    # Check status
-```
-
-View logs:
-
-```bash
-tail -f /var/log/papertrail.log     # Application logs
-sudo journalctl -u papertrail -f    # Systemd logs
-```
-
-### Development Mode
-
-For active development with auto-reload:
-
-```bash
-npm run dev
-```
-
-Or use the development script (builds and runs in a screen session):
-
-```bash
-./scripts/start.sh
-```
-
-Useful commands for development:
-
-```bash
-screen -r papertrail                # Attach to screen session
-./scripts/stop.sh                   # Stop (works for both screen and systemd)
-```
-
-### Deploying Updates
-
-After making changes on your development machine:
-
-```bash
-# From your dev machine
-rsync -av --exclude node_modules --exclude dist . pi@your-pi:~/papertrail/
-
-# On the Pi
-cd ~/papertrail
-npm run build
-sudo systemctl restart papertrail
-```
-
-## Web Interface
-
-Once running, access the control panel from your mobile device:
-
-```
-http://your-pi-ip:3000
-```
-
-Default port is 3000 (configurable via `WEB_PORT` environment variable).
-
-## How a request flows through the system
-
-```diagram
-
-┌─────────────────────────────────────────────┐
-│ Mobile Web Browser                          │
-│ (<http://your-pi-ip:3000>)                  │
-└─────────────┬───────────────────────────────┘
-              │ HTTP/WebSocket
-              ▼
-┌─────────────────────────────────────────────┐
-│ IntegratedWebService                        │
-│ (coordinates all requests)                  │
-│ ├─ Express HTTP Server                      │
-│ ├─ Socket.IO WebSocket                      │
-│ └─ WebController                            │
-└─────────────┬───────────────────────────────┘
-              │ Method calls
-              ▼
-┌─────────────────────────────────────────────┐
-│ RenderingOrchestrator                       │
-│ (coordinates all services)                  │
-└───┬──────┬──────┬──────┬──────┬─────────────┘
-    │      │      │      │      │
-    ▼      ▼      ▼      ▼      ▼
-   GPS    Map    SVG   Epaper Config (services)
-    │      │      │      │      │
-    ▼      ▼      ▼      ▼      ▼
-Hardware Files Canvas Display State
-
-```
-
-## API Endpoints
-
-### GPS
-
-- `GET /api/gps/position` - Get current GPS position
-- `GET /api/gps/status` - Get GPS status
-
-### Map
-
-- `GET /api/map/files` - List available GPX files
-- `GET /api/map/active` - Get active track
-- `POST /api/map/active` - Set active track
-
-### Display
-
-- `POST /api/display/update` - Refresh display
-- `POST /api/display/clear` - Clear display
-
-### System
-
-- `GET /api/system/status` - Get system status
-- `POST /api/config/zoom` - Set zoom level
-- `POST /api/config/auto-center` - Toggle auto-center
-- `POST /api/auto-update/start` - Start auto-update
-- `POST /api/auto-update/stop` - Stop auto-update
-
-## WebSocket Events
-
-### Client → Server
-
-- `gps:subscribe` - Subscribe to GPS updates
-- `display:refresh` - Request display refresh
-- `ping` - Keep-alive ping
-
-### Server → Client
-
-- `gps:update` - GPS position update
-- `status:update` - System status update
-- `display:updated` - Display updated notification
-- `error` - Error notification
-- `pong` - Keep-alive response
-
-## Development
-
-### Run Tests
-
-```bash
-npm test
-```
-
-### Watch Tests
-
-```bash
-npm run test:watch
-```
-
-### Test Coverage
-
-```bash
-npm run test:coverage
-```
-
-### Lint
-
-```bash
-npm run lint
-npm run lint:fix
-```
-
-### Format
-
-```bash
-npm run format
-```
-
-## Configuration
-
-Configuration is done via environment variables in `.env`:
-
-### GPS Settings
-
-- `GPS_DEVICE_PATH` - Serial device path (default: `/dev/ttyAMA0`)
-- `GPS_BAUD_RATE` - Baud rate (default: `9600`)
-- `GPS_UPDATE_INTERVAL` - Update interval in ms (default: `1000`)
-
-### Display Settings
-
-- `EPAPER_WIDTH` - Display width (default: `800`)
-- `EPAPER_HEIGHT` - Display height (default: `480`)
-- `EPAPER_SPI_DEVICE` - SPI device path (default: `/dev/spidev0.0`)
-
-### Web Settings
-
-- `WEB_PORT` - HTTP server port (default: `3000`)
-- `WEB_HOST` - HTTP server host (default: `0.0.0.0`)
-- `WEB_CORS` - Enable CORS (default: `true`)
-
-See `.env.example` for all available options.
-
-## Security
-
-### Credential Management
-
-Papertrail automatically generates secure random passwords at startup if none are configured. Generated passwords are displayed in the startup logs and on the e-paper onboarding screen.
-
-**For production use, you should set permanent passwords in your `.env` file:**
-
-```bash
-# WiFi Access Point password (for device setup mode)
-WIFI_PRIMARY_PASSWORD=your-secure-wifi-password
-
-# Web interface authentication (only used when WEB_AUTH_ENABLED=true)
-WEB_AUTH_ENABLED=true
-WEB_AUTH_PASSWORD=your-secure-web-password
-```
-
-### Security Warnings
-
-At startup, Papertrail will display warnings if:
-- Passwords were auto-generated (temporary, will change on restart)
-- Known insecure default passwords are detected
-
-### Network Exposure
-
-By default, the web interface binds to `0.0.0.0:3000`, making it accessible from any device on the network. This is intentional for local device use (e.g., controlling from a mobile phone).
-
-**If exposing Papertrail to untrusted networks:**
-1. Enable web authentication: `WEB_AUTH_ENABLED=true`
-2. Set a strong password: `WEB_AUTH_PASSWORD=...`
-3. Consider using a reverse proxy with HTTPS
-4. Use firewall rules to restrict access
-
-### CORS Configuration
-
-CORS (Cross-Origin Resource Sharing) is enabled by default with `origin: "*"` to allow the mobile web interface to work from any device on the local network. This permissive default is intentional for a GPS tracker device that needs to be controlled from phones and tablets.
-
-**Why allow all origins by default?**
-
-Papertrail is designed for local network use where:
-- The device creates a WiFi access point for initial setup
-- Users connect from various mobile devices with unpredictable IP addresses
-- The web interface needs to work immediately without configuration
-
-**For restricted environments:**
-
-1. **Disable CORS entirely** (only same-origin requests allowed):
-   ```bash
-   WEB_CORS=false
-   ```
-
-2. **Restrict to specific origins** (recommended for production deployments):
-   ```bash
-   WEB_CORS_ORIGINS=http://192.168.1.100:3000,http://localhost:3000
-   ```
-
-3. **Combine with authentication** for additional security:
-   ```bash
-   WEB_CORS_ORIGINS=http://192.168.1.100:3000
-   WEB_AUTH_ENABLED=true
-   WEB_AUTH_PASSWORD=your-secure-password
-   ```
-
-## Adding GPX Files
-
-Place GPX files in the `data/gpx-files/` directory. They will be automatically available in the web interface.
-
-```bash
-cp my-track.gpx ~/papertrail/data/gpx-files/
-```
-
-## Troubleshooting
-
-### GPS Not Working
-
-- Check device permissions: `sudo chmod 666 /dev/ttyAMA0`
-- Verify GPS is connected: `ls -l /dev/ttyAMA0`
-- Check UART is enabled in `raspi-config`
-
-### Display Not Working
-
-- Verify SPI is enabled: `lsmod | grep spi`
-- Check GPIO pins are correct
-- Ensure proper power supply to display
-
-### Web Interface Not Accessible
-
-- Check firewall settings
-- Verify port is not in use: `sudo netstat -tulpn | grep 3000`
-- Check WiFi access point is configured correctly
-
-### Service Won't Start
-
-- Check logs: `sudo journalctl -u papertrail -n 50`
-- Check app logs: `tail -50 /var/log/papertrail.log`
-- Re-run install script: `./scripts/install.sh`
-- Ensure user has permissions for GPIO/SPI
+## API Overview
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /api/gps/position` | Current GPS position |
+| `GET /api/gps/status` | GPS status and satellites |
+| `GET /api/map/files` | List available GPX tracks |
+| `POST /api/map/active` | Set active track |
+| `POST /api/display/update` | Refresh display |
+| `GET /api/system/status` | System status |
+
+WebSocket events: `gps:update`, `display:updated`, `drive:update`, `wifi:state`
+
+See [Developer Guide](docs/developer-guide.md) for complete API documentation.
 
 ## License
 

@@ -22,6 +22,9 @@ export * from "./IReverseGeocodingService";
 export * from "./IElevationService";
 export * from "./IVectorMapService";
 
-// Display driver abstraction interfaces
+// Display abstraction interfaces
+export * from "./IDisplayService";
 export * from "./IDisplayDriver";
+export * from "./IDisplayAdapter";
+export * from "./IEpaperDriver";
 export * from "./IHardwareAdapter";
