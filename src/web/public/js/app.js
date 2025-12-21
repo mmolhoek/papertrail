@@ -3605,6 +3605,9 @@ class PapertrailClient {
     if (data.complete) {
       // Hide the prefetch status when complete
       container.classList.add("hidden");
+      if (progressBar) {
+        progressBar.classList.remove("indeterminate");
+      }
       if (data.poisFound > 0) {
         this.showMessage(`POIs loaded (${data.poisFound} found)`, "success");
       }
@@ -3612,14 +3615,26 @@ class PapertrailClient {
       // Show progress
       container.classList.remove("hidden");
 
-      const progress =
-        data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
-
-      if (progressBar) {
-        progressBar.style.width = `${progress}%`;
-      }
-      if (progressText) {
-        progressText.textContent = `${data.current}/${data.total} points`;
+      // Single query mode: show indeterminate progress
+      if (data.total === 1) {
+        if (progressBar) {
+          progressBar.style.width = "100%";
+          progressBar.classList.add("indeterminate");
+        }
+        if (progressText) {
+          progressText.textContent = "Loading POIs...";
+        }
+      } else {
+        // Multi-query mode (legacy): show actual progress
+        const progress =
+          data.total > 0 ? Math.round((data.current / data.total) * 100) : 0;
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+          progressBar.classList.remove("indeterminate");
+        }
+        if (progressText) {
+          progressText.textContent = `${data.current}/${data.total} points`;
+        }
       }
       if (poisText) {
         poisText.textContent = `${data.poisFound} POIs found`;

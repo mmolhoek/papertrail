@@ -480,8 +480,9 @@ export class POIService implements IPOIService {
     geometry: [number, number][],
     categories: POICategory[],
   ): string {
-    // Sample the geometry to avoid overly long queries (max ~100 points)
-    const maxPoints = 100;
+    // Sample the geometry to keep query size reasonable
+    // ~30 points is enough for good coverage while keeping query fast
+    const maxPoints = 30;
     const step = Math.max(1, Math.floor(geometry.length / maxPoints));
     const sampledPoints: [number, number][] = [];
     for (let i = 0; i < geometry.length; i += step) {
@@ -494,9 +495,13 @@ export class POIService implements IPOIService {
       sampledPoints.push(geometry[geometry.length - 1]);
     }
 
+    logger.info(
+      `Building Overpass query with ${sampledPoints.length} sample points (from ${geometry.length} total)`,
+    );
+
     // Build polyline string: lat1,lon1,lat2,lon2,...
     const polyline = sampledPoints
-      .map(([lat, lon]) => `${lat},${lon}`)
+      .map(([lat, lon]) => `${lat.toFixed(5)},${lon.toFixed(5)}`)
       .join(",");
 
     // Build tag filters for all categories using the polyline
@@ -514,13 +519,16 @@ export class POIService implements IPOIService {
       }
     }
 
-    return `
-      [out:json][timeout:60];
+    const query = `
+      [out:json][timeout:30];
       (
         ${filters.join("\n        ")}
       );
       out center;
     `;
+
+    logger.info(`Overpass query size: ${query.length} bytes`);
+    return query;
   }
 
   /**
