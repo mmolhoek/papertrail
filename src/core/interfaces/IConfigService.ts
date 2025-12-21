@@ -212,7 +212,7 @@ export interface IConfigService {
    * @returns Array of enabled POI category names
    */
   getEnabledPOICategories(): Array<
-    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+    "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
   >;
 
   /**
@@ -220,7 +220,9 @@ export interface IConfigService {
    * @param categories Array of POI category names to enable
    */
   setEnabledPOICategories(
-    categories: Array<"fuel" | "parking" | "food" | "restroom" | "viewpoint">,
+    categories: Array<
+      "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
+    >,
   ): void;
 
   /**
@@ -229,7 +231,13 @@ export interface IConfigService {
    * @returns true if the category is enabled
    */
   isPOICategoryEnabled(
-    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    category:
+      | "fuel"
+      | "charging"
+      | "parking"
+      | "food"
+      | "restroom"
+      | "viewpoint",
   ): boolean;
 
   /**
@@ -238,7 +246,13 @@ export interface IConfigService {
    * @param enabled Whether to enable or disable
    */
   setPOICategoryEnabled(
-    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    category:
+      | "fuel"
+      | "charging"
+      | "parking"
+      | "food"
+      | "restroom"
+      | "viewpoint",
     enabled: boolean,
   ): void;
 

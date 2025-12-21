@@ -203,7 +203,7 @@ export type UserState = {
 
     /** Enabled POI categories for display during navigation */
     enabledPOICategories?: Array<
-      "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+      "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
     >;
 
     /** Routing profile for OSRM route calculation: car, bike, or foot */

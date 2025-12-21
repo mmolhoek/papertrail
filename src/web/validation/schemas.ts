@@ -106,10 +106,13 @@ export const setSpeedUnitSchema = z.object({
  * Set POI category enabled/disabled request
  */
 export const setPOICategorySchema = z.object({
-  category: z.enum(["fuel", "parking", "food", "restroom", "viewpoint"], {
-    message:
-      "category must be one of: fuel, parking, food, restroom, viewpoint",
-  }),
+  category: z.enum(
+    ["fuel", "charging", "parking", "food", "restroom", "viewpoint"],
+    {
+      message:
+        "category must be one of: fuel, charging, parking, food, restroom, viewpoint",
+    },
+  ),
   enabled: z.boolean({ message: "enabled must be a boolean" }),
 });
 

@@ -5,6 +5,7 @@ import { Result, GPSCoordinate, DriveRoute } from "@core/types";
  */
 export type POICategory =
   | "fuel"
+  | "charging"
   | "parking"
   | "food"
   | "restroom"
@@ -15,6 +16,7 @@ export type POICategory =
  */
 export const POI_CODE_LETTERS: Record<POICategory, string> = {
   fuel: "F",
+  charging: "C",
   parking: "P",
   food: "E",
   restroom: "R",
@@ -26,6 +28,7 @@ export const POI_CODE_LETTERS: Record<POICategory, string> = {
  */
 export const POI_CATEGORY_NAMES: Record<POICategory, string> = {
   fuel: "Fuel Station",
+  charging: "Charging Station",
   parking: "Parking",
   food: "Food",
   restroom: "Restroom",

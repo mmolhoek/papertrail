@@ -48,6 +48,7 @@ const CACHE_DIR = "./data/poi";
  */
 const POI_OSM_TAGS: Record<POICategory, string[]> = {
   fuel: ["amenity=fuel"],
+  charging: ["amenity=charging_station"],
   parking: ["amenity=parking"],
   food: ["amenity=restaurant", "amenity=cafe", "amenity=fast_food"],
   restroom: ["amenity=toilets"],

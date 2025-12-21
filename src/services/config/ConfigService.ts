@@ -239,11 +239,11 @@ export class ConfigService implements IConfigService {
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<
-    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
-  > = ["fuel", "parking", "food", "restroom", "viewpoint"];
+    "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
+  > = ["fuel", "charging", "parking", "food", "restroom", "viewpoint"];
 
   getEnabledPOICategories(): Array<
-    "fuel" | "parking" | "food" | "restroom" | "viewpoint"
+    "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
   > {
     return (
       this.userState.displayPreferences.enabledPOICategories ??
@@ -252,20 +252,34 @@ export class ConfigService implements IConfigService {
   }
 
   setEnabledPOICategories(
-    categories: Array<"fuel" | "parking" | "food" | "restroom" | "viewpoint">,
+    categories: Array<
+      "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"
+    >,
   ): void {
     this.userState.displayPreferences.enabledPOICategories = categories;
   }
 
   isPOICategoryEnabled(
-    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    category:
+      | "fuel"
+      | "charging"
+      | "parking"
+      | "food"
+      | "restroom"
+      | "viewpoint",
   ): boolean {
     const enabled = this.getEnabledPOICategories();
     return enabled.includes(category);
   }
 
   setPOICategoryEnabled(
-    category: "fuel" | "parking" | "food" | "restroom" | "viewpoint",
+    category:
+      | "fuel"
+      | "charging"
+      | "parking"
+      | "food"
+      | "restroom"
+      | "viewpoint",
     enabled: boolean,
   ): void {
     const current = this.getEnabledPOICategories();

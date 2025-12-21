@@ -3893,6 +3893,13 @@ body {
     inset 0 -2px 4px rgba(0, 0, 0, 0.3);
 }
 
+.poi-indicator .poi-toggle:checked ~ .indicator-lamp.charging {
+  background: #00bcd4;
+  box-shadow:
+    0 0 12px rgba(0, 188, 212, 0.6),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
 .poi-indicator .poi-toggle:checked ~ .indicator-lamp.parking {
   background: #4a90d9;
   box-shadow:

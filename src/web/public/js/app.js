@@ -614,6 +614,7 @@ class PapertrailClient {
     if (settings.enabledPOICategories !== undefined) {
       const allCategories = [
         "fuel",
+        "charging",
         "parking",
         "food",
         "restroom",
@@ -902,6 +903,7 @@ class PapertrailClient {
       if (response.ok) {
         const categoryNames = {
           fuel: "Fuel",
+          charging: "Charging",
           parking: "Parking",
           food: "Food",
           restroom: "Restroom",
