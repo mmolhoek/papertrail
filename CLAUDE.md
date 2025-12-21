@@ -133,26 +133,21 @@ Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they requir
 
 Run `npm run format` after making changes. Write tests for new code.
 
-## HTTPS Configuration
+## HTTPS Configuration (Optional)
 
-The web interface supports HTTPS with self-signed certificates.
+The web interface uses HTTP by default for simpler onboarding (no certificate warnings). HTTPS with self-signed certificates is available if needed.
 
 ### Environment Variables
 
 ```bash
-WEB_SSL_ENABLED=true              # Enable HTTPS (default: true on Pi, false elsewhere)
+WEB_SSL_ENABLED=false             # Enable HTTPS (default: false)
 WEB_SSL_CERT_PATH=./data/certs/server.crt   # Path to certificate
 WEB_SSL_KEY_PATH=./data/certs/server.key    # Path to private key
 ```
 
 ### Certificate Generation
 
-On Raspberry Pi, `scripts/install.sh` automatically:
-1. Generates a self-signed certificate (10-year validity)
-2. Stores it in `data/certs/`
-3. Enables HTTPS in `.env`
-
-For development machines, HTTPS is disabled by default (no certificate generated).
+On Raspberry Pi, `scripts/install.sh` generates a self-signed certificate (stored in `data/certs/`) but does not enable HTTPS by default. To enable HTTPS, set `WEB_SSL_ENABLED=true` in `.env`.
 
 ### Manual Certificate Generation
 

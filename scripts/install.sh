@@ -271,10 +271,6 @@ fi
 step "Setting up environment file..."
 if [ ! -f .env ]; then
   cp .env.example .env
-  # Enable SSL by default on Pi (certificate is generated during install)
-  if [ "$IS_PI" = true ]; then
-    sed -i 's/WEB_SSL_ENABLED=false/WEB_SSL_ENABLED=true/' .env
-  fi
   echo -e "${GREEN}  ✓ .env file created from .env.example${NC}"
   echo -e "${BLUE}  Note: Edit .env to configure your settings${NC}"
 else
@@ -342,8 +338,8 @@ if [ "$IS_PI" = true ]; then
       -subj "/CN=papertrail.local/O=Papertrail GPS" 2>/dev/null
     chmod 600 "${CERT_DIR}/server.key"
     chmod 644 "${CERT_DIR}/server.crt"
-    echo -e "${GREEN}  ✓ SSL certificate generated${NC}"
-    echo -e "${BLUE}  Note: Enable HTTPS by setting WEB_SSL_ENABLED=true in .env${NC}"
+    echo -e "${GREEN}  ✓ SSL certificate generated (optional, for HTTPS)${NC}"
+    echo -e "${BLUE}  Note: To enable HTTPS, set WEB_SSL_ENABLED=true in .env${NC}"
   else
     echo -e "${GREEN}  ✓ SSL certificate already exists${NC}"
   fi
