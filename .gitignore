@@ -44,3 +44,4 @@ temp/
 .aider*
 data/user-state.json
 data/routes/
+data/poi/

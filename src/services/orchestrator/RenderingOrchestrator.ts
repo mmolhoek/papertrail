@@ -478,11 +478,14 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       );
     }
 
-    // Ensure route has a stable ID for caching purposes
-    // Generate ID based on route content so same route gets same ID
-    if (!route.id) {
-      route.id = this.generateRouteId(route);
-      logger.info(`Generated stable route ID: ${route.id}`);
+    // Always generate a stable ID for caching purposes based on route content
+    // This ensures the same route gets the same cache ID even if frontend uses different IDs
+    const stableId = this.generateRouteId(route);
+    if (route.id !== stableId) {
+      logger.info(
+        `Using stable route ID: ${stableId} (was: ${route.id || "none"})`,
+      );
+      route.id = stableId;
     }
 
     // Prefetch speed limits for the route in the background (while internet is available)
@@ -719,10 +722,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       return success(undefined);
     }
 
-    // Ensure route has a stable ID
-    if (!route.id) {
-      route.id = this.generateRouteId(route);
-    }
+    // Always use stable ID for caching
+    route.id = this.generateRouteId(route);
 
     const enabledPOICategories = this.configService.getEnabledPOICategories();
     if (enabledPOICategories.length === 0) {
@@ -868,10 +869,8 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     }> = [];
 
     if (this.poiService) {
-      // Ensure route has an ID for caching
-      if (!route.id) {
-        route.id = this.generateRouteId(route);
-      }
+      // Always use stable ID for caching
+      route.id = this.generateRouteId(route);
 
       // Prefetch ALL POIs if not cached for this route
       if (!this.poiService.hasRouteCache(route.id)) {
