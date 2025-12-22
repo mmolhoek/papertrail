@@ -3,6 +3,7 @@ import { Result } from "@core/types";
 import { getLogger } from "@utils/logger";
 import { GPSCoordinator } from "./GPSCoordinator";
 import { DriveCoordinator } from "./DriveCoordinator";
+import { OnboardingCoordinator } from "./OnboardingCoordinator";
 
 const logger = getLogger("SimulationCoordinator");
 
@@ -37,7 +38,15 @@ export class SimulationCoordinator {
     private readonly simulationService: ITrackSimulationService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private driveCoordinator: DriveCoordinator | null,
+    private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
+
+  /**
+   * Set the onboarding coordinator reference
+   */
+  setOnboardingCoordinator(coordinator: OnboardingCoordinator | null): void {
+    this.onboardingCoordinator = coordinator;
+  }
 
   /**
    * Set the GPS coordinator reference
@@ -88,6 +97,10 @@ export class SimulationCoordinator {
       this.lastSimulationState = status.state;
 
       if (status.state === "running") {
+        // Stop GPS info refresh to prevent "Select a track" screen during simulation
+        if (this.onboardingCoordinator) {
+          this.onboardingCoordinator.stopGPSInfoRefresh();
+        }
         // Stop auto-update during simulation to prevent concurrent updates
         if (this.stopAutoUpdateCallback) {
           logger.info("Stopping auto-update during simulation");

@@ -130,6 +130,7 @@ export class SpeedLimitService implements ISpeedLimitService {
 
   /**
    * Prefetch speed limits along a route for offline use
+   * Uses 25km segments for faster loading with better progress feedback
    */
   async prefetchRouteSpeedLimits(
     route: DriveRoute,
@@ -143,78 +144,95 @@ export class SpeedLimitService implements ISpeedLimitService {
       `Prefetching speed limits for route ${route.id} (${route.geometry.length} points)`,
     );
 
-    const segments: SpeedLimitSegment[] = [];
+    const allSegments: SpeedLimitSegment[] = [];
 
     try {
-      // Sample points along the route (every ~500m)
-      const samplePoints = this.sampleRoutePoints(route.geometry, 500);
-      logger.info(`Sampling ${samplePoints.length} points along route`);
+      // Split route into ~25km segments for smaller, faster queries
+      const routeSegments = this.splitRouteIntoSegments(route.geometry, 25000);
+      const totalSegments = routeSegments.length;
+
+      logger.info(
+        `Split route into ${totalSegments} segments for speed limit queries`,
+      );
 
       // Notify progress start
       onProgress?.({
         current: 0,
-        total: samplePoints.length,
+        total: totalSegments,
         segmentsFound: 0,
         complete: false,
       });
 
-      // Query each sample point with rate limiting
-      for (let i = 0; i < samplePoints.length; i++) {
-        const point = samplePoints[i];
+      let successfulSegments = 0;
+      let lastError: Error | undefined;
 
-        // Rate limiting
-        await this.waitForRateLimit();
+      // Query each segment
+      for (let i = 0; i < routeSegments.length; i++) {
+        const segment = routeSegments[i];
 
-        try {
-          const result = await this.queryOverpassApi(point[0], point[1]);
-          if (result.success && result.data.length > 0) {
-            // Add segments from this query
-            for (const segment of result.data) {
-              // Avoid duplicates
-              if (!segments.find((s) => s.wayId === segment.wayId)) {
-                segments.push(segment);
-              }
+        // Rate limiting between segment queries
+        if (i > 0) {
+          await this.waitForRateLimit();
+        }
+
+        const result = await this.querySegmentOverpassApi(segment);
+
+        if (result.success && result.data.length > 0) {
+          successfulSegments++;
+          // Add segments, avoiding duplicates
+          for (const speedSegment of result.data) {
+            if (!allSegments.find((s) => s.wayId === speedSegment.wayId)) {
+              allSegments.push(speedSegment);
             }
-            // Update cache incrementally so speed limits are available immediately
-            this.routeCache.set(route.id, segments);
           }
-        } catch (error) {
-          // Log but continue - some failures are acceptable
-          logger.warn(`Failed to fetch speed limit for point ${i}:`, error);
+          // Update cache incrementally
+          this.routeCache.set(route.id, allSegments);
+        } else if (!result.success) {
+          lastError = result.error;
+          logger.warn(
+            `Speed limit segment ${i + 1}/${totalSegments} failed: ${result.error.message}`,
+          );
         }
 
         // Notify progress update
         onProgress?.({
           current: i + 1,
-          total: samplePoints.length,
-          segmentsFound: segments.length,
+          total: totalSegments,
+          segmentsFound: allSegments.length,
           complete: false,
         });
 
-        // Log progress
-        if ((i + 1) % 10 === 0 || i === samplePoints.length - 1) {
-          logger.info(
-            `Prefetch progress: ${i + 1}/${samplePoints.length} points`,
-          );
-        }
+        logger.info(
+          `Speed limit segment ${i + 1}/${totalSegments}: ${result.success ? result.data.length : 0} ways (total: ${allSegments.length})`,
+        );
+      }
+
+      // If ALL segments failed, return failure
+      if (successfulSegments === 0 && routeSegments.length > 0) {
+        return failure(
+          SpeedLimitError.apiRequestFailed(
+            "all segment queries failed",
+            lastError,
+          ),
+        );
       }
 
       // Cache the results
-      this.routeCache.set(route.id, segments);
-      await this.saveRouteCache(route.id, segments);
+      this.routeCache.set(route.id, allSegments);
+      await this.saveRouteCache(route.id, allSegments);
 
       // Notify completion
       onProgress?.({
-        current: samplePoints.length,
-        total: samplePoints.length,
-        segmentsFound: segments.length,
+        current: totalSegments,
+        total: totalSegments,
+        segmentsFound: allSegments.length,
         complete: true,
       });
 
       logger.info(
-        `Prefetched ${segments.length} speed limit segments for route ${route.id}`,
+        `Prefetched ${allSegments.length} speed limit segments for route ${route.id}`,
       );
-      return success(segments.length);
+      return success(allSegments.length);
     } catch (error) {
       logger.error("Failed to prefetch speed limits:", error);
       return failure(
@@ -224,6 +242,137 @@ export class SpeedLimitService implements ISpeedLimitService {
         ),
       );
     }
+  }
+
+  /**
+   * Split route geometry into segments of approximately the given length
+   */
+  private splitRouteIntoSegments(
+    geometry: [number, number][],
+    segmentLengthMeters: number,
+  ): [number, number][][] {
+    if (geometry.length === 0) {
+      return [];
+    }
+
+    const segments: [number, number][][] = [];
+    let currentSegment: [number, number][] = [geometry[0]];
+    let segmentDistance = 0;
+
+    for (let i = 1; i < geometry.length; i++) {
+      const prev = geometry[i - 1];
+      const curr = geometry[i];
+      const distance = haversineDistance(prev[0], prev[1], curr[0], curr[1]);
+
+      segmentDistance += distance;
+      currentSegment.push(curr);
+
+      // Start new segment when we exceed the target length
+      if (segmentDistance >= segmentLengthMeters) {
+        segments.push(currentSegment);
+        // Start new segment with overlap (include last point)
+        currentSegment = [curr];
+        segmentDistance = 0;
+      }
+    }
+
+    // Add remaining segment if it has more than just the overlap point
+    if (currentSegment.length > 1) {
+      segments.push(currentSegment);
+    } else if (segments.length === 0) {
+      // Route is shorter than segment length
+      segments.push(geometry);
+    }
+
+    return segments;
+  }
+
+  /**
+   * Query Overpass API for speed limits along a route segment
+   */
+  private async querySegmentOverpassApi(
+    geometry: [number, number][],
+  ): Promise<Result<SpeedLimitSegment[]>> {
+    const query = this.buildSegmentOverpassQuery(geometry);
+    logger.info(
+      `Querying Overpass API for speed limits along segment (${geometry.length} points)...`,
+    );
+
+    try {
+      const response = await fetch(OVERPASS_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: `data=${encodeURIComponent(query)}`,
+      });
+
+      if (response.status === 429) {
+        return failure(SpeedLimitError.apiRateLimited());
+      }
+
+      if (!response.ok) {
+        return failure(
+          SpeedLimitError.apiRequestFailed(
+            `HTTP ${response.status}: ${response.statusText}`,
+          ),
+        );
+      }
+
+      const data = (await response.json()) as OverpassResponse;
+      const segments = this.parseOverpassResponse(data);
+      logger.info(`Overpass API returned ${segments.length} road segments`);
+
+      return success(segments);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return failure(SpeedLimitError.apiRequestFailed("Request timeout"));
+      }
+      return failure(
+        SpeedLimitError.apiUnavailable(
+          error instanceof Error ? error : undefined,
+        ),
+      );
+    }
+  }
+
+  /**
+   * Build Overpass query for speed limits along a route segment polyline
+   */
+  private buildSegmentOverpassQuery(geometry: [number, number][]): string {
+    // Sample the geometry to keep query size reasonable
+    // ~30 points is enough for good coverage while keeping query fast
+    const maxPoints = 30;
+    const step = Math.max(1, Math.floor(geometry.length / maxPoints));
+    const sampledPoints: [number, number][] = [];
+    for (let i = 0; i < geometry.length; i += step) {
+      sampledPoints.push(geometry[i]);
+    }
+    // Always include the last point
+    if (
+      sampledPoints[sampledPoints.length - 1] !== geometry[geometry.length - 1]
+    ) {
+      sampledPoints.push(geometry[geometry.length - 1]);
+    }
+
+    logger.info(
+      `Building speed limit query with ${sampledPoints.length} sample points (from ${geometry.length} total)`,
+    );
+
+    // Build polyline string: lat1,lon1,lat2,lon2,...
+    const polyline = sampledPoints
+      .map(([lat, lon]) => `${lat.toFixed(5)},${lon.toFixed(5)}`)
+      .join(",");
+
+    // Query for ways with highway tag along the polyline
+    const query = `
+      [out:json][timeout:30];
+      way(around:${QUERY_RADIUS},${polyline})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|unclassified|residential|living_street|service)$"];
+      out geom;
+    `;
+
+    logger.info(`Speed limit query size: ${query.length} bytes`);
+    return query;
   }
 
   /**
@@ -561,47 +710,6 @@ export class SpeedLimitService implements ISpeedLimitService {
     }
 
     return value;
-  }
-
-  /**
-   * Sample points along a route at regular intervals
-   */
-  private sampleRoutePoints(
-    geometry: [number, number][],
-    intervalMeters: number,
-  ): [number, number][] {
-    if (geometry.length === 0) {
-      return [];
-    }
-
-    const samples: [number, number][] = [geometry[0]];
-    let accumulatedDistance = 0;
-
-    for (let i = 1; i < geometry.length; i++) {
-      const prev = geometry[i - 1];
-      const curr = geometry[i];
-      const segmentDistance = haversineDistance(
-        prev[0],
-        prev[1],
-        curr[0],
-        curr[1],
-      );
-
-      accumulatedDistance += segmentDistance;
-
-      if (accumulatedDistance >= intervalMeters) {
-        samples.push(curr);
-        accumulatedDistance = 0;
-      }
-    }
-
-    // Always include last point
-    const last = geometry[geometry.length - 1];
-    if (samples[samples.length - 1] !== last) {
-      samples.push(last);
-    }
-
-    return samples;
   }
 
   /**

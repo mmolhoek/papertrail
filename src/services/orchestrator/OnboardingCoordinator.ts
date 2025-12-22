@@ -390,6 +390,19 @@ export class OnboardingCoordinator {
    * Start the GPS info refresh interval
    */
   private startGPSInfoRefresh(): void {
+    // Don't start GPS info refresh if simulation, navigation, or active track exists
+    // This prevents the "Select a track" screen from showing during active sessions
+    if (
+      this.configService.getActiveGPXPath() ||
+      this.simulationService?.isSimulating() ||
+      this.driveNavigationService?.isNavigating()
+    ) {
+      logger.info(
+        "Skipping GPS info refresh start - active track, simulation, or navigation in progress",
+      );
+      return;
+    }
+
     // Stop any existing interval
     this.stopGPSInfoRefresh();
 

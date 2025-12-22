@@ -545,6 +545,50 @@ class PapertrailClient {
           this.startSimulationPolling();
         }
       }
+
+      // Restore drive state from localStorage
+      this.loadDriveStateFromStorage();
+
+      // Check for active drive navigation from backend
+      const driveResponse = await this.fetchJSON(
+        `${this.apiBase}/drive/status`,
+      );
+      if (driveResponse && driveResponse.success && driveResponse.data) {
+        if (driveResponse.data.isNavigating && driveResponse.data.activeRoute) {
+          const route = driveResponse.data.activeRoute;
+          this.driveRoute = route;
+
+          // Restore destination from active route
+          if (route.destination) {
+            this.driveDestination = {
+              lat:
+                route.endPoint?.latitude ??
+                route.geometry?.[route.geometry.length - 1]?.[0],
+              lon:
+                route.endPoint?.longitude ??
+                route.geometry?.[route.geometry.length - 1]?.[1],
+              name: route.destination,
+            };
+            document.getElementById("drive-address-input").value =
+              route.destination;
+            document
+              .getElementById("drive-destination")
+              .classList.remove("hidden");
+            document.getElementById("drive-dest-text").textContent =
+              route.destination;
+            document
+              .getElementById("starting-point-section")
+              .classList.remove("hidden");
+          }
+
+          // Show route UI
+          this.showRoutePreview();
+          document.getElementById("drive-stop-btn").classList.remove("hidden");
+          document.getElementById("drive-calc-route").disabled = true;
+
+          console.log("Restored active drive navigation from backend");
+        }
+      }
     } catch (error) {
       console.error("Error loading initial data:", error);
     }
@@ -904,6 +948,70 @@ class PapertrailClient {
     const btn = document.getElementById("theme-btn");
     if (btn) {
       btn.setAttribute("data-state", savedTheme);
+    }
+  }
+
+  // Save drive state to localStorage for persistence across page reloads
+  saveDriveStateToStorage() {
+    const state = {
+      destination: this.driveDestination,
+      startPoint: this.driveStartPoint,
+      route: this.driveRoute,
+    };
+    localStorage.setItem("papertrail-drive-state", JSON.stringify(state));
+  }
+
+  // Clear drive state from localStorage
+  clearDriveStateFromStorage() {
+    localStorage.removeItem("papertrail-drive-state");
+  }
+
+  // Load drive state from localStorage and restore UI
+  loadDriveStateFromStorage() {
+    try {
+      const saved = localStorage.getItem("papertrail-drive-state");
+      if (!saved) return;
+
+      const state = JSON.parse(saved);
+
+      // Restore destination
+      if (state.destination) {
+        this.driveDestination = state.destination;
+        document.getElementById("drive-address-input").value =
+          state.destination.name;
+        document.getElementById("drive-destination").classList.remove("hidden");
+        document.getElementById("drive-dest-text").textContent =
+          state.destination.name;
+        document
+          .getElementById("starting-point-section")
+          .classList.remove("hidden");
+        document.getElementById("drive-calc-route").disabled = false;
+      }
+
+      // Restore start point
+      if (state.startPoint) {
+        this.driveStartPoint = state.startPoint;
+        document.getElementById("drive-start-input").value =
+          state.startPoint.name;
+        document.getElementById("drive-start-point").classList.remove("hidden");
+        const startText = document.getElementById("drive-start-text");
+        startText.textContent =
+          state.startPoint.name.length > 50
+            ? state.startPoint.name.substring(0, 50) + "..."
+            : state.startPoint.name;
+        startText.title = state.startPoint.name;
+      }
+
+      // Restore route if available
+      if (state.route) {
+        this.driveRoute = state.route;
+        // Show route preview (showRoutePreview uses this.driveRoute)
+        this.showRoutePreview();
+      }
+
+      console.log("Restored drive state from localStorage");
+    } catch (error) {
+      console.error("Error loading drive state from localStorage:", error);
     }
   }
 
@@ -2718,6 +2826,9 @@ class PapertrailClient {
   setDriveStartPoint(lat, lon, name) {
     this.driveStartPoint = { lat, lon, name };
 
+    // Persist to localStorage for page reload
+    this.saveDriveStateToStorage();
+
     // Update starting point input field
     document.getElementById("drive-start-input").value = name;
 
@@ -2733,6 +2844,9 @@ class PapertrailClient {
     document.getElementById("drive-route-preview").classList.add("hidden");
     document.getElementById("drive-nav-controls").classList.add("hidden");
     this.driveRoute = null;
+
+    // Save to recent destinations (for quick access later)
+    this.saveRecentDestination(name, lat, lon);
 
     this.showMessage("Starting point set", "success");
   }
@@ -2756,6 +2870,9 @@ class PapertrailClient {
 
   setDriveDestination(lat, lon, name) {
     this.driveDestination = { lat, lon, name };
+
+    // Persist to localStorage for page reload
+    this.saveDriveStateToStorage();
 
     // Update destination input field
     document.getElementById("drive-address-input").value = name;
@@ -2789,6 +2906,9 @@ class PapertrailClient {
     this.driveDestination = null;
     this.driveStartPoint = null;
     this.driveRoute = null;
+
+    // Clear persisted state
+    this.clearDriveStateFromStorage();
 
     document.getElementById("drive-destination").classList.add("hidden");
     document.getElementById("starting-point-section").classList.add("hidden");
@@ -3057,6 +3177,9 @@ class PapertrailClient {
       totalDistance: route.distance,
       estimatedTime: route.duration,
     };
+
+    // Persist route to localStorage for page reload
+    this.saveDriveStateToStorage();
 
     console.log(
       "OSRM route processed:",

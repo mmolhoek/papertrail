@@ -216,10 +216,12 @@ describe("SpeedLimitService", () => {
 
       const result = await service.prefetchRouteSpeedLimits(mockRoute);
 
-      // Should still succeed (with 0 segments) as failures are logged but not fatal
-      expect(result.success).toBe(true);
-      if (result.success) {
-        expect(result.data).toBe(0);
+      // Should return failure when all segment queries fail
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect((result.error as any)?.code).toBe(
+          "SPEEDLIMIT_API_REQUEST_FAILED",
+        );
       }
     });
 

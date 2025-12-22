@@ -145,6 +145,11 @@ export class DriveCoordinator {
 
     logger.info(`Starting drive navigation to: ${route.destination}`);
 
+    // Set zoom level to 18 for close-up navigation view
+    this.configService.setZoomLevel(18);
+    await this.configService.save();
+    logger.info("Set zoom level to 18 for drive navigation");
+
     // Stop GPS info refresh - we don't want select track screen during navigation
     if (this.onboardingCoordinator) {
       this.onboardingCoordinator.stopGPSInfoRefresh();

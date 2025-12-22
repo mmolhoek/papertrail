@@ -191,6 +191,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       simulationService ?? null,
       this.gpsCoordinator,
       this.driveCoordinator,
+      this.onboardingCoordinator,
     );
     // Wire up callbacks
     this.simulationCoordinator.setStopAutoUpdateCallback(() => {
@@ -816,6 +817,11 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
           false,
         ),
       );
+    }
+
+    // Stop GPS info refresh to prevent "Select a track" screen from overwriting
+    if (this.onboardingCoordinator) {
+      this.onboardingCoordinator.stopGPSInfoRefresh();
     }
 
     // Calculate zoom to fit the entire route
