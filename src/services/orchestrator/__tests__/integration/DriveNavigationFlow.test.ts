@@ -215,6 +215,7 @@ describe("Drive Navigation Flow Integration", () => {
       setEnabledPOICategories: jest.fn(),
       isPOICategoryEnabled: jest.fn().mockReturnValue(true),
       setPOICategoryEnabled: jest.fn(),
+      getRoutingProfile: jest.fn().mockReturnValue("car"),
     };
 
     // Create mock drive navigation service

@@ -611,6 +611,7 @@ export class TrackDisplayCoordinator {
       streetName: track.name,
       distanceRemaining: distanceRemaining,
       progress: followTrackInfo.progress || 0,
+      routingProfile: this.configService.getRoutingProfile(),
     };
 
     return this.svgService.renderDriveMapScreen(

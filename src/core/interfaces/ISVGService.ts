@@ -79,6 +79,8 @@ export interface DriveNavigationInfo {
   speedLimit?: number | null;
   /** Speed unit for display ('kmh' or 'mph') */
   speedUnit?: "kmh" | "mph";
+  /** Routing profile ('car', 'bike', 'foot') - speed limit only shown for 'car' */
+  routingProfile?: "car" | "bike" | "foot";
   /** Current location name (e.g., "Main Street, London") */
   locationName?: string | null;
   /** Nearby POIs for display */

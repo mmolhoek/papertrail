@@ -1460,8 +1460,13 @@ export class SVGService implements ISVGService {
     const displaySpeed = useMph
       ? Math.round(info.speed * 0.621371)
       : Math.round(info.speed);
+    // Only show speed limit for car routing profile (not bike/foot)
+    const shouldShowSpeedLimit =
+      info.routingProfile === "car" || info.routingProfile === undefined;
     const displaySpeedLimit =
-      info.speedLimit !== undefined && info.speedLimit !== null
+      shouldShowSpeedLimit &&
+      info.speedLimit !== undefined &&
+      info.speedLimit !== null
         ? useMph
           ? Math.round(info.speedLimit * 0.621371)
           : info.speedLimit

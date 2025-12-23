@@ -180,6 +180,7 @@ describe("GPS → Display Update Flow Integration", () => {
       getAutoRefreshInterval: jest.fn().mockReturnValue(30),
       getRenderOptions: jest.fn().mockReturnValue({ showLine: true }),
       save: jest.fn().mockResolvedValue(success(undefined)),
+      getRoutingProfile: jest.fn().mockReturnValue("car"),
     };
 
     orchestrator = new RenderingOrchestrator(

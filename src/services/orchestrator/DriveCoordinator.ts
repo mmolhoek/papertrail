@@ -410,6 +410,7 @@ export class DriveCoordinator {
               timeRemaining: status.timeRemaining,
               speedLimit: speedLimit,
               speedUnit: this.configService.getSpeedUnit(),
+              routingProfile: this.configService.getRoutingProfile(),
               locationName: locationName,
               nearbyPOIs: nearbyPOIs.map((poi) => ({
                 codeLetter: poi.codeLetter,

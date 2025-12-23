@@ -162,6 +162,7 @@ describe("Track Simulation Flow Integration", () => {
       getRenderOptions: jest.fn().mockReturnValue({ showLine: true }),
       save: jest.fn().mockResolvedValue(success(undefined)),
       getConfig: jest.fn().mockReturnValue({ web: { port: 3000 } }),
+      getRoutingProfile: jest.fn().mockReturnValue("car"),
     };
 
     // Create mock simulation service
