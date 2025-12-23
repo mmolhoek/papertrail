@@ -3105,13 +3105,19 @@ class PapertrailClient {
     // Clear persisted state
     this.clearDriveStateFromStorage();
 
+    // Clear input fields
+    document.getElementById("drive-address-input").value = "";
+    document.getElementById("drive-start-input").value = "";
+
+    // Hide displays
     document.getElementById("drive-destination").classList.add("hidden");
     document.getElementById("starting-point-section").classList.add("hidden");
     document.getElementById("drive-start-point").classList.add("hidden");
-    document.getElementById("drive-start-input").value = "";
     document.getElementById("drive-route-preview").classList.add("hidden");
     document.getElementById("drive-nav-controls").classList.add("hidden");
     document.getElementById("drive-calc-route").disabled = true;
+
+    this.showMessage("Destination cleared", "info");
 
     if (this.driveMarker) {
       this.driveMarker.remove();

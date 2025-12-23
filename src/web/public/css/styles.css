@@ -733,11 +733,15 @@
 }
 
 [data-theme="light"] .waypoint-clear {
+  background: linear-gradient(180deg, #e8e0d8 0%, #d8d0c8 100%);
+  border: 2px solid #c54b4b;
   color: #c54b4b;
 }
 
 [data-theme="light"] .waypoint-clear:hover {
-  background: rgba(197, 75, 75, 0.1);
+  background: linear-gradient(180deg, #f0e8e0 0%, #e8e0d8 100%);
+  border-color: #d55b5b;
+  color: #d55b5b;
 }
 
 /* Light theme recent destinations */
@@ -4934,23 +4938,32 @@ body {
 }
 
 .waypoint-clear {
-  width: 24px;
-  height: 24px;
-  background: linear-gradient(180deg, #5c5045 0%, #4a4035 100%);
-  border: 1px solid #5a4510;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  background: linear-gradient(180deg, #6a3030 0%, #4a2020 100%);
+  border: 2px solid #ff6b35;
   border-radius: 50%;
-  color: #d4a574;
+  color: #ff6b35;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
+  font-weight: bold;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .waypoint-clear:hover {
-  border-color: #ff6b35;
-  color: #ff6b35;
+  background: linear-gradient(180deg, #8a4040 0%, #6a3030 100%);
+  border-color: #ff8855;
+  color: #ff8855;
+  transform: scale(1.1);
+}
+
+.waypoint-clear:active {
+  transform: scale(0.95);
 }
 
 /* Loading Indicator */
