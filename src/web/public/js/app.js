@@ -497,6 +497,17 @@ class PapertrailClient {
       });
     });
 
+    // Routing profile indicator in Drive panel - click to cycle through profiles
+    const routingProfileIndicator = document.querySelector(
+      ".routing-profile-indicator",
+    );
+    if (routingProfileIndicator) {
+      routingProfileIndicator.style.cursor = "pointer";
+      routingProfileIndicator.addEventListener("click", () => {
+        this.cycleRoutingProfile();
+      });
+    }
+
     // Track simulate button - navigate to simulation panel
     const trackSimulateBtn = document.getElementById("track-simulate-btn");
     if (trackSimulateBtn) {
@@ -1254,6 +1265,33 @@ class PapertrailClient {
       const checkbox = document.getElementById("show-elevation");
       if (checkbox) checkbox.checked = !enabled;
     }
+  }
+
+  // Cycle through routing profiles (car -> bike -> foot -> car)
+  cycleRoutingProfile() {
+    const profiles = ["car", "bike", "foot"];
+    const currentIndex = profiles.indexOf(this.currentRoutingProfile || "car");
+    const nextIndex = (currentIndex + 1) % profiles.length;
+    const nextProfile = profiles[nextIndex];
+
+    // Update all the UI elements (radio buttons, selects)
+    const simRadio = document.querySelector(
+      `input[name="sim-mode"][value="${nextProfile}"]`,
+    );
+    if (simRadio) simRadio.checked = true;
+
+    const routingRadio = document.querySelector(
+      `input[name="routing-profile"][value="${nextProfile}"]`,
+    );
+    if (routingRadio) routingRadio.checked = true;
+
+    const simulationModeSelect = document.getElementById(
+      "simulation-mode-select",
+    );
+    if (simulationModeSelect) simulationModeSelect.value = nextProfile;
+
+    // Apply the new profile
+    this.setRoutingProfile(nextProfile);
   }
 
   // Set routing profile for OSRM route calculation and simulation speed
