@@ -1328,6 +1328,16 @@ class PapertrailClient {
           };
           this.setSimulationSpeed(profileToSpeed[profile] || "walk");
         }
+
+        // If drive navigation is active, recalculate route with new profile
+        if (this.isDriveNavigating && this.driveDestination) {
+          this.showMessage("Recalculating route...", "info");
+          await this.calculateRoute();
+          // Restart navigation with new route if we have one
+          if (this.driveRoute) {
+            await this.startDriveNavigation();
+          }
+        }
       } else {
         throw new Error("Failed to set routing profile");
       }
