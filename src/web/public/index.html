@@ -49,19 +49,25 @@
           <span class="nav-icon"></span>
         </button>
         <div id="menu-content" class="nav-menu hidden">
-          <button id="menu-status" class="nav-item" data-panel="status-panel">
+          <button
+            id="menu-status"
+            class="nav-item active"
+            data-panel="status-panel"
+          >
             <span class="nav-item-icon">◎</span>
             <span class="nav-item-text">Status</span>
-            <span id="status-indicator" class="nav-check hidden">✓</span>
+            <span id="status-indicator" class="nav-check">✓</span>
           </button>
           <button
             id="menu-track-selection"
-            class="nav-item active"
+            class="nav-item"
             data-panel="track-selection-panel"
           >
             <span class="nav-item-icon">◎</span>
             <span class="nav-item-text">GPX Track</span>
-            <span id="track-selection-indicator" class="nav-check">✓</span>
+            <span id="track-selection-indicator" class="nav-check hidden"
+              >✓</span
+            >
           </button>
           <button id="menu-drive" class="nav-item" data-panel="drive-panel">
             <span class="nav-item-icon">◎</span>
@@ -117,7 +123,7 @@
       <main class="main-content">
         <!-- Status Panel - Aviation Instrument Style -->
         <section
-          class="panel-card instrument-panel status-instrument-panel hidden"
+          class="panel-card instrument-panel status-instrument-panel"
           id="status-panel"
         >
           <div class="instrument-clusters">
@@ -286,7 +292,10 @@
 
         <!-- GPX Track Selection Panel -->
         <!-- Track Selection Panel -->
-        <section class="panel-card instrument-panel" id="track-selection-panel">
+        <section
+          class="panel-card instrument-panel hidden"
+          id="track-selection-panel"
+        >
           <div class="instrument-clusters">
             <!-- Track Selector -->
             <div class="data-selector-cluster">
