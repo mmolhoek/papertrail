@@ -75,12 +75,34 @@ class PapertrailClient {
         menuContent.classList.add("hidden");
       });
     });
+
+    // Restore last active panel from localStorage
+    try {
+      const savedPanel = localStorage.getItem("papertrail-active-panel");
+      if (savedPanel) {
+        const menuItem = document.querySelector(
+          `.nav-item[data-panel="${savedPanel}"]`,
+        );
+        if (menuItem) {
+          this.switchToPanel(savedPanel, menuItem);
+        }
+      }
+    } catch {
+      // localStorage not available
+    }
   }
 
   // Switch to a specific panel (radio-style - only one active)
   switchToPanel(panelId, menuItem) {
     const allPanels = document.querySelectorAll(".panel-card");
     const allMenuItems = document.querySelectorAll(".nav-item");
+
+    // Save to localStorage for persistence across reloads
+    try {
+      localStorage.setItem("papertrail-active-panel", panelId);
+    } catch {
+      // localStorage not available
+    }
 
     // Hide all panels
     allPanels.forEach((panel) => {
