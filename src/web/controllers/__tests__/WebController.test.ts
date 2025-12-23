@@ -147,6 +147,8 @@ const createMockConfigService = () => ({
   setSpeedUnit: jest.fn(),
   getShowLocationName: jest.fn().mockReturnValue(true),
   setShowLocationName: jest.fn(),
+  getShowSpeedLimit: jest.fn().mockReturnValue(true),
+  setShowSpeedLimit: jest.fn(),
   getShowElevation: jest.fn().mockReturnValue(true),
   setShowElevation: jest.fn(),
   getShowRoads: jest.fn().mockReturnValue(true),

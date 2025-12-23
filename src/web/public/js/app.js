@@ -393,6 +393,22 @@ class PapertrailClient {
       });
     }
 
+    // Show speed limit toggle
+    const showSpeedLimitToggle = document.getElementById("show-speed-limit");
+    if (showSpeedLimitToggle) {
+      showSpeedLimitToggle.addEventListener("change", (e) => {
+        this.setShowSpeedLimit(e.target.checked);
+      });
+    }
+
+    // Show elevation toggle
+    const showElevationToggle = document.getElementById("show-elevation");
+    if (showElevationToggle) {
+      showElevationToggle.addEventListener("change", (e) => {
+        this.setShowElevation(e.target.checked);
+      });
+    }
+
     // Screen selection
     const screenSelect = document.getElementById("screen-select");
     if (screenSelect) {
@@ -430,6 +446,27 @@ class PapertrailClient {
     simModeRadios.forEach((radio) => {
       radio.addEventListener("change", (e) => {
         // Update the hidden select to stay in sync
+        if (simulationModeSelect) {
+          simulationModeSelect.value = e.target.value;
+        }
+        // Trigger the routing profile change
+        this.setRoutingProfile(e.target.value);
+      });
+    });
+
+    // Routing profile radio buttons in Display Controls panel
+    const routingProfileRadios = document.querySelectorAll(
+      'input[name="routing-profile"]',
+    );
+    routingProfileRadios.forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        // Update simulation mode radios to stay in sync
+        const simRadio = document.querySelector(
+          `input[name="sim-mode"][value="${e.target.value}"]`,
+        );
+        if (simRadio) {
+          simRadio.checked = true;
+        }
         if (simulationModeSelect) {
           simulationModeSelect.value = e.target.value;
         }
@@ -692,20 +729,61 @@ class PapertrailClient {
       }
     }
 
-    // Update simulation mode selector (formerly routing profile)
+    // Update show speed limit toggle
+    if (settings.showSpeedLimit !== undefined) {
+      const checkbox = document.getElementById("show-speed-limit");
+      if (checkbox) {
+        checkbox.checked = settings.showSpeedLimit;
+      }
+    }
+
+    // Update show elevation toggle
+    if (settings.showElevation !== undefined) {
+      const checkbox = document.getElementById("show-elevation");
+      if (checkbox) {
+        checkbox.checked = settings.showElevation;
+      }
+    }
+
+    // Update routing profile selectors (both simulation panel and display controls)
     if (settings.routingProfile !== undefined) {
       const select = document.getElementById("simulation-mode-select");
       if (select) {
         select.value = settings.routingProfile;
       }
-      // Also update the radio buttons
-      const radio = document.querySelector(
+      // Update simulation panel radio buttons
+      const simRadio = document.querySelector(
         `input[name="sim-mode"][value="${settings.routingProfile}"]`,
       );
-      if (radio) {
-        radio.checked = true;
+      if (simRadio) {
+        simRadio.checked = true;
+      }
+      // Update display controls panel radio buttons
+      const routingRadio = document.querySelector(
+        `input[name="routing-profile"][value="${settings.routingProfile}"]`,
+      );
+      if (routingRadio) {
+        routingRadio.checked = true;
       }
       this.currentRoutingProfile = settings.routingProfile;
+      // Update drive panel indicator
+      this.updateDriveRoutingProfileIndicator(settings.routingProfile);
+    }
+  }
+
+  /**
+   * Update the routing profile indicator in the Drive panel
+   * @param {string} profile - The routing profile (car, bike, foot)
+   */
+  updateDriveRoutingProfileIndicator(profile) {
+    const indicator = document.getElementById("drive-routing-profile");
+    if (indicator) {
+      const profileLabels = {
+        car: "CAR",
+        bike: "BICYCLE",
+        foot: "WALK",
+      };
+      indicator.textContent = profileLabels[profile] || profile.toUpperCase();
     }
   }
 
@@ -1104,6 +1182,58 @@ class PapertrailClient {
     }
   }
 
+  // Set show speed limit enabled/disabled
+  async setShowSpeedLimit(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-speed-limit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Speed limit ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set speed limit setting");
+      }
+    } catch (error) {
+      console.error("Failed to set speed limit setting:", error);
+      this.showMessage("Failed to change speed limit setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-speed-limit");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show elevation enabled/disabled
+  async setShowElevation(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-elevation`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Elevation ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set elevation setting");
+      }
+    } catch (error) {
+      console.error("Failed to set elevation setting:", error);
+      this.showMessage("Failed to change elevation setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-elevation");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
   // Set routing profile for OSRM route calculation and simulation speed
   async setRoutingProfile(profile) {
     const profileNames = {
@@ -1126,6 +1256,9 @@ class PapertrailClient {
           "success",
         );
 
+        // Update drive panel indicator
+        this.updateDriveRoutingProfileIndicator(profile);
+
         // If simulation is running, update its speed to match the new profile
         if (this.isSimulating) {
           const profileToSpeed = {
@@ -1144,6 +1277,8 @@ class PapertrailClient {
       // Revert the select
       const select = document.getElementById("simulation-mode-select");
       if (select) select.value = this.currentRoutingProfile;
+      // Revert the drive panel indicator
+      this.updateDriveRoutingProfileIndicator(this.currentRoutingProfile);
     }
   }
 
@@ -3077,6 +3212,22 @@ class PapertrailClient {
     calcBtn.disabled = true;
     if (btnText) btnText.textContent = "Calculating...";
 
+    console.log(
+      `Calculating route with profile: ${this.currentRoutingProfile}`,
+    );
+
+    // Ensure the routing profile is synced to server before calculating
+    // This handles cases where user changed profile just before clicking calculate
+    try {
+      await fetch(`${this.apiBase}/config/routing-profile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: this.currentRoutingProfile }),
+      });
+    } catch (syncError) {
+      console.warn("Failed to sync routing profile:", syncError);
+    }
+
     try {
       // Use backend proxy for OSRM routing (avoids CORS issues)
       const startLon = routeStartPosition.lon;
@@ -3159,10 +3310,20 @@ class PapertrailClient {
       ? this.driveStartPoint.lon
       : this.currentPosition.lon;
 
+    // Generate deterministic route ID based on source, destination, and profile
+    const sourceName = this.driveStartPoint?.name || "gps";
+    const routeId = this.generateRouteId(
+      sourceName,
+      this.driveDestination.name,
+      this.currentRoutingProfile,
+    );
+
     // Build the route object
     this.driveRoute = {
-      id: `route_${Date.now()}`,
+      id: routeId,
       destination: this.driveDestination.name,
+      sourceName: sourceName,
+      routingProfile: this.currentRoutingProfile,
       createdAt: new Date().toISOString(),
       startPoint: {
         latitude: startLat,
@@ -3213,6 +3374,32 @@ class PapertrailClient {
         padding: [20, 20],
       });
     }
+  }
+
+  /**
+   * Generate a deterministic route ID based on source, destination, and profile
+   * @param {string} sourceName - Source location name (or "gps" for current position)
+   * @param {string} destName - Destination location name
+   * @param {string} profile - Routing profile (car, bike, foot)
+   * @returns {string} Filesystem-safe route ID
+   */
+  generateRouteId(sourceName, destName, profile) {
+    // Create a slug from the input strings
+    const slugify = (str) => {
+      return str
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "") // Remove special characters
+        .replace(/\s+/g, "-") // Replace spaces with hyphens
+        .replace(/-+/g, "-") // Replace multiple hyphens with single
+        .substring(0, 50); // Limit length
+    };
+
+    const sourceSlug = slugify(sourceName || "gps");
+    const destSlug = slugify(destName || "unknown");
+    const profileSlug = profile || "car";
+
+    return `${sourceSlug}_to_${destSlug}_${profileSlug}`;
   }
 
   /**

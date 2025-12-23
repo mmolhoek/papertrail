@@ -689,6 +689,21 @@
   color: #2a2d34;
 }
 
+/* Light theme routing profile indicator */
+[data-theme="light"] .routing-profile-indicator {
+  background: linear-gradient(180deg, #f5f3ef 0%, #e8e4dc 100%);
+  border: 1px solid #c8c4bc;
+}
+
+[data-theme="light"] .routing-profile-indicator .profile-label {
+  color: #6a7080;
+}
+
+[data-theme="light"] .routing-profile-indicator .profile-value {
+  color: #2a6b4a;
+  text-shadow: none;
+}
+
 /* Light theme config description */
 [data-theme="light"] .config-description {
   color: #6a7080;
@@ -1062,7 +1077,7 @@ body {
   position: fixed;
   top: var(--space-md);
   right: var(--space-md);
-  z-index: 1000;
+  z-index: 1100; /* Above toast messages (z-index: 1000) */
 }
 
 .nav-toggle {
@@ -5443,6 +5458,34 @@ body {
   font-weight: 500;
   color: #e8c170;
   text-shadow: 0 0 6px rgba(232, 193, 112, 0.3);
+}
+
+/* Routing Profile Indicator */
+.routing-profile-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.routing-profile-indicator .profile-label {
+  font-family: "Share Tech Mono", monospace;
+  font-size: 0.55rem;
+  color: #5a8a70;
+  letter-spacing: 0.1em;
+}
+
+.routing-profile-indicator .profile-value {
+  font-family: "Orbitron", monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #7ec8a3;
+  text-shadow: 0 0 6px rgba(126, 200, 163, 0.3);
+  text-transform: uppercase;
 }
 
 /* Warning Display */

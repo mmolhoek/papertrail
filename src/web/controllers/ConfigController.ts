@@ -52,6 +52,8 @@ export class ConfigController {
         enabledPOICategories: this.configService.getEnabledPOICategories(),
         showLocationName: this.configService.getShowLocationName(),
         showRoads: this.configService.getShowRoads(),
+        showSpeedLimit: this.configService.getShowSpeedLimit(),
+        showElevation: this.configService.getShowElevation(),
         routingProfile: this.configService.getRoutingProfile(),
       },
     });
@@ -499,6 +501,90 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Road layer ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show speed limit enabled/disabled
+   */
+  async setShowSpeedLimit(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show speed limit called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show speed limit to: ${enabled}`);
+    this.configService.setShowSpeedLimit(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show speed limit ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Speed limit display ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show elevation enabled/disabled
+   */
+  async setShowElevation(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show elevation called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show elevation to: ${enabled}`);
+    this.configService.setShowElevation(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show elevation ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Elevation display ${enabled ? "enabled" : "disabled"}`,
     });
   }
 

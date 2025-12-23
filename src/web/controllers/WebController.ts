@@ -575,6 +575,16 @@ export class WebController {
     return this.config.setShowRoads(req, res);
   }
 
+  /** @see ConfigController.setShowSpeedLimit */
+  async setShowSpeedLimit(req: Request, res: Response): Promise<void> {
+    return this.config.setShowSpeedLimit(req, res);
+  }
+
+  /** @see ConfigController.setShowElevation */
+  async setShowElevation(req: Request, res: Response): Promise<void> {
+    return this.config.setShowElevation(req, res);
+  }
+
   /** @see ConfigController.setRoutingProfile */
   async setRoutingProfile(req: Request, res: Response): Promise<void> {
     return this.config.setRoutingProfile(req, res);

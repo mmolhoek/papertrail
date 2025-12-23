@@ -431,6 +431,12 @@
               </div>
             </div>
 
+            <!-- Routing Profile Indicator -->
+            <div class="routing-profile-indicator">
+              <span class="profile-label">ROUTE TYPE:</span>
+              <span class="profile-value" id="drive-routing-profile">CAR</span>
+            </div>
+
             <!-- Calculate Button -->
             <button
               id="drive-calc-route"
@@ -796,6 +802,39 @@
               </div>
             </div>
 
+            <!-- Routing Profile Selector -->
+            <div class="mode-selector-cluster">
+              <div class="cluster-label">ROUTING PROFILE</div>
+              <div class="mode-buttons">
+                <label class="mode-btn">
+                  <input
+                    type="radio"
+                    name="routing-profile"
+                    value="car"
+                    checked
+                  />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚗</span>
+                    <span class="mode-label">CAR</span>
+                  </span>
+                </label>
+                <label class="mode-btn">
+                  <input type="radio" name="routing-profile" value="bike" />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚴</span>
+                    <span class="mode-label">BICYCLE</span>
+                  </span>
+                </label>
+                <label class="mode-btn">
+                  <input type="radio" name="routing-profile" value="foot" />
+                  <span class="mode-btn-face">
+                    <span class="mode-icon">🚶</span>
+                    <span class="mode-label">WALK</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
             <!-- Toggle Bank - System Switches -->
             <div class="toggle-bank">
               <div class="bank-label-plate">SYSTEM</div>
@@ -839,6 +878,34 @@
                     <span class="toggle-lever"></span>
                   </span>
                   <span class="toggle-nameplate">ROADS</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="show-speed-limit"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">SPD LMT</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="show-elevation"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">ELEV</span>
                   <span class="toggle-indicator"></span>
                 </label>
               </div>

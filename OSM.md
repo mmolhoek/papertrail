@@ -129,8 +129,14 @@ Support different transport modes beyond car.
 **Implementation:**
 - Added `routingProfile` to user display preferences (`car`, `bike`, `foot`)
 - DriveController uses profile from ConfigService when calling OSRM API
-- Route endpoint changes to `/route/v1/{profile}/{coordinates}` based on selection
-- Profile selector dropdown added to web UI Display Controls panel
+- Uses `routing.openstreetmap.de` which hosts separate OSRM instances per profile:
+  - `car` → `routing.openstreetmap.de/routed-car`
+  - `bike` → `routing.openstreetmap.de/routed-bike`
+  - `foot` → `routing.openstreetmap.de/routed-foot`
+- Note: `router.project-osrm.org` only supports driving (ignores profile parameter)
+- Profile selector added to web UI Display Controls panel
+- Drive panel shows current profile indicator ("ROUTE TYPE: CAR/BIKE/WALK")
+- Routes are cached with profile in ID (e.g., `gps_to_paris_bike.json`)
 - Persists to user config, so profile choice is remembered across sessions
 - API endpoint: `POST /api/config/routing-profile` with `{ profile: "car"|"bike"|"foot" }`
 

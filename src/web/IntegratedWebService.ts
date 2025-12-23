@@ -36,6 +36,8 @@ import {
   setPOICategorySchema,
   setShowLocationNameSchema,
   setShowRoadsSchema,
+  setShowSpeedLimitSchema,
+  setShowElevationSchema,
   setRoutingProfileSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
@@ -510,6 +512,18 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-roads`,
       validateBody(setShowRoadsSchema),
       (req, res) => this.controller.setShowRoads(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-speed-limit`,
+      validateBody(setShowSpeedLimitSchema),
+      (req, res) => this.controller.setShowSpeedLimit(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-elevation`,
+      validateBody(setShowElevationSchema),
+      (req, res) => this.controller.setShowElevation(req, res),
     );
 
     this.app.post(

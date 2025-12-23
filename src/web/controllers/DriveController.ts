@@ -575,19 +575,24 @@ export class DriveController {
     }
 
     // Get routing profile from config (default: car)
-    // Map internal profile names to OSRM profile names
-    const profileMap: Record<string, string> = {
-      car: "driving",
-      bike: "bike",
-      foot: "foot",
+    // Use routing.openstreetmap.de which hosts separate OSRM instances per profile
+    // (router.project-osrm.org only supports driving, ignoring the profile parameter)
+    const serverMap: Record<string, string> = {
+      car: "routing.openstreetmap.de/routed-car",
+      bike: "routing.openstreetmap.de/routed-bike",
+      foot: "routing.openstreetmap.de/routed-foot",
     };
     const configProfile = this.configService?.getRoutingProfile() ?? "car";
-    const osrmProfile = profileMap[configProfile] ?? "driving";
-
-    const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+    const osrmServer = serverMap[configProfile] ?? serverMap.car;
 
     logger.info(
-      `Proxying OSRM request (profile: ${osrmProfile}): ${startLon},${startLat} -> ${endLon},${endLat}`,
+      `Routing profile: "${configProfile}" -> server: "${osrmServer}"`,
+    );
+
+    const osrmUrl = `https://${osrmServer}/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson&steps=true`;
+
+    logger.info(
+      `Proxying OSRM request (profile: ${configProfile}): ${startLon},${startLat} -> ${endLon},${endLat}`,
     );
 
     try {

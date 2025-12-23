@@ -65,6 +65,10 @@ export interface DriveRoute {
   id: string;
   /** Human-readable destination name/address */
   destination: string;
+  /** Human-readable source name/address (or "gps" for current position) */
+  sourceName?: string;
+  /** Routing profile used to calculate this route */
+  routingProfile?: "car" | "bike" | "foot";
   /** When the route was created */
   createdAt: Date;
   /** Starting point coordinates */

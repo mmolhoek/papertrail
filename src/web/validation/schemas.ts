@@ -131,6 +131,20 @@ export const setShowRoadsSchema = z.object({
 });
 
 /**
+ * Set show speed limit enabled/disabled request
+ */
+export const setShowSpeedLimitSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
+ * Set show elevation enabled/disabled request
+ */
+export const setShowElevationSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Set routing profile for OSRM route calculation
  */
 export const setRoutingProfileSchema = z.object({
