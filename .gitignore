@@ -17,12 +17,7 @@ config/production.json
 config/local.json
 
 # Data
-data/gpx-files/*
-!data/gpx-files/.gitkeep
-data/cache/*
-!data/cache/.gitkeep
-data/uploads/*
-!data/uploads/.gitkeep
+data/
 
 # IDE
 .vscode/
