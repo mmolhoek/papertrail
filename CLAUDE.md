@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Papertrail is a GPS tracker with e-paper display for Raspberry Pi 5. It tracks GPS position, displays GPX tracks on an 800x480 e-paper screen, and provides a mobile web interface for control via WebSocket.
+Papertrail is a GPS tracker with e-paper display for Raspberry Pi 5. It tracks GPS position, displays GPX tracks on an 800x480 e-paper screen, provides turn-by-turn navigation with offline route calculation, and offers a mobile web interface for control via WebSocket.
 
 ## Common Commands
 
@@ -13,16 +13,12 @@ npm run build          # Compile TypeScript (tsc && tsc-alias)
 npm start              # Run compiled code from dist/
 npm run dev            # Development mode with auto-reload
 npm test               # Run all tests
+npm test -- path/to/file.test.ts  # Run single test file
 npm run test:watch     # Run tests in watch mode
 npm run test:coverage  # Run tests with coverage
 npm run lint           # Check code style
 npm run lint:fix       # Fix linting issues
 npm run format         # Format code with Prettier
-```
-
-Run a single test file:
-```bash
-npm test -- path/to/file.test.ts
 ```
 
 ## Architecture
@@ -41,13 +37,15 @@ Mobile Browser → IntegratedWebService (Express + Socket.IO, port 3000)
 GPSService  MapService  SVGService  EPaper  ConfigService
 ```
 
-**RenderingOrchestrator** is the central coordinator that initializes all services, subscribes to GPS updates, and orchestrates the rendering pipeline. Sub-coordinators handle specific domains: GPSCoordinator, DriveCoordinator, SimulationCoordinator, TrackDisplayCoordinator, OnboardingCoordinator.
+**RenderingOrchestrator** (`src/services/orchestrator/RenderingOrchestrator.ts`) is the central coordinator that initializes all services, manages GPS subscriptions, and orchestrates the rendering pipeline. Sub-coordinators handle specific domains: GPSCoordinator, DriveCoordinator, SimulationCoordinator, TrackDisplayCoordinator, OnboardingCoordinator.
 
 ### Result Type Pattern
 
 All service methods return `Result<T>` instead of throwing exceptions:
 
 ```typescript
+import { Result, success, failure } from "@core/types";
+
 const result = await service.someMethod();
 if (!result.success) {
   return failure(result.error);
@@ -55,15 +53,12 @@ if (!result.success) {
 // Use result.data safely
 ```
 
-Helper functions: `success()`, `failure()`, `isSuccess()`, `isFailure()` from `@core/types`
-
 ### Dependency Injection
 
 Services are managed by `ServiceContainer` singleton (`src/di/ServiceContainer.ts`):
 - Factory methods create production services
 - Setter methods allow test mocking: `ServiceContainer.setGPSService(mockService)`
 - Call `ServiceContainer.reset()` between tests to clear singleton state
-- Reads configuration from environment variables
 
 ### Path Aliases
 
@@ -77,7 +72,7 @@ import { ServiceContainer } from "@di/ServiceContainer";
 import { getLogger } from "@utils/logger";
 ```
 
-Aliases defined in tsconfig.json: `@core/*`, `@services/*`, `@di/*`, `@web/*`, `@utils/*`, `@errors/*`
+Aliases: `@core/*`, `@services/*`, `@di/*`, `@web/*`, `@utils/*`, `@errors/*`
 
 ### Service Structure
 
@@ -87,11 +82,7 @@ Each service follows this pattern:
 - Tests in `src/services/{name}/__tests__/{Name}Service.test.ts`
 - Errors in `src/core/errors/{Name}Error.ts`
 
-Services must implement `initialize(): Promise<Result<void>>` and `dispose(): Promise<void>`.
-
-### Error Handling
-
-Custom errors extend `BaseError` with typed error codes (enums) and static factory methods: `GPSError`, `MapError`, `DisplayError`, `OrchestratorError`, `WebError`, `ConfigError`.
+Services implement `initialize(): Promise<Result<void>>` and `dispose(): Promise<void>`.
 
 ### Key Services
 
@@ -100,11 +91,24 @@ Custom errors extend `BaseError` with typed error codes (enums) and static facto
 | RenderingOrchestrator | `src/services/orchestrator/` | Central coordinator, manages lifecycle |
 | GPSService | `src/services/gps/` | Hardware interface for GPS receiver |
 | MapService | `src/services/map/` | GPX file parsing and track management |
-| SVGService | `src/services/svg/` | Renders maps and tracks to bitmap |
+| SVGService | `src/services/svg/` | Renders maps and tracks to 1-bit bitmap |
 | EPaperService | `src/services/epaper/` | E-paper display hardware interface |
 | ConfigService | `src/services/config/` | Persists configuration to JSON |
 | WiFiService | `src/services/wifi/` | Network management via nmcli |
 | DriveNavigationService | `src/services/drive/` | Route calculation and turn-by-turn guidance |
+| IntegratedWebService | `src/web/` | Express HTTP + Socket.IO WebSocket server |
+
+### Display Abstraction
+
+The display system uses a layered abstraction supporting different display types:
+- `IDisplayService` - Generic display interface (all display types)
+- `IEpaperService` - E-paper specific (extends IDisplayService with sleep/wake/fullRefresh)
+- Use `isEpaperService()` type guard to check for e-paper features
+- Drivers: `BaseDisplayDriver` → `BaseEpaperDriver` → `Waveshare7in5BWDriver`
+
+### Error Handling
+
+Custom errors extend `BaseError` with typed error codes (enums) and static factory methods: `GPSError`, `MapError`, `DisplayError`, `OrchestratorError`, `WebError`, `ConfigError`, `DriveError`, `WiFiError`.
 
 ## Testing
 
@@ -121,6 +125,8 @@ beforeEach(() => {
 
 Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they require physical devices. Mock implementations are used automatically on non-Linux platforms.
 
+Coverage thresholds: 58% branches, 75% functions, 73% lines.
+
 ## Development Notes
 
 - **Entry point:** `src/index.ts`
@@ -128,37 +134,6 @@ Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they requir
 - **Static web files:** `src/web/public/`
 - **GPX files:** `data/gpx-files/`
 - **Config persistence:** `data/config.json`
-- **SSL certificates:** `data/certs/`
 - **Pre-commit hooks:** Husky runs lint-staged (prettier + eslint) on staged files
 
-Run `npm run format` after making changes. Write tests for new code.
-
-## HTTPS Configuration (Optional)
-
-The web interface uses HTTP by default for simpler onboarding (no certificate warnings). HTTPS with self-signed certificates is available if needed.
-
-### Environment Variables
-
-```bash
-WEB_SSL_ENABLED=false             # Enable HTTPS (default: false)
-WEB_SSL_CERT_PATH=./data/certs/server.crt   # Path to certificate
-WEB_SSL_KEY_PATH=./data/certs/server.key    # Path to private key
-```
-
-### Certificate Generation
-
-On Raspberry Pi, `scripts/install.sh` generates a self-signed certificate (stored in `data/certs/`) but does not enable HTTPS by default. To enable HTTPS, set `WEB_SSL_ENABLED=true` in `.env`.
-
-### Manual Certificate Generation
-
-```bash
-mkdir -p data/certs
-openssl req -x509 -nodes -days 3650 \
-  -newkey rsa:2048 \
-  -keyout data/certs/server.key \
-  -out data/certs/server.crt \
-  -subj "/CN=papertrail.local/O=Papertrail GPS"
-chmod 600 data/certs/server.key
-```
-
-Then set `WEB_SSL_ENABLED=true` in `.env`.
+Run `npm run format` after making changes.
