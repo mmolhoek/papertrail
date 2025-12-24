@@ -1,4 +1,5 @@
 import { ConfigService } from "@services/config/ConfigService";
+import { ScreenType } from "@core/types";
 import * as fs from "fs/promises";
 
 // Mock fs module
@@ -500,6 +501,647 @@ describe("ConfigService", () => {
     it("should handle invalid JSON", () => {
       const result = configService.importConfig("invalid json");
       expect(result.success).toBe(false);
+    });
+
+    it("should import config with only config section", () => {
+      const partialExport = JSON.stringify({ config: { version: "2.0.0" } });
+      const result = configService.importConfig(partialExport);
+      expect(result.success).toBe(true);
+    });
+
+    it("should import config with only userState section", () => {
+      const partialExport = JSON.stringify({ userState: { zoomLevel: 15 } });
+      const result = configService.importConfig(partialExport);
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getUserState", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return current user state", () => {
+      const state = configService.getUserState();
+      expect(state).toHaveProperty("zoomLevel");
+      expect(state).toHaveProperty("displayPreferences");
+      expect(state).toHaveProperty("recentFiles");
+    });
+  });
+
+  describe("speed limit preferences", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default showSpeedLimit as true", () => {
+      expect(configService.getShowSpeedLimit()).toBe(true);
+    });
+
+    it("should set showSpeedLimit to false", () => {
+      configService.setShowSpeedLimit(false);
+      expect(configService.getShowSpeedLimit()).toBe(false);
+    });
+
+    it("should set showSpeedLimit back to true", () => {
+      configService.setShowSpeedLimit(false);
+      configService.setShowSpeedLimit(true);
+      expect(configService.getShowSpeedLimit()).toBe(true);
+    });
+  });
+
+  describe("speed unit preferences", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default speed unit as kmh", () => {
+      expect(configService.getSpeedUnit()).toBe("kmh");
+    });
+
+    it("should set speed unit to mph", () => {
+      configService.setSpeedUnit("mph");
+      expect(configService.getSpeedUnit()).toBe("mph");
+    });
+
+    it("should set speed unit back to kmh", () => {
+      configService.setSpeedUnit("mph");
+      configService.setSpeedUnit("kmh");
+      expect(configService.getSpeedUnit()).toBe("kmh");
+    });
+  });
+
+  describe("location name preferences", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default showLocationName as true", () => {
+      expect(configService.getShowLocationName()).toBe(true);
+    });
+
+    it("should set showLocationName to false", () => {
+      configService.setShowLocationName(false);
+      expect(configService.getShowLocationName()).toBe(false);
+    });
+  });
+
+  describe("elevation preferences", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default showElevation as true", () => {
+      expect(configService.getShowElevation()).toBe(true);
+    });
+
+    it("should set showElevation to false", () => {
+      configService.setShowElevation(false);
+      expect(configService.getShowElevation()).toBe(false);
+    });
+  });
+
+  describe("roads layer preferences", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default showRoads as true", () => {
+      expect(configService.getShowRoads()).toBe(true);
+    });
+
+    it("should set showRoads to false", () => {
+      configService.setShowRoads(false);
+      expect(configService.getShowRoads()).toBe(false);
+    });
+  });
+
+  describe("POI categories", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default enabled POI categories", () => {
+      const categories = configService.getEnabledPOICategories();
+      expect(categories).toContain("fuel");
+      expect(categories).toContain("charging");
+      expect(categories).toContain("parking");
+      expect(categories).toContain("food");
+      expect(categories).toContain("restroom");
+      expect(categories).toContain("viewpoint");
+    });
+
+    it("should set enabled POI categories", () => {
+      configService.setEnabledPOICategories(["fuel", "parking"]);
+      const categories = configService.getEnabledPOICategories();
+      expect(categories).toEqual(["fuel", "parking"]);
+    });
+
+    it("should check if a POI category is enabled", () => {
+      expect(configService.isPOICategoryEnabled("fuel")).toBe(true);
+      configService.setEnabledPOICategories(["parking"]);
+      expect(configService.isPOICategoryEnabled("fuel")).toBe(false);
+      expect(configService.isPOICategoryEnabled("parking")).toBe(true);
+    });
+
+    it("should enable a specific POI category", () => {
+      configService.setEnabledPOICategories(["fuel"]);
+      configService.setPOICategoryEnabled("parking", true);
+      expect(configService.isPOICategoryEnabled("fuel")).toBe(true);
+      expect(configService.isPOICategoryEnabled("parking")).toBe(true);
+    });
+
+    it("should disable a specific POI category", () => {
+      configService.setEnabledPOICategories(["fuel", "parking"]);
+      configService.setPOICategoryEnabled("fuel", false);
+      expect(configService.isPOICategoryEnabled("fuel")).toBe(false);
+      expect(configService.isPOICategoryEnabled("parking")).toBe(true);
+    });
+
+    it("should not duplicate category when enabling already enabled", () => {
+      configService.setEnabledPOICategories(["fuel", "parking"]);
+      configService.setPOICategoryEnabled("fuel", true);
+      const categories = configService.getEnabledPOICategories();
+      expect(categories.filter((c) => c === "fuel").length).toBe(1);
+    });
+
+    it("should not error when disabling already disabled category", () => {
+      configService.setEnabledPOICategories(["parking"]);
+      configService.setPOICategoryEnabled("fuel", false);
+      expect(configService.isPOICategoryEnabled("fuel")).toBe(false);
+    });
+  });
+
+  describe("active screen", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return default active screen as TRACK", () => {
+      expect(configService.getActiveScreen()).toBe(ScreenType.TRACK);
+    });
+
+    it("should set active screen to TURN_BY_TURN", () => {
+      configService.setActiveScreen(ScreenType.TURN_BY_TURN);
+      expect(configService.getActiveScreen()).toBe(ScreenType.TURN_BY_TURN);
+    });
+
+    it("should set active screen back to TRACK", () => {
+      configService.setActiveScreen(ScreenType.TURN_BY_TURN);
+      configService.setActiveScreen(ScreenType.TRACK);
+      expect(configService.getActiveScreen()).toBe(ScreenType.TRACK);
+    });
+  });
+
+  describe("onboarding management", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return onboarding not completed by default", () => {
+      expect(configService.isOnboardingCompleted()).toBe(false);
+    });
+
+    it("should set onboarding as completed", () => {
+      configService.setOnboardingCompleted(true);
+      expect(configService.isOnboardingCompleted()).toBe(true);
+    });
+
+    it("should set onboarding as not completed", () => {
+      configService.setOnboardingCompleted(true);
+      configService.setOnboardingCompleted(false);
+      expect(configService.isOnboardingCompleted()).toBe(false);
+    });
+
+    it("should set timestamp when onboarding is completed", () => {
+      configService.setOnboardingCompleted(true);
+      const state = configService.getUserState();
+      expect(state.onboardingTimestamp).toBeDefined();
+      expect(new Date(state.onboardingTimestamp!).getTime()).not.toBeNaN();
+    });
+  });
+
+  describe("WiFi fallback network", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return undefined for no fallback network configured", () => {
+      expect(configService.getWiFiFallbackNetwork()).toBeUndefined();
+    });
+
+    it("should set WiFi fallback network", () => {
+      const config = {
+        ssid: "TestNetwork",
+        savedAt: new Date().toISOString(),
+      };
+      configService.setWiFiFallbackNetwork(config);
+      expect(configService.getWiFiFallbackNetwork()).toEqual(config);
+    });
+
+    it("should clear WiFi fallback network with null", () => {
+      const config = {
+        ssid: "TestNetwork",
+        savedAt: new Date().toISOString(),
+      };
+      configService.setWiFiFallbackNetwork(config);
+      configService.setWiFiFallbackNetwork(null);
+      expect(configService.getWiFiFallbackNetwork()).toBeUndefined();
+    });
+  });
+
+  describe("hotspot configuration", () => {
+    beforeEach(async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+    });
+
+    it("should return undefined for no hotspot config", () => {
+      expect(configService.getHotspotConfig()).toBeUndefined();
+    });
+
+    it("should set hotspot configuration", () => {
+      const config = {
+        ssid: "PapertrailHotspot",
+        password: "hotspot123",
+        updatedAt: new Date().toISOString(),
+      };
+      configService.setHotspotConfig(config);
+      expect(configService.getHotspotConfig()).toEqual(config);
+    });
+
+    it("should clear hotspot configuration with null", () => {
+      const config = {
+        ssid: "PapertrailHotspot",
+        password: "hotspot123",
+        updatedAt: new Date().toISOString(),
+      };
+      configService.setHotspotConfig(config);
+      configService.setHotspotConfig(null);
+      expect(configService.getHotspotConfig()).toBeUndefined();
+    });
+  });
+
+  describe("backwards compatibility", () => {
+    it("should handle missing recentDestinations in loaded state", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {
+          autoCenter: true,
+          rotateWithBearing: false,
+          brightness: 100,
+          autoRefreshInterval: 30,
+        },
+        recentFiles: [],
+        // recentDestinations is missing
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+
+      // Should return empty array, not error
+      const destinations = configService.getRecentDestinations();
+      expect(destinations).toEqual([]);
+    });
+
+    it("should handle adding destination when recentDestinations is undefined", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+
+      // Should not throw
+      configService.addRecentDestination({
+        name: "New Destination",
+        latitude: 51.5,
+        longitude: -0.1,
+      });
+
+      expect(configService.getRecentDestinations().length).toBe(1);
+    });
+
+    it("should handle removeRecentDestination when recentDestinations is undefined", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+
+      // Should not throw
+      configService.removeRecentDestination(51.5, -0.1);
+    });
+
+    it("should return default for undefined showSpeedLimit", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getShowSpeedLimit()).toBe(true);
+    });
+
+    it("should return default for undefined speedUnit", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getSpeedUnit()).toBe("kmh");
+    });
+
+    it("should return default for undefined showLocationName", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getShowLocationName()).toBe(true);
+    });
+
+    it("should return default for undefined showElevation", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getShowElevation()).toBe(true);
+    });
+
+    it("should return default for undefined showRoads", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getShowRoads()).toBe(true);
+    });
+
+    it("should return default for undefined routingProfile", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getRoutingProfile()).toBe("car");
+    });
+
+    it("should return default for undefined enabledPOICategories", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      const categories = configService.getEnabledPOICategories();
+      expect(categories.length).toBe(6);
+    });
+
+    it("should return default for undefined activeScreen", async () => {
+      const userState = {
+        zoomLevel: 15,
+        displayPreferences: {},
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(userState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+      expect(configService.getActiveScreen()).toBe(ScreenType.TRACK);
+    });
+  });
+
+  describe("error handling edge cases", () => {
+    it("should handle non-Error read failures in loadConfigFile", async () => {
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testConfigPath) {
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          return Promise.reject("string error");
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      const result = await configService.initialize();
+      // Should still succeed with defaults
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle non-Error read failures in loadUserState", async () => {
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+          return Promise.reject("string error");
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      const result = await configService.initialize();
+      // Should still succeed with defaults
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle non-Error write failures in save", async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      mockFs.writeFile.mockRejectedValue("string error");
+
+      const result = await configService.save();
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle non-Error failures in reload", async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+
+      // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+      mockFs.readFile.mockRejectedValue("string error");
+
+      const result = await configService.reload();
+      // Should still succeed (uses defaults)
+      expect(result.success).toBe(true);
+    });
+
+    it("should handle non-Error JSON parse failures", async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+
+      // Test with a non-Error being thrown
+      const result = configService.importConfig("{{invalid");
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle read errors that are not ENOENT", async () => {
+      mockFs.readFile.mockRejectedValue(new Error("Permission denied"));
+
+      const result = await configService.initialize();
+      // Initialize succeeds but logs error
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("file loading", () => {
+    it("should load user state from file when it exists", async () => {
+      const mockUserState = {
+        activeGPXPath: "/saved/track.gpx",
+        zoomLevel: 14,
+        onboardingCompleted: true,
+        displayPreferences: {
+          autoCenter: false,
+          rotateWithBearing: true,
+          brightness: 80,
+          autoRefreshInterval: 60,
+        },
+        recentFiles: ["/file1.gpx", "/file2.gpx"],
+        recentDestinations: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(mockUserState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.initialize();
+
+      expect(configService.getZoomLevel()).toBe(14);
+      expect(configService.getActiveGPXPath()).toBe("/saved/track.gpx");
+      expect(configService.getAutoCenter()).toBe(false);
+      expect(configService.getRotateWithBearing()).toBe(true);
+    });
+
+    it("should reload config and state from files", async () => {
+      mockFs.readFile.mockRejectedValue(new Error("ENOENT"));
+      await configService.initialize();
+
+      configService.setZoomLevel(10);
+      expect(configService.getZoomLevel()).toBe(10);
+
+      // Simulate file being updated
+      const updatedState = {
+        zoomLevel: 18,
+        displayPreferences: {
+          autoCenter: true,
+          rotateWithBearing: false,
+          brightness: 100,
+          autoRefreshInterval: 30,
+        },
+        recentFiles: [],
+      };
+
+      mockFs.readFile.mockImplementation((path) => {
+        if (path === testStatePath) {
+          return Promise.resolve(JSON.stringify(updatedState));
+        }
+        return Promise.reject(new Error("ENOENT"));
+      });
+
+      await configService.reload();
+
+      expect(configService.getZoomLevel()).toBe(18);
     });
   });
 });
