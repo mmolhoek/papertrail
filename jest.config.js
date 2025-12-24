@@ -45,8 +45,6 @@ export const collectCoverageFrom = [
   // E-paper hardware drivers and adapters - require GPIO/SPI hardware
   "!src/services/epaper/adapters/LgpioAdapter.ts",
   "!src/services/epaper/drivers/Waveshare7in5BWDriver.ts",
-  // External API-dependent services - require Overpass API
-  "!src/services/vectorMap/VectorMapService.ts",
   // Road rendering depends on vector map data
   "!src/services/svg/RoadRenderer.ts",
 ];
