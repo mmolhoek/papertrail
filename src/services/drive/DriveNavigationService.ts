@@ -264,7 +264,20 @@ export class DriveNavigationService implements IDriveNavigationService {
     logger.info(`Starting navigation to: ${activeRoute.destination}`);
 
     this.activeRoute = activeRoute;
-    this.currentWaypointIndex = 0;
+
+    // Find closest waypoint to current position (for route switching mid-navigation)
+    if (this.currentPosition && activeRoute.waypoints.length > 0) {
+      this.currentWaypointIndex = this.findClosestWaypointIndex(
+        this.currentPosition,
+        activeRoute.waypoints,
+      );
+      logger.info(
+        `Starting from closest waypoint ${this.currentWaypointIndex} of ${activeRoute.waypoints.length}`,
+      );
+    } else {
+      this.currentWaypointIndex = 0;
+    }
+
     this.navigationState = NavigationState.NAVIGATING;
     // Always start with MAP_WITH_OVERLAY - the orchestrator will check
     // the activeScreen setting and switch to turn-by-turn if configured
@@ -598,6 +611,34 @@ export class DriveNavigationService implements IDriveNavigationService {
     }
 
     return remaining;
+  }
+
+  /**
+   * Find the index of the closest waypoint to a given position
+   * Used when switching routes mid-navigation to continue from current location
+   */
+  private findClosestWaypointIndex(
+    position: GPSCoordinate,
+    waypoints: DriveWaypoint[],
+  ): number {
+    let closestIndex = 0;
+    let closestDistance = Infinity;
+
+    for (let i = 0; i < waypoints.length; i++) {
+      const wp = waypoints[i];
+      const distance = haversineDistance(
+        position.latitude,
+        position.longitude,
+        wp.latitude,
+        wp.longitude,
+      );
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = i;
+      }
+    }
+
+    return closestIndex;
   }
 
   /**
