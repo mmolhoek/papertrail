@@ -125,7 +125,7 @@ beforeEach(() => {
 
 Hardware services (GPS, E-paper, WiFi) are excluded from coverage as they require physical devices. Mock implementations are used automatically on non-Linux platforms.
 
-Coverage thresholds: 58% branches, 75% functions, 73% lines.
+Coverage thresholds: 52% branches, 71% functions, 72% lines.
 
 ## Development Notes
 
