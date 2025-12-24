@@ -20,7 +20,11 @@ describe("MockEpaperService", () => {
       refreshMode: "full",
       rotation: 0,
     };
-    mockEpaperService = new MockEpaperService(config);
+    // Use short refresh times for faster tests
+    mockEpaperService = new MockEpaperService(config, {
+      refreshTimeFullMs: 10,
+      refreshTimePartialMs: 5,
+    });
   });
 
   afterEach(async () => {

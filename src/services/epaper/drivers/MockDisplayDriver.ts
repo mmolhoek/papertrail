@@ -23,7 +23,11 @@ export class MockDisplayDriver extends BaseEpaperDriver {
   private lastDisplayedBuffer: Buffer | null = null;
   private lastDisplayedPng: Buffer | null = null;
 
-  constructor(width: number = 800, height: number = 480) {
+  constructor(
+    width: number = 800,
+    height: number = 480,
+    options?: { refreshTimeFullMs?: number; refreshTimePartialMs?: number },
+  ) {
     super();
     this.capabilities = {
       width,
@@ -31,8 +35,8 @@ export class MockDisplayDriver extends BaseEpaperDriver {
       colorDepth: "1bit",
       displayType: DisplayType.MOCK,
       supportsPartialRefresh: true,
-      refreshTimeFullMs: 2000,
-      refreshTimePartialMs: 500,
+      refreshTimeFullMs: options?.refreshTimeFullMs ?? 2000,
+      refreshTimePartialMs: options?.refreshTimePartialMs ?? 500,
       supportsSleep: true,
     };
   }

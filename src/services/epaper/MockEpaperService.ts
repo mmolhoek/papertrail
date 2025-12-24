@@ -44,10 +44,13 @@ export class MockEpaperService implements IEpaperService {
   private lastUpdate: Date | null = null;
   private rotation: 0 | 90 | 180 | 270;
 
-  constructor(private readonly config: EpaperConfig) {
+  constructor(
+    private readonly config: EpaperConfig,
+    options?: { refreshTimeFullMs?: number; refreshTimePartialMs?: number },
+  ) {
     this.rotation = config.rotation;
     this.adapter = new MockAdapter();
-    this.driver = new MockDisplayDriver(config.width, config.height);
+    this.driver = new MockDisplayDriver(config.width, config.height, options);
 
     logger.info("Mock E-Paper Service created (for development/testing)");
     logger.info(`Mock E-Paper: Display size ${config.width}x${config.height}`);

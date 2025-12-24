@@ -36,7 +36,11 @@ describe("EpaperService", () => {
       rotation: 0,
     };
 
-    mockDriver = new MockDisplayDriver(config.width, config.height);
+    // Use short refresh times for faster tests
+    mockDriver = new MockDisplayDriver(config.width, config.height, {
+      refreshTimeFullMs: 10,
+      refreshTimePartialMs: 5,
+    });
     mockAdapter = new MockAdapter();
     epaperService = new EpaperService(config, mockDriver, mockAdapter);
   });
