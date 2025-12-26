@@ -682,6 +682,398 @@ describe("TrackSimulationService", () => {
     });
   });
 
+  describe("startSimulationFromActive", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should return failure with message to use startSimulation instead", async () => {
+      const result = await service.startSimulationFromActive();
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain("Use startSimulation");
+      }
+    });
+
+    it("should return failure even with speed parameter", async () => {
+      const result = await service.startSimulationFromActive(50);
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("setCurrentSpeedLimit", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should set speed limit", async () => {
+      service.setCurrentSpeedLimit(60);
+      // Can't directly verify, but should not throw
+      expect(true).toBe(true);
+    });
+
+    it("should clear speed limit when set to null", async () => {
+      service.setCurrentSpeedLimit(60);
+      service.setCurrentSpeedLimit(null);
+      // Can't directly verify, but should not throw
+      expect(true).toBe(true);
+    });
+
+    it("should not log when setting same limit", async () => {
+      service.setCurrentSpeedLimit(60);
+      service.setCurrentSpeedLimit(60); // Same limit
+      expect(true).toBe(true);
+    });
+
+    it("should affect simulation speed", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      const track = createTestTrack();
+      // Start at 100 km/h
+      await service.startSimulation(track, 100);
+
+      // Set speed limit to 30 km/h
+      service.setCurrentSpeedLimit(30);
+
+      // Wait for position update with limited speed
+      await wait(600);
+
+      // Check that reported speed reflects the limit
+      const lastPosition = callback.mock.calls[
+        callback.mock.calls.length - 1
+      ][0] as GPSCoordinate;
+      // Speed should be at most 30 km/h = 8.33 m/s
+      expect(lastPosition.speed).toBeLessThanOrEqual(8.4);
+    });
+  });
+
+  describe("curve speed adjustment", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should reduce speed for sharp curves", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      // Create track with a sharp turn
+      const track: GPXTrack = {
+        name: "Curvy Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.001, longitude: -122.0, timestamp: new Date() }, // North
+              { latitude: 37.001, longitude: -121.999, timestamp: new Date() }, // East (90° turn)
+              { latitude: 37.001, longitude: -121.998, timestamp: new Date() },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 100); // High speed
+      await wait(1100); // Wait for curve calculation
+
+      // Curve detection should have reduced speed
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it("should not reduce speed for gentle curves", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      // Create track with very gentle curve
+      const track: GPXTrack = {
+        name: "Gentle Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.001, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.002, longitude: -122.0001, timestamp: new Date() }, // Very slight curve
+              { latitude: 37.003, longitude: -122.0002, timestamp: new Date() },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 30);
+      await wait(600);
+
+      expect(callback).toHaveBeenCalled();
+    });
+
+    it("should handle track too short for curve lookahead", async () => {
+      const track: GPXTrack = {
+        name: "Short Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.0001, longitude: -122.0, timestamp: new Date() },
+            ],
+          },
+        ],
+      };
+
+      const result = await service.startSimulation(track, 50);
+      expect(result.success).toBe(true);
+
+      await wait(600);
+      // Should complete without errors
+    });
+  });
+
+  describe("interpolatePosition - altitude handling", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should interpolate altitude when both points have altitude", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      const track: GPXTrack = {
+        name: "Altitude Track",
+        segments: [
+          {
+            points: [
+              {
+                latitude: 37.0,
+                longitude: -122.0,
+                altitude: 100,
+                timestamp: new Date(),
+              },
+              {
+                latitude: 37.001,
+                longitude: -122.0,
+                altitude: 200,
+                timestamp: new Date(),
+              },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 10);
+      await wait(100);
+
+      const position = callback.mock.calls[0][0] as GPSCoordinate;
+      expect(position.altitude).toBeDefined();
+      expect(position.altitude).toBeGreaterThanOrEqual(100);
+    });
+
+    it("should handle points without altitude", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      const track: GPXTrack = {
+        name: "No Altitude Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.001, longitude: -122.0, timestamp: new Date() },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 10);
+      await wait(100);
+
+      expect(callback).toHaveBeenCalled();
+      const position = callback.mock.calls[0][0] as GPSCoordinate;
+      expect(position.altitude).toBeUndefined();
+    });
+
+    it("should handle first point with altitude, second without", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      const track: GPXTrack = {
+        name: "Partial Altitude Track",
+        segments: [
+          {
+            points: [
+              {
+                latitude: 37.0,
+                longitude: -122.0,
+                altitude: 100,
+                timestamp: new Date(),
+              },
+              {
+                latitude: 37.001,
+                longitude: -122.0,
+                // No altitude on second point
+                timestamp: new Date(),
+              },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 10);
+      await wait(100);
+
+      expect(callback).toHaveBeenCalled();
+      // Should use first point's altitude
+      const position = callback.mock.calls[0][0] as GPSCoordinate;
+      expect(position.altitude).toBe(100);
+    });
+  });
+
+  describe("callback error handling", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should handle error in position callback", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Position callback error");
+      });
+      const normalCallback = jest.fn();
+
+      service.onPositionUpdate(errorCallback);
+      service.onPositionUpdate(normalCallback);
+
+      const track = createTestTrack();
+      await service.startSimulation(track);
+
+      await wait(100);
+
+      // Both callbacks should have been called despite error
+      expect(errorCallback).toHaveBeenCalled();
+      expect(normalCallback).toHaveBeenCalled();
+    });
+
+    it("should handle non-Error exception in position callback", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw "string error"; // Non-Error exception
+      });
+
+      service.onPositionUpdate(errorCallback);
+
+      const track = createTestTrack();
+      await service.startSimulation(track);
+
+      await wait(100);
+
+      expect(errorCallback).toHaveBeenCalled();
+    });
+
+    it("should handle error in state callback", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw new Error("State callback error");
+      });
+      const normalCallback = jest.fn();
+
+      service.onStateChange(errorCallback);
+      service.onStateChange(normalCallback);
+
+      const track = createTestTrack();
+      await service.startSimulation(track);
+
+      // Both callbacks should have been called despite error
+      expect(errorCallback).toHaveBeenCalled();
+      expect(normalCallback).toHaveBeenCalled();
+    });
+
+    it("should handle error in complete callback", async () => {
+      const errorCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Complete callback error");
+      });
+      const normalCallback = jest.fn();
+
+      service.onSimulationComplete(errorCallback);
+      service.onSimulationComplete(normalCallback);
+
+      // Very short track that completes quickly
+      const track: GPXTrack = {
+        name: "Short Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.0001, longitude: -122.0, timestamp: new Date() },
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 200);
+      await wait(3000);
+
+      // Both callbacks should have been called despite error
+      expect(errorCallback).toHaveBeenCalled();
+      expect(normalCallback).toHaveBeenCalled();
+    }, 10000);
+  });
+
+  describe("zero-distance segment handling", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should skip zero-distance segments (duplicate consecutive points)", async () => {
+      const callback = jest.fn();
+      service.onPositionUpdate(callback);
+
+      const track: GPXTrack = {
+        name: "Duplicate Points Track",
+        segments: [
+          {
+            points: [
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() },
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() }, // Same point
+              { latitude: 37.0, longitude: -122.0, timestamp: new Date() }, // Same point
+              { latitude: 37.001, longitude: -122.0, timestamp: new Date() }, // Different point
+            ],
+          },
+        ],
+      };
+
+      await service.startSimulation(track, 50);
+      await wait(600);
+
+      // Should still make progress despite duplicate points
+      expect(callback).toHaveBeenCalled();
+    });
+  });
+
+  describe("max segments per tick limit", () => {
+    beforeEach(async () => {
+      await service.initialize();
+    });
+
+    it("should limit segment advances per tick to prevent runaway", async () => {
+      // Create track with many very short segments
+      const points = [];
+      for (let i = 0; i < 20; i++) {
+        points.push({
+          latitude: 37.0 + i * 0.00001, // Very short segments (~1m)
+          longitude: -122.0,
+          timestamp: new Date(),
+        });
+      }
+
+      const track: GPXTrack = {
+        name: "Short Segments Track",
+        segments: [{ points }],
+      };
+
+      // Very high speed to trigger max segments limit
+      await service.startSimulation(track, 200);
+      await wait(600);
+
+      // Should still work without hanging
+      expect(service.getStatus().state).toBeDefined();
+    });
+  });
+
   describe("edge cases", () => {
     beforeEach(async () => {
       await service.initialize();

@@ -52,5 +52,8 @@ Files that need test coverage, ordered by priority.
 ## Reverse Geocoding Service (1 file)
 - [x] `src/services/reverseGeocoding/ReverseGeocodingService.ts` - 46 tests
 
+## Track Simulation Service (1 file)
+- [x] `src/services/simulation/TrackSimulationService.ts` - 75 tests
+
 ---
-Total: 28 files - All complete!
+Total: 29 files - All complete!
