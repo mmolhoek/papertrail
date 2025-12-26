@@ -467,4 +467,847 @@ describe("IntegratedWebService", () => {
       await noWifiService.stop();
     });
   });
+
+  describe("SSL/HTTPS configuration", () => {
+    let httpsCreateServerSpy: jest.SpyInstance;
+    let fsReadFileSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const https = require("https");
+      httpsCreateServerSpy = jest
+        .spyOn(https, "createServer")
+        .mockReturnValue(mockServer);
+
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require("fs/promises");
+      fsReadFileSpy = jest.spyOn(fs, "readFile").mockResolvedValue("cert-data");
+    });
+
+    afterEach(() => {
+      httpsCreateServerSpy?.mockRestore();
+      fsReadFileSpy?.mockRestore();
+    });
+
+    it("should create HTTPS server when SSL is enabled", async () => {
+      const sslConfig: WebConfig = {
+        ...testConfig,
+        ssl: {
+          enabled: true,
+          keyPath: "/path/to/key.pem",
+          certPath: "/path/to/cert.pem",
+        },
+      };
+      const sslService = new IntegratedWebService(mockOrchestrator, sslConfig);
+
+      const result = await sslService.start();
+
+      expect(result.success).toBe(true);
+      expect(httpsCreateServerSpy).toHaveBeenCalled();
+      expect(fsReadFileSpy).toHaveBeenCalledWith("/path/to/key.pem");
+      expect(fsReadFileSpy).toHaveBeenCalledWith("/path/to/cert.pem");
+
+      await sslService.stop();
+    });
+
+    it("should return https URL when SSL is enabled", () => {
+      const sslConfig: WebConfig = {
+        ...testConfig,
+        ssl: {
+          enabled: true,
+          keyPath: "/path/to/key.pem",
+          certPath: "/path/to/cert.pem",
+        },
+      };
+      const sslService = new IntegratedWebService(mockOrchestrator, sslConfig);
+
+      expect(sslService.getServerUrl()).toBe("https://localhost:3000");
+    });
+  });
+
+  describe("CORS with specific origins", () => {
+    it("should handle CORS with allowed origins", async () => {
+      const corsConfig: WebConfig = {
+        ...testConfig,
+        cors: true,
+        corsOrigins: ["http://localhost:8080", "http://example.com"],
+      };
+      const corsService = new IntegratedWebService(
+        mockOrchestrator,
+        corsConfig,
+      );
+
+      const result = await corsService.start();
+      expect(result.success).toBe(true);
+
+      await corsService.stop();
+    });
+
+    it("should handle CORS disabled", async () => {
+      const noCorsConfig: WebConfig = {
+        ...testConfig,
+        cors: false,
+      };
+      const noCorsService = new IntegratedWebService(
+        mockOrchestrator,
+        noCorsConfig,
+      );
+
+      const result = await noCorsService.start();
+      expect(result.success).toBe(true);
+
+      await noCorsService.stop();
+    });
+  });
+
+  describe("error handling", () => {
+    it("should return failure when port is in use", async () => {
+      const errorServer: any = {
+        listen: jest.fn(
+          (_port: number, _host: string, _callback: () => void): any =>
+            errorServer,
+        ),
+        on: jest.fn(
+          (
+            event: string,
+            handler: (err: NodeJS.ErrnoException) => void,
+          ): any => {
+            if (event === "error") {
+              const error = new Error("Port in use") as NodeJS.ErrnoException;
+              error.code = "EADDRINUSE";
+              handler(error);
+            }
+            return errorServer;
+          },
+        ),
+        close: jest.fn(),
+      };
+
+      createServerSpy.mockReturnValue(errorServer);
+
+      const result = await service.start();
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain("3000");
+      }
+    });
+
+    it("should return failure on other server errors", async () => {
+      const errorServer: any = {
+        listen: jest.fn(
+          (_port: number, _host: string, _callback: () => void): any =>
+            errorServer,
+        ),
+        on: jest.fn(
+          (
+            event: string,
+            handler: (err: NodeJS.ErrnoException) => void,
+          ): any => {
+            if (event === "error") {
+              const error = new Error(
+                "Permission denied",
+              ) as NodeJS.ErrnoException;
+              error.code = "EACCES";
+              handler(error);
+            }
+            return errorServer;
+          },
+        ),
+        close: jest.fn(),
+      };
+
+      createServerSpy.mockReturnValue(errorServer);
+
+      const result = await service.start();
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle non-Error exception during start", async () => {
+      createServerSpy.mockImplementation(() => {
+        throw "string error";
+      });
+
+      const result = await service.start();
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain("Unknown error");
+      }
+    });
+
+    it("should handle Error exception during start", async () => {
+      createServerSpy.mockImplementation(() => {
+        throw new Error("Test error");
+      });
+
+      const result = await service.start();
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should handle server close error during stop", async () => {
+      await service.start();
+
+      mockServerClose.mockImplementation((callback: (err?: Error) => void) => {
+        callback(new Error("Close failed"));
+      });
+
+      const result = await service.stop();
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.message).toContain("Failed to stop server");
+      }
+    });
+
+    it("should handle non-Error exception during stop", async () => {
+      await service.start();
+
+      mockServerClose.mockImplementation(() => {
+        throw "string error";
+      });
+
+      const result = await service.stop();
+
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe("simulation service integration", () => {
+    let simulationPositionCallback: ((position: any) => void) | null = null;
+    let simulationStateCallback: ((status: any) => void) | null = null;
+    let mockSimulationService: any;
+
+    beforeEach(() => {
+      mockSimulationService = {
+        isSimulating: jest.fn().mockReturnValue(false),
+        onPositionUpdate: jest.fn((cb) => {
+          simulationPositionCallback = cb;
+          return () => {
+            simulationPositionCallback = null;
+          };
+        }),
+        onStateChange: jest.fn((cb) => {
+          simulationStateCallback = cb;
+          return () => {
+            simulationStateCallback = null;
+          };
+        }),
+      };
+    });
+
+    it("should subscribe to simulation events when service is provided", async () => {
+      const simService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        mockSimulationService,
+      );
+
+      await simService.start();
+
+      expect(mockSimulationService.onPositionUpdate).toHaveBeenCalled();
+      expect(mockSimulationService.onStateChange).toHaveBeenCalled();
+
+      await simService.stop();
+    });
+
+    it("should broadcast simulation position updates", async () => {
+      const simService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        mockSimulationService,
+      );
+
+      await simService.start();
+
+      const position = {
+        latitude: 37.7749,
+        longitude: -122.4194,
+        altitude: 10,
+        timestamp: new Date(),
+        speed: 15,
+        bearing: 90,
+      };
+      simulationPositionCallback!(position);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "gps:update",
+        expect.objectContaining({
+          latitude: 37.7749,
+          longitude: -122.4194,
+          fixQuality: 8, // SIMULATION
+        }),
+      );
+
+      await simService.stop();
+    });
+
+    it("should broadcast simulation state changes", async () => {
+      const simService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        mockSimulationService,
+      );
+
+      await simService.start();
+
+      const status = { isRunning: true, progress: 50 };
+      simulationStateCallback!(status);
+
+      expect(mockIoEmit).toHaveBeenCalledWith("simulation:status", status);
+
+      await simService.stop();
+    });
+
+    it("should skip real GPS updates when simulation is running", async () => {
+      mockSimulationService.isSimulating.mockReturnValue(true);
+
+      const simService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        mockSimulationService,
+      );
+
+      await simService.start();
+
+      // Trigger real GPS update
+      const position = { latitude: 37.77, longitude: -122.41 };
+      gpsUpdateCallback!(position);
+
+      // Should NOT broadcast real GPS when simulation is running
+      const gpsUpdateCalls = mockIoEmit.mock.calls.filter(
+        (call) => call[0] === "gps:update",
+      );
+      expect(gpsUpdateCalls.length).toBe(0);
+
+      await simService.stop();
+    });
+  });
+
+  describe("drive navigation service integration", () => {
+    let driveNavigationCallback: ((update: any) => void) | null = null;
+    let mockDriveNavigationService: any;
+
+    beforeEach(() => {
+      mockDriveNavigationService = {
+        onNavigationUpdate: jest.fn((cb) => {
+          driveNavigationCallback = cb;
+          return () => {
+            driveNavigationCallback = null;
+          };
+        }),
+        getActiveRoute: jest.fn().mockReturnValue({
+          destination: "Test Destination",
+        }),
+      };
+    });
+
+    it("should subscribe to drive navigation events when service is provided", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      expect(mockDriveNavigationService.onNavigationUpdate).toHaveBeenCalled();
+
+      await driveService.stop();
+    });
+
+    it("should broadcast drive navigation updates", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      const update = {
+        status: {
+          state: "navigating",
+          displayMode: "turn",
+          currentWaypointIndex: 2,
+          distanceToNextTurn: 500,
+          bearingToRoute: 45,
+          nextTurn: {
+            maneuverType: "right",
+            instruction: "Turn right",
+            streetName: "Main St",
+          },
+          progress: 30,
+          distanceRemaining: 5000,
+          timeRemaining: 600,
+          distanceToRoute: 0,
+        },
+      };
+      driveNavigationCallback!(update);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "drive:update",
+        expect.objectContaining({
+          state: "navigating",
+          distanceToNextTurn: 500,
+        }),
+      );
+
+      await driveService.stop();
+    });
+
+    it("should emit drive:arrived event when arriving at destination", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      const update = {
+        status: {
+          state: "arrived",
+          displayMode: "arrival",
+          currentWaypointIndex: 5,
+          distanceToNextTurn: 0,
+          bearingToRoute: 0,
+          progress: 100,
+          distanceRemaining: 0,
+          timeRemaining: 0,
+          distanceToRoute: 0,
+        },
+      };
+      driveNavigationCallback!(update);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "drive:arrived",
+        expect.objectContaining({
+          destination: "Test Destination",
+        }),
+      );
+
+      await driveService.stop();
+    });
+
+    it("should only emit drive:arrived once per arrival", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      const arrivedUpdate = {
+        status: {
+          state: "arrived",
+          displayMode: "arrival",
+          currentWaypointIndex: 5,
+          distanceToNextTurn: 0,
+          bearingToRoute: 0,
+          progress: 100,
+          distanceRemaining: 0,
+          timeRemaining: 0,
+          distanceToRoute: 0,
+        },
+      };
+
+      // Trigger arrived twice
+      driveNavigationCallback!(arrivedUpdate);
+      driveNavigationCallback!(arrivedUpdate);
+
+      const arrivedCalls = mockIoEmit.mock.calls.filter(
+        (call) => call[0] === "drive:arrived",
+      );
+      expect(arrivedCalls.length).toBe(1);
+
+      await driveService.stop();
+    });
+
+    it("should emit drive:off-road event when off route", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      const update = {
+        status: {
+          state: "off_road",
+          displayMode: "off_road",
+          currentWaypointIndex: 2,
+          distanceToNextTurn: 0,
+          bearingToRoute: 180,
+          progress: 40,
+          distanceRemaining: 3000,
+          timeRemaining: 400,
+          distanceToRoute: 500,
+        },
+      };
+      driveNavigationCallback!(update);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "drive:off-road",
+        expect.objectContaining({
+          distance: 500,
+          bearing: 180,
+        }),
+      );
+
+      await driveService.stop();
+    });
+
+    it("should reset arrived flag when state changes from arrived", async () => {
+      const driveService = new IntegratedWebService(
+        mockOrchestrator,
+        testConfig,
+        mockWifiService,
+        undefined,
+        "./data/gpx",
+        undefined,
+        undefined,
+        mockDriveNavigationService,
+      );
+
+      await driveService.start();
+
+      // First arrive
+      driveNavigationCallback!({
+        status: {
+          state: "arrived",
+          displayMode: "arrival",
+          currentWaypointIndex: 5,
+          distanceToNextTurn: 0,
+          bearingToRoute: 0,
+          progress: 100,
+          distanceRemaining: 0,
+          timeRemaining: 0,
+          distanceToRoute: 0,
+        },
+      });
+
+      // Navigate again
+      driveNavigationCallback!({
+        status: {
+          state: "navigating",
+          displayMode: "turn",
+          currentWaypointIndex: 1,
+          distanceToNextTurn: 1000,
+          bearingToRoute: 45,
+          progress: 10,
+          distanceRemaining: 9000,
+          timeRemaining: 900,
+          distanceToRoute: 0,
+        },
+      });
+
+      // Arrive again
+      driveNavigationCallback!({
+        status: {
+          state: "arrived",
+          displayMode: "arrival",
+          currentWaypointIndex: 5,
+          distanceToNextTurn: 0,
+          bearingToRoute: 0,
+          progress: 100,
+          distanceRemaining: 0,
+          timeRemaining: 0,
+          distanceToRoute: 0,
+        },
+      });
+
+      const arrivedCalls = mockIoEmit.mock.calls.filter(
+        (call) => call[0] === "drive:arrived",
+      );
+      expect(arrivedCalls.length).toBe(2);
+
+      await driveService.stop();
+    });
+  });
+
+  describe("prefetch progress subscriptions", () => {
+    let speedLimitCallback: ((progress: any) => void) | null = null;
+    let poiCallback: ((progress: any) => void) | null = null;
+    let locationCallback: ((progress: any) => void) | null = null;
+    let elevationCallback: ((progress: any) => void) | null = null;
+
+    beforeEach(() => {
+      (
+        mockOrchestrator.onSpeedLimitPrefetchProgress as jest.Mock
+      ).mockImplementation((cb) => {
+        speedLimitCallback = cb;
+        return () => {
+          speedLimitCallback = null;
+        };
+      });
+      (mockOrchestrator.onPOIPrefetchProgress as jest.Mock).mockImplementation(
+        (cb) => {
+          poiCallback = cb;
+          return () => {
+            poiCallback = null;
+          };
+        },
+      );
+      (
+        mockOrchestrator.onLocationPrefetchProgress as jest.Mock
+      ).mockImplementation((cb) => {
+        locationCallback = cb;
+        return () => {
+          locationCallback = null;
+        };
+      });
+      (
+        mockOrchestrator.onElevationPrefetchProgress as jest.Mock
+      ).mockImplementation((cb) => {
+        elevationCallback = cb;
+        return () => {
+          elevationCallback = null;
+        };
+      });
+    });
+
+    it("should broadcast speed limit prefetch progress", async () => {
+      await service.start();
+
+      const progress = {
+        current: 5,
+        total: 10,
+        segmentsFound: 50,
+        complete: false,
+      };
+      speedLimitCallback!(progress);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "speedlimit:prefetch",
+        expect.objectContaining({ current: 5, total: 10 }),
+      );
+
+      await service.stop();
+    });
+
+    it("should broadcast POI prefetch progress", async () => {
+      await service.start();
+
+      const progress = { current: 3, total: 8, poisFound: 25, complete: false };
+      poiCallback!(progress);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "poi:prefetch",
+        expect.objectContaining({ current: 3, poisFound: 25 }),
+      );
+
+      await service.stop();
+    });
+
+    it("should broadcast location prefetch progress", async () => {
+      await service.start();
+
+      const progress = {
+        current: 2,
+        total: 5,
+        locationsCached: 100,
+        complete: false,
+      };
+      locationCallback!(progress);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "location:prefetch",
+        expect.objectContaining({ locationsCached: 100 }),
+      );
+
+      await service.stop();
+    });
+
+    it("should broadcast elevation prefetch progress", async () => {
+      await service.start();
+
+      const progress = {
+        current: 1,
+        total: 4,
+        pointsCached: 500,
+        complete: true,
+      };
+      elevationCallback!(progress);
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "elevation:prefetch",
+        expect.objectContaining({ pointsCached: 500, complete: true }),
+      );
+
+      await service.stop();
+    });
+  });
+
+  describe("display update with status broadcast", () => {
+    it("should broadcast status update after successful display update", async () => {
+      await service.start();
+
+      displayUpdateCallback!(true);
+
+      // Wait for async status fetch
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      expect(mockOrchestrator.getSystemStatus).toHaveBeenCalled();
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "status:update",
+        expect.objectContaining({ initialized: true }),
+      );
+    });
+
+    it("should not broadcast status update after failed display update", async () => {
+      await service.start();
+
+      displayUpdateCallback!(false);
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const statusCalls = mockIoEmit.mock.calls.filter(
+        (call) => call[0] === "status:update",
+      );
+      expect(statusCalls.length).toBe(0);
+    });
+  });
+
+  describe("GPS status caching", () => {
+    it("should include cached GPS status in position updates", async () => {
+      await service.start();
+
+      // First update GPS status
+      gpsStatusCallback!({
+        fixQuality: 2,
+        satellitesInUse: 10,
+        hdop: 0.8,
+      });
+
+      // Then trigger GPS position update
+      gpsUpdateCallback!({
+        latitude: 37.7749,
+        longitude: -122.4194,
+      });
+
+      expect(mockIoEmit).toHaveBeenCalledWith(
+        "gps:update",
+        expect.objectContaining({
+          latitude: 37.7749,
+          fixQuality: 2,
+          satellitesInUse: 10,
+          hdop: 0.8,
+        }),
+      );
+    });
+  });
+
+  describe("WebSocket handlers", () => {
+    it("should handle gps:subscribe event", async () => {
+      await service.start();
+
+      const connectionHandler = mockIoOn.mock.calls.find(
+        (call) => call[0] === "connection",
+      )?.[1];
+      connectionHandler(mockSocket);
+
+      const subscribeHandler = mockSocketOn.mock.calls.find(
+        (call) => call[0] === "gps:subscribe",
+      )?.[1];
+      expect(subscribeHandler).toBeDefined();
+
+      // Should not throw
+      subscribeHandler();
+    });
+
+    it("should handle gps:unsubscribe event", async () => {
+      await service.start();
+
+      const connectionHandler = mockIoOn.mock.calls.find(
+        (call) => call[0] === "connection",
+      )?.[1];
+      connectionHandler(mockSocket);
+
+      const unsubscribeHandler = mockSocketOn.mock.calls.find(
+        (call) => call[0] === "gps:unsubscribe",
+      )?.[1];
+      expect(unsubscribeHandler).toBeDefined();
+
+      // Should not throw
+      unsubscribeHandler();
+    });
+  });
+
+  describe("broadcast without io", () => {
+    it("should not throw when broadcasting without io initialized", () => {
+      const noWsConfig: WebConfig = {
+        ...testConfig,
+        websocket: { enabled: false },
+      };
+      const noWsService = new IntegratedWebService(
+        mockOrchestrator,
+        noWsConfig,
+      );
+
+      // Should not throw
+      expect(() => noWsService.broadcast("test", {})).not.toThrow();
+    });
+  });
+
+  describe("onWebSocketConnection without io", () => {
+    it("should not throw when registering handler without io", () => {
+      const noWsConfig: WebConfig = {
+        ...testConfig,
+        websocket: { enabled: false },
+      };
+      const noWsService = new IntegratedWebService(
+        mockOrchestrator,
+        noWsConfig,
+      );
+
+      // Should not throw
+      expect(() => noWsService.onWebSocketConnection(() => {})).not.toThrow();
+    });
+  });
 });

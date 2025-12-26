@@ -40,5 +40,8 @@ Files that need test coverage, ordered by priority.
 ## Text Renderer Service (1 file)
 - [x] `src/services/textRenderer/TextRendererService.ts` - 43 tests
 
+## Web Service (1 file)
+- [x] `src/web/IntegratedWebService.ts` - 58 tests
+
 ---
-Total: 24 files - All complete!
+Total: 25 files - All complete!
