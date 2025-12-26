@@ -43,5 +43,8 @@ Files that need test coverage, ordered by priority.
 ## Web Service (1 file)
 - [x] `src/web/IntegratedWebService.ts` - 58 tests
 
+## Map Service (1 file)
+- [x] `src/services/map/MapService.ts` - 52 tests
+
 ---
-Total: 25 files - All complete!
+Total: 26 files - All complete!
