@@ -14,11 +14,12 @@ Files that need test coverage, ordered by priority.
 - [x] `src/services/orchestrator/SimulationCoordinator.ts` - 33 tests
 - [x] `src/services/orchestrator/TrackDisplayCoordinator.ts` - 47 tests
 
-## SVG Renderers (6 files)
+## SVG Renderers (7 files)
 - [x] `src/services/svg/BitmapUtils.ts` - 62 tests
 - [x] `src/services/svg/ManeuverRenderer.ts` - 58 tests
 - [x] `src/services/svg/ProjectionService.ts` - 33 tests
 - [x] `src/services/svg/RoadRenderer.ts` - 24 tests
+- [x] `src/services/svg/SVGService.ts` - 79 tests
 - [x] `src/services/svg/TrackRenderer.ts` - 32 tests
 - [x] `src/services/svg/UIRenderer.ts` - 62 tests
 
@@ -34,4 +35,4 @@ Files that need test coverage, ordered by priority.
 - [x] `src/utils/magickImageProcessor.ts` - 13 tests
 
 ---
-Total: 21 files - All complete!
+Total: 22 files - All complete!
