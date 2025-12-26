@@ -49,5 +49,8 @@ Files that need test coverage, ordered by priority.
 ## Elevation Service (1 file)
 - [x] `src/services/elevation/ElevationService.ts` - 48 tests
 
+## Reverse Geocoding Service (1 file)
+- [x] `src/services/reverseGeocoding/ReverseGeocodingService.ts` - 46 tests
+
 ---
-Total: 27 files - All complete!
+Total: 28 files - All complete!
