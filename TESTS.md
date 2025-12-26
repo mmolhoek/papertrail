@@ -46,5 +46,8 @@ Files that need test coverage, ordered by priority.
 ## Map Service (1 file)
 - [x] `src/services/map/MapService.ts` - 52 tests
 
+## Elevation Service (1 file)
+- [x] `src/services/elevation/ElevationService.ts` - 48 tests
+
 ---
-Total: 26 files - All complete!
+Total: 27 files - All complete!
