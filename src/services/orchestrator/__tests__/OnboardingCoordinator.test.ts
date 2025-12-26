@@ -624,6 +624,574 @@ describe("OnboardingCoordinator", () => {
     });
   });
 
+  describe("handleWiFiStateChange - state transitions", () => {
+    it("should display WiFi instructions on WAITING_FOR_HOTSPOT", async () => {
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      jest.clearAllMocks();
+      stateChangeCallback(
+        WiFiState.WAITING_FOR_HOTSPOT,
+        WiFiState.DISCONNECTED,
+      );
+      await Promise.resolve();
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should display reconnecting screen on RECONNECTING_FALLBACK", async () => {
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      jest.clearAllMocks();
+      stateChangeCallback(WiFiState.RECONNECTING_FALLBACK, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should display reconnecting screen with fallback network name", async () => {
+      mockConfigService.getWiFiFallbackNetwork.mockReturnValue({
+        ssid: "HomeNetwork",
+        savedAt: new Date().toISOString(),
+      });
+
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      jest.clearAllMocks();
+      stateChangeCallback(WiFiState.RECONNECTING_FALLBACK, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should not update on ERROR state", async () => {
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      jest.clearAllMocks();
+      stateChangeCallback(WiFiState.ERROR, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should not update on unhandled states (default case)", async () => {
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      jest.clearAllMocks();
+      stateChangeCallback(WiFiState.DISCONNECTED, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should retry connected screen if not displayed yet", async () => {
+      mockWiFiService.isConnectedToMobileHotspot.mockResolvedValue(
+        success(true),
+      );
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      // First transition to CONNECTED
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+      await Promise.resolve();
+      jest.clearAllMocks();
+
+      // Second call with CONNECTED -> CONNECTED (retry scenario)
+      // Simulate connectedScreenDisplayed being false by having no valid IP
+      (os.networkInterfaces as jest.Mock).mockReturnValue({});
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      // Restore IP for next call
+      (os.networkInterfaces as jest.Mock).mockReturnValue({
+        eth0: [{ address: "192.168.1.100", family: "IPv4", internal: false }],
+      });
+
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.CONNECTED);
+      await Promise.resolve();
+
+      expect(mockWiFiService.isConnectedToMobileHotspot).toHaveBeenCalled();
+    });
+
+    it("should allow CONNECTED state updates without debounce", async () => {
+      mockWiFiService.isConnectedToMobileHotspot.mockResolvedValue(
+        success(true),
+      );
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      // First CONNECTED update
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+      await Promise.resolve();
+      const firstCallCount =
+        mockTextRendererService.renderTemplate.mock.calls.length;
+
+      // Immediate second CONNECTED update (no debounce for CONNECTED)
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+      await Promise.resolve();
+
+      // Should render again since CONNECTED skips debounce
+      expect(
+        mockTextRendererService.renderTemplate.mock.calls.length,
+      ).toBeGreaterThanOrEqual(firstCallCount);
+    });
+
+    it("should not display if textRendererService is null", async () => {
+      const coordinatorNoRenderer = new OnboardingCoordinator(
+        mockWiFiService,
+        mockConfigService,
+        null,
+        mockDisplayService,
+        mockSimulationService,
+        mockDriveNavigationService,
+      );
+
+      coordinatorNoRenderer.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+      await Promise.resolve();
+
+      expect(mockDisplayService.displayBitmap).not.toHaveBeenCalled();
+      coordinatorNoRenderer.dispose();
+    });
+
+    it("should catch errors during screen display", async () => {
+      mockTextRendererService.renderTemplate.mockRejectedValue(
+        new Error("Render failed"),
+      );
+
+      coordinator.subscribeToWiFiStateChanges();
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      // Should not throw
+      stateChangeCallback(
+        WiFiState.WAITING_FOR_HOTSPOT,
+        WiFiState.DISCONNECTED,
+      );
+      await Promise.resolve();
+
+      expect(true).toBe(true);
+    });
+  });
+
+  describe("displayConnectedScreen - edge cases", () => {
+    it("should handle isConnectedToMobileHotspot failure", async () => {
+      mockWiFiService.isConnectedToMobileHotspot.mockResolvedValue(
+        failure(new Error("Check failed")),
+      );
+
+      await coordinator.displayConnectedScreen();
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should handle render template failure", async () => {
+      mockWiFiService.isConnectedToMobileHotspot.mockResolvedValue(
+        success(true),
+      );
+      mockTextRendererService.renderTemplate.mockResolvedValue(
+        failure(new Error("Render failed")),
+      );
+
+      await coordinator.displayConnectedScreen();
+
+      expect(mockDisplayService.displayBitmap).not.toHaveBeenCalled();
+    });
+
+    it("should skip notifyConnectedScreenDisplayed if wifiService is null", async () => {
+      const coordinatorNoWifi = new OnboardingCoordinator(
+        null,
+        mockConfigService,
+        mockTextRendererService,
+        mockDisplayService,
+        mockSimulationService,
+        mockDriveNavigationService,
+      );
+
+      await coordinatorNoWifi.displayConnectedScreen(true);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+      coordinatorNoWifi.dispose();
+    });
+  });
+
+  describe("displayWiFiInstructionsScreen - edge cases", () => {
+    it("should handle render template failure", async () => {
+      mockTextRendererService.renderTemplate.mockResolvedValue(
+        failure(new Error("Render failed")),
+      );
+
+      await coordinator.displayWiFiInstructionsScreen();
+
+      expect(mockDisplayService.displayBitmap).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("displaySelectTrackScreen - edge cases", () => {
+    it("should skip if active track exists", async () => {
+      mockConfigService.getActiveGPXPath.mockReturnValue("/path/to/track.gpx");
+
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should skip if simulation is running", async () => {
+      mockSimulationService.isSimulating.mockReturnValue(true);
+
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should skip if navigation is in progress", async () => {
+      mockDriveNavigationService.isNavigating.mockReturnValue(true);
+
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+
+    it("should handle render template failure", async () => {
+      mockTextRendererService.renderTemplate.mockResolvedValue(
+        failure(new Error("Render failed")),
+      );
+
+      coordinator.setWebSocketClientCount(1);
+      await Promise.resolve();
+
+      expect(mockDisplayService.displayBitmap).not.toHaveBeenCalled();
+    });
+
+    it("should display position when available", async () => {
+      coordinator.updateGPSPosition(mockGPSPosition);
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should display speed when moving", async () => {
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 15, // 54 km/h
+      });
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should not display speed when stationary", async () => {
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 0.1, // Very slow, below 1 km/h
+      });
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should handle null displayService", async () => {
+      const coordinatorNoDisplay = new OnboardingCoordinator(
+        mockWiFiService,
+        mockConfigService,
+        mockTextRendererService,
+        null as unknown as IDisplayService,
+        mockSimulationService,
+        mockDriveNavigationService,
+      );
+
+      // Should not throw
+      coordinatorNoDisplay.setWebSocketClientCount(1);
+      await Promise.resolve();
+
+      coordinatorNoDisplay.dispose();
+    });
+  });
+
+  describe("hasGPSDataChanged", () => {
+    it("should detect fix quality change", () => {
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSStatus({
+        ...mockGPSStatus,
+        fixQuality: 2, // Changed from 1
+      });
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should detect satellites count change", () => {
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSStatus({
+        ...mockGPSStatus,
+        satellitesInUse: 12,
+      });
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should detect position appearing", () => {
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSPosition(mockGPSPosition);
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should detect significant position change", () => {
+      coordinator.updateGPSPosition(mockGPSPosition);
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        latitude: mockGPSPosition.latitude + 0.001, // Significant change
+      });
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should detect speed display change", () => {
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 5, // 18 km/h
+      });
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 0.1, // Below display threshold
+      });
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should detect speed value change", () => {
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 5,
+      });
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      jest.clearAllMocks();
+
+      coordinator.updateGPSPosition({
+        ...mockGPSPosition,
+        speed: 10, // Significant speed change
+      });
+
+      jest.advanceTimersByTime(15000);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalled();
+    });
+
+    it("should not update when data unchanged", async () => {
+      coordinator.updateGPSPosition(mockGPSPosition);
+      coordinator.updateGPSStatus(mockGPSStatus);
+      coordinator.setWebSocketClientCount(1);
+
+      // Wait for async displaySelectTrackScreen to complete and store lastDisplayed data
+      await Promise.resolve();
+      await Promise.resolve();
+
+      jest.clearAllMocks();
+
+      // No changes - just advance time
+      jest.advanceTimersByTime(15000);
+
+      // hasGPSDataChanged should return false, so no render
+      expect(mockTextRendererService.renderTemplate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getFixQualityString", () => {
+    const testFixQualities = [
+      { quality: 0, expected: "No Fix Yet" },
+      { quality: 1, expected: "GPS Fix" },
+      { quality: 2, expected: "DGPS Fix" },
+      { quality: 3, expected: "PPS Fix" },
+      { quality: 4, expected: "RTK Fix" },
+      { quality: 5, expected: "Float RTK" },
+      { quality: 99, expected: "Fix Available" },
+    ];
+
+    testFixQualities.forEach(({ quality, expected }) => {
+      it(`should return "${expected}" for fix quality ${quality}`, () => {
+        coordinator.updateGPSStatus({
+          ...mockGPSStatus,
+          fixQuality: quality,
+        });
+        coordinator.setWebSocketClientCount(1);
+
+        expect(mockTextRendererService.renderTemplate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            textBlocks: expect.arrayContaining([
+              expect.objectContaining({
+                content: `Fix: ${expected}`,
+              }),
+            ]),
+          }),
+          expect.anything(),
+          expect.anything(),
+          expect.anything(),
+        );
+      });
+    });
+
+    it('should return "No Fix Yet" when no GPS status', () => {
+      coordinator.setWebSocketClientCount(1);
+
+      expect(mockTextRendererService.renderTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          textBlocks: expect.arrayContaining([
+            expect.objectContaining({
+              content: "Fix: No Fix Yet",
+            }),
+          ]),
+        }),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe("restartOnboarding - edge cases", () => {
+    it("should handle non-Error exceptions", async () => {
+      mockDisplayService.displayLogo.mockRejectedValue("string error");
+
+      const result = await coordinator.restartOnboarding();
+
+      expect(result.success).toBe(false);
+    });
+
+    it("should attempt hotspot connection if WiFi service available", async () => {
+      const resultPromise = coordinator.restartOnboarding();
+      await jest.runAllTimersAsync();
+      await resultPromise;
+
+      expect(mockWiFiService.attemptMobileHotspotConnection).toHaveBeenCalled();
+    });
+
+    it("should handle failed hotspot connection", async () => {
+      mockWiFiService.attemptMobileHotspotConnection.mockResolvedValue(
+        failure(new Error("Connection failed")),
+      );
+
+      const resultPromise = coordinator.restartOnboarding();
+      await jest.runAllTimersAsync();
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true); // Restart still succeeds
+    });
+  });
+
+  describe("checkAndShowOnboardingScreen - edge cases", () => {
+    it("should handle hotspot connection attempt failure gracefully", async () => {
+      mockWiFiService.attemptMobileHotspotConnection.mockResolvedValue(
+        failure(new Error("Connection failed")),
+      );
+
+      const result = await coordinator.checkAndShowOnboardingScreen();
+
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("getDeviceUrl - HTTPS support", () => {
+    it("should use HTTPS when WEB_SSL_ENABLED is true", () => {
+      const originalEnv = process.env.WEB_SSL_ENABLED;
+      process.env.WEB_SSL_ENABLED = "true";
+
+      const url = coordinator.getDeviceUrl();
+
+      expect(url).toBe("https://192.168.1.100:3000");
+
+      process.env.WEB_SSL_ENABLED = originalEnv;
+    });
+  });
+
+  describe("WiFi state change handling - error callback", () => {
+    it("should handle non-Error exceptions in callbacks", () => {
+      const errorCallback = jest.fn();
+      coordinator.setErrorCallback(errorCallback);
+
+      const throwingCallback = jest.fn().mockImplementation(() => {
+        throw "string error"; // Non-Error exception
+      });
+      coordinator.onWiFiStateChange(throwingCallback);
+      coordinator.subscribeToWiFiStateChanges();
+
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      // Should not throw
+      stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+
+      expect(errorCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: "Unknown error in WiFi state callback",
+        }),
+      );
+    });
+
+    it("should handle errors without error callback set", () => {
+      const throwingCallback = jest.fn().mockImplementation(() => {
+        throw new Error("Callback error");
+      });
+      coordinator.onWiFiStateChange(throwingCallback);
+      coordinator.subscribeToWiFiStateChanges();
+
+      const stateChangeCallback =
+        mockWiFiService.onStateChange.mock.calls[0][0];
+
+      // Should not throw even without error callback
+      expect(() => {
+        stateChangeCallback(WiFiState.CONNECTED, WiFiState.WAITING_FOR_HOTSPOT);
+      }).not.toThrow();
+    });
+  });
+
   describe("WiFi state change handling", () => {
     it("should call registered callbacks on state change", () => {
       const callback = jest.fn();

@@ -9,7 +9,7 @@ Files that need test coverage, ordered by priority.
 ## Orchestrator (6 files)
 - [x] `src/services/orchestrator/DisplayUpdateQueue.ts` - 37 tests
 - [x] `src/services/orchestrator/DriveCoordinator.ts` - 55 tests
-- [x] `src/services/orchestrator/OnboardingCoordinator.ts` - 45 tests
+- [x] `src/services/orchestrator/OnboardingCoordinator.ts` - 88 tests
 - [x] `src/services/orchestrator/RenderingOrchestrator.ts` - 118 tests
 - [x] `src/services/orchestrator/SimulationCoordinator.ts` - 33 tests
 - [x] `src/services/orchestrator/TrackDisplayCoordinator.ts` - 47 tests
