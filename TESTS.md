@@ -37,5 +37,8 @@ Files that need test coverage, ordered by priority.
 ## Speed Limit Service (1 file)
 - [x] `src/services/speedLimit/SpeedLimitService.ts` - 55 tests
 
+## Text Renderer Service (1 file)
+- [x] `src/services/textRenderer/TextRendererService.ts` - 43 tests
+
 ---
-Total: 23 files - All complete!
+Total: 24 files - All complete!
