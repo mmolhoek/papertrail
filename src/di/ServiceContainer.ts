@@ -16,6 +16,7 @@ import {
   IVectorMapService,
   IMapSnapService,
   IRoadSurfaceService,
+  IOfflineRoutingService,
   IDisplayService,
   IDisplayDriver,
   IEpaperDriver,
@@ -95,6 +96,7 @@ import { ElevationService } from "@services/elevation/ElevationService";
 import { VectorMapService } from "@services/vectorMap/VectorMapService";
 import { MapSnapService } from "@services/mapSnap/MapSnapService";
 import { RoadSurfaceService } from "@services/roadSurface/RoadSurfaceService";
+import { MockOfflineRoutingService } from "@services/offlineRouting/MockOfflineRoutingService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -131,6 +133,7 @@ export class ServiceContainer {
     vectorMap?: IVectorMapService;
     mapSnap?: IMapSnapService;
     roadSurface?: IRoadSurfaceService;
+    offlineRouting?: IOfflineRoutingService;
   } = {};
 
   /**
@@ -512,6 +515,29 @@ export class ServiceContainer {
     return this.services.roadSurface;
   }
 
+  /**
+   * Get Offline Routing Service
+   * Attempts to load OSRM bindings, falls back to mock service if unavailable
+   */
+  getOfflineRoutingService(): IOfflineRoutingService {
+    if (!this.services.offlineRouting) {
+      try {
+        // Try to load OSRM bindings
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        require("@project-osrm/osrm");
+        // Bindings available - lazy import the real service
+        const { OfflineRoutingService } =
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          require("@services/offlineRouting/OfflineRoutingService") as typeof import("@services/offlineRouting/OfflineRoutingService");
+        this.services.offlineRouting = new OfflineRoutingService();
+      } catch {
+        // Bindings not available - use mock service
+        this.services.offlineRouting = new MockOfflineRoutingService();
+      }
+    }
+    return this.services.offlineRouting!;
+  }
+
   // Configuration getters
 
   /**
@@ -861,6 +887,13 @@ export class ServiceContainer {
    */
   setRoadSurfaceService(service: IRoadSurfaceService): void {
     this.services.roadSurface = service;
+  }
+
+  /**
+   * Set Offline Routing Service (for testing)
+   */
+  setOfflineRoutingService(service: IOfflineRoutingService): void {
+    this.services.offlineRouting = service;
   }
 
   // Security/Credential helpers

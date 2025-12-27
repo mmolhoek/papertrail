@@ -246,6 +246,27 @@ export type UserState = {
 
   /** Mobile hotspot configuration (the hotspot the device connects TO) */
   hotspotConfig?: HotspotConfig;
+
+  /** Offline routing configuration */
+  offlineRouting?: {
+    /** Whether offline routing is enabled */
+    enabled: boolean;
+    /** Prefer offline routing when available */
+    preferOffline: boolean;
+    /** URL for region manifest */
+    manifestUrl: string;
+    /** Installed regions */
+    installedRegions: Array<{
+      /** Region ID (e.g., "europe/netherlands") */
+      id: string;
+      /** When the region was installed (ISO string) */
+      installedAt: string;
+      /** Routing profile (car, bike, foot) */
+      profile: "car" | "bike" | "foot";
+      /** Size on disk in bytes */
+      sizeBytes: number;
+    }>;
+  };
 };
 
 /**

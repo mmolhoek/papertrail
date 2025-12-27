@@ -4,8 +4,15 @@ import {
   IDriveNavigationService,
   ITrackSimulationService,
   IConfigService,
+  IOfflineRoutingService,
+  OSRMRouteResponse,
 } from "@core/interfaces";
-import { isSuccess, DriveRoute, DisplayUpdateMode } from "@core/types";
+import {
+  isSuccess,
+  DriveRoute,
+  DisplayUpdateMode,
+  GPSCoordinate,
+} from "@core/types";
 import { getLogger } from "@utils/logger";
 
 const logger = getLogger("DriveController");
@@ -22,6 +29,7 @@ export class DriveController {
     private readonly driveNavigationService?: IDriveNavigationService,
     private readonly simulationService?: ITrackSimulationService,
     private readonly configService?: IConfigService,
+    private readonly offlineRoutingService?: IOfflineRoutingService,
   ) {}
 
   /**
@@ -558,6 +566,9 @@ export class DriveController {
   /**
    * Proxy route calculation to OSRM API
    * This avoids CORS issues when calling OSRM from the browser
+   *
+   * If offline routing is enabled and available, tries offline first
+   * and falls back to online routing if offline fails.
    */
   async calculateRoute(req: Request, res: Response): Promise<void> {
     const { startLon, startLat, endLon, endLat } = req.query;
@@ -574,6 +585,104 @@ export class DriveController {
       return;
     }
 
+    const configProfile = this.configService?.getRoutingProfile() ?? "car";
+    const start: GPSCoordinate = {
+      latitude: parseFloat(startLat as string),
+      longitude: parseFloat(startLon as string),
+      timestamp: new Date(),
+    };
+    const end: GPSCoordinate = {
+      latitude: parseFloat(endLat as string),
+      longitude: parseFloat(endLon as string),
+      timestamp: new Date(),
+    };
+
+    // Check if we should try offline routing first
+    const offlineEnabled =
+      this.configService?.getOfflineRoutingEnabled() ?? true;
+    const preferOffline = this.configService?.getPreferOfflineRouting() ?? true;
+
+    if (offlineEnabled && preferOffline && this.offlineRoutingService) {
+      const offlineResult = await this.tryOfflineRouting(
+        start,
+        end,
+        configProfile,
+      );
+      if (offlineResult) {
+        logger.info("Route calculated using offline routing");
+        res.json({
+          success: true,
+          data: offlineResult,
+          routingSource: "offline",
+        });
+        return;
+      }
+      // Offline failed, fall back to online
+      logger.info("Offline routing unavailable, falling back to online");
+    }
+
+    // Online routing
+    await this.calculateRouteOnline(
+      req,
+      res,
+      startLon as string,
+      startLat as string,
+      endLon as string,
+      endLat as string,
+      configProfile,
+    );
+  }
+
+  /**
+   * Try to calculate route using offline OSRM
+   */
+  private async tryOfflineRouting(
+    start: GPSCoordinate,
+    end: GPSCoordinate,
+    profile: "car" | "bike" | "foot",
+  ): Promise<OSRMRouteResponse | null> {
+    if (!this.offlineRoutingService) {
+      return null;
+    }
+
+    if (!this.offlineRoutingService.isAvailable()) {
+      logger.debug(
+        "Offline routing not available (no regions installed or bindings missing)",
+      );
+      return null;
+    }
+
+    const canRoute = await this.offlineRoutingService.canRoute(start, end);
+    if (!canRoute) {
+      logger.debug("Coordinates outside installed offline regions");
+      return null;
+    }
+
+    const result = await this.offlineRoutingService.calculateRoute(
+      start,
+      end,
+      profile,
+    );
+    if (!isSuccess(result)) {
+      logger.warn(`Offline routing failed: ${result.error.message}`);
+      return null;
+    }
+
+    return result.data;
+  }
+
+  /**
+   * Calculate route using online OSRM API
+   */
+  private async calculateRouteOnline(
+    req: Request,
+    res: Response,
+    startLon: string,
+    startLat: string,
+    endLon: string,
+    endLat: string,
+    configProfile: "car" | "bike" | "foot",
+  ): Promise<void> {
     // Get routing profile from config (default: car)
     // Use routing.openstreetmap.de which hosts separate OSRM instances per profile
     // (router.project-osrm.org only supports driving, ignoring the profile parameter)
@@ -582,7 +691,6 @@ export class DriveController {
       bike: "routing.openstreetmap.de/routed-bike",
       foot: "routing.openstreetmap.de/routed-foot",
     };
-    const configProfile = this.configService?.getRoutingProfile() ?? "car";
     const osrmServer = serverMap[configProfile] ?? serverMap.car;
 
     logger.info(
@@ -635,6 +743,7 @@ export class DriveController {
       res.json({
         success: true,
         data: data,
+        routingSource: "online",
       });
     } catch (error) {
       logger.error("Failed to proxy OSRM request:", error);

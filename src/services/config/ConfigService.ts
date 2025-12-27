@@ -482,6 +482,96 @@ export class ConfigService implements IConfigService {
     }
   }
 
+  // Offline routing configuration
+
+  private readonly DEFAULT_MANIFEST_URL =
+    "https://osrm-data.example.com/manifest.json";
+
+  private ensureOfflineRoutingConfig(): void {
+    if (!this.userState.offlineRouting) {
+      this.userState.offlineRouting = {
+        enabled: true,
+        preferOffline: true,
+        manifestUrl: this.DEFAULT_MANIFEST_URL,
+        installedRegions: [],
+      };
+    }
+  }
+
+  getOfflineRoutingEnabled(): boolean {
+    return this.userState.offlineRouting?.enabled ?? true;
+  }
+
+  setOfflineRoutingEnabled(enabled: boolean): void {
+    this.ensureOfflineRoutingConfig();
+    this.userState.offlineRouting!.enabled = enabled;
+  }
+
+  getPreferOfflineRouting(): boolean {
+    return this.userState.offlineRouting?.preferOffline ?? true;
+  }
+
+  setPreferOfflineRouting(prefer: boolean): void {
+    this.ensureOfflineRoutingConfig();
+    this.userState.offlineRouting!.preferOffline = prefer;
+  }
+
+  getOfflineRoutingManifestUrl(): string {
+    return (
+      this.userState.offlineRouting?.manifestUrl ?? this.DEFAULT_MANIFEST_URL
+    );
+  }
+
+  setOfflineRoutingManifestUrl(url: string): void {
+    this.ensureOfflineRoutingConfig();
+    this.userState.offlineRouting!.manifestUrl = url;
+  }
+
+  getInstalledOfflineRegions(): Array<{
+    id: string;
+    installedAt: string;
+    profile: "car" | "bike" | "foot";
+    sizeBytes: number;
+  }> {
+    return [...(this.userState.offlineRouting?.installedRegions ?? [])];
+  }
+
+  addInstalledOfflineRegion(region: {
+    id: string;
+    profile: "car" | "bike" | "foot";
+    sizeBytes: number;
+  }): void {
+    this.ensureOfflineRoutingConfig();
+
+    // Remove if already exists (by id)
+    this.userState.offlineRouting!.installedRegions =
+      this.userState.offlineRouting!.installedRegions.filter(
+        (r) => r.id !== region.id,
+      );
+
+    // Add with timestamp
+    this.userState.offlineRouting!.installedRegions.push({
+      ...region,
+      installedAt: new Date().toISOString(),
+    });
+  }
+
+  removeInstalledOfflineRegion(regionId: string): void {
+    if (!this.userState.offlineRouting) {
+      return;
+    }
+    this.userState.offlineRouting.installedRegions =
+      this.userState.offlineRouting.installedRegions.filter(
+        (r) => r.id !== regionId,
+      );
+  }
+
+  clearInstalledOfflineRegions(): void {
+    if (this.userState.offlineRouting) {
+      this.userState.offlineRouting.installedRegions = [];
+    }
+  }
+
   // Persistence
 
   async save(): Promise<Result<void>> {

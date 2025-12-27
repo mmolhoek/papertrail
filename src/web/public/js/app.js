@@ -156,6 +156,11 @@ class PapertrailClient {
     if (panelId === "simulation-panel") {
       this.initSimulationPanel();
     }
+
+    // Special handling for Offline Routing panel - load status and regions
+    if (panelId === "offline-routing-panel") {
+      this.loadOfflineRoutingStatus();
+    }
   }
 
   // Initialize simulation panel - set source from loaded track if available
@@ -299,6 +304,11 @@ class PapertrailClient {
       if (this.mockDisplayPanelVisible && data.success) {
         this.refreshMockDisplay();
       }
+    });
+
+    // Offline routing download progress event
+    this.socket.on("offline-routing:download-progress", (data) => {
+      this.updateOfflineDownloadProgress(data);
     });
 
     // Keep connection alive
@@ -561,6 +571,9 @@ class PapertrailClient {
     document.getElementById("reset-btn").addEventListener("click", () => {
       this.confirmAndResetSystem();
     });
+
+    // Offline routing controls
+    this.setupOfflineRoutingControls();
 
     // Simulation controls
     this.setupSimulationControls();
@@ -1601,6 +1614,437 @@ class PapertrailClient {
       passwordInput.type = "password";
       toggleBtn.textContent = "Show";
     }
+  }
+
+  // Offline Routing Methods
+
+  setupOfflineRoutingControls() {
+    // Enable/Disable toggle
+    const enabledToggle = document.getElementById("offline-routing-enabled");
+    if (enabledToggle) {
+      enabledToggle.addEventListener("change", (e) => {
+        this.setOfflineRoutingEnabled(e.target.checked);
+      });
+    }
+
+    // Prefer offline toggle
+    const preferToggle = document.getElementById("offline-prefer-offline");
+    if (preferToggle) {
+      preferToggle.addEventListener("change", (e) => {
+        this.setPreferOfflineRouting(e.target.checked);
+      });
+    }
+
+    // Region select change
+    const regionSelect = document.getElementById("offline-region-select");
+    if (regionSelect) {
+      regionSelect.addEventListener("change", (e) => {
+        const downloadBtn = document.getElementById("offline-download-btn");
+        if (downloadBtn) {
+          downloadBtn.disabled = !e.target.value;
+        }
+      });
+    }
+
+    // Download button
+    const downloadBtn = document.getElementById("offline-download-btn");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", () => {
+        this.downloadOfflineRegion();
+      });
+    }
+
+    // Save manifest URL button
+    const manifestSaveBtn = document.getElementById(
+      "offline-manifest-save-btn",
+    );
+    if (manifestSaveBtn) {
+      manifestSaveBtn.addEventListener("click", () => {
+        this.saveOfflineManifestUrl();
+      });
+    }
+  }
+
+  async loadOfflineRoutingStatus() {
+    try {
+      // Load routing status
+      const statusResponse = await this.fetchJSON(
+        `${this.apiBase}/routing/status`,
+      );
+
+      if (statusResponse && statusResponse.success) {
+        this.updateOfflineRoutingStatus(statusResponse.data);
+      }
+
+      // Load installed regions
+      const installedResponse = await this.fetchJSON(
+        `${this.apiBase}/routing/regions/installed`,
+      );
+
+      if (installedResponse && installedResponse.success) {
+        this.renderInstalledRegions(installedResponse.data.regions);
+      }
+
+      // Load available regions
+      const availableResponse = await this.fetchJSON(
+        `${this.apiBase}/routing/regions/available`,
+      );
+
+      if (availableResponse && availableResponse.success) {
+        this.populateAvailableRegions(availableResponse.data.regions);
+        // Update manifest URL input
+        const manifestInput = document.getElementById("offline-manifest-url");
+        if (manifestInput && availableResponse.data.manifestUrl) {
+          manifestInput.value = availableResponse.data.manifestUrl;
+        }
+      }
+    } catch (error) {
+      console.error("Error loading offline routing status:", error);
+    }
+  }
+
+  updateOfflineRoutingStatus(data) {
+    // Update availability lamp
+    const availableLamp = document.getElementById("ann-offline-available");
+    const availableStatus = document.getElementById("offline-available-status");
+    if (availableLamp && availableStatus) {
+      availableLamp.classList.remove("active", "warning", "error");
+      if (data.available && data.hasBindings) {
+        availableLamp.classList.add("active");
+        availableStatus.textContent = "READY";
+      } else if (data.hasBindings) {
+        availableLamp.classList.add("warning");
+        availableStatus.textContent = "NO REG";
+      } else {
+        availableLamp.classList.add("warning");
+        availableStatus.textContent = "MOCK";
+      }
+    }
+
+    // Update regions count lamp
+    const regionsLamp = document.getElementById("ann-offline-regions");
+    const regionsCount = document.getElementById("offline-regions-count");
+    if (regionsLamp && regionsCount) {
+      regionsLamp.classList.remove("active", "warning");
+      const count = data.installedRegionCount || 0;
+      regionsCount.textContent = count.toString();
+      if (count > 0) {
+        regionsLamp.classList.add("active");
+      }
+    }
+
+    // Update loaded count lamp
+    const loadedLamp = document.getElementById("ann-offline-loaded");
+    const loadedCount = document.getElementById("offline-loaded-count");
+    if (loadedLamp && loadedCount) {
+      loadedLamp.classList.remove("active", "warning");
+      const count = data.loadedRegionCount || 0;
+      loadedCount.textContent = count.toString();
+      if (count > 0) {
+        loadedLamp.classList.add("active");
+      }
+    }
+
+    // Update enabled toggle
+    const enabledToggle = document.getElementById("offline-routing-enabled");
+    if (enabledToggle) {
+      enabledToggle.checked = data.enabled !== false;
+    }
+
+    // Update prefer offline toggle
+    const preferToggle = document.getElementById("offline-prefer-offline");
+    if (preferToggle) {
+      preferToggle.checked = data.preferOffline !== false;
+    }
+
+    // Update storage display
+    const diskUsage = document.getElementById("offline-disk-usage");
+    if (diskUsage) {
+      diskUsage.textContent = this.formatBytes(data.diskUsage || 0);
+    }
+
+    const memoryUsage = document.getElementById("offline-memory-usage");
+    if (memoryUsage) {
+      memoryUsage.textContent = this.formatBytes(data.memoryUsage || 0);
+    }
+  }
+
+  renderInstalledRegions(regions) {
+    const container = document.getElementById("offline-installed-regions");
+    if (!container) return;
+
+    if (!regions || regions.length === 0) {
+      container.innerHTML =
+        '<div class="region-list-empty">No regions installed</div>';
+      return;
+    }
+
+    container.innerHTML = "";
+    regions.forEach((region) => {
+      const item = document.createElement("div");
+      item.className = "region-item";
+
+      const info = document.createElement("div");
+      info.className = "region-info";
+
+      const name = document.createElement("span");
+      name.className = "region-name";
+      name.textContent = region.id.toUpperCase();
+
+      const meta = document.createElement("span");
+      meta.className = "region-meta";
+      meta.textContent = `${region.profile} | ${this.formatBytes(region.sizeBytes || 0)}`;
+
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "region-delete-btn";
+      deleteBtn.textContent = "×";
+      deleteBtn.title = "Delete region";
+      deleteBtn.addEventListener("click", () => {
+        this.deleteOfflineRegion(region.id);
+      });
+
+      item.appendChild(info);
+      item.appendChild(deleteBtn);
+      container.appendChild(item);
+    });
+  }
+
+  populateAvailableRegions(regions) {
+    const select = document.getElementById("offline-region-select");
+    if (!select) return;
+
+    // Keep the first option
+    select.innerHTML = '<option value="">-- SELECT REGION --</option>';
+
+    if (!regions || regions.length === 0) {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "No regions available";
+      option.disabled = true;
+      select.appendChild(option);
+      return;
+    }
+
+    regions.forEach((region) => {
+      const option = document.createElement("option");
+      option.value = region.id;
+      option.textContent = `${region.name} (${this.formatBytes(region.sizeBytes || 0)})`;
+      select.appendChild(option);
+    });
+  }
+
+  async setOfflineRoutingEnabled(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/routing/config/enabled`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Offline routing ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to update setting");
+      }
+    } catch (error) {
+      console.error("Failed to set offline routing enabled:", error);
+      this.showMessage("Failed to update offline routing setting", "error");
+      // Revert toggle
+      const toggle = document.getElementById("offline-routing-enabled");
+      if (toggle) toggle.checked = !enabled;
+    }
+  }
+
+  async setPreferOfflineRouting(prefer) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/routing/config/prefer-offline`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prefer }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Prefer offline routing ${prefer ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to update setting");
+      }
+    } catch (error) {
+      console.error("Failed to set prefer offline routing:", error);
+      this.showMessage("Failed to update offline routing preference", "error");
+      // Revert toggle
+      const toggle = document.getElementById("offline-prefer-offline");
+      if (toggle) toggle.checked = !prefer;
+    }
+  }
+
+  async downloadOfflineRegion() {
+    const select = document.getElementById("offline-region-select");
+    const regionId = select?.value;
+
+    if (!regionId) {
+      this.showMessage("Please select a region to download", "error");
+      return;
+    }
+
+    const downloadBtn = document.getElementById("offline-download-btn");
+    const downloadStatus = document.getElementById("offline-download-status");
+
+    if (downloadBtn) {
+      downloadBtn.disabled = true;
+      const label = downloadBtn.querySelector(".btn-label");
+      if (label) label.textContent = "DOWNLOADING...";
+    }
+
+    if (downloadStatus) {
+      downloadStatus.classList.remove("hidden");
+    }
+
+    try {
+      const result = await this.fetchJSON(
+        `${this.apiBase}/routing/regions/${regionId}/download`,
+        {
+          method: "POST",
+          body: JSON.stringify({ profile: "car" }),
+        },
+      );
+
+      if (result.success) {
+        this.showMessage(
+          `Region ${regionId} downloaded successfully`,
+          "success",
+        );
+        // Reload status and regions
+        this.loadOfflineRoutingStatus();
+      } else {
+        this.showMessage(result.error || "Failed to download region", "error");
+      }
+    } catch (error) {
+      console.error("Failed to download region:", error);
+      this.showMessage("Failed to download region", "error");
+    } finally {
+      if (downloadBtn) {
+        downloadBtn.disabled = false;
+        const label = downloadBtn.querySelector(".btn-label");
+        if (label) label.textContent = "DOWNLOAD";
+      }
+
+      if (downloadStatus) {
+        downloadStatus.classList.add("hidden");
+      }
+    }
+  }
+
+  updateOfflineDownloadProgress(data) {
+    const progressBar = document.getElementById("offline-download-bar");
+    const progressText = document.getElementById("offline-download-text");
+    const downloadStatus = document.getElementById("offline-download-status");
+
+    if (downloadStatus) {
+      downloadStatus.classList.remove("hidden");
+    }
+
+    if (progressBar) {
+      progressBar.style.width = `${data.percentage || 0}%`;
+    }
+
+    if (progressText) {
+      progressText.textContent = `${data.percentage || 0}%`;
+    }
+
+    if (data.complete) {
+      setTimeout(() => {
+        if (downloadStatus) {
+          downloadStatus.classList.add("hidden");
+        }
+      }, 1000);
+    }
+  }
+
+  async deleteOfflineRegion(regionId) {
+    if (
+      !confirm(`Delete offline region "${regionId}"? This cannot be undone.`)
+    ) {
+      return;
+    }
+
+    try {
+      const result = await this.fetchJSON(
+        `${this.apiBase}/routing/regions/${regionId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (result.success) {
+        this.showMessage(`Region ${regionId} deleted`, "success");
+        // Reload status and regions
+        this.loadOfflineRoutingStatus();
+      } else {
+        this.showMessage(result.error || "Failed to delete region", "error");
+      }
+    } catch (error) {
+      console.error("Failed to delete region:", error);
+      this.showMessage("Failed to delete region", "error");
+    }
+  }
+
+  async saveOfflineManifestUrl() {
+    const input = document.getElementById("offline-manifest-url");
+    const url = input?.value?.trim();
+
+    if (!url) {
+      this.showMessage("Please enter a manifest URL", "error");
+      return;
+    }
+
+    const btn = document.getElementById("offline-manifest-save-btn");
+    if (btn) btn.disabled = true;
+
+    try {
+      const result = await this.fetchJSON(
+        `${this.apiBase}/routing/config/manifest-url`,
+        {
+          method: "POST",
+          body: JSON.stringify({ url }),
+        },
+      );
+
+      if (result.success) {
+        this.showMessage("Manifest URL saved", "success");
+        // Reload available regions
+        this.loadOfflineRoutingStatus();
+      } else {
+        this.showMessage(
+          result.error || "Failed to save manifest URL",
+          "error",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to save manifest URL:", error);
+      this.showMessage("Failed to save manifest URL", "error");
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   }
 
   // System Reset Methods

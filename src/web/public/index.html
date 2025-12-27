@@ -103,6 +103,17 @@
             <span class="nav-item-text">WiFi Settings</span>
             <span id="wifi-settings-indicator" class="nav-check hidden">✓</span>
           </button>
+          <button
+            id="menu-offline-routing"
+            class="nav-item"
+            data-panel="offline-routing-panel"
+          >
+            <span class="nav-item-icon">◎</span>
+            <span class="nav-item-text">Offline Routing</span>
+            <span id="offline-routing-indicator" class="nav-check hidden"
+              >✓</span
+            >
+          </button>
           <button id="menu-reset" class="nav-item" data-panel="reset-panel">
             <span class="nav-item-icon">◎</span>
             <span class="nav-item-text">Reset</span>
@@ -1138,6 +1149,158 @@
               <span class="btn-label">SAVE CONFIGURATION</span>
               <span class="btn-status-light"></span>
             </button>
+          </div>
+        </section>
+
+        <!-- Offline Routing Panel -->
+        <section
+          class="panel-card instrument-panel hidden"
+          id="offline-routing-panel"
+        >
+          <div class="instrument-clusters">
+            <div class="config-description">
+              Configure offline routing for navigation without internet.
+            </div>
+
+            <!-- Status Display -->
+            <div class="annunciator-panel">
+              <div class="annunciator-label-plate">ROUTING STATUS</div>
+              <div class="annunciator-grid">
+                <div class="annunciator-lamp" id="ann-offline-available">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">OSRM</span>
+                  <span class="lamp-value" id="offline-available-status"
+                    >INIT</span
+                  >
+                </div>
+                <div class="annunciator-lamp" id="ann-offline-regions">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">REGIONS</span>
+                  <span class="lamp-value" id="offline-regions-count">0</span>
+                </div>
+                <div class="annunciator-lamp" id="ann-offline-loaded">
+                  <span class="lamp-indicator"></span>
+                  <span class="lamp-label">LOADED</span>
+                  <span class="lamp-value" id="offline-loaded-count">0</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Toggle Bank - Offline Settings -->
+            <div class="toggle-bank">
+              <div class="bank-label-plate">SETTINGS</div>
+              <div class="toggle-row">
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="offline-routing-enabled"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">ENABLED</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+
+                <label class="aviation-toggle">
+                  <input
+                    type="checkbox"
+                    id="offline-prefer-offline"
+                    checked
+                    class="toggle-input"
+                  />
+                  <span class="toggle-housing">
+                    <span class="toggle-lever"></span>
+                  </span>
+                  <span class="toggle-nameplate">PREFER</span>
+                  <span class="toggle-indicator"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Storage Info -->
+            <div class="data-readout-panel">
+              <div class="readout-label-plate">STORAGE</div>
+              <div class="data-readout-grid">
+                <div class="data-readout-item">
+                  <span class="readout-prefix">DISK</span>
+                  <span class="readout-digits" id="offline-disk-usage"
+                    >0 MB</span
+                  >
+                </div>
+                <div class="data-readout-item">
+                  <span class="readout-prefix">RAM</span>
+                  <span class="readout-digits" id="offline-memory-usage"
+                    >0 MB</span
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Installed Regions List -->
+            <div class="data-readout-panel">
+              <div class="readout-label-plate">INSTALLED REGIONS</div>
+              <div id="offline-installed-regions" class="region-list">
+                <div class="region-list-empty">No regions installed</div>
+              </div>
+            </div>
+
+            <!-- Download Section -->
+            <div class="input-cluster">
+              <div class="cluster-label">DOWNLOAD REGION</div>
+              <div class="instrument-select-wrapper">
+                <select id="offline-region-select" class="instrument-select">
+                  <option value="">-- SELECT REGION --</option>
+                </select>
+                <span class="instrument-select-indicator"></span>
+              </div>
+              <button
+                id="offline-download-btn"
+                class="command-btn primary full-width"
+                disabled
+              >
+                <span class="btn-symbol">↓</span>
+                <span class="btn-label">DOWNLOAD</span>
+                <span class="btn-status-light"></span>
+              </button>
+            </div>
+
+            <!-- Download Progress -->
+            <div id="offline-download-status" class="loading-indicator hidden">
+              <div class="loading-header">
+                <span class="loading-spinner"></span>
+                <span class="loading-text">DOWNLOADING REGION</span>
+              </div>
+              <div class="loading-progress">
+                <div class="progress-track">
+                  <div id="offline-download-bar" class="progress-fill"></div>
+                </div>
+                <span class="progress-text" id="offline-download-text">0%</span>
+              </div>
+            </div>
+
+            <!-- Manifest URL Configuration -->
+            <div class="input-cluster">
+              <div class="cluster-label">
+                MANIFEST URL <span class="label-hint">(ADVANCED)</span>
+              </div>
+              <div class="instrument-input-wrapper">
+                <input
+                  type="text"
+                  id="offline-manifest-url"
+                  class="instrument-input"
+                  placeholder="https://osrm-data.example.com/manifest.json"
+                />
+                <span class="input-indicator"></span>
+              </div>
+              <button id="offline-manifest-save-btn" class="command-btn">
+                <span class="btn-symbol">✓</span>
+                <span class="btn-label">SAVE URL</span>
+                <span class="btn-status-light"></span>
+              </button>
+            </div>
           </div>
         </section>
 

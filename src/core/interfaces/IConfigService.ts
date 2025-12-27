@@ -426,6 +426,76 @@ export interface IConfigService {
    */
   setHotspotConfig(config: HotspotConfig | null): void;
 
+  // Offline routing configuration
+
+  /**
+   * Get whether offline routing is enabled
+   * @returns true if offline routing is enabled
+   */
+  getOfflineRoutingEnabled(): boolean;
+
+  /**
+   * Set whether offline routing is enabled
+   * @param enabled Whether offline routing is enabled
+   */
+  setOfflineRoutingEnabled(enabled: boolean): void;
+
+  /**
+   * Get whether to prefer offline routing when available
+   * @returns true if offline routing should be preferred
+   */
+  getPreferOfflineRouting(): boolean;
+
+  /**
+   * Set whether to prefer offline routing when available
+   * @param prefer Whether to prefer offline routing
+   */
+  setPreferOfflineRouting(prefer: boolean): void;
+
+  /**
+   * Get the URL for the region manifest
+   * @returns Manifest URL
+   */
+  getOfflineRoutingManifestUrl(): string;
+
+  /**
+   * Set the URL for the region manifest
+   * @param url Manifest URL
+   */
+  setOfflineRoutingManifestUrl(url: string): void;
+
+  /**
+   * Get installed offline routing regions
+   * @returns Array of installed region configurations
+   */
+  getInstalledOfflineRegions(): Array<{
+    id: string;
+    installedAt: string;
+    profile: "car" | "bike" | "foot";
+    sizeBytes: number;
+  }>;
+
+  /**
+   * Add an installed offline routing region
+   * @param region Region configuration to add
+   */
+  addInstalledOfflineRegion(region: {
+    id: string;
+    profile: "car" | "bike" | "foot";
+    sizeBytes: number;
+  }): void;
+
+  /**
+   * Remove an installed offline routing region
+   * @param regionId Region ID to remove
+   */
+  removeInstalledOfflineRegion(regionId: string): void;
+
+  /**
+   * Clear all installed offline routing regions
+   */
+  clearInstalledOfflineRegions(): void;
+
   // Persistence
 
   /**

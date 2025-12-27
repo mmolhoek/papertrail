@@ -5836,3 +5836,84 @@ body {
     color: #888;
   }
 }
+
+/* ============================================
+   OFFLINE ROUTING PANEL
+   ============================================ */
+
+.region-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+}
+
+.region-list-empty {
+  color: var(--color-slate);
+  font-size: 0.85rem;
+  text-align: center;
+  padding: var(--space-md);
+  font-style: italic;
+}
+
+.region-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.region-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.region-name {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-parchment);
+}
+
+.region-meta {
+  font-size: 0.75rem;
+  color: var(--color-slate);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.region-delete-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--color-danger);
+  background: transparent;
+  color: var(--color-danger);
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-fast);
+}
+
+.region-delete-btn:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
+[data-theme="light"] .region-item {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .region-name {
+  color: var(--color-charcoal);
+}

@@ -30,4 +30,5 @@ export * from "./ElevationError";
 export * from "./VectorMapError";
 export * from "./MapSnapError";
 export * from "./RoadSurfaceError";
+export * from "./OfflineRoutingError";
 export * from "./ErrorMessages";

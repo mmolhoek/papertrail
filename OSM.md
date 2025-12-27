@@ -103,7 +103,7 @@ Display nearby amenities during navigation.
 
 ### OSM-4: Offline Routing
 
-**Status:** Not started
+**Status:** Implemented
 **Priority:** Medium
 **Complexity:** High
 
@@ -116,14 +116,32 @@ Run OSRM locally for navigation without internet.
 - Same turn-by-turn quality as online routing
 - Region management in web interface
 
-**Implementation notes:**
+**Implementation:**
 
-- Run osrm-backend on Raspberry Pi 5 (has sufficient RAM)
-- Download pre-processed `.osrm` files for regions
-- Storage: ~100MB per small country, 1-2GB for large countries
-- API compatible with current OSRM integration
-- Add region download/management endpoints
-- Consider osrm-routed or direct library integration
+- Created `OfflineRoutingService` using `@project-osrm/osrm` Node.js bindings
+- Service gracefully falls back to `MockOfflineRoutingService` if bindings unavailable
+- Region data stored in `data/osrm-regions/` directory
+- Configurable manifest URL for downloading pre-processed OSRM regions
+- Auto-fallback: tries offline first, falls back to online if coordinates outside installed regions
+- Memory management: max 2 regions loaded simultaneously with LRU eviction
+- API endpoints for region management:
+  - `GET /api/routing/status` - Offline routing status
+  - `GET /api/routing/regions/available` - List downloadable regions
+  - `GET /api/routing/regions/installed` - List installed regions
+  - `POST /api/routing/regions/:id/download` - Download region
+  - `DELETE /api/routing/regions/:id` - Delete region
+  - `POST /api/routing/regions/:id/load` - Load region into memory
+  - `POST /api/routing/regions/:id/unload` - Unload region from memory
+- Configuration in user state:
+  - `offlineRouting.enabled` - Enable/disable offline routing
+  - `offlineRouting.preferOffline` - Try offline first when available
+  - `offlineRouting.manifestUrl` - URL for region manifest
+  - `offlineRouting.installedRegions` - List of installed regions
+
+**Note:** Requires pre-processed OSRM data files. Geofabrik provides raw `.osm.pbf` files, not pre-processed OSRM files. Users need to either:
+1. Host their own OSRM file server with pre-processed regions
+2. Use community OSRM data sources
+3. Configure a custom manifest URL pointing to compatible data
 
 ---
 
@@ -333,9 +351,9 @@ Snap GPS traces to actual roads using OSRM's map matching API.
 6. ~~**OSM-9: Map Matching**~~ ✓ Implemented
 7. ~~**OSM-8: Vector Maps**~~ ✓ Implemented
 8. ~~**OSM-6: Road Surface**~~ ✓ Implemented
+9. ~~**OSM-4: Offline Routing**~~ ✓ Implemented
 
-**Remaining:**
-- **OSM-4: Offline Routing** - Run OSRM locally
+**All OSM features implemented!**
 
 ---
 

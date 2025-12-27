@@ -125,6 +125,9 @@ describe("IntegratedWebService", () => {
       onLocationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
       onElevationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
       setWebSocketClientCount: jest.fn(),
+      getCurrentRoadSurface: jest.fn().mockReturnValue(null),
+      getCurrentSpeedLimit: jest.fn().mockReturnValue(null),
+      getCurrentLocationName: jest.fn().mockReturnValue(null),
     } as unknown as IRenderingOrchestrator;
 
     mockWifiService = {

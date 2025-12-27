@@ -23,6 +23,7 @@ export * from "./IElevationService";
 export * from "./IVectorMapService";
 export * from "./IMapSnapService";
 export * from "./IRoadSurfaceService";
+export * from "./IOfflineRoutingService";
 
 // Display abstraction interfaces
 export * from "./IDisplayService";

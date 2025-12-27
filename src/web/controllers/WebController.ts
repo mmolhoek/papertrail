@@ -7,6 +7,7 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
   IMapSnapService,
+  IOfflineRoutingService,
 } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
@@ -17,6 +18,7 @@ import { WiFiController } from "./WiFiController";
 import { DriveController } from "./DriveController";
 import { SimulationController } from "./SimulationController";
 import { ConfigController } from "./ConfigController";
+import { OfflineRoutingController } from "./OfflineRoutingController";
 
 const logger = getLogger("WebController");
 
@@ -61,6 +63,7 @@ export class WebController {
   public readonly drive: DriveController;
   public readonly simulation: SimulationController;
   public readonly config: ConfigController;
+  public readonly offlineRouting: OfflineRoutingController;
 
   constructor(
     private readonly orchestrator: IRenderingOrchestrator,
@@ -71,6 +74,7 @@ export class WebController {
     simulationService?: ITrackSimulationService,
     driveNavigationService?: IDriveNavigationService,
     mapSnapService?: IMapSnapService,
+    offlineRoutingService?: IOfflineRoutingService,
   ) {
     // Initialize sub-controllers
     this.gps = new GPSController(orchestrator);
@@ -86,6 +90,7 @@ export class WebController {
       driveNavigationService,
       simulationService,
       configService,
+      offlineRoutingService,
     );
     this.simulation = new SimulationController(
       orchestrator,
@@ -97,6 +102,10 @@ export class WebController {
       orchestrator,
       configService,
       wifiService,
+    );
+    this.offlineRouting = new OfflineRoutingController(
+      offlineRoutingService,
+      configService,
     );
   }
 

@@ -15,6 +15,7 @@ import {
   ITrackSimulationService,
   IDriveNavigationService,
   IMapSnapService,
+  IOfflineRoutingService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -127,6 +128,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly simulationService?: ITrackSimulationService,
     private readonly driveNavigationService?: IDriveNavigationService,
     private readonly mapSnapService?: IMapSnapService,
+    private readonly offlineRoutingService?: IOfflineRoutingService,
   ) {
     this.app = express();
     this.controller = new WebController(
@@ -138,6 +140,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       simulationService,
       driveNavigationService,
       mapSnapService,
+      offlineRoutingService,
     );
     // Use app-controlled upload directory instead of /tmp for better security
     this.uploadDirectory = path.resolve(UPLOAD_DEFAULT_TEMP_DIRECTORY);
@@ -719,6 +722,47 @@ export class IntegratedWebService implements IWebInterfaceService {
 
     this.app.get(`${api}/mock-display/status`, (req, res) =>
       this.controller.getMockDisplayStatus(req, res),
+    );
+
+    // Offline routing endpoints
+    this.app.get(`${api}/routing/status`, (req, res) =>
+      this.controller.offlineRouting.getStatus(req, res),
+    );
+
+    this.app.get(`${api}/routing/regions/available`, (req, res) =>
+      this.controller.offlineRouting.getAvailableRegions(req, res),
+    );
+
+    this.app.get(`${api}/routing/regions/installed`, (req, res) =>
+      this.controller.offlineRouting.getInstalledRegions(req, res),
+    );
+
+    this.app.post(`${api}/routing/regions/:regionId/download`, (req, res) =>
+      this.controller.offlineRouting.downloadRegion(req, res),
+    );
+
+    this.app.delete(`${api}/routing/regions/:regionId`, (req, res) =>
+      this.controller.offlineRouting.deleteRegion(req, res),
+    );
+
+    this.app.post(`${api}/routing/regions/:regionId/load`, (req, res) =>
+      this.controller.offlineRouting.loadRegion(req, res),
+    );
+
+    this.app.post(`${api}/routing/regions/:regionId/unload`, (req, res) =>
+      this.controller.offlineRouting.unloadRegion(req, res),
+    );
+
+    this.app.post(`${api}/routing/config/enabled`, (req, res) =>
+      this.controller.offlineRouting.setEnabled(req, res),
+    );
+
+    this.app.post(`${api}/routing/config/prefer-offline`, (req, res) =>
+      this.controller.offlineRouting.setPreferOffline(req, res),
+    );
+
+    this.app.post(`${api}/routing/config/manifest-url`, (req, res) =>
+      this.controller.offlineRouting.setManifestUrl(req, res),
     );
 
     // 404 handler

@@ -416,6 +416,16 @@ function createMockConfigService(): IConfigService {
     setWiFiFallbackNetwork: jest.fn(),
     getHotspotConfig: jest.fn().mockReturnValue(undefined),
     setHotspotConfig: jest.fn(),
+    getOfflineRoutingEnabled: jest.fn().mockReturnValue(true),
+    setOfflineRoutingEnabled: jest.fn(),
+    getPreferOfflineRouting: jest.fn().mockReturnValue(true),
+    setPreferOfflineRouting: jest.fn(),
+    getOfflineRoutingManifestUrl: jest.fn().mockReturnValue(""),
+    setOfflineRoutingManifestUrl: jest.fn(),
+    getInstalledOfflineRegions: jest.fn().mockReturnValue([]),
+    addInstalledOfflineRegion: jest.fn(),
+    removeInstalledOfflineRegion: jest.fn(),
+    clearInstalledOfflineRegions: jest.fn(),
   } as IConfigService;
 }
 

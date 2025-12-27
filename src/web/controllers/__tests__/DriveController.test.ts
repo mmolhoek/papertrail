@@ -66,6 +66,8 @@ const createMockSimulationService = () => ({
 // Create mock config service
 const createMockConfigService = () => ({
   getRoutingProfile: jest.fn().mockReturnValue("car"),
+  getOfflineRoutingEnabled: jest.fn().mockReturnValue(false),
+  getPreferOfflineRouting: jest.fn().mockReturnValue(false),
 });
 
 // Sample route for testing
