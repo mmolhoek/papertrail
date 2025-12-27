@@ -5379,6 +5379,34 @@ body {
   text-shadow: 0 0 6px rgba(232, 193, 112, 0.4);
 }
 
+.nav-extra-info {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(90, 138, 112, 0.2);
+}
+
+.nav-location-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(90, 138, 112, 0.2);
+}
+
+.nav-location-row .nav-data-label {
+  flex-shrink: 0;
+}
+
+.nav-location {
+  font-family: "DM Mono", monospace;
+  font-size: 0.75rem;
+  color: #a8c4b8;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 /* Simulation Progress Display */
 .sim-progress-display {
   padding: var(--space-md);

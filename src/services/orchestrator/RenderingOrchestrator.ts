@@ -875,6 +875,33 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   }
 
   /**
+   * Get the current cached road surface type.
+   *
+   * @returns The road surface type or null if not available
+   */
+  getCurrentRoadSurface(): string | null {
+    return this.driveCoordinator?.getCachedRoadSurface() ?? null;
+  }
+
+  /**
+   * Get the current cached speed limit.
+   *
+   * @returns The speed limit in km/h or null if not available
+   */
+  getCurrentSpeedLimit(): number | null {
+    return this.driveCoordinator?.getCachedSpeedLimit() ?? null;
+  }
+
+  /**
+   * Get the current cached location name.
+   *
+   * @returns The location name or null if not available
+   */
+  getCurrentLocationName(): string | null {
+    return this.driveCoordinator?.getCachedLocationName() ?? null;
+  }
+
+  /**
    * Show the full route on the e-paper display.
    *
    * Sets the zoom level to fit the entire route and renders

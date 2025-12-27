@@ -319,6 +319,9 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     hasMockDisplayImage: jest.fn().mockReturnValue(false),
     isMockGPS: jest.fn().mockReturnValue(false),
     setMockGPSPosition: jest.fn().mockReturnValue(false),
+    getCurrentRoadSurface: jest.fn().mockReturnValue(null),
+    getCurrentSpeedLimit: jest.fn().mockReturnValue(null),
+    getCurrentLocationName: jest.fn().mockReturnValue(null),
     dispose: jest.fn().mockResolvedValue(undefined),
   } as IRenderingOrchestrator;
 }

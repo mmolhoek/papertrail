@@ -216,6 +216,24 @@ export interface IRenderingOrchestrator {
   isDriveNavigating(): boolean;
 
   /**
+   * Get the current cached road surface type
+   * @returns The road surface type or null if not available
+   */
+  getCurrentRoadSurface(): string | null;
+
+  /**
+   * Get the current cached speed limit
+   * @returns The speed limit in km/h or null if not available
+   */
+  getCurrentSpeedLimit(): number | null;
+
+  /**
+   * Get the current cached location name
+   * @returns The location name or null if not available
+   */
+  getCurrentLocationName(): string | null;
+
+  /**
    * Show the full route on the e-paper display
    * Sets zoom level to fit the entire route and renders it
    * @param route Optional route to display (uses active route if not provided)

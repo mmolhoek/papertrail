@@ -4116,6 +4116,36 @@ class PapertrailClient {
       }
     }
 
+    // Update speed limit
+    const speedLimitEl = document.getElementById("drive-speed-limit");
+    if (speedLimitEl) {
+      if (data.speedLimit) {
+        speedLimitEl.textContent = `${data.speedLimit} km/h`;
+      } else {
+        speedLimitEl.textContent = "--";
+      }
+    }
+
+    // Update road surface
+    const roadSurfaceEl = document.getElementById("drive-road-surface");
+    if (roadSurfaceEl) {
+      if (data.roadSurface) {
+        roadSurfaceEl.textContent = data.roadSurface.toUpperCase();
+      } else {
+        roadSurfaceEl.textContent = "--";
+      }
+    }
+
+    // Update location name
+    const locationNameEl = document.getElementById("drive-location-name");
+    if (locationNameEl) {
+      if (data.locationName) {
+        locationNameEl.textContent = data.locationName;
+      } else {
+        locationNameEl.textContent = "--";
+      }
+    }
+
     // Update navigation state based on server state
     if (data.state === "navigating" || data.state === "off_road") {
       this.isDriveNavigating = true;

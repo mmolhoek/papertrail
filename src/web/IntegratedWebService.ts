@@ -967,6 +967,10 @@ export class IntegratedWebService implements IWebInterfaceService {
             isOffRoad: status.state === "off_road",
             distanceToRouteStart: status.distanceToRoute,
             bearingToRouteStart: status.bearingToRoute,
+            // Extra info from DriveCoordinator cache
+            roadSurface: this.orchestrator.getCurrentRoadSurface(),
+            speedLimit: this.orchestrator.getCurrentSpeedLimit(),
+            locationName: this.orchestrator.getCurrentLocationName(),
           });
 
           // Also emit specific events for key state changes

@@ -538,6 +538,27 @@ export class DriveCoordinator {
   }
 
   /**
+   * Get the cached road surface type
+   */
+  getCachedRoadSurface(): RoadSurfaceType | null {
+    return this.cachedRoadSurface;
+  }
+
+  /**
+   * Get the cached speed limit
+   */
+  getCachedSpeedLimit(): number | null {
+    return this.cachedSpeedLimit;
+  }
+
+  /**
+   * Get the cached location name
+   */
+  getCachedLocationName(): string | null {
+    return this.cachedLocationName;
+  }
+
+  /**
    * Invalidate the local POI cache.
    *
    * Call this when POI categories change to force a fresh fetch
