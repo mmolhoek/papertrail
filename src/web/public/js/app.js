@@ -423,11 +423,19 @@ class PapertrailClient {
       });
     }
 
-    // Show water toggle
+    // Show water toggle (lakes, ponds)
     const showWaterToggle = document.getElementById("show-water");
     if (showWaterToggle) {
       showWaterToggle.addEventListener("change", (e) => {
         this.setShowWater(e.target.checked);
+      });
+    }
+
+    // Show waterways toggle (rivers, streams)
+    const showWaterwaysToggle = document.getElementById("show-waterways");
+    if (showWaterwaysToggle) {
+      showWaterwaysToggle.addEventListener("change", (e) => {
+        this.setShowWaterways(e.target.checked);
       });
     }
 
@@ -786,11 +794,19 @@ class PapertrailClient {
       }
     }
 
-    // Update show water toggle
+    // Update show water toggle (lakes, ponds)
     if (settings.showWater !== undefined) {
       const checkbox = document.getElementById("show-water");
       if (checkbox) {
         checkbox.checked = settings.showWater;
+      }
+    }
+
+    // Update show waterways toggle (rivers, streams)
+    if (settings.showWaterways !== undefined) {
+      const checkbox = document.getElementById("show-waterways");
+      if (checkbox) {
+        checkbox.checked = settings.showWaterways;
       }
     }
 
@@ -1266,7 +1282,7 @@ class PapertrailClient {
 
       if (response.ok) {
         this.showMessage(
-          `Water layer ${enabled ? "enabled" : "disabled"}`,
+          `Lakes layer ${enabled ? "enabled" : "disabled"}`,
           "success",
         );
       } else {
@@ -1274,9 +1290,35 @@ class PapertrailClient {
       }
     } catch (error) {
       console.error("Failed to set water setting:", error);
-      this.showMessage("Failed to change water setting", "error");
+      this.showMessage("Failed to change lakes setting", "error");
       // Revert the checkbox
       const checkbox = document.getElementById("show-water");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show waterways (rivers, streams) enabled/disabled
+  async setShowWaterways(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-waterways`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Rivers layer ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set waterways setting");
+      }
+    } catch (error) {
+      console.error("Failed to set waterways setting:", error);
+      this.showMessage("Failed to change rivers setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-waterways");
       if (checkbox) checkbox.checked = !enabled;
     }
   }
