@@ -199,6 +199,9 @@ export class IntegratedWebService implements IWebInterfaceService {
         });
 
         this.setupWebSocket();
+
+        // Configure download progress emitter for offline routing
+        this.setupDownloadProgressEmitter();
       }
 
       // Subscribe to orchestrator events
@@ -869,6 +872,16 @@ export class IntegratedWebService implements IWebInterfaceService {
     }
     // Notify orchestrator to show/hide the "select track" screen
     this.orchestrator.setWebSocketClientCount(this.connectedClientCount);
+  }
+
+  /**
+   * Setup the download progress emitter for offline routing
+   * This allows the controller to broadcast download progress via WebSocket
+   */
+  private setupDownloadProgressEmitter(): void {
+    this.controller.offlineRouting.setProgressEmitter((progress) => {
+      this.broadcast("offline-routing:download-progress", progress);
+    });
   }
 
   /**

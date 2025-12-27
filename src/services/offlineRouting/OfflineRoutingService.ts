@@ -4,6 +4,7 @@ import { Result, success, failure, GPSCoordinate } from "@core/types";
 import {
   IOfflineRoutingService,
   OSRMRegion,
+  OSRMManifest,
   InstalledRegion,
   OSRMRouteResponse,
   RoutingProfile,
@@ -48,6 +49,12 @@ export class OfflineRoutingService implements IOfflineRoutingService {
 
   /** Cached installed regions metadata */
   private installedRegionsCache: InstalledRegion[] = [];
+
+  /** Cached available regions from manifest */
+  private availableRegionsCache: OSRMRegion[] = [];
+
+  /** Download base URL from manifest */
+  private downloadBaseUrl: string | null = null;
 
   /** Data directory path */
   private readonly regionsDir: string;
@@ -234,14 +241,17 @@ export class OfflineRoutingService implements IOfflineRoutingService {
         );
       }
 
-      const manifest = (await response.json()) as
-        | OSRMRegion[]
-        | { regions: OSRMRegion[] };
+      const manifest = (await response.json()) as OSRMRegion[] | OSRMManifest;
 
       // Support both { regions: [...] } and direct array formats
-      const regionsArray = Array.isArray(manifest)
-        ? manifest
-        : manifest.regions;
+      let regionsArray: OSRMRegion[];
+      if (Array.isArray(manifest)) {
+        regionsArray = manifest;
+        this.downloadBaseUrl = null;
+      } else {
+        regionsArray = manifest.regions || [];
+        this.downloadBaseUrl = manifest.downloadBaseUrl || null;
+      }
 
       if (!Array.isArray(regionsArray)) {
         logger.error("Invalid manifest format: expected regions array");
@@ -266,9 +276,15 @@ export class OfflineRoutingService implements IOfflineRoutingService {
         sizeBytes: entry.sizeBytes || 0,
         profiles: entry.profiles || ["car"],
         lastUpdated: entry.lastUpdated || new Date().toISOString(),
+        downloadUrl: entry.downloadUrl,
       }));
 
-      logger.info(`Found ${regions.length} regions in manifest`);
+      // Cache for use in downloadRegion
+      this.availableRegionsCache = regions;
+
+      logger.info(`Found ${regions.length} regions in manifest`, {
+        downloadBaseUrl: this.downloadBaseUrl,
+      });
       return success(regions);
     } catch (error) {
       logger.error("Failed to fetch region manifest:", error);
@@ -294,29 +310,259 @@ export class OfflineRoutingService implements IOfflineRoutingService {
       return failure(OfflineRoutingError.bindingsUnavailable());
     }
 
-    // TODO: Implement region downloading from manifest URL
-    // For now, return error as we don't have a manifest server yet
-    logger.warn(
-      `downloadRegion: Downloading not yet implemented for ${regionId} (${profile})`,
-    );
-
-    if (onProgress) {
-      onProgress({
+    // Find region in cached available regions
+    const region = this.availableRegionsCache.find((r) => r.id === regionId);
+    if (!region) {
+      const errorMsg = `Region "${regionId}" not found in manifest`;
+      logger.error(errorMsg);
+      onProgress?.({
         regionId,
         bytesDownloaded: 0,
         totalBytes: 0,
         percentage: 0,
         state: "error",
-        error: "Region downloading not yet implemented",
+        error: errorMsg,
       });
+      return failure(OfflineRoutingError.regionNotFound(regionId));
     }
 
-    return failure(
-      OfflineRoutingError.downloadFailed(
+    // Check if profile is supported
+    if (!region.profiles.includes(profile)) {
+      const errorMsg = `Profile "${profile}" not available for region "${regionId}"`;
+      logger.error(errorMsg);
+      onProgress?.({
         regionId,
-        new Error("Region downloading not yet implemented"),
-      ),
+        bytesDownloaded: 0,
+        totalBytes: 0,
+        percentage: 0,
+        state: "error",
+        error: errorMsg,
+      });
+      return failure(
+        OfflineRoutingError.downloadFailed(regionId, new Error(errorMsg)),
+      );
+    }
+
+    // Construct download URL
+    const downloadUrl = this.getDownloadUrl(region, profile);
+    if (!downloadUrl) {
+      const errorMsg = "No download URL available for this region";
+      logger.error(errorMsg);
+      onProgress?.({
+        regionId,
+        bytesDownloaded: 0,
+        totalBytes: 0,
+        percentage: 0,
+        state: "error",
+        error: errorMsg,
+      });
+      return failure(
+        OfflineRoutingError.downloadFailed(regionId, new Error(errorMsg)),
+      );
+    }
+
+    logger.info(
+      `Starting download: ${regionId} (${profile}) from ${downloadUrl}`,
     );
+
+    try {
+      // Create region directory
+      const regionPath = this.getRegionPath(regionId);
+      await fs.mkdir(regionPath, { recursive: true });
+
+      // Download the OSRM file
+      const result = await this.downloadFile(
+        downloadUrl,
+        regionPath,
+        profile,
+        region.sizeBytes,
+        regionId,
+        onProgress,
+      );
+
+      if (!result.success) {
+        return result;
+      }
+
+      // Create metadata.json
+      const installedRegion: InstalledRegion = {
+        id: region.id,
+        name: region.name,
+        bounds: region.bounds,
+        sizeBytes: region.sizeBytes,
+        profiles: region.profiles,
+        lastUpdated: region.lastUpdated,
+        installedAt: new Date().toISOString(),
+        diskSizeBytes: result.data.bytesDownloaded,
+        loaded: false,
+        profile,
+      };
+
+      const metadataPath = path.join(regionPath, "metadata.json");
+      await fs.writeFile(
+        metadataPath,
+        JSON.stringify(installedRegion, null, 2),
+      );
+
+      // Add to installed regions cache
+      const existingIndex = this.installedRegionsCache.findIndex(
+        (r) => r.id === regionId && r.profile === profile,
+      );
+      if (existingIndex !== -1) {
+        this.installedRegionsCache[existingIndex] = installedRegion;
+      } else {
+        this.installedRegionsCache.push(installedRegion);
+      }
+
+      logger.info(`Successfully downloaded region: ${regionId} (${profile})`);
+
+      onProgress?.({
+        regionId,
+        bytesDownloaded: result.data.bytesDownloaded,
+        totalBytes: result.data.bytesDownloaded,
+        percentage: 100,
+        state: "complete",
+      });
+
+      return success(undefined);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Failed to download region ${regionId}:`, err);
+
+      onProgress?.({
+        regionId,
+        bytesDownloaded: 0,
+        totalBytes: region.sizeBytes,
+        percentage: 0,
+        state: "error",
+        error: err.message,
+      });
+
+      // Clean up partial download
+      try {
+        const regionPath = this.getRegionPath(regionId);
+        await fs.rm(regionPath, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      return failure(OfflineRoutingError.downloadFailed(regionId, err));
+    }
+  }
+
+  private getDownloadUrl(
+    region: OSRMRegion,
+    profile: RoutingProfile,
+  ): string | null {
+    // Use region-specific URL if available
+    if (region.downloadUrl) {
+      // Replace {profile} placeholder if present
+      return region.downloadUrl.replace("{profile}", profile);
+    }
+
+    // Fall back to base URL + region ID + profile
+    if (this.downloadBaseUrl) {
+      return `${this.downloadBaseUrl}/${region.id}/${profile}.osrm`;
+    }
+
+    return null;
+  }
+
+  private async downloadFile(
+    url: string,
+    destDir: string,
+    profile: RoutingProfile,
+    expectedSize: number,
+    regionId: string,
+    onProgress?: DownloadProgressCallback,
+  ): Promise<Result<{ bytesDownloaded: number }>> {
+    const destPath = path.join(destDir, `${profile}.osrm`);
+
+    try {
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const contentLength = response.headers.get("content-length");
+      const totalBytes = contentLength
+        ? parseInt(contentLength, 10)
+        : expectedSize;
+
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      // Use streaming to handle large files
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let bytesDownloaded = 0;
+      let lastProgressUpdate = 0;
+
+      onProgress?.({
+        regionId,
+        bytesDownloaded: 0,
+        totalBytes,
+        percentage: 0,
+        state: "downloading",
+      });
+
+      // Read stream chunks until done
+      let done = false;
+      while (!done) {
+        const readResult = await reader.read();
+        done = readResult.done;
+
+        if (!done && readResult.value) {
+          chunks.push(readResult.value);
+          bytesDownloaded += readResult.value.length;
+
+          // Throttle progress updates (every 100KB or 1%)
+          const percentage =
+            totalBytes > 0
+              ? Math.floor((bytesDownloaded / totalBytes) * 100)
+              : 0;
+          if (
+            bytesDownloaded - lastProgressUpdate > 102400 ||
+            percentage === 100
+          ) {
+            lastProgressUpdate = bytesDownloaded;
+            onProgress?.({
+              regionId,
+              bytesDownloaded,
+              totalBytes,
+              percentage,
+              state: "downloading",
+            });
+          }
+        }
+      }
+
+      // Combine chunks and write to file
+      const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+      const buffer = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        buffer.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      onProgress?.({
+        regionId,
+        bytesDownloaded,
+        totalBytes,
+        percentage: 99,
+        state: "extracting",
+      });
+
+      await fs.writeFile(destPath, buffer);
+
+      return success({ bytesDownloaded });
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      return failure(OfflineRoutingError.downloadFailed(regionId, err));
+    }
   }
 
   async deleteRegion(regionId: string): Promise<Result<void>> {

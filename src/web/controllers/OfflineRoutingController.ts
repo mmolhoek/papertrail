@@ -1,9 +1,20 @@
 import { Request, Response } from "express";
-import { IOfflineRoutingService, IConfigService } from "@core/interfaces";
+import {
+  IOfflineRoutingService,
+  IConfigService,
+  RegionDownloadProgress,
+} from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
 
 const logger = getLogger("OfflineRoutingController");
+
+/**
+ * Callback for emitting download progress events via WebSocket
+ */
+export type DownloadProgressEmitter = (
+  progress: RegionDownloadProgress,
+) => void;
 
 /**
  * Offline Routing Controller
@@ -15,10 +26,19 @@ const logger = getLogger("OfflineRoutingController");
  * - Get routing status
  */
 export class OfflineRoutingController {
+  private progressEmitter: DownloadProgressEmitter | null = null;
+
   constructor(
     private readonly offlineRoutingService?: IOfflineRoutingService,
     private readonly configService?: IConfigService,
   ) {}
+
+  /**
+   * Set the WebSocket progress emitter for download progress updates
+   */
+  setProgressEmitter(emitter: DownloadProgressEmitter): void {
+    this.progressEmitter = emitter;
+  }
 
   /**
    * GET /api/routing/status
@@ -144,13 +164,16 @@ export class OfflineRoutingController {
 
     logger.info(`Starting download for region: ${regionId} (${profile})`);
 
-    // Start download - this will emit progress events via WebSocket
+    // Start download - emit progress events via WebSocket
     const result = await this.offlineRoutingService.downloadRegion(
       regionId,
       profile,
       (progress) => {
-        // Progress is handled via WebSocket events
         logger.debug(`Download progress: ${progress.percentage}%`);
+        // Emit progress via WebSocket if emitter is configured
+        if (this.progressEmitter) {
+          this.progressEmitter(progress);
+        }
       },
     );
 

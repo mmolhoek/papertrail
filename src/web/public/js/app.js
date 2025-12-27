@@ -1960,15 +1960,28 @@ class PapertrailClient {
     }
 
     if (progressText) {
-      progressText.textContent = `${data.percentage || 0}%`;
+      let statusText = `${data.percentage || 0}%`;
+      if (data.state === "extracting") {
+        statusText = "Saving...";
+      } else if (data.state === "error") {
+        statusText = data.error || "Error";
+      }
+      progressText.textContent = statusText;
     }
 
-    if (data.complete) {
-      setTimeout(() => {
-        if (downloadStatus) {
-          downloadStatus.classList.add("hidden");
-        }
-      }, 1000);
+    // Handle completion or error states
+    if (data.state === "complete" || data.state === "error") {
+      setTimeout(
+        () => {
+          if (downloadStatus) {
+            downloadStatus.classList.add("hidden");
+          }
+          if (progressBar) {
+            progressBar.style.width = "0%";
+          }
+        },
+        data.state === "complete" ? 1000 : 3000,
+      );
     }
   }
 

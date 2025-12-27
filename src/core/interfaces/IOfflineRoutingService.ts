@@ -37,6 +37,18 @@ export interface OSRMRegion {
   lastUpdated: string;
   /** Available routing profiles */
   profiles: RoutingProfile[];
+  /** Optional direct download URL for this region */
+  downloadUrl?: string;
+}
+
+/**
+ * Manifest response format from the region server
+ */
+export interface OSRMManifest {
+  /** Base URL for downloading region files (used if region has no downloadUrl) */
+  downloadBaseUrl?: string;
+  /** Available regions */
+  regions: OSRMRegion[];
 }
 
 /**
