@@ -36,6 +36,8 @@ import {
   setPOICategorySchema,
   setShowLocationNameSchema,
   setShowRoadsSchema,
+  setShowWaterSchema,
+  setShowLanduseSchema,
   setShowSpeedLimitSchema,
   setShowElevationSchema,
   setRoutingProfileSchema,
@@ -512,6 +514,18 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-roads`,
       validateBody(setShowRoadsSchema),
       (req, res) => this.controller.setShowRoads(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-water`,
+      validateBody(setShowWaterSchema),
+      (req, res) => this.controller.setShowWater(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-landuse`,
+      validateBody(setShowLanduseSchema),
+      (req, res) => this.controller.setShowLanduse(req, res),
     );
 
     this.app.post(

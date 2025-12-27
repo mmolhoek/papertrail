@@ -52,6 +52,8 @@ export class ConfigController {
         enabledPOICategories: this.configService.getEnabledPOICategories(),
         showLocationName: this.configService.getShowLocationName(),
         showRoads: this.configService.getShowRoads(),
+        showWater: this.configService.getShowWater(),
+        showLanduse: this.configService.getShowLanduse(),
         showSpeedLimit: this.configService.getShowSpeedLimit(),
         showElevation: this.configService.getShowElevation(),
         routingProfile: this.configService.getRoutingProfile(),
@@ -501,6 +503,90 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Road layer ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show water enabled/disabled
+   */
+  async setShowWater(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show water called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show water to: ${enabled}`);
+    this.configService.setShowWater(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show water ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Water layer ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show landuse enabled/disabled
+   */
+  async setShowLanduse(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show landuse called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show landuse to: ${enabled}`);
+    this.configService.setShowLanduse(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show landuse ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Landuse layer ${enabled ? "enabled" : "disabled"}`,
     });
   }
 

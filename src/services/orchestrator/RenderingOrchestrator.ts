@@ -682,6 +682,42 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
             this.driveCoordinator?.setRoadPrefetchActive(false);
           });
       }
+
+      // Also prefetch water and landuse features in background
+      // Run these in parallel (after roads start prefetching)
+      this.vectorMapService
+        .prefetchRouteWater(route, 5000)
+        .then((result) => {
+          if (result.success) {
+            logger.info(`Prefetched ${result.data} water features for route`);
+            const allWater = this.vectorMapService?.getAllCachedWater();
+            if (allWater) {
+              this.driveCoordinator?.setCachedWater(allWater);
+            }
+          } else {
+            logger.warn("Failed to prefetch water:", result.error?.message);
+          }
+        })
+        .catch((error) => {
+          logger.warn("Water prefetch error:", error);
+        });
+
+      this.vectorMapService
+        .prefetchRouteLanduse(route, 5000)
+        .then((result) => {
+          if (result.success) {
+            logger.info(`Prefetched ${result.data} landuse features for route`);
+            const allLanduse = this.vectorMapService?.getAllCachedLanduse();
+            if (allLanduse) {
+              this.driveCoordinator?.setCachedLanduse(allLanduse);
+            }
+          } else {
+            logger.warn("Failed to prefetch landuse:", result.error?.message);
+          }
+        })
+        .catch((error) => {
+          logger.warn("Landuse prefetch error:", error);
+        });
     }
 
     return this.driveCoordinator.startDriveNavigation(route);

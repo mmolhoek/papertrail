@@ -216,6 +216,8 @@ describe("RenderingOrchestrator", () => {
       getShowLocationName: jest.fn().mockReturnValue(true),
       getShowElevation: jest.fn().mockReturnValue(true),
       getShowRoads: jest.fn().mockReturnValue(true),
+      getShowWater: jest.fn().mockReturnValue(true),
+      getShowLanduse: jest.fn().mockReturnValue(true),
       getEnabledPOICategories: jest.fn().mockReturnValue(["restaurant"]),
       getSpeedUnit: jest.fn().mockReturnValue("kmh"),
       getRenderOptions: jest.fn().mockReturnValue({}),
@@ -294,6 +296,10 @@ describe("RenderingOrchestrator", () => {
       hasRouteCache: jest.fn().mockReturnValue(false),
       prefetchRouteRoads: jest.fn().mockResolvedValue(success(50)),
       getAllCachedRoads: jest.fn().mockReturnValue([]),
+      prefetchRouteWater: jest.fn().mockResolvedValue(success(10)),
+      getAllCachedWater: jest.fn().mockReturnValue([]),
+      prefetchRouteLanduse: jest.fn().mockResolvedValue(success(5)),
+      getAllCachedLanduse: jest.fn().mockReturnValue([]),
     };
   };
 

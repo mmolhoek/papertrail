@@ -131,6 +131,20 @@ export const setShowRoadsSchema = z.object({
 });
 
 /**
+ * Set show water enabled/disabled request
+ */
+export const setShowWaterSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
+ * Set show landuse enabled/disabled request
+ */
+export const setShowLanduseSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Set show speed limit enabled/disabled request
  */
 export const setShowSpeedLimitSchema = z.object({

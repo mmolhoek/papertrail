@@ -141,6 +141,8 @@ describe("DriveCoordinator", () => {
       getShowSpeedLimit: jest.fn().mockReturnValue(true),
       getShowLocationName: jest.fn().mockReturnValue(true),
       getShowRoads: jest.fn().mockReturnValue(true),
+      getShowWater: jest.fn().mockReturnValue(true),
+      getShowLanduse: jest.fn().mockReturnValue(true),
       getEnabledPOICategories: jest.fn().mockReturnValue(["restaurant"]),
       getSpeedUnit: jest.fn().mockReturnValue("kmh"),
       getRoutingProfile: jest.fn().mockReturnValue("car"),
@@ -171,6 +173,8 @@ describe("DriveCoordinator", () => {
 
     mockVectorMapService = {
       getAllCachedRoads: jest.fn().mockReturnValue([]),
+      getAllCachedWater: jest.fn().mockReturnValue([]),
+      getAllCachedLanduse: jest.fn().mockReturnValue([]),
     } as unknown as jest.Mocked<IVectorMapService>;
 
     mockGPSCoordinator = {

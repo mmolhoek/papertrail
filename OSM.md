@@ -3,7 +3,9 @@
 Potential OSM-based features for Papertrail. Each feature includes implementation notes for future development.
 
 ---
+
 general implementation notes:
+
 - always keep test coverage up
 - Keep in mind we have no internet during driving. use data folder/ to prefetch and cache all data
 - All features should be optional and configurable in the display menu
@@ -11,6 +13,7 @@ general implementation notes:
 ## Features
 
 ### OSM-1: Reverse Geocoding
+
 **Status:** Implemented
 **Priority:** High
 **Complexity:** Low
@@ -18,12 +21,14 @@ general implementation notes:
 Display human-readable location names instead of just coordinates.
 
 **Functionality:**
+
 - Show current street/area name on e-paper display (e.g., "Main Street, London")
 - Update location name periodically during navigation
 - Show when entering/leaving towns or regions
 - Log location names in track history
 
 **Implementation:**
+
 - Created `ReverseGeocodingService` using Nominatim API
 - Location names are prefetched along the route when navigation starts (while internet available)
 - Cached in `data/locations/` directory for offline use during driving
@@ -35,6 +40,7 @@ Display human-readable location names instead of just coordinates.
 ---
 
 ### OSM-2: Speed Limit Display
+
 **Status:** Implemented
 **Priority:** High
 **Complexity:** Medium
@@ -42,12 +48,14 @@ Display human-readable location names instead of just coordinates.
 Show speed limits from OSM road data.
 
 **Functionality:**
+
 - Display current road's speed limit on e-paper
 - Visual alert when exceeding limit
 - Show speed limit in drive info panel
 - Handle roads without speed limit data gracefully
 
 **Implementation:**
+
 - Created `SpeedLimitService` using Overpass API to query `maxspeed` tags
 - Speed limits are prefetched along the route when navigation starts (while internet available)
 - Cached in `data/speed-limits/` for offline use during driving
@@ -58,6 +66,7 @@ Show speed limits from OSM road data.
 ---
 
 ### OSM-3: Points of Interest (POI)
+
 **Status:** Implemented
 **Priority:** Medium
 **Complexity:** Medium
@@ -65,6 +74,7 @@ Show speed limits from OSM road data.
 Display nearby amenities during navigation.
 
 **Functionality:**
+
 - Show distance to nearest fuel station
 - Alert when approaching configured POI types
 - Configurable categories: fuel, parking, food, rest areas
@@ -72,6 +82,7 @@ Display nearby amenities during navigation.
 - in track mode show arrow and distance plus code letter for each poi if it is close enought but not visible on the screen yet.
 
 **Implementation:**
+
 - Created `POIService` using Overpass API to query POI amenities
 - POIs are prefetched along the route corridor (2km radius) when navigation starts
 - Cached in `data/poi/` directory for offline use during driving
@@ -81,16 +92,17 @@ Display nearby amenities during navigation.
 - Rate limiting (1.1s between requests) to respect Overpass API terms
 
 **POI categories supported:**
+
 - `amenity=fuel` - (F)uel stations
 - `amenity=parking` - (P)arking areas
 - `amenity=restaurant` / `amenity=cafe` / `amenity=fast_food` - (E)Food
 - `amenity=toilets` - (R)estrooms
 - `tourism=viewpoint` - (V)iewpoints
 
-
 ---
 
 ### OSM-4: Offline Routing
+
 **Status:** Not started
 **Priority:** Medium
 **Complexity:** High
@@ -98,12 +110,14 @@ Display nearby amenities during navigation.
 Run OSRM locally for navigation without internet.
 
 **Functionality:**
+
 - Calculate routes without internet connection
 - Pre-download routing graph for selected regions
 - Same turn-by-turn quality as online routing
 - Region management in web interface
 
 **Implementation notes:**
+
 - Run osrm-backend on Raspberry Pi 5 (has sufficient RAM)
 - Download pre-processed `.osrm` files for regions
 - Storage: ~100MB per small country, 1-2GB for large countries
@@ -114,6 +128,7 @@ Run OSRM locally for navigation without internet.
 ---
 
 ### OSM-5: Alternative Routing Profiles
+
 **Status:** Implemented ✓
 **Priority:** Medium
 **Complexity:** Low
@@ -121,12 +136,14 @@ Run OSRM locally for navigation without internet.
 Support different transport modes beyond car.
 
 **Functionality:**
+
 - Bicycle routing (prefer bike paths, avoid highways)
 - Walking/hiking routing
 - Option to avoid tolls, ferries, motorways
 - Profile selection in web interface
 
 **Implementation:**
+
 - Added `routingProfile` to user display preferences (`car`, `bike`, `foot`)
 - DriveController uses profile from ConfigService when calling OSRM API
 - Uses `routing.openstreetmap.de` which hosts separate OSRM instances per profile:
@@ -143,6 +160,7 @@ Support different transport modes beyond car.
 ---
 
 ### OSM-6: Road Surface Information
+
 **Status:** Not started
 **Priority:** Low
 **Complexity:** Medium
@@ -150,12 +168,14 @@ Support different transport modes beyond car.
 Show road surface type from OSM tags.
 
 **Functionality:**
+
 - Display current surface (paved, gravel, dirt)
 - Warn about upcoming surface changes
 - Useful for cycling and adventure routes
 - Show surface in route preview
 
 **Implementation notes:**
+
 - OSM tags: `surface=asphalt|gravel|dirt|unpaved|paved`
 - Query via Overpass for route corridor
 - Match route geometry to OSM ways
@@ -165,6 +185,7 @@ Show road surface type from OSM tags.
 ---
 
 ### OSM-7: Elevation Profiles
+
 **Status:** Implemented
 **Priority:** Low
 **Complexity:** Medium
@@ -172,12 +193,14 @@ Show road surface type from OSM tags.
 Show elevation data for routes.
 
 **Functionality:**
+
 - Display total climb/descent for route
 - Show gradient of upcoming section
 - Elevation profile visualization in web interface
 - Warn about steep sections
 
 **Implementation:**
+
 - Created `ElevationService` using Open-Elevation API (`https://api.open-elevation.com/api/v1/lookup`)
 - Elevations are prefetched along the route when navigation starts (while internet available)
 - Uses batch queries (up to 100 points per request) for efficient API usage
@@ -192,29 +215,76 @@ Show elevation data for routes.
 ---
 
 ### OSM-8: Offline Vector Maps
-**Status:** Not started
+
+**Status:** Implemented
 **Priority:** Low
 **Complexity:** High
 
 Render actual map backgrounds on e-paper display.
 
 **Functionality:**
+
 - Display roads, water, forests on e-paper
 - High-contrast style optimized for 1-bit display
 - Show street names at intersections
 - Offline map tiles for regions
 
-**Implementation notes:**
-- Download vector tiles (Protomaps PMTiles format)
-- Render with custom 1-bit style (roads black, water pattern, etc.)
-- Significant complexity: tile rendering, text placement
-- Storage: ~50-500MB per region
-- Alternative: pre-render raster tiles at fixed zoom levels
-- May require native rendering library for performance
+**Implementation (Roads - Complete):**
+
+- Created `VectorMapService` using Overpass API to query road geometries
+- Roads are prefetched along route corridor (5km radius) when navigation starts
+- Cached in `data/roads/` directory for offline use during driving
+- Created `RoadRenderer` for rendering roads with varying line widths by type
+- Supports 12 highway types: motorway, trunk, primary, secondary, tertiary, residential, etc.
+- Major roads rendered on top of minor roads (render priority system)
+- Configurable via `showRoads` in user display preferences
+- Rate limiting (1.1s between requests) to respect Overpass API terms
+- Road names are fetched and cached (but not yet rendered on map)
+
+**Implementation (Water - Complete):**
+
+- Extended `VectorMapService` to query water from Overpass API
+- Query `waterway=river|stream|canal`, `natural=water`, `water=lake|pond|reservoir`
+- Created `WaterRenderer` with distinct rendering styles:
+  - Linear features (rivers, streams, canals): rendered as lines with varying widths
+  - Area features (lakes, ponds, reservoirs): filled polygons with 50% dither pattern
+- Cached in `data/water/` for offline use
+- Prefetched along route corridor when navigation starts
+- Configurable via `showWater` in user display preferences
+
+**Implementation (Landuse - Complete):**
+
+- Extended `VectorMapService` to query landuse from Overpass API
+- Query `landuse=forest|meadow|grass|farmland`, `natural=wood`, `leisure=park`
+- Created `LanduseRenderer` with distinct dither patterns for each type:
+  - Forest/Wood: dense dot pattern
+  - Park: medium dot pattern with offset rows
+  - Meadow/Grass: sparse horizontal dash pattern
+  - Farmland: sparse diagonal line pattern
+- Cached in `data/landuse/` for offline use
+- Prefetched along route corridor when navigation starts
+- Configurable via `showLanduse` in user display preferences
+
+**Rendering Layer Order:**
+
+1. Landuse (bottom layer)
+2. Water
+3. Roads
+4. Route (top)
+
+**Implementation (Street Labels - Complete):**
+
+- Created `StreetLabelRenderer` for rendering road names on the map
+- Labels only major roads (tertiary and above) to avoid clutter
+- Finds longest visible segment of each road for label placement
+- Collision detection prevents overlapping labels
+- White background clearing behind text for readability on 1-bit display
+- Truncates long names with ".." suffix
 
 ---
 
 ### OSM-9: Map Matching
+
 **Status:** Not started
 **Priority:** Low
 **Complexity:** Medium
@@ -222,12 +292,14 @@ Render actual map backgrounds on e-paper display.
 Snap GPS traces to actual roads.
 
 **Functionality:**
+
 - Clean recorded tracks by snapping to roads
 - Correct GPS drift and inaccuracies
 - More accurate distance calculations
 - Post-process GPX files
 
 **Implementation notes:**
+
 - OSRM provides map matching: `/match/v1/{profile}/{coordinates}`
 - Process recorded tracks after completion
 - Store both raw and matched tracks

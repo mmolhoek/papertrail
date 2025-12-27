@@ -9,7 +9,7 @@ import {
   DriveRoute,
   DriveWaypoint,
 } from "@core/types";
-import { CachedRoad } from "./IVectorMapService";
+import { CachedRoad, CachedWater, CachedLanduse } from "./IVectorMapService";
 
 /**
  * Follow Track screen info for the split layout display
@@ -254,6 +254,8 @@ export interface ISVGService {
     info: DriveNavigationInfo,
     options?: Partial<RenderOptions>,
     roads?: CachedRoad[],
+    water?: CachedWater[],
+    landuse?: CachedLanduse[],
   ): Promise<Result<Bitmap1Bit>>;
 
   /**

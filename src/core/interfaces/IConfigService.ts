@@ -208,6 +208,30 @@ export interface IConfigService {
   setShowRoads(enabled: boolean): void;
 
   /**
+   * Get show water preference
+   * @returns true if water features should be displayed during drive navigation
+   */
+  getShowWater(): boolean;
+
+  /**
+   * Set show water preference
+   * @param enabled Whether to show water features
+   */
+  setShowWater(enabled: boolean): void;
+
+  /**
+   * Get show landuse preference
+   * @returns true if landuse features should be displayed during drive navigation
+   */
+  getShowLanduse(): boolean;
+
+  /**
+   * Set show landuse preference
+   * @param enabled Whether to show landuse features
+   */
+  setShowLanduse(enabled: boolean): void;
+
+  /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names
    */

@@ -575,6 +575,16 @@ export class WebController {
     return this.config.setShowRoads(req, res);
   }
 
+  /** @see ConfigController.setShowWater */
+  async setShowWater(req: Request, res: Response): Promise<void> {
+    return this.config.setShowWater(req, res);
+  }
+
+  /** @see ConfigController.setShowLanduse */
+  async setShowLanduse(req: Request, res: Response): Promise<void> {
+    return this.config.setShowLanduse(req, res);
+  }
+
   /** @see ConfigController.setShowSpeedLimit */
   async setShowSpeedLimit(req: Request, res: Response): Promise<void> {
     return this.config.setShowSpeedLimit(req, res);

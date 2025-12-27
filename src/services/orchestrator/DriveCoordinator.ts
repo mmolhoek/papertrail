@@ -10,6 +10,8 @@ import {
   DriveNavigationInfo,
   NearbyPOI,
   CachedRoad,
+  CachedWater,
+  CachedLanduse,
   IDisplayService,
 } from "@core/interfaces";
 import {
@@ -83,8 +85,10 @@ export class DriveCoordinator {
   private elevationPrefetchActive: boolean = false;
   private roadPrefetchActive: boolean = false;
 
-  // Cached roads for rendering
+  // Cached map features for rendering
   private cachedRoads: CachedRoad[] = [];
+  private cachedWater: CachedWater[] = [];
+  private cachedLanduse: CachedLanduse[] = [];
 
   constructor(
     private readonly driveNavigationService: IDriveNavigationService | null,
@@ -428,11 +432,13 @@ export class DriveCoordinator {
               rotateWithBearing: this.configService.getRotateWithBearing(),
             };
 
-            // Get roads from vectorMapService cache if available
+            // Get map features from vectorMapService cache if available
             const roads = this.getCurrentRoads();
+            const water = this.getCurrentWater();
+            const landuse = this.getCurrentLanduse();
 
             logger.info(
-              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, ${roads.length} roads, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
+              `Starting map screen render (${status.route.geometry?.length ?? 0} geometry points, ${roads.length} roads, ${water.length} water, ${landuse.length} landuse, rotateWithBearing=${renderOptions.rotateWithBearing})...`,
             );
             renderResult = await this.svgService.renderDriveMapScreen(
               status.route,
@@ -442,6 +448,8 @@ export class DriveCoordinator {
               info,
               renderOptions,
               roads,
+              water,
+              landuse,
             );
             logger.info(
               `Map screen render completed in ${Date.now() - renderStartTime}ms`,
@@ -598,6 +606,36 @@ export class DriveCoordinator {
   }
 
   /**
+   * Set cached water features from VectorMapService prefetch.
+   */
+  setCachedWater(water: CachedWater[]): void {
+    this.cachedWater = water;
+    logger.info(`Cached ${water.length} water features for rendering`);
+  }
+
+  /**
+   * Get cached water features for rendering.
+   */
+  getCachedWater(): CachedWater[] {
+    return this.cachedWater;
+  }
+
+  /**
+   * Set cached landuse features from VectorMapService prefetch.
+   */
+  setCachedLanduse(landuse: CachedLanduse[]): void {
+    this.cachedLanduse = landuse;
+    logger.info(`Cached ${landuse.length} landuse features for rendering`);
+  }
+
+  /**
+   * Get cached landuse features for rendering.
+   */
+  getCachedLanduse(): CachedLanduse[] {
+    return this.cachedLanduse;
+  }
+
+  /**
    * Dispose of resources
    */
   dispose(): void {
@@ -629,6 +667,8 @@ export class DriveCoordinator {
     this.cachedLocationName = null;
     this.lastLocationNamePosition = null;
     this.cachedRoads = [];
+    this.cachedWater = [];
+    this.cachedLanduse = [];
 
     logger.info("✓ DriveCoordinator disposed");
   }
@@ -840,6 +880,50 @@ export class DriveCoordinator {
     // Fall back to vectorMapService's cache if available
     if (this.vectorMapService) {
       return this.vectorMapService.getAllCachedRoads();
+    }
+
+    return [];
+  }
+
+  /**
+   * Get current water features for rendering (from cached data)
+   */
+  private getCurrentWater(): CachedWater[] {
+    // Check if water display is enabled
+    if (!this.configService.getShowWater()) {
+      return [];
+    }
+
+    // First check locally cached water
+    if (this.cachedWater.length > 0) {
+      return this.cachedWater;
+    }
+
+    // Fall back to vectorMapService's cache if available
+    if (this.vectorMapService) {
+      return this.vectorMapService.getAllCachedWater();
+    }
+
+    return [];
+  }
+
+  /**
+   * Get current landuse features for rendering (from cached data)
+   */
+  private getCurrentLanduse(): CachedLanduse[] {
+    // Check if landuse display is enabled
+    if (!this.configService.getShowLanduse()) {
+      return [];
+    }
+
+    // First check locally cached landuse
+    if (this.cachedLanduse.length > 0) {
+      return this.cachedLanduse;
+    }
+
+    // Fall back to vectorMapService's cache if available
+    if (this.vectorMapService) {
+      return this.vectorMapService.getAllCachedLanduse();
     }
 
     return [];

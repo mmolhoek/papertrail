@@ -3,6 +3,8 @@ import {
   FollowTrackInfo,
   DriveNavigationInfo,
   CachedRoad,
+  CachedWater,
+  CachedLanduse,
 } from "@core/interfaces";
 import {
   Result,
@@ -31,6 +33,9 @@ import { TrackRenderer } from "./TrackRenderer";
 import { UIRenderer } from "./UIRenderer";
 import { ManeuverRenderer } from "./ManeuverRenderer";
 import { RoadRenderer } from "./RoadRenderer";
+import { WaterRenderer } from "./WaterRenderer";
+import { LanduseRenderer } from "./LanduseRenderer";
+import { StreetLabelRenderer } from "./StreetLabelRenderer";
 
 const logger = getLogger("SVGService");
 
@@ -889,6 +894,8 @@ export class SVGService implements ISVGService {
     info: DriveNavigationInfo,
     options?: Partial<RenderOptions>,
     roads?: CachedRoad[],
+    water?: CachedWater[],
+    landuse?: CachedLanduse[],
   ): Promise<Result<Bitmap1Bit>> {
     const methodStart = Date.now();
     logger.info("renderDriveMapScreen: starting...");
@@ -914,7 +921,37 @@ export class SVGService implements ISVGService {
         centerPoint: currentPosition,
       };
 
-      // Render roads as background layer (before route)
+      // Render background layers in order: landuse (bottom), water, roads (top)
+
+      // 1. Render landuse as bottom layer (forests, parks, etc.)
+      if (landuse && landuse.length > 0) {
+        const landuseRendered = LanduseRenderer.renderLanduse(
+          bitmap,
+          landuse,
+          mapViewport,
+          renderOpts.rotateWithBearing ?? false,
+          mapWidth,
+        );
+        logger.info(
+          `renderDriveMapScreen: rendered ${landuseRendered} landuse features (${Date.now() - methodStart}ms)`,
+        );
+      }
+
+      // 2. Render water features (rivers, lakes)
+      if (water && water.length > 0) {
+        const waterRendered = WaterRenderer.renderWater(
+          bitmap,
+          water,
+          mapViewport,
+          renderOpts.rotateWithBearing ?? false,
+          mapWidth,
+        );
+        logger.info(
+          `renderDriveMapScreen: rendered ${waterRendered} water features (${Date.now() - methodStart}ms)`,
+        );
+      }
+
+      // 3. Render roads as background layer (before route)
       if (roads && roads.length > 0) {
         const roadsRendered = RoadRenderer.renderRoads(
           bitmap,
@@ -926,6 +963,20 @@ export class SVGService implements ISVGService {
         logger.info(
           `renderDriveMapScreen: rendered ${roadsRendered} roads as background (${Date.now() - methodStart}ms)`,
         );
+
+        // 4. Render street name labels on major roads
+        const labelsRendered = StreetLabelRenderer.renderLabels(
+          bitmap,
+          roads,
+          mapViewport,
+          renderOpts.rotateWithBearing ?? false,
+          mapWidth,
+        );
+        if (labelsRendered > 0) {
+          logger.info(
+            `renderDriveMapScreen: rendered ${labelsRendered} street labels (${Date.now() - methodStart}ms)`,
+          );
+        }
       }
 
       // Draw route line using geometry via TrackRenderer

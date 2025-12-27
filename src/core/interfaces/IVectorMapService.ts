@@ -1,6 +1,59 @@
 import { Result, DriveRoute } from "@core/types";
 
 /**
+ * OSM Water types supported for rendering
+ */
+export type WaterType =
+  | "river"
+  | "stream"
+  | "canal"
+  | "lake"
+  | "pond"
+  | "reservoir"
+  | "water";
+
+/**
+ * OSM Landuse/natural types supported for rendering
+ */
+export type LanduseType =
+  | "forest"
+  | "wood"
+  | "park"
+  | "meadow"
+  | "grass"
+  | "farmland";
+
+/**
+ * Cached water feature for offline rendering
+ */
+export interface CachedWater {
+  /** OSM element ID */
+  id: number;
+  /** Water type for styling */
+  waterType: WaterType;
+  /** Feature name (optional) */
+  name?: string;
+  /** Whether this is an area (polygon) or linear (river/stream) */
+  isArea: boolean;
+  /** Geometry as array of [latitude, longitude] pairs */
+  geometry: [number, number][];
+}
+
+/**
+ * Cached landuse feature for offline rendering
+ */
+export interface CachedLanduse {
+  /** OSM element ID */
+  id: number;
+  /** Landuse type for styling */
+  landuseType: LanduseType;
+  /** Feature name (optional) */
+  name?: string;
+  /** Geometry as array of [latitude, longitude] pairs (polygon) */
+  geometry: [number, number][];
+}
+
+/**
  * OSM Highway types supported for rendering
  */
 export type HighwayType =
@@ -148,6 +201,40 @@ export interface IVectorMapService {
    * Clear all cached road data
    */
   clearAllCache(): Promise<Result<void>>;
+
+  /**
+   * Get all cached water features
+   * @returns Array of all cached water features
+   */
+  getAllCachedWater(): CachedWater[];
+
+  /**
+   * Get all cached landuse features
+   * @returns Array of all cached landuse features
+   */
+  getAllCachedLanduse(): CachedLanduse[];
+
+  /**
+   * Prefetch water features along a route corridor for offline use
+   * @param route The drive route to prefetch water for
+   * @param corridorRadiusMeters Radius around route to fetch (default 5000m)
+   * @returns Result with number of water features cached
+   */
+  prefetchRouteWater(
+    route: DriveRoute,
+    corridorRadiusMeters?: number,
+  ): Promise<Result<number>>;
+
+  /**
+   * Prefetch landuse features along a route corridor for offline use
+   * @param route The drive route to prefetch landuse for
+   * @param corridorRadiusMeters Radius around route to fetch (default 5000m)
+   * @returns Result with number of landuse features cached
+   */
+  prefetchRouteLanduse(
+    route: DriveRoute,
+    corridorRadiusMeters?: number,
+  ): Promise<Result<number>>;
 
   /**
    * Clean up resources

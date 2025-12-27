@@ -415,6 +415,22 @@ class PapertrailClient {
       });
     }
 
+    // Show water toggle
+    const showWaterToggle = document.getElementById("show-water");
+    if (showWaterToggle) {
+      showWaterToggle.addEventListener("change", (e) => {
+        this.setShowWater(e.target.checked);
+      });
+    }
+
+    // Show landuse toggle
+    const showLanduseToggle = document.getElementById("show-landuse");
+    if (showLanduseToggle) {
+      showLanduseToggle.addEventListener("change", (e) => {
+        this.setShowLanduse(e.target.checked);
+      });
+    }
+
     // Show speed limit toggle
     const showSpeedLimitToggle = document.getElementById("show-speed-limit");
     if (showSpeedLimitToggle) {
@@ -759,6 +775,22 @@ class PapertrailClient {
       const checkbox = document.getElementById("show-roads");
       if (checkbox) {
         checkbox.checked = settings.showRoads;
+      }
+    }
+
+    // Update show water toggle
+    if (settings.showWater !== undefined) {
+      const checkbox = document.getElementById("show-water");
+      if (checkbox) {
+        checkbox.checked = settings.showWater;
+      }
+    }
+
+    // Update show landuse toggle
+    if (settings.showLanduse !== undefined) {
+      const checkbox = document.getElementById("show-landuse");
+      if (checkbox) {
+        checkbox.checked = settings.showLanduse;
       }
     }
 
@@ -1211,6 +1243,58 @@ class PapertrailClient {
       this.showMessage("Failed to change roads setting", "error");
       // Revert the checkbox
       const checkbox = document.getElementById("show-roads");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show water enabled/disabled
+  async setShowWater(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-water`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Water layer ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set water setting");
+      }
+    } catch (error) {
+      console.error("Failed to set water setting:", error);
+      this.showMessage("Failed to change water setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-water");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show landuse enabled/disabled
+  async setShowLanduse(enabled) {
+    try {
+      const response = await fetch(`${this.apiBase}/config/show-landuse`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+
+      if (response.ok) {
+        this.showMessage(
+          `Landuse layer ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set landuse setting");
+      }
+    } catch (error) {
+      console.error("Failed to set landuse setting:", error);
+      this.showMessage("Failed to change landuse setting", "error");
+      // Revert the checkbox
+      const checkbox = document.getElementById("show-landuse");
       if (checkbox) checkbox.checked = !enabled;
     }
   }

@@ -108,8 +108,8 @@ describe("VectorMapService", () => {
       const result = await service.initialize();
 
       expect(result.success).toBe(true);
-      // mkdir should only have been called once during beforeEach
-      expect(mockedFs.mkdir).toHaveBeenCalledTimes(1);
+      // mkdir should have been called 3 times during beforeEach (roads, water, landuse)
+      expect(mockedFs.mkdir).toHaveBeenCalledTimes(3);
     });
 
     it("should load existing cached routes on initialization", async () => {
@@ -437,7 +437,8 @@ describe("VectorMapService", () => {
 
       expect(result.success).toBe(true);
       expect(service.getAllCachedRoads()).toEqual([]);
-      expect(mockedFs.unlink).toHaveBeenCalledTimes(2);
+      // 2 files × 3 directories (roads, water, landuse) = 6 unlink calls
+      expect(mockedFs.unlink).toHaveBeenCalledTimes(6);
     });
 
     it("should handle errors when clearing cache", async () => {

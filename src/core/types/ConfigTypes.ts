@@ -201,6 +201,12 @@ export type UserState = {
     /** Whether to show road layer during drive navigation */
     showRoads?: boolean;
 
+    /** Whether to show water features during drive navigation */
+    showWater?: boolean;
+
+    /** Whether to show landuse features during drive navigation */
+    showLanduse?: boolean;
+
     /** Enabled POI categories for display during navigation */
     enabledPOICategories?: Array<
       "fuel" | "charging" | "parking" | "food" | "restroom" | "viewpoint"

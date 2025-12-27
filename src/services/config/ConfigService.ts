@@ -236,6 +236,26 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showRoads = enabled;
   }
 
+  // Water layer display
+
+  getShowWater(): boolean {
+    return this.userState.displayPreferences.showWater ?? true;
+  }
+
+  setShowWater(enabled: boolean): void {
+    this.userState.displayPreferences.showWater = enabled;
+  }
+
+  // Landuse layer display
+
+  getShowLanduse(): boolean {
+    return this.userState.displayPreferences.showLanduse ?? true;
+  }
+
+  setShowLanduse(enabled: boolean): void {
+    this.userState.displayPreferences.showLanduse = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<
@@ -642,6 +662,8 @@ export class ConfigService implements IConfigService {
         showLocationName: true,
         showElevation: true,
         showRoads: true,
+        showWater: true,
+        showLanduse: true,
         routingProfile: "car",
       },
       recentFiles: [],
