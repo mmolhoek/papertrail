@@ -210,6 +210,7 @@ describe("Drive Navigation Flow Integration", () => {
       getShowElevation: jest.fn().mockReturnValue(true),
       getShowRoads: jest.fn().mockReturnValue(true),
       getShowWater: jest.fn().mockReturnValue(true),
+      getShowWaterways: jest.fn().mockReturnValue(true),
       getShowLanduse: jest.fn().mockReturnValue(true),
       getEnabledPOICategories: jest
         .fn()

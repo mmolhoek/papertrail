@@ -38,6 +38,7 @@ import {
   setShowLocationNameSchema,
   setShowRoadsSchema,
   setShowWaterSchema,
+  setShowWaterwaysSchema,
   setShowLanduseSchema,
   setShowSpeedLimitSchema,
   setShowElevationSchema,
@@ -525,6 +526,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-water`,
       validateBody(setShowWaterSchema),
       (req, res) => this.controller.setShowWater(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-waterways`,
+      validateBody(setShowWaterwaysSchema),
+      (req, res) => this.controller.setShowWaterways(req, res),
     );
 
     this.app.post(

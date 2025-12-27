@@ -201,8 +201,11 @@ export type UserState = {
     /** Whether to show road layer during drive navigation */
     showRoads?: boolean;
 
-    /** Whether to show water features during drive navigation */
+    /** Whether to show water bodies (lakes, ponds, reservoirs) during drive navigation */
     showWater?: boolean;
+
+    /** Whether to show waterways (rivers, streams, canals) during drive navigation */
+    showWaterways?: boolean;
 
     /** Whether to show landuse features during drive navigation */
     showLanduse?: boolean;

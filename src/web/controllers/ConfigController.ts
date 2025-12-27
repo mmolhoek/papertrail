@@ -53,6 +53,7 @@ export class ConfigController {
         showLocationName: this.configService.getShowLocationName(),
         showRoads: this.configService.getShowRoads(),
         showWater: this.configService.getShowWater(),
+        showWaterways: this.configService.getShowWaterways(),
         showLanduse: this.configService.getShowLanduse(),
         showSpeedLimit: this.configService.getShowSpeedLimit(),
         showElevation: this.configService.getShowElevation(),
@@ -544,7 +545,49 @@ export class ConfigController {
     logger.info(`Show water ${enabled ? "enabled" : "disabled"}`);
     res.json({
       success: true,
-      message: `Water layer ${enabled ? "enabled" : "disabled"}`,
+      message: `Water bodies layer ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show waterways enabled/disabled (rivers, streams, canals)
+   */
+  async setShowWaterways(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn("Set show waterways called with invalid enabled parameter");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show waterways to: ${enabled}`);
+    this.configService.setShowWaterways(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show waterways ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Waterways layer ${enabled ? "enabled" : "disabled"}`,
     });
   }
 

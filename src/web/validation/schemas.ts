@@ -131,9 +131,16 @@ export const setShowRoadsSchema = z.object({
 });
 
 /**
- * Set show water enabled/disabled request
+ * Set show water bodies enabled/disabled request (lakes, ponds, reservoirs)
  */
 export const setShowWaterSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
+ * Set show waterways enabled/disabled request (rivers, streams, canals)
+ */
+export const setShowWaterwaysSchema = z.object({
   enabled: z.boolean({ message: "enabled must be a boolean" }),
 });
 

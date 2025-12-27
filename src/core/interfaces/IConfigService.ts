@@ -208,16 +208,28 @@ export interface IConfigService {
   setShowRoads(enabled: boolean): void;
 
   /**
-   * Get show water preference
-   * @returns true if water features should be displayed during drive navigation
+   * Get show water bodies preference (lakes, ponds, reservoirs)
+   * @returns true if water bodies should be displayed during drive navigation
    */
   getShowWater(): boolean;
 
   /**
-   * Set show water preference
-   * @param enabled Whether to show water features
+   * Set show water bodies preference
+   * @param enabled Whether to show water bodies
    */
   setShowWater(enabled: boolean): void;
+
+  /**
+   * Get show waterways preference (rivers, streams, canals)
+   * @returns true if waterways should be displayed during drive navigation
+   */
+  getShowWaterways(): boolean;
+
+  /**
+   * Set show waterways preference
+   * @param enabled Whether to show waterways
+   */
+  setShowWaterways(enabled: boolean): void;
 
   /**
    * Get show landuse preference

@@ -381,6 +381,8 @@ function createMockConfigService(): IConfigService {
     setShowRoads: jest.fn(),
     getShowWater: jest.fn().mockReturnValue(true),
     setShowWater: jest.fn(),
+    getShowWaterways: jest.fn().mockReturnValue(true),
+    setShowWaterways: jest.fn(),
     getShowLanduse: jest.fn().mockReturnValue(true),
     setShowLanduse: jest.fn(),
     getShowRoadSurface: jest.fn().mockReturnValue(false),

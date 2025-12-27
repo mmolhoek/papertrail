@@ -236,7 +236,7 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showRoads = enabled;
   }
 
-  // Water layer display
+  // Water bodies layer display (lakes, ponds, reservoirs)
 
   getShowWater(): boolean {
     return this.userState.displayPreferences.showWater ?? true;
@@ -244,6 +244,16 @@ export class ConfigService implements IConfigService {
 
   setShowWater(enabled: boolean): void {
     this.userState.displayPreferences.showWater = enabled;
+  }
+
+  // Waterways layer display (rivers, streams, canals)
+
+  getShowWaterways(): boolean {
+    return this.userState.displayPreferences.showWaterways ?? true;
+  }
+
+  setShowWaterways(enabled: boolean): void {
+    this.userState.displayPreferences.showWaterways = enabled;
   }
 
   // Landuse layer display
@@ -673,6 +683,7 @@ export class ConfigService implements IConfigService {
         showElevation: true,
         showRoads: true,
         showWater: true,
+        showWaterways: true,
         showLanduse: true,
         routingProfile: "car",
       },

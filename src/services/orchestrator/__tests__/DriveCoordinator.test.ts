@@ -142,6 +142,7 @@ describe("DriveCoordinator", () => {
       getShowLocationName: jest.fn().mockReturnValue(true),
       getShowRoads: jest.fn().mockReturnValue(true),
       getShowWater: jest.fn().mockReturnValue(true),
+      getShowWaterways: jest.fn().mockReturnValue(true),
       getShowLanduse: jest.fn().mockReturnValue(true),
       getEnabledPOICategories: jest.fn().mockReturnValue(["restaurant"]),
       getSpeedUnit: jest.fn().mockReturnValue("kmh"),

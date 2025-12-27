@@ -910,24 +910,42 @@ export class DriveCoordinator {
 
   /**
    * Get current water features for rendering (from cached data)
+   * Filters based on showWater (lakes/ponds) and showWaterways (rivers/streams) settings
    */
   private getCurrentWater(): CachedWater[] {
-    // Check if water display is enabled
-    if (!this.configService.getShowWater()) {
+    const showWaterBodies = this.configService.getShowWater();
+    const showWaterways = this.configService.getShowWaterways();
+
+    // If neither is enabled, return empty
+    if (!showWaterBodies && !showWaterways) {
       return [];
     }
 
-    // First check locally cached water
+    // Get all water features
+    let water: CachedWater[];
     if (this.cachedWater.length > 0) {
-      return this.cachedWater;
+      water = this.cachedWater;
+    } else if (this.vectorMapService) {
+      water = this.vectorMapService.getAllCachedWater();
+    } else {
+      return [];
     }
 
-    // Fall back to vectorMapService's cache if available
-    if (this.vectorMapService) {
-      return this.vectorMapService.getAllCachedWater();
+    // If both are enabled, return all
+    if (showWaterBodies && showWaterways) {
+      return water;
     }
 
-    return [];
+    // Filter based on settings:
+    // - isArea=true: water bodies (lakes, ponds, reservoirs) - controlled by showWater
+    // - isArea=false: waterways (rivers, streams, canals) - controlled by showWaterways
+    return water.filter((w) => {
+      if (w.isArea) {
+        return showWaterBodies;
+      } else {
+        return showWaterways;
+      }
+    });
   }
 
   /**

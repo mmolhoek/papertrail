@@ -592,6 +592,11 @@ export class WebController {
     return this.config.setShowWater(req, res);
   }
 
+  /** @see ConfigController.setShowWaterways */
+  async setShowWaterways(req: Request, res: Response): Promise<void> {
+    return this.config.setShowWaterways(req, res);
+  }
+
   /** @see ConfigController.setShowLanduse */
   async setShowLanduse(req: Request, res: Response): Promise<void> {
     return this.config.setShowLanduse(req, res);
