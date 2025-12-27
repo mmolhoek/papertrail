@@ -332,10 +332,10 @@ Snap GPS traces to actual roads using OSRM's map matching API.
 5. ~~**OSM-7: Elevation**~~ ✓ Implemented
 6. ~~**OSM-9: Map Matching**~~ ✓ Implemented
 7. ~~**OSM-8: Vector Maps**~~ ✓ Implemented
+8. ~~**OSM-6: Road Surface**~~ ✓ Implemented
 
 **Remaining:**
 - **OSM-4: Offline Routing** - Run OSRM locally
-- **OSM-6: Road Surface Information** - Show road surface type
 
 ---
 
