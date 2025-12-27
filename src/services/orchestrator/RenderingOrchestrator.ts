@@ -13,12 +13,14 @@ import {
   IReverseGeocodingService,
   IElevationService,
   IVectorMapService,
+  IRoadSurfaceService,
   SpeedLimitPrefetchProgress,
   POIPrefetchProgress,
   ALL_POI_CATEGORIES,
   LocationPrefetchProgress,
   ElevationPrefetchProgress,
   RoadPrefetchProgress,
+  RoadSurfacePrefetchProgress,
   IDisplayService,
   isEpaperService,
 } from "@core/interfaces";
@@ -104,6 +106,9 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
   private roadPrefetchCallbacks: Array<
     (progress: RoadPrefetchProgress) => void
   > = [];
+  private roadSurfacePrefetchCallbacks: Array<
+    (progress: RoadSurfacePrefetchProgress) => void
+  > = [];
 
   // GPS coordinator (handles GPS subscriptions, callbacks, and position/status storage)
   private gpsCoordinator: GPSCoordinator | null = null;
@@ -138,6 +143,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
     private readonly reverseGeocodingService?: IReverseGeocodingService,
     private readonly elevationService?: IElevationService,
     private readonly vectorMapService?: IVectorMapService,
+    private readonly roadSurfaceService?: IRoadSurfaceService,
     private readonly gpsDebounceConfig?: Partial<GPSDebounceConfig>,
   ) {
     // Initialize onboarding coordinator
@@ -178,6 +184,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       poiService ?? null,
       reverseGeocodingService ?? null,
       vectorMapService ?? null,
+      roadSurfaceService ?? null,
       this.gpsCoordinator,
       this.onboardingCoordinator,
     );
@@ -720,6 +727,41 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         });
     }
 
+    // Prefetch road surface data along the route in the background (while internet is available)
+    // Skip if already cached for this route
+    if (this.roadSurfaceService && this.configService.getShowRoadSurface()) {
+      if (this.roadSurfaceService.hasRouteCache(route.id)) {
+        logger.info(
+          `Road surfaces already cached for route ${route.id}, skipping prefetch`,
+        );
+      } else {
+        logger.info("Starting road surface prefetch for route");
+        // Mark prefetch as active
+        this.driveCoordinator?.setRoadSurfacePrefetchActive(true);
+        // Run in background - don't block navigation start
+        this.roadSurfaceService
+          .prefetchRouteSurfaces(route.geometry, route.id, (progress) => {
+            this.notifyRoadSurfacePrefetchProgress(progress);
+          })
+          .then((result) => {
+            // Mark prefetch as complete
+            this.driveCoordinator?.setRoadSurfacePrefetchActive(false);
+            if (result.success) {
+              logger.info("Road surface prefetch complete");
+            } else {
+              logger.warn(
+                "Failed to prefetch road surfaces:",
+                result.error?.message,
+              );
+            }
+          })
+          .catch(() => {
+            // Mark prefetch as complete even on error
+            this.driveCoordinator?.setRoadSurfacePrefetchActive(false);
+          });
+      }
+    }
+
     return this.driveCoordinator.startDriveNavigation(route);
   }
 
@@ -1178,6 +1220,42 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
         callback(progress);
       } catch (error) {
         logger.error("Error in road prefetch progress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Register a callback for road surface prefetch progress updates.
+   *
+   * @param callback - Function called with prefetch progress data
+   * @returns Unsubscribe function to remove the callback
+   */
+  onRoadSurfacePrefetchProgress(
+    callback: (progress: RoadSurfacePrefetchProgress) => void,
+  ): () => void {
+    this.roadSurfacePrefetchCallbacks.push(callback);
+    return () => {
+      const index = this.roadSurfacePrefetchCallbacks.indexOf(callback);
+      if (index > -1) {
+        this.roadSurfacePrefetchCallbacks.splice(index, 1);
+      }
+    };
+  }
+
+  /**
+   * Notify all road surface prefetch progress callbacks
+   */
+  private notifyRoadSurfacePrefetchProgress(
+    progress: RoadSurfacePrefetchProgress,
+  ): void {
+    for (const callback of this.roadSurfacePrefetchCallbacks) {
+      try {
+        callback(progress);
+      } catch (error) {
+        logger.error(
+          "Error in road surface prefetch progress callback:",
+          error,
+        );
       }
     }
   }

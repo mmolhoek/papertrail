@@ -607,6 +607,11 @@ export class WebController {
     return this.config.setShowElevation(req, res);
   }
 
+  /** @see ConfigController.setShowRoadSurface */
+  async setShowRoadSurface(req: Request, res: Response): Promise<void> {
+    return this.config.setShowRoadSurface(req, res);
+  }
+
   /** @see ConfigController.setRoutingProfile */
   async setRoutingProfile(req: Request, res: Response): Promise<void> {
     return this.config.setRoutingProfile(req, res);

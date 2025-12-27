@@ -312,6 +312,7 @@ function createMockOrchestrator(): IRenderingOrchestrator {
     onPOIPrefetchProgress: jest.fn().mockReturnValue(() => {}),
     onLocationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
     onElevationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
+    onRoadSurfacePrefetchProgress: jest.fn().mockReturnValue(() => {}),
     refreshRoutePOIs: jest.fn().mockResolvedValue(success(undefined)),
     clearAllPOICache: jest.fn().mockResolvedValue(success(undefined)),
     getMockDisplayImage: jest.fn().mockReturnValue(null),
@@ -382,6 +383,8 @@ function createMockConfigService(): IConfigService {
     setShowWater: jest.fn(),
     getShowLanduse: jest.fn().mockReturnValue(true),
     setShowLanduse: jest.fn(),
+    getShowRoadSurface: jest.fn().mockReturnValue(false),
+    setShowRoadSurface: jest.fn(),
     getEnabledPOICategories: jest
       .fn()
       .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),

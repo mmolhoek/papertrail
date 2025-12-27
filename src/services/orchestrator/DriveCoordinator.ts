@@ -7,6 +7,8 @@ import {
   IPOIService,
   IReverseGeocodingService,
   IVectorMapService,
+  IRoadSurfaceService,
+  RoadSurfaceType,
   DriveNavigationInfo,
   NearbyPOI,
   CachedRoad,
@@ -84,6 +86,11 @@ export class DriveCoordinator {
   private locationPrefetchActive: boolean = false;
   private elevationPrefetchActive: boolean = false;
   private roadPrefetchActive: boolean = false;
+  private roadSurfacePrefetchActive: boolean = false;
+
+  // Cached road surface data
+  private cachedRoadSurface: RoadSurfaceType | null = null;
+  private lastRoadSurfacePosition: { lat: number; lon: number } | null = null;
 
   // Cached map features for rendering
   private cachedRoads: CachedRoad[] = [];
@@ -100,6 +107,7 @@ export class DriveCoordinator {
     private readonly poiService: IPOIService | null,
     private readonly reverseGeocodingService: IReverseGeocodingService | null,
     private readonly vectorMapService: IVectorMapService | null,
+    private readonly roadSurfaceService: IRoadSurfaceService | null,
     private gpsCoordinator: GPSCoordinator | null,
     private onboardingCoordinator: OnboardingCoordinator | null,
   ) {}
@@ -392,6 +400,9 @@ export class DriveCoordinator {
             const locationName =
               await this.getCurrentLocationName(lastPosition);
 
+            // Get current road surface (async but cached)
+            const roadSurface = await this.getCurrentRoadSurface(lastPosition);
+
             // Push speed limit to simulation service to adjust simulation speed
             if (this.simulationService?.isSimulating()) {
               this.simulationService.setCurrentSpeedLimit(speedLimit);
@@ -425,6 +436,7 @@ export class DriveCoordinator {
                 bearing: poi.bearing,
               })),
               isBackgroundFetching: this.isBackgroundFetchActive(),
+              roadSurface: roadSurface ?? undefined,
             };
 
             const renderOptions = {
@@ -570,7 +582,7 @@ export class DriveCoordinator {
   }
 
   /**
-   * Check if any background fetch is active (POI, speed limit, location, elevation, or roads).
+   * Check if any background fetch is active (POI, speed limit, location, elevation, roads, or road surfaces).
    */
   isBackgroundFetchActive(): boolean {
     return (
@@ -578,7 +590,8 @@ export class DriveCoordinator {
       this.speedLimitPrefetchActive ||
       this.locationPrefetchActive ||
       this.elevationPrefetchActive ||
-      this.roadPrefetchActive
+      this.roadPrefetchActive ||
+      this.roadSurfacePrefetchActive
     );
   }
 
@@ -588,6 +601,14 @@ export class DriveCoordinator {
   setRoadPrefetchActive(active: boolean): void {
     this.roadPrefetchActive = active;
     logger.debug(`Road prefetch active: ${active}`);
+  }
+
+  /**
+   * Set road surface prefetch active state.
+   */
+  setRoadSurfacePrefetchActive(active: boolean): void {
+    this.roadSurfacePrefetchActive = active;
+    logger.debug(`Road surface prefetch active: ${active}`);
   }
 
   /**
@@ -666,6 +687,8 @@ export class DriveCoordinator {
     this.lastPOIPosition = null;
     this.cachedLocationName = null;
     this.lastLocationNamePosition = null;
+    this.cachedRoadSurface = null;
+    this.lastRoadSurfacePosition = null;
     this.cachedRoads = [];
     this.cachedWater = [];
     this.cachedLanduse = [];
@@ -974,5 +997,49 @@ export class DriveCoordinator {
     }
 
     return this.cachedLocationName;
+  }
+
+  /**
+   * Get current road surface for position (uses cache to avoid excessive lookups)
+   */
+  private async getCurrentRoadSurface(
+    position: GPSCoordinate,
+  ): Promise<RoadSurfaceType | null> {
+    // Check if road surface display is enabled
+    if (!this.configService.getShowRoadSurface()) {
+      return null;
+    }
+
+    if (!this.roadSurfaceService) {
+      return null;
+    }
+
+    // Check if we should update the cache (moved significantly)
+    const shouldUpdate =
+      !this.lastRoadSurfacePosition ||
+      Math.abs(position.latitude - this.lastRoadSurfacePosition.lat) > 0.0005 || // ~50m
+      Math.abs(position.longitude - this.lastRoadSurfacePosition.lon) > 0.0005;
+
+    if (shouldUpdate) {
+      try {
+        const result =
+          await this.roadSurfaceService.getCurrentSurface(position);
+        if (result.success && result.data) {
+          this.cachedRoadSurface = result.data;
+          logger.debug(`Road surface updated: ${this.cachedRoadSurface}`);
+        } else {
+          // Keep previous value if no new data found
+          logger.debug("No road surface data found for position");
+        }
+        this.lastRoadSurfacePosition = {
+          lat: position.latitude,
+          lon: position.longitude,
+        };
+      } catch (error) {
+        logger.warn("Failed to fetch road surface:", error);
+      }
+    }
+
+    return this.cachedRoadSurface;
   }
 }

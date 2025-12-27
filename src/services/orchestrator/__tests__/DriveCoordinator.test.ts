@@ -148,6 +148,7 @@ describe("DriveCoordinator", () => {
       getRoutingProfile: jest.fn().mockReturnValue("car"),
       getRenderOptions: jest.fn().mockReturnValue({}),
       getRotateWithBearing: jest.fn().mockReturnValue(false),
+      getShowRoadSurface: jest.fn().mockReturnValue(false),
     } as unknown as jest.Mocked<IConfigService>;
 
     mockSimulationService = {
@@ -201,6 +202,7 @@ describe("DriveCoordinator", () => {
       mockPOIService,
       mockReverseGeocodingService,
       mockVectorMapService,
+      null, // roadSurfaceService
       mockGPSCoordinator,
       mockOnboardingCoordinator,
     );
@@ -331,6 +333,7 @@ describe("DriveCoordinator", () => {
         mockPOIService,
         mockReverseGeocodingService,
         mockVectorMapService,
+        null, // roadSurfaceService
         mockGPSCoordinator,
         mockOnboardingCoordinator,
       );
@@ -375,6 +378,7 @@ describe("DriveCoordinator", () => {
         mockPOIService,
         mockReverseGeocodingService,
         mockVectorMapService,
+        null, // roadSurfaceService
         mockGPSCoordinator,
         mockOnboardingCoordinator,
       );
@@ -409,6 +413,7 @@ describe("DriveCoordinator", () => {
         mockPOIService,
         mockReverseGeocodingService,
         mockVectorMapService,
+        null, // roadSurfaceService
         mockGPSCoordinator,
         mockOnboardingCoordinator,
       );
@@ -484,6 +489,7 @@ describe("DriveCoordinator", () => {
         mockPOIService,
         mockReverseGeocodingService,
         mockVectorMapService,
+        null, // roadSurfaceService
         mockGPSCoordinator,
         mockOnboardingCoordinator,
       );
@@ -640,6 +646,7 @@ describe("DriveCoordinator", () => {
         mockPOIService,
         mockReverseGeocodingService,
         mockVectorMapService,
+        null, // roadSurfaceService
         mockGPSCoordinator,
         mockOnboardingCoordinator,
       );

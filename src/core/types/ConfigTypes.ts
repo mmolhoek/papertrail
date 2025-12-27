@@ -214,6 +214,9 @@ export type UserState = {
 
     /** Routing profile for OSRM route calculation: car, bike, or foot */
     routingProfile?: "car" | "bike" | "foot";
+
+    /** Whether to show road surface during drive navigation */
+    showRoadSurface?: boolean;
   };
 
   /** Recently used GPX files */

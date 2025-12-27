@@ -256,6 +256,16 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showLanduse = enabled;
   }
 
+  // Road surface display
+
+  getShowRoadSurface(): boolean {
+    return this.userState.displayPreferences.showRoadSurface ?? false;
+  }
+
+  setShowRoadSurface(enabled: boolean): void {
+    this.userState.displayPreferences.showRoadSurface = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<

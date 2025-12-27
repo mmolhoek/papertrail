@@ -674,6 +674,50 @@ export class ConfigController {
     });
   }
 
+  /**
+   * Set show road surface enabled/disabled
+   */
+  async setShowRoadSurface(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      logger.warn(
+        "Set show road surface called with invalid enabled parameter",
+      );
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show road surface to: ${enabled}`);
+    this.configService.setShowRoadSurface(enabled);
+
+    // Save the setting to persist it
+    await this.configService.save();
+
+    logger.info(`Show road surface ${enabled ? "enabled" : "disabled"}`);
+    res.json({
+      success: true,
+      message: `Road surface display ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
   // Recent Destinations Endpoints
 
   /**

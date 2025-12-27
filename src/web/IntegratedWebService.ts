@@ -41,6 +41,7 @@ import {
   setShowLanduseSchema,
   setShowSpeedLimitSchema,
   setShowElevationSchema,
+  setShowRoadSurfaceSchema,
   setRoutingProfileSchema,
   addRecentDestinationSchema,
   removeRecentDestinationSchema,
@@ -89,6 +90,7 @@ export class IntegratedWebService implements IWebInterfaceService {
   private poiPrefetchUnsubscribe: (() => void) | null = null;
   private locationPrefetchUnsubscribe: (() => void) | null = null;
   private elevationPrefetchUnsubscribe: (() => void) | null = null;
+  private roadSurfacePrefetchUnsubscribe: (() => void) | null = null;
   private latestGPSStatus: {
     fixQuality: number;
     satellitesInUse: number;
@@ -541,6 +543,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/show-elevation`,
       validateBody(setShowElevationSchema),
       (req, res) => this.controller.setShowElevation(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-road-surface`,
+      validateBody(setShowRoadSurfaceSchema),
+      (req, res) => this.controller.setShowRoadSurface(req, res),
     );
 
     this.app.post(
@@ -1030,6 +1038,20 @@ export class IntegratedWebService implements IWebInterfaceService {
           complete: progress.complete,
         });
       });
+
+    // Subscribe to road surface prefetch progress updates
+    this.roadSurfacePrefetchUnsubscribe =
+      this.orchestrator.onRoadSurfacePrefetchProgress((progress) => {
+        logger.debug(
+          `Road surface prefetch progress: ${progress.current}/${progress.total} (${progress.segmentsFound} segments)`,
+        );
+        this.broadcast("roadsurface:prefetch", {
+          current: progress.current,
+          total: progress.total,
+          segmentsFound: progress.segmentsFound,
+          complete: progress.complete,
+        });
+      });
   }
 
   /**
@@ -1094,6 +1116,11 @@ export class IntegratedWebService implements IWebInterfaceService {
     if (this.elevationPrefetchUnsubscribe) {
       this.elevationPrefetchUnsubscribe();
       this.elevationPrefetchUnsubscribe = null;
+    }
+
+    if (this.roadSurfacePrefetchUnsubscribe) {
+      this.roadSurfacePrefetchUnsubscribe();
+      this.roadSurfacePrefetchUnsubscribe = null;
     }
   }
 

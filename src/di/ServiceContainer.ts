@@ -15,6 +15,7 @@ import {
   IElevationService,
   IVectorMapService,
   IMapSnapService,
+  IRoadSurfaceService,
   IDisplayService,
   IDisplayDriver,
   IEpaperDriver,
@@ -93,6 +94,7 @@ import { ReverseGeocodingService } from "@services/reverseGeocoding/ReverseGeoco
 import { ElevationService } from "@services/elevation/ElevationService";
 import { VectorMapService } from "@services/vectorMap/VectorMapService";
 import { MapSnapService } from "@services/mapSnap/MapSnapService";
+import { RoadSurfaceService } from "@services/roadSurface/RoadSurfaceService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -128,6 +130,7 @@ export class ServiceContainer {
     elevation?: IElevationService;
     vectorMap?: IVectorMapService;
     mapSnap?: IMapSnapService;
+    roadSurface?: IRoadSurfaceService;
   } = {};
 
   /**
@@ -380,6 +383,7 @@ export class ServiceContainer {
         this.getReverseGeocodingService(),
         this.getElevationService(),
         this.getVectorMapService(),
+        this.getRoadSurfaceService(),
         this.getGPSDebounceConfig(),
       );
     }
@@ -496,6 +500,16 @@ export class ServiceContainer {
       this.services.mapSnap = new MapSnapService();
     }
     return this.services.mapSnap;
+  }
+
+  /**
+   * Get Road Surface Service
+   */
+  getRoadSurfaceService(): IRoadSurfaceService {
+    if (!this.services.roadSurface) {
+      this.services.roadSurface = new RoadSurfaceService();
+    }
+    return this.services.roadSurface;
   }
 
   // Configuration getters
@@ -840,6 +854,13 @@ export class ServiceContainer {
    */
   setMapSnapService(service: IMapSnapService): void {
     this.services.mapSnap = service;
+  }
+
+  /**
+   * Set Road Surface Service (for testing)
+   */
+  setRoadSurfaceService(service: IRoadSurfaceService): void {
+    this.services.roadSurface = service;
   }
 
   // Security/Credential helpers

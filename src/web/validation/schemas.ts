@@ -159,6 +159,13 @@ export const setShowElevationSchema = z.object({
 });
 
 /**
+ * Set show road surface enabled/disabled request
+ */
+export const setShowRoadSurfaceSchema = z.object({
+  enabled: z.boolean({ message: "enabled must be a boolean" }),
+});
+
+/**
  * Set routing profile for OSRM route calculation
  */
 export const setRoutingProfileSchema = z.object({

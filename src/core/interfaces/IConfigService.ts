@@ -232,6 +232,18 @@ export interface IConfigService {
   setShowLanduse(enabled: boolean): void;
 
   /**
+   * Get show road surface preference
+   * @returns true if road surface type should be displayed during drive navigation
+   */
+  getShowRoadSurface(): boolean;
+
+  /**
+   * Set show road surface preference
+   * @param enabled Whether to show road surface type
+   */
+  setShowRoadSurface(enabled: boolean): void;
+
+  /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names
    */

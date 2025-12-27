@@ -161,7 +161,7 @@ Support different transport modes beyond car.
 
 ### OSM-6: Road Surface Information
 
-**Status:** Not started
+**Status:** Implemented
 **Priority:** Low
 **Complexity:** Medium
 
@@ -174,13 +174,23 @@ Show road surface type from OSM tags.
 - Useful for cycling and adventure routes
 - Show surface in route preview
 
-**Implementation notes:**
+**Implementation:**
 
-- OSM tags: `surface=asphalt|gravel|dirt|unpaved|paved`
-- Query via Overpass for route corridor
-- Match route geometry to OSM ways
-- Display icon or text for surface type
-- Pre-analyze at route calculation time
+- Created `RoadSurfaceService` using Overpass API to query `surface` tags
+- Road surfaces are prefetched along the route when navigation starts (while internet available)
+- Cached in `data/road-surfaces/` directory for offline use during driving
+- Road surface passed to `DriveNavigationInfo` for display
+- Configurable via `showRoadSurface` in user display preferences
+- Rate limiting (1.1s between requests) to respect Overpass API terms
+- Surface classification:
+  - `paved`: asphalt, concrete, paving_stones, sett, cobblestone, paved, metal, wood
+  - `gravel`: gravel, fine_gravel, compacted, pebblestone
+  - `dirt`: dirt, earth, ground, mud, clay
+  - `unpaved`: unpaved, grass, sand, grass_paver, stepping_stones
+  - `unknown`: roads without surface tags
+- Distance-based lookup: finds nearest road segment to current position
+- API endpoint: `POST /api/config/show-road-surface` with `{ enabled: boolean }`
+- WebSocket event: `roadsurface:prefetch` for prefetch progress updates
 
 ---
 

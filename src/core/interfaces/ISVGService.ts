@@ -10,6 +10,7 @@ import {
   DriveWaypoint,
 } from "@core/types";
 import { CachedRoad, CachedWater, CachedLanduse } from "./IVectorMapService";
+import { RoadSurfaceType } from "./IRoadSurfaceService";
 
 /**
  * Follow Track screen info for the split layout display
@@ -100,6 +101,8 @@ export interface DriveNavigationInfo {
   }>;
   /** Whether background data fetch (POI or speed limit) is in progress */
   isBackgroundFetching?: boolean;
+  /** Current road surface type */
+  roadSurface?: RoadSurfaceType;
 }
 
 /**
