@@ -14,6 +14,7 @@ import {
   IReverseGeocodingService,
   IElevationService,
   IVectorMapService,
+  IMapSnapService,
   IDisplayService,
   IDisplayDriver,
   IEpaperDriver,
@@ -91,6 +92,7 @@ import { POIService } from "@services/poi/POIService";
 import { ReverseGeocodingService } from "@services/reverseGeocoding/ReverseGeocodingService";
 import { ElevationService } from "@services/elevation/ElevationService";
 import { VectorMapService } from "@services/vectorMap/VectorMapService";
+import { MapSnapService } from "@services/mapSnap/MapSnapService";
 
 // Hardware services use lazy imports to avoid loading native modules on non-Linux platforms
 // These are imported dynamically only when needed
@@ -125,6 +127,7 @@ export class ServiceContainer {
     reverseGeocoding?: IReverseGeocodingService;
     elevation?: IElevationService;
     vectorMap?: IVectorMapService;
+    mapSnap?: IMapSnapService;
   } = {};
 
   /**
@@ -485,6 +488,16 @@ export class ServiceContainer {
     return this.services.vectorMap;
   }
 
+  /**
+   * Get Map Snap Service
+   */
+  getMapSnapService(): IMapSnapService {
+    if (!this.services.mapSnap) {
+      this.services.mapSnap = new MapSnapService();
+    }
+    return this.services.mapSnap;
+  }
+
   // Configuration getters
 
   /**
@@ -820,6 +833,13 @@ export class ServiceContainer {
    */
   setVectorMapService(service: IVectorMapService): void {
     this.services.vectorMap = service;
+  }
+
+  /**
+   * Set Map Snap Service (for testing)
+   */
+  setMapSnapService(service: IMapSnapService): void {
+    this.services.mapSnap = service;
   }
 
   // Security/Credential helpers

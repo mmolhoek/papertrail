@@ -14,6 +14,7 @@ import {
   IConfigService,
   ITrackSimulationService,
   IDriveNavigationService,
+  IMapSnapService,
 } from "@core/interfaces";
 import { WebError, WebErrorCode } from "../core/errors";
 import { WebController } from "./controllers/WebController";
@@ -122,6 +123,7 @@ export class IntegratedWebService implements IWebInterfaceService {
     private readonly configService?: IConfigService,
     private readonly simulationService?: ITrackSimulationService,
     private readonly driveNavigationService?: IDriveNavigationService,
+    private readonly mapSnapService?: IMapSnapService,
   ) {
     this.app = express();
     this.controller = new WebController(
@@ -132,6 +134,7 @@ export class IntegratedWebService implements IWebInterfaceService {
       configService,
       simulationService,
       driveNavigationService,
+      mapSnapService,
     );
     // Use app-controlled upload directory instead of /tmp for better security
     this.uploadDirectory = path.resolve(UPLOAD_DEFAULT_TEMP_DIRECTORY);
@@ -604,6 +607,11 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/map/files/:fileName`,
       validateParams(deleteGPXFileParamsSchema),
       (req, res) => this.controller.deleteGPXFile(req, res),
+    );
+
+    // Track snap endpoint (map matching)
+    this.app.post(`${api}/map/snap`, (req, res) =>
+      this.controller.snapActiveTrack(req, res),
     );
 
     // System reset endpoint

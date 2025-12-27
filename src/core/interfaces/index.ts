@@ -21,6 +21,7 @@ export * from "./IPOIService";
 export * from "./IReverseGeocodingService";
 export * from "./IElevationService";
 export * from "./IVectorMapService";
+export * from "./IMapSnapService";
 
 // Display abstraction interfaces
 export * from "./IDisplayService";

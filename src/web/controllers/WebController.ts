@@ -6,6 +6,7 @@ import {
   IConfigService,
   ITrackSimulationService,
   IDriveNavigationService,
+  IMapSnapService,
 } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
@@ -69,10 +70,16 @@ export class WebController {
     configService?: IConfigService,
     simulationService?: ITrackSimulationService,
     driveNavigationService?: IDriveNavigationService,
+    mapSnapService?: IMapSnapService,
   ) {
     // Initialize sub-controllers
     this.gps = new GPSController(orchestrator);
-    this.track = new TrackController(mapService, configService, gpxDirectory);
+    this.track = new TrackController(
+      mapService,
+      configService,
+      mapSnapService,
+      gpxDirectory,
+    );
     this.wifi = new WiFiController(wifiService);
     this.drive = new DriveController(
       orchestrator,
@@ -428,6 +435,11 @@ export class WebController {
   /** @see TrackController.deleteGPXFile */
   async deleteGPXFile(req: Request, res: Response): Promise<void> {
     return this.track.deleteGPXFile(req, res);
+  }
+
+  /** @see TrackController.snapActiveTrack */
+  async snapActiveTrack(req: Request, res: Response): Promise<void> {
+    return this.track.snapActiveTrack(req, res);
   }
 
   /** @see WiFiController.getHotspotConfig */

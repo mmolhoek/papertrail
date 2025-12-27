@@ -1,11 +1,12 @@
 import { Request, Response } from "express";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { IMapService, IConfigService } from "@core/interfaces";
+import { IMapService, IConfigService, IMapSnapService } from "@core/interfaces";
 import { isSuccess } from "@core/types";
 import { getLogger } from "@utils/logger";
 import { validateUploadedFile } from "@web/validation";
 import { isNodeJSErrnoException } from "@utils/typeGuards";
+import { MapSnapError } from "@core/errors";
 
 const logger = getLogger("TrackController");
 
@@ -19,6 +20,7 @@ export class TrackController {
   constructor(
     private readonly mapService?: IMapService,
     private readonly configService?: IConfigService,
+    private readonly mapSnapService?: IMapSnapService,
     private readonly gpxDirectory: string = "./data/gpx-files",
   ) {}
 
@@ -424,6 +426,155 @@ export class TrackController {
           },
         });
       }
+    }
+  }
+
+  /**
+   * Snap active track to road network
+   * Uses OSRM map matching to align GPS points to actual roads
+   */
+  async snapActiveTrack(req: Request, res: Response): Promise<void> {
+    logger.info("Track snap requested");
+
+    if (!this.mapSnapService) {
+      logger.warn("MapSnapService not available");
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Map snap service not available",
+        },
+      });
+      return;
+    }
+
+    if (!this.mapService) {
+      logger.warn("MapService not available");
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Map service not available",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      logger.warn("ConfigService not available");
+      res.status(503).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    const activeGPXPath = this.configService.getActiveGPXPath();
+
+    if (!activeGPXPath) {
+      logger.warn("No active track set for snapping");
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "NO_ACTIVE_TRACK",
+          message: "No active track set. Please load a track first.",
+        },
+      });
+      return;
+    }
+
+    // Get routing profile from request or config
+    const profile =
+      (req.body.profile as "car" | "bike" | "foot") ||
+      this.configService.getRoutingProfile();
+
+    try {
+      // Initialize snap service if needed
+      const initResult = await this.mapSnapService.initialize();
+      if (!initResult.success) {
+        throw initResult.error;
+      }
+
+      // Load the active track
+      const trackResult = await this.mapService.getTrack(activeGPXPath);
+      if (!trackResult.success) {
+        logger.error("Failed to load track for snapping:", trackResult.error);
+        res.status(500).json({
+          success: false,
+          error: {
+            code: "TRACK_LOAD_FAILED",
+            message: "Failed to load track data",
+          },
+        });
+        return;
+      }
+
+      const track = trackResult.data;
+      logger.info(
+        `Snapping track "${track.name}" with ${track.segments.reduce((sum, s) => sum + s.points.length, 0)} points using ${profile} profile`,
+      );
+
+      // Perform the snap operation
+      const snapResult = await this.mapSnapService.snapTrack(track, profile);
+
+      if (!snapResult.success) {
+        const error = snapResult.error;
+        logger.error("Snap operation failed:", error);
+
+        if (error instanceof MapSnapError) {
+          res.status(400).json({
+            success: false,
+            error: {
+              code: error.code,
+              message: error.message,
+            },
+          });
+        } else {
+          res.status(500).json({
+            success: false,
+            error: {
+              code: "SNAP_FAILED",
+              message: "Failed to snap track to roads",
+            },
+          });
+        }
+        return;
+      }
+
+      const result = snapResult.data;
+      logger.info(
+        `Track snapped successfully: ${result.snappedPoints.length} points matched, ${result.unmatchedCount} unmatched, avg confidence: ${result.averageConfidence.toFixed(2)}`,
+      );
+
+      res.json({
+        success: true,
+        data: {
+          snappedPoints: result.snappedPoints,
+          geometry: result.geometry,
+          matchedDistance: result.matchedDistance,
+          averageConfidence: result.averageConfidence,
+          unmatchedCount: result.unmatchedCount,
+          originalPointCount: track.segments.reduce(
+            (sum, s) => sum + s.points.length,
+            0,
+          ),
+        },
+      });
+    } catch (error) {
+      logger.error("Unexpected error during track snap:", error);
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SNAP_ERROR",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Unexpected error occurred",
+        },
+      });
     }
   }
 }

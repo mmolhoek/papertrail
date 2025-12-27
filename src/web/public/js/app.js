@@ -338,6 +338,14 @@ class PapertrailClient {
       });
     }
 
+    // Track snap to roads
+    const snapBtn = document.getElementById("snap-track-btn");
+    if (snapBtn) {
+      snapBtn.addEventListener("click", () => {
+        this.snapActiveTrack();
+      });
+    }
+
     // Zoom controls
     document.getElementById("zoom-in-btn").addEventListener("click", () => {
       this.changeZoom(1);
@@ -2136,6 +2144,69 @@ class PapertrailClient {
       this.populateTrackList(tracks);
     } catch (error) {
       console.error("Failed to reload track list:", error);
+    }
+  }
+
+  /**
+   * Snap the active track to roads using OSRM map matching
+   */
+  async snapActiveTrack() {
+    const btn = document.getElementById("snap-track-btn");
+    const select = document.getElementById("track-select");
+
+    if (!select.value) {
+      this.showMessage("Please select and load a track first", "error");
+      return;
+    }
+
+    // Confirm snapping
+    if (
+      !confirm(
+        "Snap track to roads? This will use the selected routing profile to match GPS points to the road network.",
+      )
+    ) {
+      return;
+    }
+
+    // Disable button and show progress
+    if (btn) {
+      btn.disabled = true;
+      const label = btn.querySelector(".instrument-btn-label");
+      if (label) label.textContent = "SNAPPING...";
+    }
+
+    try {
+      const result = await this.fetchJSON(`${this.apiBase}/map/snap`, {
+        method: "POST",
+        body: JSON.stringify({
+          profile: this.currentRoutingProfile,
+        }),
+      });
+
+      if (result.success) {
+        const data = result.data;
+        const matchedPct = (
+          ((data.originalPointCount - data.unmatchedCount) /
+            data.originalPointCount) *
+          100
+        ).toFixed(1);
+        this.showMessage(
+          `Track snapped: ${matchedPct}% matched, ${(data.matchedDistance / 1000).toFixed(1)}km total`,
+          "success",
+        );
+      } else {
+        this.showMessage(result.error?.message || "Snap failed", "error");
+      }
+    } catch (error) {
+      console.error("Snap error:", error);
+      this.showMessage("Failed to snap track to roads", "error");
+    } finally {
+      // Re-enable button
+      if (btn) {
+        btn.disabled = false;
+        const label = btn.querySelector(".instrument-btn-label");
+        if (label) label.textContent = "SNAP";
+      }
     }
   }
 

@@ -133,6 +133,7 @@ describe("TrackController", () => {
     controller = new TrackController(
       mockMapService as any,
       mockConfigService as any,
+      undefined, // mapSnapService
       "./data/gpx-files",
     );
   });
@@ -489,6 +490,7 @@ describe("TrackController", () => {
       const controllerWithoutMap = new TrackController(
         undefined,
         mockConfigService as any,
+        undefined, // mapSnapService
         "./data/gpx-files",
       );
       const file = createMockFile("track.gpx");
@@ -608,6 +610,7 @@ describe("TrackController", () => {
       const controllerWithoutMap = new TrackController(
         undefined,
         mockConfigService as any,
+        undefined, // mapSnapService
         "./data/gpx-files",
       );
       mockedFs.access.mockResolvedValue(undefined);

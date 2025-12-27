@@ -283,13 +283,13 @@ Render actual map backgrounds on e-paper display.
 
 ---
 
-### OSM-9: Map Matching
+### OSM-9: Map Matching (Map Snap)
 
-**Status:** Not started
+**Status:** Implemented
 **Priority:** Low
 **Complexity:** Medium
 
-Snap GPS traces to actual roads.
+Snap GPS traces to actual roads using OSRM's map matching API.
 
 **Functionality:**
 
@@ -298,25 +298,34 @@ Snap GPS traces to actual roads.
 - More accurate distance calculations
 - Post-process GPX files
 
-**Implementation notes:**
+**Implementation:**
 
-- OSRM provides map matching: `/match/v1/{profile}/{coordinates}`
-- Process recorded tracks after completion
-- Store both raw and matched tracks
-- Option to export matched GPX
-- Useful for track mode recordings
+- Created `MapSnapService` using OSRM map matching API (`/match/v1/{profile}/{coordinates}`)
+- Uses `routing.openstreetmap.de/routed-{profile}` which supports car, bike, and foot profiles
+- Batches points into chunks of 100 with 2-point overlap for continuity
+- Rate limiting (1.1s between requests) to respect API terms
+- Returns snapped coordinates with confidence scores and road names
+- Calculates distance from original GPS point to matched road
+- Handles unmatched points gracefully (off-road, GPS gaps)
+- UI: "SNAP" button in GPX Track panel triggers snap on active track
+- API endpoint: `POST /api/map/snap` with `{ profile: "car"|"bike"|"foot" }`
+- Uses current routing profile from display preferences if not specified
 
 ---
 
 ## Implementation Order Recommendation
 
-1. **OSM-2: Speed Limits** - Safety feature, medium complexity
-2. **OSM-3: POI** - Practical utility during drives
-3. **OSM-1: Reverse Geocoding** - Low complexity, high user value
-4. **OSM-5: Routing Profiles** - Simple OSRM parameter change
-5. **OSM-7: Elevation** - Useful for cycling/hiking
-6. **OSM-9: Map Matching** - Nice to have
-7. **OSM-8: Vector Maps** - High complexity, significant undertaking
+1. ~~**OSM-2: Speed Limits**~~ ✓ Implemented
+2. ~~**OSM-3: POI**~~ ✓ Implemented
+3. ~~**OSM-1: Reverse Geocoding**~~ ✓ Implemented
+4. ~~**OSM-5: Routing Profiles**~~ ✓ Implemented
+5. ~~**OSM-7: Elevation**~~ ✓ Implemented
+6. ~~**OSM-9: Map Matching**~~ ✓ Implemented
+7. ~~**OSM-8: Vector Maps**~~ ✓ Implemented
+
+**Remaining:**
+- **OSM-4: Offline Routing** - Run OSRM locally
+- **OSM-6: Road Surface Information** - Show road surface type
 
 ---
 

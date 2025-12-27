@@ -28,4 +28,5 @@ export * from "./POIError";
 export * from "./ReverseGeocodingError";
 export * from "./ElevationError";
 export * from "./VectorMapError";
+export * from "./MapSnapError";
 export * from "./ErrorMessages";
