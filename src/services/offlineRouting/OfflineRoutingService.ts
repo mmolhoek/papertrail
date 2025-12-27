@@ -206,11 +206,79 @@ export class OfflineRoutingService implements IOfflineRoutingService {
     });
   }
 
-  async listAvailableRegions(): Promise<Result<OSRMRegion[]>> {
-    // TODO: Implement manifest fetching from configurable URL
-    // For now, return empty array as we don't have a manifest server yet
-    logger.warn("listAvailableRegions: Manifest fetching not yet implemented");
-    return success([]);
+  async listAvailableRegions(
+    manifestUrl?: string,
+  ): Promise<Result<OSRMRegion[]>> {
+    if (!manifestUrl) {
+      logger.debug("listAvailableRegions: No manifest URL provided");
+      return success([]);
+    }
+
+    try {
+      logger.info(`Fetching region manifest from: ${manifestUrl}`);
+      const response = await fetch(manifestUrl, {
+        headers: {
+          Accept: "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        logger.error(
+          `Failed to fetch manifest: ${response.status} ${response.statusText}`,
+        );
+        return failure(
+          OfflineRoutingError.downloadFailed(
+            "manifest",
+            new Error(`HTTP ${response.status}: ${response.statusText}`),
+          ),
+        );
+      }
+
+      const manifest = (await response.json()) as
+        | OSRMRegion[]
+        | { regions: OSRMRegion[] };
+
+      // Support both { regions: [...] } and direct array formats
+      const regionsArray = Array.isArray(manifest)
+        ? manifest
+        : manifest.regions;
+
+      if (!Array.isArray(regionsArray)) {
+        logger.error("Invalid manifest format: expected regions array");
+        return failure(
+          OfflineRoutingError.downloadFailed(
+            "manifest",
+            new Error("Invalid manifest format"),
+          ),
+        );
+      }
+
+      // Map manifest entries to OSRMRegion format, adding defaults for missing fields
+      const regions: OSRMRegion[] = regionsArray.map((entry) => ({
+        id: entry.id,
+        name: entry.name || entry.id,
+        bounds: entry.bounds || {
+          north: 90,
+          south: -90,
+          east: 180,
+          west: -180,
+        },
+        sizeBytes: entry.sizeBytes || 0,
+        profiles: entry.profiles || ["car"],
+        lastUpdated: entry.lastUpdated || new Date().toISOString(),
+      }));
+
+      logger.info(`Found ${regions.length} regions in manifest`);
+      return success(regions);
+    } catch (error) {
+      logger.error("Failed to fetch region manifest:", error);
+      return failure(
+        OfflineRoutingError.downloadFailed(
+          "manifest",
+          error instanceof Error ? error : new Error("Unknown error"),
+        ),
+      );
+    }
   }
 
   listInstalledRegions(): InstalledRegion[] {

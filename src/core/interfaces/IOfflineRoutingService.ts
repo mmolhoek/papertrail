@@ -195,9 +195,10 @@ export interface IOfflineRoutingService {
   /**
    * List available regions from the manifest
    * Fetches the region manifest from the configured URL
+   * @param manifestUrl URL to fetch the manifest from
    * @returns Array of available regions for download
    */
-  listAvailableRegions(): Promise<Result<OSRMRegion[]>>;
+  listAvailableRegions(manifestUrl?: string): Promise<Result<OSRMRegion[]>>;
 
   /**
    * List locally installed regions

@@ -725,6 +725,22 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     // Offline routing endpoints
+    // Serve local sample manifest for testing
+    this.app.get(`${api}/routing/sample-manifest`, (_req, res) => {
+      const manifestPath = path.join(
+        process.cwd(),
+        "data/osrm-regions/manifest.json",
+      );
+      res.sendFile(manifestPath, (err) => {
+        if (err) {
+          res.status(404).json({
+            success: false,
+            error: "Sample manifest not found",
+          });
+        }
+      });
+    });
+
     this.app.get(`${api}/routing/status`, (req, res) =>
       this.controller.offlineRouting.getStatus(req, res),
     );

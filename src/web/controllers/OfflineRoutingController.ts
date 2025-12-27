@@ -56,7 +56,7 @@ export class OfflineRoutingController {
    * GET /api/routing/regions/available
    * List available regions from manifest
    */
-  async getAvailableRegions(_req: Request, res: Response): Promise<void> {
+  async getAvailableRegions(req: Request, res: Response): Promise<void> {
     if (!this.offlineRoutingService) {
       res.status(503).json({
         success: false,
@@ -65,7 +65,17 @@ export class OfflineRoutingController {
       return;
     }
 
-    const result = await this.offlineRoutingService.listAvailableRegions();
+    let manifestUrl = this.configService?.getOfflineRoutingManifestUrl() ?? "";
+
+    // Convert relative URLs to absolute using request host
+    if (manifestUrl && manifestUrl.startsWith("/")) {
+      const protocol = req.secure ? "https" : "http";
+      const host = req.get("host") || "localhost:3000";
+      manifestUrl = `${protocol}://${host}${manifestUrl}`;
+    }
+
+    const result =
+      await this.offlineRoutingService.listAvailableRegions(manifestUrl);
 
     if (!isSuccess(result)) {
       res.status(500).json({

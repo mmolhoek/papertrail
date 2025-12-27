@@ -50,7 +50,9 @@ export class MockOfflineRoutingService implements IOfflineRoutingService {
     return failure(OfflineRoutingError.bindingsUnavailable());
   }
 
-  async listAvailableRegions(): Promise<Result<OSRMRegion[]>> {
+  async listAvailableRegions(
+    _manifestUrl?: string,
+  ): Promise<Result<OSRMRegion[]>> {
     // Return empty list - no regions available without bindings
     return success([]);
   }

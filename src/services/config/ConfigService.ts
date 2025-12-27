@@ -484,8 +484,7 @@ export class ConfigService implements IConfigService {
 
   // Offline routing configuration
 
-  private readonly DEFAULT_MANIFEST_URL =
-    "https://osrm-data.example.com/manifest.json";
+  private readonly DEFAULT_MANIFEST_URL = "/api/routing/sample-manifest";
 
   private ensureOfflineRoutingConfig(): void {
     if (!this.userState.offlineRouting) {
