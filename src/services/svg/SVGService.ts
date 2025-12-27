@@ -1573,6 +1573,29 @@ export class SVGService implements ISVGService {
       currentY += calculateBitmapTextHeight(labelScale) + 16;
     }
 
+    // Road surface section (if available)
+    if (info.roadSurface && info.roadSurface !== "unknown") {
+      logger.info(
+        `renderDriveInfoPanel: step 6c - road surface: ${info.roadSurface}`,
+      );
+      renderBitmapText(bitmap, "SURFACE", x + padding, currentY, {
+        scale: labelScale,
+      });
+      currentY += calculateBitmapTextHeight(labelScale) + 4;
+
+      renderBitmapText(
+        bitmap,
+        info.roadSurface.toUpperCase(),
+        x + padding,
+        currentY,
+        {
+          scale: labelScale,
+          bold: true,
+        },
+      );
+      currentY += calculateBitmapTextHeight(labelScale) + 16;
+    }
+
     // Zoom level section (if available)
     if (info.zoomLevel !== undefined) {
       logger.info("renderDriveInfoPanel: step 6d - zoom label");
