@@ -124,6 +124,7 @@ describe("IntegratedWebService", () => {
       onPOIPrefetchProgress: jest.fn().mockReturnValue(() => {}),
       onLocationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
       onElevationPrefetchProgress: jest.fn().mockReturnValue(() => {}),
+      onRoadSurfacePrefetchProgress: jest.fn().mockReturnValue(() => {}),
       setWebSocketClientCount: jest.fn(),
       getCurrentRoadSurface: jest.fn().mockReturnValue(null),
       getCurrentSpeedLimit: jest.fn().mockReturnValue(null),
