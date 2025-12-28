@@ -132,6 +132,7 @@ describe("DriveCoordinator", () => {
     mockConfigService = {
       setZoomLevel: jest.fn(),
       getZoomLevel: jest.fn().mockReturnValue(18),
+      getPanOffset: jest.fn().mockReturnValue({ x: 0, y: 0 }),
       save: jest.fn().mockResolvedValue(undefined),
       isOnboardingCompleted: jest.fn().mockReturnValue(true),
       setOnboardingCompleted: jest.fn(),

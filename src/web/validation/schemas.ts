@@ -78,6 +78,14 @@ export const setAutoCenterSchema = z.object({
 });
 
 /**
+ * Set pan offset for touch panning
+ */
+export const setPanOffsetSchema = z.object({
+  x: z.number({ message: "x must be a number" }),
+  y: z.number({ message: "y must be a number" }),
+});
+
+/**
  * Set rotate-with-bearing request
  */
 export const setRotateWithBearingSchema = z.object({

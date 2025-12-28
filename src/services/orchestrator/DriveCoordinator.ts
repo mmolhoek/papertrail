@@ -310,6 +310,7 @@ export class DriveCoordinator {
       height,
       zoomLevel,
       centerPoint,
+      panOffset: this.configService.getPanOffset(),
     };
 
     try {

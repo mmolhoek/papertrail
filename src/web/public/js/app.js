@@ -41,6 +41,16 @@ class PapertrailClient {
     // Mock display state
     this.mockDisplayPanelVisible = false;
 
+    // Touch pan/zoom state
+    this.panOffset = { x: 0, y: 0 };
+    this.isPanning = false;
+    this.lastTouchPos = null;
+    this.pinchStartDistance = null;
+    this.pinchStartZoom = null;
+    this.currentZoom = 14;
+    this.autoCenterTimeout = null;
+    this.AUTO_CENTER_DELAY_MS = 30000; // 30 seconds
+
     this.setupHamburgerMenu = this.setupHamburgerMenu.bind(this);
     this.setupHamburgerMenu();
 
@@ -725,6 +735,12 @@ class PapertrailClient {
     // Update zoom control
     if (settings.zoomLevel !== undefined) {
       this.updateZoomControl(settings.zoomLevel);
+      this.currentZoom = settings.zoomLevel;
+    }
+
+    // Update pan offset from server (in case it was persisted)
+    if (settings.panOffset !== undefined) {
+      this.panOffset = settings.panOffset;
     }
 
     // Update orientation button
@@ -943,6 +959,7 @@ class PapertrailClient {
 
     control.value = level;
     valueDisplay.textContent = level;
+    this.currentZoom = level;
 
     // Update slider for instrument panel
     this.updateZoomSlider(level);
@@ -4801,6 +4818,180 @@ class PapertrailClient {
   initMockDisplay() {
     // Load the initial image
     this.refreshMockDisplay();
+    // Set up touch handlers for pan and pinch-zoom
+    this.setupMockDisplayTouchHandlers();
+  }
+
+  /**
+   * Set up touch event handlers for pan and pinch-zoom on the mock display
+   */
+  setupMockDisplayTouchHandlers() {
+    const imageEl = document.getElementById("mock-display-image");
+    if (!imageEl) return;
+
+    // Prevent default touch behavior (scrolling, etc.)
+    imageEl.addEventListener(
+      "touchstart",
+      (e) => {
+        e.preventDefault();
+        this.handleTouchStart(e);
+      },
+      { passive: false },
+    );
+
+    imageEl.addEventListener(
+      "touchmove",
+      (e) => {
+        e.preventDefault();
+        this.handleTouchMove(e);
+      },
+      { passive: false },
+    );
+
+    imageEl.addEventListener("touchend", (e) => {
+      this.handleTouchEnd(e);
+    });
+
+    imageEl.addEventListener("touchcancel", (e) => {
+      this.handleTouchEnd(e);
+    });
+  }
+
+  /**
+   * Handle touch start - begin pan or pinch gesture
+   */
+  handleTouchStart(e) {
+    const touches = e.touches;
+
+    if (touches.length === 1) {
+      // Single finger - start panning
+      this.isPanning = true;
+      this.lastTouchPos = {
+        x: touches[0].clientX,
+        y: touches[0].clientY,
+      };
+    } else if (touches.length === 2) {
+      // Two fingers - start pinch zoom
+      this.isPanning = false;
+      this.pinchStartDistance = this.getTouchDistance(touches[0], touches[1]);
+      this.pinchStartZoom = this.currentZoom;
+    }
+
+    // Clear any existing auto-center timeout
+    if (this.autoCenterTimeout) {
+      clearTimeout(this.autoCenterTimeout);
+      this.autoCenterTimeout = null;
+    }
+  }
+
+  /**
+   * Handle touch move - update pan offset or zoom
+   */
+  handleTouchMove(e) {
+    const touches = e.touches;
+
+    if (touches.length === 1 && this.isPanning && this.lastTouchPos) {
+      // Single finger - panning
+      const deltaX = touches[0].clientX - this.lastTouchPos.x;
+      const deltaY = touches[0].clientY - this.lastTouchPos.y;
+
+      // Update pan offset (accumulate)
+      this.panOffset.x -= deltaX;
+      this.panOffset.y -= deltaY;
+
+      this.lastTouchPos = {
+        x: touches[0].clientX,
+        y: touches[0].clientY,
+      };
+
+      // Send pan offset to backend (debounced)
+      this.sendPanOffset();
+    } else if (
+      touches.length === 2 &&
+      this.pinchStartDistance &&
+      this.pinchStartZoom
+    ) {
+      // Two fingers - pinch zoom
+      const currentDistance = this.getTouchDistance(touches[0], touches[1]);
+      const scale = currentDistance / this.pinchStartDistance;
+
+      // Calculate new zoom level (discrete steps)
+      const zoomDelta = Math.round(Math.log2(scale) * 2); // More sensitive scaling
+      const newZoom = Math.max(
+        1,
+        Math.min(20, this.pinchStartZoom + zoomDelta),
+      );
+
+      if (newZoom !== this.currentZoom) {
+        this.currentZoom = newZoom;
+        this.setZoom(newZoom);
+      }
+    }
+  }
+
+  /**
+   * Handle touch end - start auto-center timer
+   */
+  handleTouchEnd() {
+    this.isPanning = false;
+    this.lastTouchPos = null;
+    this.pinchStartDistance = null;
+    this.pinchStartZoom = null;
+
+    // Start auto-center timeout (30 seconds)
+    if (this.panOffset.x !== 0 || this.panOffset.y !== 0) {
+      this.autoCenterTimeout = setTimeout(() => {
+        this.resetPanOffset();
+      }, this.AUTO_CENTER_DELAY_MS);
+    }
+  }
+
+  /**
+   * Calculate distance between two touch points
+   */
+  getTouchDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  /**
+   * Send pan offset to backend (debounced)
+   */
+  sendPanOffset() {
+    // Use requestAnimationFrame to debounce
+    if (this._panOffsetPending) return;
+    this._panOffsetPending = true;
+
+    requestAnimationFrame(async () => {
+      try {
+        await fetch(`${this.apiBase}/config/pan-offset`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(this.panOffset),
+        });
+      } catch (error) {
+        console.error("Failed to send pan offset:", error);
+      }
+      this._panOffsetPending = false;
+    });
+  }
+
+  /**
+   * Reset pan offset to center (auto-center)
+   */
+  async resetPanOffset() {
+    this.panOffset = { x: 0, y: 0 };
+    try {
+      await fetch(`${this.apiBase}/config/pan-offset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ x: 0, y: 0 }),
+      });
+      this.showMessage("Auto-centered", "success");
+    } catch (error) {
+      console.error("Failed to reset pan offset:", error);
+    }
   }
 
   /**

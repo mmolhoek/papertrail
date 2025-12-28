@@ -32,6 +32,7 @@ import {
   setMockPositionSchema,
   setZoomSchema,
   setAutoCenterSchema,
+  setPanOffsetSchema,
   setRotateWithBearingSchema,
   setActiveScreenSchema,
   setSpeedUnitSchema,
@@ -490,6 +491,12 @@ export class IntegratedWebService implements IWebInterfaceService {
       `${api}/config/auto-center`,
       validateBody(setAutoCenterSchema),
       (req, res) => this.controller.setAutoCenter(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/pan-offset`,
+      validateBody(setPanOffsetSchema),
+      (req, res) => this.controller.setPanOffset(req, res),
     );
 
     this.app.post(

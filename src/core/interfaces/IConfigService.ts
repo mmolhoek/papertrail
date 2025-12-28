@@ -124,6 +124,23 @@ export interface IConfigService {
   setAutoCenter(enabled: boolean): void;
 
   /**
+   * Get pan offset for touch panning (transient, not persisted)
+   * @returns Pan offset in pixels from center
+   */
+  getPanOffset(): { x: number; y: number };
+
+  /**
+   * Set pan offset for touch panning
+   * @param offset Pan offset in pixels from center
+   */
+  setPanOffset(offset: { x: number; y: number }): void;
+
+  /**
+   * Reset pan offset to center (0, 0)
+   */
+  resetPanOffset(): void;
+
+  /**
    * Get rotate-with-bearing preference
    * @returns true if map should rotate based on GPS bearing
    */

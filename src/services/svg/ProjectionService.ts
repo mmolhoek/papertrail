@@ -33,7 +33,7 @@ export class ProjectionService {
     lon: number,
     viewport: ViewportConfig,
   ): Point2D {
-    const { centerPoint, zoomLevel, width, height } = viewport;
+    const { centerPoint, zoomLevel, width, height, panOffset } = viewport;
 
     // Meters per pixel at this zoom level (approximate)
     const metersPerPixel = ProjectionService.calculateMetersPerPixel(
@@ -56,9 +56,13 @@ export class ProjectionService {
     const xOffset = xMeters / metersPerPixel;
     const yOffset = -yMeters / metersPerPixel; // Negative because y increases downward
 
-    // Calculate final pixel position
-    const x = Math.round(width / 2 + xOffset);
-    const y = Math.round(height / 2 + yOffset);
+    // Apply pan offset if present (shifts the entire map)
+    const panX = panOffset?.x ?? 0;
+    const panY = panOffset?.y ?? 0;
+
+    // Calculate final pixel position with pan offset applied
+    const x = Math.round(width / 2 + xOffset - panX);
+    const y = Math.round(height / 2 + yOffset - panY);
 
     return { x, y };
   }

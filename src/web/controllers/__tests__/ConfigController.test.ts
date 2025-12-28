@@ -50,6 +50,9 @@ const createMockOrchestrator = () => ({
 const createMockConfigService = () => ({
   getZoomLevel: jest.fn().mockReturnValue(14),
   getAutoCenter: jest.fn().mockReturnValue(true),
+  getPanOffset: jest.fn().mockReturnValue({ x: 0, y: 0 }),
+  setPanOffset: jest.fn(),
+  resetPanOffset: jest.fn(),
   getRotateWithBearing: jest.fn().mockReturnValue(false),
   getActiveScreen: jest.fn().mockReturnValue("track"),
   getSpeedUnit: jest.fn().mockReturnValue("kmh"),
@@ -117,6 +120,7 @@ describe("ConfigController", () => {
         data: {
           zoomLevel: 14,
           autoCenter: true,
+          panOffset: { x: 0, y: 0 },
           rotateWithBearing: false,
           activeScreen: "track",
           speedUnit: "kmh",

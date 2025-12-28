@@ -369,6 +369,7 @@ export class TrackDisplayCoordinator {
       height: this.configService.getDisplayHeight(),
       centerPoint: position,
       zoomLevel: this.configService.getZoomLevel(),
+      panOffset: this.configService.getPanOffset(),
     };
 
     logger.info(

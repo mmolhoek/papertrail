@@ -46,6 +46,7 @@ export class ConfigController {
       data: {
         zoomLevel: this.configService.getZoomLevel(),
         autoCenter: this.configService.getAutoCenter(),
+        panOffset: this.configService.getPanOffset(),
         rotateWithBearing: this.configService.getRotateWithBearing(),
         activeScreen: this.configService.getActiveScreen(),
         speedUnit: this.configService.getSpeedUnit(),
@@ -161,6 +162,38 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Auto-center ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set pan offset for touch panning
+   */
+  async setPanOffset(req: Request, res: Response): Promise<void> {
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "CONFIG_UNAVAILABLE",
+          message: "Config service unavailable",
+        },
+      });
+      return;
+    }
+
+    const { x, y } = req.body;
+
+    logger.info(`Setting pan offset to: (${x}, ${y})`);
+    this.configService.setPanOffset({ x, y });
+
+    // Trigger display update
+    const result = await this.orchestrator.updateDisplay();
+    if (!result.success) {
+      logger.error("Failed to update display after pan offset change");
+    }
+
+    res.json({
+      success: true,
+      message: `Pan offset set to (${x}, ${y})`,
     });
   }
 

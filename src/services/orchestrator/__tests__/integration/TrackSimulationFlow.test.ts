@@ -155,6 +155,7 @@ describe("Track Simulation Flow Integration", () => {
       getDisplayWidth: jest.fn().mockReturnValue(800),
       getDisplayHeight: jest.fn().mockReturnValue(480),
       getAutoCenter: jest.fn().mockReturnValue(true),
+      getPanOffset: jest.fn().mockReturnValue({ x: 0, y: 0 }),
       getRotateWithBearing: jest.fn().mockReturnValue(false),
       getActiveScreen: jest.fn().mockReturnValue("track"),
       setActiveScreen: jest.fn(),

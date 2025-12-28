@@ -24,6 +24,8 @@ export class ConfigService implements IConfigService {
   private isInitialized: boolean = false;
   private config: AppConfig;
   private userState: UserState;
+  /** Transient pan offset (not persisted) */
+  private panOffset: { x: number; y: number } = { x: 0, y: 0 };
 
   constructor(
     private readonly configPath: string = "./config/default.json",
@@ -165,6 +167,20 @@ export class ConfigService implements IConfigService {
 
   setAutoCenter(enabled: boolean): void {
     this.userState.displayPreferences.autoCenter = enabled;
+  }
+
+  // Pan offset (transient, not persisted)
+
+  getPanOffset(): { x: number; y: number } {
+    return this.panOffset;
+  }
+
+  setPanOffset(offset: { x: number; y: number }): void {
+    this.panOffset = { x: offset.x, y: offset.y };
+  }
+
+  resetPanOffset(): void {
+    this.panOffset = { x: 0, y: 0 };
   }
 
   getRotateWithBearing(): boolean {
