@@ -644,6 +644,9 @@ class PapertrailClient {
         this.updateDisplaySettings(displayResponse.data);
       }
 
+      // Check offline routing availability and hide menu if bindings not available
+      await this.checkOfflineRoutingAvailability();
+
       // Load simulation status (to restore UI state after page reload)
       const simResponse = await this.fetchJSON(
         `${this.apiBase}/simulation/status`,
@@ -1617,6 +1620,50 @@ class PapertrailClient {
   }
 
   // Offline Routing Methods
+
+  /**
+   * Check if OSRM bindings are available and show/hide offline routing menu accordingly
+   */
+  async checkOfflineRoutingAvailability() {
+    try {
+      const response = await this.fetchJSON(`${this.apiBase}/routing/status`);
+      const menuItem = document.getElementById("menu-offline-routing");
+
+      if (response && response.success && response.data) {
+        const hasBindings = response.data.hasBindings;
+
+        if (menuItem) {
+          if (hasBindings) {
+            menuItem.classList.remove("hidden");
+          } else {
+            menuItem.classList.add("hidden");
+            // If currently viewing offline routing panel, switch to GPS panel
+            const activePanel = localStorage.getItem("papertrail-active-panel");
+            if (activePanel === "offline-routing-panel") {
+              const gpsMenuItem = document.querySelector(
+                '.nav-item[data-panel="gps-panel"]',
+              );
+              if (gpsMenuItem) {
+                this.switchToPanel("gps-panel", gpsMenuItem);
+              }
+            }
+          }
+        }
+      } else {
+        // If status fetch failed, hide the menu item
+        if (menuItem) {
+          menuItem.classList.add("hidden");
+        }
+      }
+    } catch (error) {
+      console.error("Error checking offline routing availability:", error);
+      // Hide menu on error
+      const menuItem = document.getElementById("menu-offline-routing");
+      if (menuItem) {
+        menuItem.classList.add("hidden");
+      }
+    }
+  }
 
   setupOfflineRoutingControls() {
     // Enable/Disable toggle

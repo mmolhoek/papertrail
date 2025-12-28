@@ -111,10 +111,37 @@ fi
 
 CURRENT_USER=$(whoami)
 REBOOT_REQUIRED=false
+INSTALL_OSRM=false
 
-# Determine number of steps based on platform
+# =============================================================================
+# PI-ONLY: Ask about offline routing (OSRM)
+# =============================================================================
 if [ "$IS_PI" = true ]; then
-  TOTAL_STEPS=14
+  echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+  echo -e "${BLUE}║  Optional: Offline Routing Support (OSRM)                  ║${NC}"
+  echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "${YELLOW}Offline routing allows navigation without internet connection.${NC}"
+  echo -e "${YELLOW}This requires building OSRM from source (~1-2 hours build time).${NC}"
+  echo ""
+  read -p "Do you want to enable offline routing? [y/N] " -n 1 -r
+  echo
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    INSTALL_OSRM=true
+    echo -e "${GREEN}  ✓ Offline routing will be installed${NC}"
+  else
+    echo -e "${BLUE}  → Skipping offline routing (can be added later)${NC}"
+  fi
+  echo ""
+fi
+
+# Determine number of steps based on platform and options
+if [ "$IS_PI" = true ]; then
+  if [ "$INSTALL_OSRM" = true ]; then
+    TOTAL_STEPS=16  # 14 base + 2 OSRM steps
+  else
+    TOTAL_STEPS=14
+  fi
 else
   TOTAL_STEPS=4
 fi
@@ -133,6 +160,12 @@ step() {
 if [ "$IS_PI" = true ]; then
   step "Installing system packages..."
   PACKAGES="nodejs npm screen build-essential python3 gpiod imagemagick"
+
+  # Add OSRM build dependencies if requested
+  if [ "$INSTALL_OSRM" = true ]; then
+    PACKAGES="$PACKAGES cmake pkg-config libbz2-dev libxml2-dev libzip-dev libboost-all-dev lua5.4 liblua5.4-dev libtbb-dev"
+  fi
+
   MISSING_PACKAGES=""
 
   for pkg in $PACKAGES; do
@@ -322,6 +355,97 @@ mkdir -p data/gpx-files
 mkdir -p data/cache
 mkdir -p logs
 echo -e "${GREEN}  ✓ Data directories created${NC}"
+
+# =============================================================================
+# PI-ONLY: Build OSRM from source (optional)
+# =============================================================================
+if [ "$IS_PI" = true ] && [ "$INSTALL_OSRM" = true ]; then
+  # Check swap space
+  SWAP_SIZE=$(free -m | grep Swap | awk '{print $2}')
+  if [ "$SWAP_SIZE" -lt 4000 ]; then
+    echo ""
+    echo -e "${YELLOW}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${YELLOW}║  Warning: Low swap space detected (${SWAP_SIZE}MB)                    ${NC}"
+    echo -e "${YELLOW}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "${YELLOW}  OSRM build may fail with insufficient memory.${NC}"
+    echo -e "${YELLOW}  Consider adding swap space:${NC}"
+    echo -e "${BLUE}    sudo fallocate -l 4G /swapfile${NC}"
+    echo -e "${BLUE}    sudo chmod 600 /swapfile${NC}"
+    echo -e "${BLUE}    sudo mkswap /swapfile${NC}"
+    echo -e "${BLUE}    sudo swapon /swapfile${NC}"
+    echo ""
+    read -p "Continue anyway? [y/N] " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo -e "${RED}  OSRM installation skipped${NC}"
+      INSTALL_OSRM=false
+    fi
+  fi
+fi
+
+if [ "$IS_PI" = true ] && [ "$INSTALL_OSRM" = true ]; then
+  step "Building OSRM backend (this may take 1-2 hours)..."
+
+  OSRM_VERSION="v5.27.1"
+  VENDOR_DIR="${PROJECT_DIR}/vendor"
+  OSRM_DIR="${VENDOR_DIR}/osrm-backend"
+  OSRM_INSTALL_DIR="${VENDOR_DIR}/osrm-install"
+
+  mkdir -p "$VENDOR_DIR"
+
+  # Clone OSRM if not exists
+  if [ ! -d "$OSRM_DIR" ]; then
+    echo -e "${BLUE}  Cloning OSRM backend ${OSRM_VERSION}...${NC}"
+    git clone --branch "$OSRM_VERSION" --depth 1 \
+      https://github.com/Project-OSRM/osrm-backend.git "$OSRM_DIR"
+  else
+    echo -e "${GREEN}  ✓ OSRM source already exists${NC}"
+  fi
+
+  # Build OSRM
+  cd "$OSRM_DIR"
+  mkdir -p build
+  cd build
+
+  echo -e "${BLUE}  Configuring OSRM build...${NC}"
+  cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$OSRM_INSTALL_DIR" \
+    -DENABLE_LTO=Off
+
+  echo -e "${BLUE}  Compiling OSRM (using 2 parallel jobs to conserve memory)...${NC}"
+  echo -e "${YELLOW}  This will take a while. You can monitor with: htop${NC}"
+  cmake --build . -j2
+
+  echo -e "${BLUE}  Installing OSRM to ${OSRM_INSTALL_DIR}...${NC}"
+  cmake --build . --target install
+
+  cd "$PROJECT_DIR"
+  echo -e "${GREEN}  ✓ OSRM backend built successfully${NC}"
+
+  # Build Node.js bindings
+  step "Building OSRM Node.js bindings..."
+
+  cd "$OSRM_DIR"
+
+  # Set environment for finding OSRM
+  export CMAKE_PREFIX_PATH="$OSRM_INSTALL_DIR"
+  export OSRM_BUILD_DIR="${OSRM_DIR}/build"
+
+  echo -e "${BLUE}  Building Node.js bindings...${NC}"
+  npm install --build-from-source
+
+  # Create symlink in project node_modules
+  cd "$PROJECT_DIR"
+  mkdir -p node_modules/@project-osrm
+  if [ -L "node_modules/@project-osrm/osrm" ]; then
+    rm "node_modules/@project-osrm/osrm"
+  fi
+  ln -sf "$OSRM_DIR" "node_modules/@project-osrm/osrm"
+
+  echo -e "${GREEN}  ✓ OSRM Node.js bindings installed${NC}"
+  echo -e "${BLUE}  Note: Offline routing is now available${NC}"
+fi
 
 # =============================================================================
 # PI-ONLY: Generate SSL certificate
