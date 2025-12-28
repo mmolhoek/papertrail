@@ -32,7 +32,7 @@ import {
   setMockPositionSchema,
   setZoomSchema,
   setAutoCenterSchema,
-  setPanOffsetSchema,
+  setCenterOverrideSchema,
   setRotateWithBearingSchema,
   setActiveScreenSchema,
   setSpeedUnitSchema,
@@ -494,9 +494,13 @@ export class IntegratedWebService implements IWebInterfaceService {
     );
 
     this.app.post(
-      `${api}/config/pan-offset`,
-      validateBody(setPanOffsetSchema),
-      (req, res) => this.controller.setPanOffset(req, res),
+      `${api}/config/center-override`,
+      validateBody(setCenterOverrideSchema),
+      (req, res) => this.controller.setCenterOverride(req, res),
+    );
+
+    this.app.delete(`${api}/config/center-override`, (req, res) =>
+      this.controller.clearCenterOverride(req, res),
     );
 
     this.app.post(

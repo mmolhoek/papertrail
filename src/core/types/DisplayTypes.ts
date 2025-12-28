@@ -99,9 +99,6 @@ export type ViewportConfig = {
 
   /** Optional rotation in degrees */
   rotation?: number;
-
-  /** Optional pan offset in pixels from center (for touch panning) */
-  panOffset?: { x: number; y: number };
 };
 
 /**

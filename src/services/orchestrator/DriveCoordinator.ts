@@ -305,12 +305,21 @@ export class DriveCoordinator {
       centerPoint = { latitude: 0, longitude: 0, timestamp: new Date() };
     }
 
+    // Use center override if set (manual panning), otherwise use GPS position
+    const centerOverride = this.configService.getCenterOverride();
+    if (centerOverride) {
+      centerPoint = {
+        ...centerPoint,
+        latitude: centerOverride.latitude,
+        longitude: centerOverride.longitude,
+      };
+    }
+
     const viewport = {
       width,
       height,
       zoomLevel,
       centerPoint,
-      panOffset: this.configService.getPanOffset(),
     };
 
     try {

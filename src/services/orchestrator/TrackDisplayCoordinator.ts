@@ -364,12 +364,21 @@ export class TrackDisplayCoordinator {
     track: GPXTrack,
     position: GPSCoordinate,
   ): Promise<Result<Bitmap1Bit>> {
+    // Use center override if set (manual panning), otherwise use GPS position
+    const centerOverride = this.configService.getCenterOverride();
+    const centerPoint = centerOverride
+      ? {
+          ...position,
+          latitude: centerOverride.latitude,
+          longitude: centerOverride.longitude,
+        }
+      : position;
+
     const viewport = {
       width: this.configService.getDisplayWidth(),
       height: this.configService.getDisplayHeight(),
-      centerPoint: position,
+      centerPoint,
       zoomLevel: this.configService.getZoomLevel(),
-      panOffset: this.configService.getPanOffset(),
     };
 
     logger.info(

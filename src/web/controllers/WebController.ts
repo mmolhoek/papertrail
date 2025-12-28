@@ -566,9 +566,14 @@ export class WebController {
     return this.config.setAutoCenter(req, res);
   }
 
-  /** @see ConfigController.setPanOffset */
-  async setPanOffset(req: Request, res: Response): Promise<void> {
-    return this.config.setPanOffset(req, res);
+  /** @see ConfigController.setCenterOverride */
+  async setCenterOverride(req: Request, res: Response): Promise<void> {
+    return this.config.setCenterOverride(req, res);
+  }
+
+  /** @see ConfigController.clearCenterOverride */
+  async clearCenterOverride(req: Request, res: Response): Promise<void> {
+    return this.config.clearCenterOverride(req, res);
   }
 
   /** @see ConfigController.setRotateWithBearing */

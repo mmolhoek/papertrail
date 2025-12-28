@@ -131,7 +131,7 @@ describe("TrackDisplayCoordinator", () => {
       getDisplayWidth: jest.fn().mockReturnValue(800),
       getDisplayHeight: jest.fn().mockReturnValue(480),
       getZoomLevel: jest.fn().mockReturnValue(15),
-      getPanOffset: jest.fn().mockReturnValue({ x: 0, y: 0 }),
+      getCenterOverride: jest.fn().mockReturnValue(null),
       getRenderOptions: jest.fn().mockReturnValue({
         lineWidth: 2,
         pointRadius: 2,

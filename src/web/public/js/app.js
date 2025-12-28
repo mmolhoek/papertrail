@@ -42,7 +42,7 @@ class PapertrailClient {
     this.mockDisplayPanelVisible = false;
 
     // Touch pan/zoom state
-    this.panOffset = { x: 0, y: 0 };
+    this.centerOverride = null; // { latitude, longitude } when manually panning
     this.isPanning = false;
     this.lastTouchPos = null;
     this.pinchStartDistance = null;
@@ -738,9 +738,9 @@ class PapertrailClient {
       this.currentZoom = settings.zoomLevel;
     }
 
-    // Update pan offset from server (in case it was persisted)
-    if (settings.panOffset !== undefined) {
-      this.panOffset = settings.panOffset;
+    // Update center override from server
+    if (settings.centerOverride !== undefined) {
+      this.centerOverride = settings.centerOverride;
     }
 
     // Update orientation button
@@ -4870,6 +4870,14 @@ class PapertrailClient {
         x: touches[0].clientX,
         y: touches[0].clientY,
       };
+
+      // If no center override exists, use current GPS position as starting point
+      if (!this.centerOverride && this.currentPosition) {
+        this.centerOverride = {
+          latitude: this.currentPosition.lat,
+          longitude: this.currentPosition.lon,
+        };
+      }
     } else if (touches.length === 2) {
       // Two fingers - start pinch zoom
       this.isPanning = false;
@@ -4885,27 +4893,46 @@ class PapertrailClient {
   }
 
   /**
-   * Handle touch move - update pan offset or zoom
+   * Handle touch move - update center override or zoom
    */
   handleTouchMove(e) {
     const touches = e.touches;
 
-    if (touches.length === 1 && this.isPanning && this.lastTouchPos) {
+    if (
+      touches.length === 1 &&
+      this.isPanning &&
+      this.lastTouchPos &&
+      this.centerOverride
+    ) {
       // Single finger - panning
       const deltaX = touches[0].clientX - this.lastTouchPos.x;
       const deltaY = touches[0].clientY - this.lastTouchPos.y;
 
-      // Update pan offset (accumulate)
-      this.panOffset.x -= deltaX;
-      this.panOffset.y -= deltaY;
+      // Convert pixel movement to lat/lon delta
+      const metersPerPixel = this.calculateMetersPerPixel(
+        this.centerOverride.latitude,
+        this.currentZoom,
+      );
+
+      // Calculate lat/lon change (note: Y axis is inverted for latitude)
+      const latDelta = (deltaY * metersPerPixel) / 111320;
+      const lonDelta =
+        (-deltaX * metersPerPixel) /
+        (111320 * Math.cos((this.centerOverride.latitude * Math.PI) / 180));
+
+      // Update center override
+      this.centerOverride = {
+        latitude: this.centerOverride.latitude + latDelta,
+        longitude: this.centerOverride.longitude + lonDelta,
+      };
 
       this.lastTouchPos = {
         x: touches[0].clientX,
         y: touches[0].clientY,
       };
 
-      // Send pan offset to backend (debounced)
-      this.sendPanOffset();
+      // Send center override to backend (debounced)
+      this.sendCenterOverride();
     } else if (
       touches.length === 2 &&
       this.pinchStartDistance &&
@@ -4939,9 +4966,9 @@ class PapertrailClient {
     this.pinchStartZoom = null;
 
     // Start auto-center timeout (30 seconds)
-    if (this.panOffset.x !== 0 || this.panOffset.y !== 0) {
+    if (this.centerOverride) {
       this.autoCenterTimeout = setTimeout(() => {
-        this.resetPanOffset();
+        this.clearCenterOverride();
       }, this.AUTO_CENTER_DELAY_MS);
     }
   }
@@ -4956,41 +4983,52 @@ class PapertrailClient {
   }
 
   /**
-   * Send pan offset to backend (debounced)
+   * Calculate meters per pixel at a given latitude and zoom level
    */
-  sendPanOffset() {
+  calculateMetersPerPixel(latitude, zoomLevel) {
+    const METERS_PER_PIXEL_AT_EQUATOR_ZOOM_0 = 156543.03392;
+    const scale = Math.pow(2, zoomLevel);
+    return (
+      (METERS_PER_PIXEL_AT_EQUATOR_ZOOM_0 *
+        Math.cos((latitude * Math.PI) / 180)) /
+      scale
+    );
+  }
+
+  /**
+   * Send center override to backend (debounced)
+   */
+  sendCenterOverride() {
     // Use requestAnimationFrame to debounce
-    if (this._panOffsetPending) return;
-    this._panOffsetPending = true;
+    if (this._centerOverridePending) return;
+    this._centerOverridePending = true;
 
     requestAnimationFrame(async () => {
       try {
-        await fetch(`${this.apiBase}/config/pan-offset`, {
+        await fetch(`${this.apiBase}/config/center-override`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(this.panOffset),
+          body: JSON.stringify(this.centerOverride),
         });
       } catch (error) {
-        console.error("Failed to send pan offset:", error);
+        console.error("Failed to send center override:", error);
       }
-      this._panOffsetPending = false;
+      this._centerOverridePending = false;
     });
   }
 
   /**
-   * Reset pan offset to center (auto-center)
+   * Clear center override (resume following GPS)
    */
-  async resetPanOffset() {
-    this.panOffset = { x: 0, y: 0 };
+  async clearCenterOverride() {
+    this.centerOverride = null;
     try {
-      await fetch(`${this.apiBase}/config/pan-offset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ x: 0, y: 0 }),
+      await fetch(`${this.apiBase}/config/center-override`, {
+        method: "DELETE",
       });
       this.showMessage("Auto-centered", "success");
     } catch (error) {
-      console.error("Failed to reset pan offset:", error);
+      console.error("Failed to clear center override:", error);
     }
   }
 

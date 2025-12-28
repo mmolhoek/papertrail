@@ -78,11 +78,14 @@ export const setAutoCenterSchema = z.object({
 });
 
 /**
- * Set pan offset for touch panning
+ * Set center override for manual panning
  */
-export const setPanOffsetSchema = z.object({
-  x: z.number({ message: "x must be a number" }),
-  y: z.number({ message: "y must be a number" }),
+export const setCenterOverrideSchema = z.object({
+  latitude: z.number({ message: "latitude must be a number" }).min(-90).max(90),
+  longitude: z
+    .number({ message: "longitude must be a number" })
+    .min(-180)
+    .max(180),
 });
 
 /**

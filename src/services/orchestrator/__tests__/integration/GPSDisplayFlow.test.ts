@@ -173,7 +173,7 @@ describe("GPS → Display Update Flow Integration", () => {
       getDisplayHeight: jest.fn().mockReturnValue(480),
       getAutoCenter: jest.fn().mockReturnValue(true),
       setAutoCenter: jest.fn(),
-      getPanOffset: jest.fn().mockReturnValue({ x: 0, y: 0 }),
+      getCenterOverride: jest.fn().mockReturnValue(null),
       getRotateWithBearing: jest.fn().mockReturnValue(false),
       setRotateWithBearing: jest.fn(),
       getActiveScreen: jest.fn().mockReturnValue("track"),

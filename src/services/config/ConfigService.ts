@@ -24,8 +24,8 @@ export class ConfigService implements IConfigService {
   private isInitialized: boolean = false;
   private config: AppConfig;
   private userState: UserState;
-  /** Transient pan offset (not persisted) */
-  private panOffset: { x: number; y: number } = { x: 0, y: 0 };
+  /** Transient center override for manual panning (not persisted) */
+  private centerOverride: { latitude: number; longitude: number } | null = null;
 
   constructor(
     private readonly configPath: string = "./config/default.json",
@@ -169,18 +169,22 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.autoCenter = enabled;
   }
 
-  // Pan offset (transient, not persisted)
+  // Center override for manual panning (transient, not persisted)
 
-  getPanOffset(): { x: number; y: number } {
-    return this.panOffset;
+  getCenterOverride(): { latitude: number; longitude: number } | null {
+    return this.centerOverride;
   }
 
-  setPanOffset(offset: { x: number; y: number }): void {
-    this.panOffset = { x: offset.x, y: offset.y };
+  setCenterOverride(
+    center: { latitude: number; longitude: number } | null,
+  ): void {
+    this.centerOverride = center
+      ? { latitude: center.latitude, longitude: center.longitude }
+      : null;
   }
 
-  resetPanOffset(): void {
-    this.panOffset = { x: 0, y: 0 };
+  clearCenterOverride(): void {
+    this.centerOverride = null;
   }
 
   getRotateWithBearing(): boolean {

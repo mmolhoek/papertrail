@@ -124,21 +124,23 @@ export interface IConfigService {
   setAutoCenter(enabled: boolean): void;
 
   /**
-   * Get pan offset for touch panning (transient, not persisted)
-   * @returns Pan offset in pixels from center
+   * Get center override for manual panning (transient, not persisted)
+   * @returns Override center position or null if following GPS
    */
-  getPanOffset(): { x: number; y: number };
+  getCenterOverride(): { latitude: number; longitude: number } | null;
 
   /**
-   * Set pan offset for touch panning
-   * @param offset Pan offset in pixels from center
+   * Set center override for manual panning
+   * @param center Override center position or null to follow GPS
    */
-  setPanOffset(offset: { x: number; y: number }): void;
+  setCenterOverride(
+    center: { latitude: number; longitude: number } | null,
+  ): void;
 
   /**
-   * Reset pan offset to center (0, 0)
+   * Clear center override, resume following GPS
    */
-  resetPanOffset(): void;
+  clearCenterOverride(): void;
 
   /**
    * Get rotate-with-bearing preference

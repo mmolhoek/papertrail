@@ -46,7 +46,7 @@ export class ConfigController {
       data: {
         zoomLevel: this.configService.getZoomLevel(),
         autoCenter: this.configService.getAutoCenter(),
-        panOffset: this.configService.getPanOffset(),
+        centerOverride: this.configService.getCenterOverride(),
         rotateWithBearing: this.configService.getRotateWithBearing(),
         activeScreen: this.configService.getActiveScreen(),
         speedUnit: this.configService.getSpeedUnit(),
@@ -166,9 +166,9 @@ export class ConfigController {
   }
 
   /**
-   * Set pan offset for touch panning
+   * Set center override for manual panning
    */
-  async setPanOffset(req: Request, res: Response): Promise<void> {
+  async setCenterOverride(req: Request, res: Response): Promise<void> {
     if (!this.configService) {
       res.status(500).json({
         success: false,
@@ -180,20 +180,50 @@ export class ConfigController {
       return;
     }
 
-    const { x, y } = req.body;
+    const { latitude, longitude } = req.body;
 
-    logger.info(`Setting pan offset to: (${x}, ${y})`);
-    this.configService.setPanOffset({ x, y });
+    logger.info(`Setting center override to: (${latitude}, ${longitude})`);
+    this.configService.setCenterOverride({ latitude, longitude });
 
     // Trigger display update
     const result = await this.orchestrator.updateDisplay();
     if (!result.success) {
-      logger.error("Failed to update display after pan offset change");
+      logger.error("Failed to update display after center override change");
     }
 
     res.json({
       success: true,
-      message: `Pan offset set to (${x}, ${y})`,
+      message: `Center override set to (${latitude}, ${longitude})`,
+    });
+  }
+
+  /**
+   * Clear center override (resume following GPS)
+   */
+  async clearCenterOverride(_req: Request, res: Response): Promise<void> {
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "CONFIG_UNAVAILABLE",
+          message: "Config service unavailable",
+        },
+      });
+      return;
+    }
+
+    logger.info("Clearing center override");
+    this.configService.clearCenterOverride();
+
+    // Trigger display update
+    const result = await this.orchestrator.updateDisplay();
+    if (!result.success) {
+      logger.error("Failed to update display after clearing center override");
+    }
+
+    res.json({
+      success: true,
+      message: "Center override cleared, following GPS",
     });
   }
 
