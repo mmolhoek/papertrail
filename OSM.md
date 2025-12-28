@@ -120,15 +120,15 @@ Run OSRM locally for navigation without internet.
 
 - Created `OfflineRoutingService` using `@project-osrm/osrm` Node.js bindings
 - Service gracefully falls back to `MockOfflineRoutingService` if bindings unavailable
-- Region data stored in `data/osrm-regions/` directory
+- Region data stored in `data/osrm-regions/` directory with `metadata.json` per region
 - Configurable manifest URL for downloading pre-processed OSRM regions
 - Auto-fallback: tries offline first, falls back to online if coordinates outside installed regions
 - Memory management: max 2 regions loaded simultaneously with LRU eviction
 - API endpoints for region management:
   - `GET /api/routing/status` - Offline routing status
-  - `GET /api/routing/regions/available` - List downloadable regions
+  - `GET /api/routing/regions/available` - List downloadable regions from manifest
   - `GET /api/routing/regions/installed` - List installed regions
-  - `POST /api/routing/regions/:id/download` - Download region
+  - `POST /api/routing/regions/:id/download` - Download region with progress
   - `DELETE /api/routing/regions/:id` - Delete region
   - `POST /api/routing/regions/:id/load` - Load region into memory
   - `POST /api/routing/regions/:id/unload` - Unload region from memory
@@ -137,6 +137,32 @@ Run OSRM locally for navigation without internet.
   - `offlineRouting.preferOffline` - Try offline first when available
   - `offlineRouting.manifestUrl` - URL for region manifest
   - `offlineRouting.installedRegions` - List of installed regions
+
+**Manifest Format:**
+
+```json
+{
+  "downloadBaseUrl": "https://example.com/osrm-regions",
+  "regions": [
+    {
+      "id": "europe-netherlands",
+      "name": "Netherlands",
+      "bounds": { "north": 53.5, "south": 50.75, "east": 7.25, "west": 3.35 },
+      "sizeBytes": 157286400,
+      "profiles": ["car", "bike", "foot"],
+      "lastUpdated": "2024-01-15T00:00:00Z"
+    }
+  ]
+}
+```
+
+**Download Features:**
+
+- Streaming download with progress tracking (throttled to 100KB intervals)
+- WebSocket events (`offline-routing:download-progress`) for real-time UI updates
+- Progress states: `downloading`, `extracting`, `complete`, `error`
+- Automatic cleanup of partial downloads on failure
+- Supports per-region `downloadUrl` or manifest-level `downloadBaseUrl`
 
 **Note:** Requires pre-processed OSRM data files. Geofabrik provides raw `.osm.pbf` files, not pre-processed OSRM files. Users need to either:
 1. Host their own OSRM file server with pre-processed regions
