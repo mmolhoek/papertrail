@@ -5939,26 +5939,28 @@ body {
 }
 
 .fullscreen-toast-container .toast {
-  background: rgba(26, 26, 26, 0.95);
+  background: #1a1a1a;
   color: var(--color-parchment);
   padding: 12px 20px;
   border-radius: 8px;
-  border: 1px solid var(--color-brass);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border: 2px solid var(--color-brass);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .fullscreen-toast-container .toast.success {
   border-color: var(--color-success);
-  background: rgba(76, 175, 80, 0.2);
+  background: #1a2e1a;
 }
 
 .fullscreen-toast-container .toast.error {
   border-color: var(--color-danger);
-  background: rgba(244, 67, 54, 0.2);
+  background: #2e1a1a;
 }
 
 .fullscreen-toast-container .toast.info {
   border-color: var(--color-brass);
+  background: #1a1a1a;
 }
