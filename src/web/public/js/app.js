@@ -214,19 +214,36 @@ class PapertrailClient {
 
   // Show a system message (toast notification)
   showMessage(message, type = "info") {
+    // Cancel previous message timeout if any
+    if (this._messageTimeout) {
+      clearTimeout(this._messageTimeout);
+      this._messageTimeout = null;
+    }
+
+    // Update regular toast
     const messageIndicator = document.getElementById("message-indicator");
     const messageText = document.getElementById("message-text");
 
-    // Set message content and type
     messageText.textContent = message;
     messageIndicator.className = `toast ${type}`;
-
-    // Show the message indicator
     messageIndicator.classList.remove("hidden");
 
-    // Automatically hide the message after 5 seconds
-    setTimeout(() => {
+    // Also update fullscreen toast if in fullscreen mode
+    const fsIndicator = document.getElementById("fullscreen-message-indicator");
+    const fsText = document.getElementById("fullscreen-message-text");
+    if (fsIndicator && fsText) {
+      fsText.textContent = message;
+      fsIndicator.className = `toast ${type}`;
+      fsIndicator.classList.remove("hidden");
+    }
+
+    // Automatically hide both toasts after 5 seconds
+    this._messageTimeout = setTimeout(() => {
       messageIndicator.classList.add("hidden");
+      if (fsIndicator) {
+        fsIndicator.classList.add("hidden");
+      }
+      this._messageTimeout = null;
     }, 5000);
   }
 
@@ -4872,11 +4889,19 @@ class PapertrailClient {
       };
 
       // If no center override exists, use current GPS position as starting point
-      if (!this.centerOverride && this.currentPosition) {
-        this.centerOverride = {
-          latitude: this.currentPosition.lat,
-          longitude: this.currentPosition.lon,
-        };
+      if (!this.centerOverride) {
+        if (this.currentPosition) {
+          this.centerOverride = {
+            latitude: this.currentPosition.lat,
+            longitude: this.currentPosition.lon,
+          };
+          this.showMessage("Pan mode active", "info");
+        } else {
+          // No GPS position available - cannot pan
+          this.showMessage("No GPS - cannot pan", "error");
+          this.isPanning = false;
+          return;
+        }
       }
     } else if (touches.length === 2) {
       // Two fingers - start pinch zoom
@@ -4907,6 +4932,11 @@ class PapertrailClient {
       // Single finger - panning
       const deltaX = touches[0].clientX - this.lastTouchPos.x;
       const deltaY = touches[0].clientY - this.lastTouchPos.y;
+
+      // Skip tiny movements
+      if (Math.abs(deltaX) < 2 && Math.abs(deltaY) < 2) {
+        return;
+      }
 
       // Convert pixel movement to lat/lon delta
       const metersPerPixel = this.calculateMetersPerPixel(
@@ -5005,11 +5035,18 @@ class PapertrailClient {
 
     requestAnimationFrame(async () => {
       try {
-        await fetch(`${this.apiBase}/config/center-override`, {
+        const response = await fetch(`${this.apiBase}/config/center-override`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(this.centerOverride),
         });
+        if (response.ok) {
+          const data = await response.json();
+          // Refresh the mock display image when display is updated
+          if (data.displayUpdated && this.mockDisplayPanelVisible) {
+            this.refreshMockDisplay();
+          }
+        }
       } catch (error) {
         console.error("Failed to send center override:", error);
       }

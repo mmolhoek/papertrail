@@ -194,6 +194,7 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Center override set to (${latitude}, ${longitude})`,
+      displayUpdated: result.success,
     });
   }
 

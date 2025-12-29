@@ -915,10 +915,10 @@ export class SVGService implements ISVGService {
       );
 
       // Render the route on the map section
+      // Use viewport.centerPoint which may have centerOverride applied for panning
       const mapViewport: ViewportConfig = {
         ...viewport,
         width: mapWidth,
-        centerPoint: currentPosition,
       };
 
       // Render background layers in order: landuse (bottom), water, roads (top)
@@ -1038,12 +1038,23 @@ export class SVGService implements ISVGService {
 
       // Highlight current position
       if (renderOpts.highlightCurrentPosition) {
-        const centerPoint = {
-          x: Math.floor(mapWidth / 2),
-          y: Math.floor(height / 2),
-        };
+        // Project current GPS position to pixel coordinates within the viewport
+        let posPixel = this.projectToPixels(
+          currentPosition.latitude,
+          currentPosition.longitude,
+          mapViewport,
+        );
+        // Apply rotation if bearing is available
+        if (renderOpts.rotateWithBearing && currentPosition.bearing) {
+          posPixel = this.rotatePoint(
+            posPixel,
+            mapWidth / 2,
+            height / 2,
+            -currentPosition.bearing,
+          );
+        }
         const radius = renderOpts.currentPositionRadius || 8;
-        TrackRenderer.renderPositionMarker(bitmap, centerPoint, radius);
+        TrackRenderer.renderPositionMarker(bitmap, posPixel, radius);
       }
 
       // Draw all waypoint markers on the route (only at zoom level 19+)
