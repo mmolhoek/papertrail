@@ -59,6 +59,12 @@ export class ConfigController {
         showSpeedLimit: this.configService.getShowSpeedLimit(),
         showElevation: this.configService.getShowElevation(),
         routingProfile: this.configService.getRoutingProfile(),
+        // Track mode map feature settings
+        showRoadsInTrackMode: this.configService.getShowRoadsInTrackMode(),
+        showWaterInTrackMode: this.configService.getShowWaterInTrackMode(),
+        showWaterwaysInTrackMode:
+          this.configService.getShowWaterwaysInTrackMode(),
+        showLanduseInTrackMode: this.configService.getShowLanduseInTrackMode(),
       },
     });
   }
@@ -822,6 +828,163 @@ export class ConfigController {
     res.json({
       success: true,
       message: `Road surface display ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  // Track Mode Map Feature Endpoints
+
+  /**
+   * Set show roads in track mode enabled/disabled
+   */
+  async setShowRoadsInTrackMode(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show roads in track mode to: ${enabled}`);
+    this.configService.setShowRoadsInTrackMode(enabled);
+    await this.configService.save();
+
+    res.json({
+      success: true,
+      message: `Track mode roads ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show water in track mode enabled/disabled
+   */
+  async setShowWaterInTrackMode(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show water in track mode to: ${enabled}`);
+    this.configService.setShowWaterInTrackMode(enabled);
+    await this.configService.save();
+
+    res.json({
+      success: true,
+      message: `Track mode water ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show waterways in track mode enabled/disabled
+   */
+  async setShowWaterwaysInTrackMode(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show waterways in track mode to: ${enabled}`);
+    this.configService.setShowWaterwaysInTrackMode(enabled);
+    await this.configService.save();
+
+    res.json({
+      success: true,
+      message: `Track mode waterways ${enabled ? "enabled" : "disabled"}`,
+    });
+  }
+
+  /**
+   * Set show landuse in track mode enabled/disabled
+   */
+  async setShowLanduseInTrackMode(req: Request, res: Response): Promise<void> {
+    const { enabled } = req.body;
+
+    if (typeof enabled !== "boolean") {
+      res.status(400).json({
+        success: false,
+        error: {
+          code: "INVALID_REQUEST",
+          message: "enabled must be a boolean",
+        },
+      });
+      return;
+    }
+
+    if (!this.configService) {
+      res.status(500).json({
+        success: false,
+        error: {
+          code: "SERVICE_UNAVAILABLE",
+          message: "Config service not available",
+        },
+      });
+      return;
+    }
+
+    logger.info(`Setting show landuse in track mode to: ${enabled}`);
+    this.configService.setShowLanduseInTrackMode(enabled);
+    await this.configService.save();
+
+    res.json({
+      success: true,
+      message: `Track mode landuse ${enabled ? "enabled" : "disabled"}`,
     });
   }
 

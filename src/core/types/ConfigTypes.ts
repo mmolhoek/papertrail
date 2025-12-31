@@ -220,6 +220,20 @@ export type UserState = {
 
     /** Whether to show road surface during drive navigation */
     showRoadSurface?: boolean;
+
+    // Track mode map feature settings (independent from drive mode)
+
+    /** Whether to show road layer in track mode */
+    showRoadsInTrackMode?: boolean;
+
+    /** Whether to show water bodies in track mode */
+    showWaterInTrackMode?: boolean;
+
+    /** Whether to show waterways in track mode */
+    showWaterwaysInTrackMode?: boolean;
+
+    /** Whether to show landuse features in track mode */
+    showLanduseInTrackMode?: boolean;
   };
 
   /** Recently used GPX files */

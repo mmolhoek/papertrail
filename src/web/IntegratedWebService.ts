@@ -575,6 +575,31 @@ export class IntegratedWebService implements IWebInterfaceService {
       (req, res) => this.controller.setShowRoadSurface(req, res),
     );
 
+    // Track mode map feature routes
+    this.app.post(
+      `${api}/config/show-roads-track-mode`,
+      validateBody(setShowRoadsSchema),
+      (req, res) => this.controller.setShowRoadsInTrackMode(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-water-track-mode`,
+      validateBody(setShowWaterSchema),
+      (req, res) => this.controller.setShowWaterInTrackMode(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-waterways-track-mode`,
+      validateBody(setShowWaterwaysSchema),
+      (req, res) => this.controller.setShowWaterwaysInTrackMode(req, res),
+    );
+
+    this.app.post(
+      `${api}/config/show-landuse-track-mode`,
+      validateBody(setShowLanduseSchema),
+      (req, res) => this.controller.setShowLanduseInTrackMode(req, res),
+    );
+
     this.app.post(
       `${api}/config/routing-profile`,
       validateBody(setRoutingProfileSchema),

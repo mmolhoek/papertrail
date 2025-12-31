@@ -296,6 +296,40 @@ export class ConfigService implements IConfigService {
     this.userState.displayPreferences.showRoadSurface = enabled;
   }
 
+  // Track mode map feature settings (independent from drive mode)
+
+  getShowRoadsInTrackMode(): boolean {
+    return this.userState.displayPreferences.showRoadsInTrackMode ?? false;
+  }
+
+  setShowRoadsInTrackMode(enabled: boolean): void {
+    this.userState.displayPreferences.showRoadsInTrackMode = enabled;
+  }
+
+  getShowWaterInTrackMode(): boolean {
+    return this.userState.displayPreferences.showWaterInTrackMode ?? false;
+  }
+
+  setShowWaterInTrackMode(enabled: boolean): void {
+    this.userState.displayPreferences.showWaterInTrackMode = enabled;
+  }
+
+  getShowWaterwaysInTrackMode(): boolean {
+    return this.userState.displayPreferences.showWaterwaysInTrackMode ?? false;
+  }
+
+  setShowWaterwaysInTrackMode(enabled: boolean): void {
+    this.userState.displayPreferences.showWaterwaysInTrackMode = enabled;
+  }
+
+  getShowLanduseInTrackMode(): boolean {
+    return this.userState.displayPreferences.showLanduseInTrackMode ?? false;
+  }
+
+  setShowLanduseInTrackMode(enabled: boolean): void {
+    this.userState.displayPreferences.showLanduseInTrackMode = enabled;
+  }
+
   // POI preferences
 
   private readonly DEFAULT_POI_CATEGORIES: Array<

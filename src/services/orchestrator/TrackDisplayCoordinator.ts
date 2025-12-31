@@ -4,9 +4,13 @@ import {
   ISVGService,
   IConfigService,
   IDriveNavigationService,
+  IVectorMapService,
   FollowTrackInfo,
   DriveNavigationInfo,
   IDisplayService,
+  CachedWater,
+  CachedRoad,
+  CachedLanduse,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -49,6 +53,11 @@ export class TrackDisplayCoordinator {
   private cachedTrackPath: string | null = null;
   private cachedWaypoints: GPXTrackPoint[] = [];
 
+  // Cached map features for rendering
+  private cachedWater: CachedWater[] = [];
+  private cachedRoads: CachedRoad[] = [];
+  private cachedLanduse: CachedLanduse[] = [];
+
   // Display update queuing
   private displayUpdateQueue = new DisplayUpdateQueue();
 
@@ -68,6 +77,7 @@ export class TrackDisplayCoordinator {
     private readonly displayService: IDisplayService,
     private readonly configService: IConfigService,
     private readonly driveNavigationService: IDriveNavigationService | null,
+    private readonly vectorMapService: IVectorMapService | null,
     private simulationCoordinator: SimulationCoordinator | null,
     private driveCoordinator: DriveCoordinator | null,
   ) {}
@@ -105,6 +115,53 @@ export class TrackDisplayCoordinator {
    */
   setErrorCallback(callback: (error: Error) => void): void {
     this.errorCallback = callback;
+  }
+
+  /**
+   * Set cached water features for rendering
+   */
+  setCachedWater(water: CachedWater[]): void {
+    this.cachedWater = water;
+    logger.info(`Cached ${water.length} water features for track rendering`);
+  }
+
+  /**
+   * Get cached water features for rendering
+   */
+  getCurrentWater(): CachedWater[] {
+    return this.cachedWater;
+  }
+
+  /**
+   * Set cached road features for rendering
+   */
+  setCachedRoads(roads: CachedRoad[]): void {
+    this.cachedRoads = roads;
+    logger.info(`Cached ${roads.length} road features for track rendering`);
+  }
+
+  /**
+   * Get cached road features for rendering
+   */
+  getCurrentRoads(): CachedRoad[] {
+    return this.cachedRoads;
+  }
+
+  /**
+   * Set cached landuse features for rendering
+   */
+  setCachedLanduse(landuse: CachedLanduse[]): void {
+    this.cachedLanduse = landuse;
+    logger.info(
+      `Cached ${landuse.length} landuse features for track rendering`,
+    );
+  }
+
+  /**
+   * Get cached landuse features for rendering
+   */
+  getCurrentLanduse(): CachedLanduse[] {
+    return this.cachedLanduse;
   }
 
   /**
@@ -197,7 +254,7 @@ export class TrackDisplayCoordinator {
           0,
         );
 
-        // Cache waypoints if this is a new track
+        // Cache waypoints and prefetch water if this is a new track
         if (this.cachedTrackPath !== gpxPath) {
           this.cachedWaypoints = gpxFile.waypoints || [];
           if (this.cachedWaypoints.length > 0) {
@@ -209,6 +266,102 @@ export class TrackDisplayCoordinator {
                 `  [${i + 1}] ${wp.name || "(unnamed)"} at (${wp.latitude.toFixed(5)}, ${wp.longitude.toFixed(5)})`,
               );
             });
+          }
+
+          // Prefetch map features along track corridor in background
+          if (this.vectorMapService) {
+            const trackGeometry: [number, number][] =
+              track.segments[0]?.points.map((p) => [p.latitude, p.longitude]) ||
+              [];
+            if (trackGeometry.length > 0) {
+              const firstPoint = trackGeometry[0];
+              const lastPoint = trackGeometry[trackGeometry.length - 1];
+              const trackAsRoute: DriveRoute = {
+                id: `track-${gpxPath}`,
+                destination: track.name || "Track",
+                createdAt: new Date(),
+                startPoint: {
+                  latitude: firstPoint[0],
+                  longitude: firstPoint[1],
+                },
+                endPoint: { latitude: lastPoint[0], longitude: lastPoint[1] },
+                waypoints: [],
+                geometry: trackGeometry,
+                totalDistance: 0,
+                estimatedTime: 0,
+              };
+
+              // Clear old cached features and prefetch for new track
+              this.cachedWater = [];
+              this.cachedRoads = [];
+              this.cachedLanduse = [];
+
+              // Prefetch roads
+              this.vectorMapService
+                .prefetchRouteRoads(trackAsRoute, 5000)
+                .then((result) => {
+                  if (result.success) {
+                    logger.info(
+                      `Prefetched ${result.data} road features for track`,
+                    );
+                    const allRoads =
+                      this.vectorMapService?.getAllCachedRoads() ?? [];
+                    this.setCachedRoads(allRoads);
+                  } else {
+                    logger.warn(
+                      "Failed to prefetch roads for track:",
+                      result.error?.message,
+                    );
+                  }
+                })
+                .catch((error) => {
+                  logger.warn("Roads prefetch error for track:", error);
+                });
+
+              // Prefetch water
+              this.vectorMapService
+                .prefetchRouteWater(trackAsRoute, 5000)
+                .then((result) => {
+                  if (result.success) {
+                    logger.info(
+                      `Prefetched ${result.data} water features for track`,
+                    );
+                    const allWater =
+                      this.vectorMapService?.getAllCachedWater() ?? [];
+                    this.setCachedWater(allWater);
+                  } else {
+                    logger.warn(
+                      "Failed to prefetch water for track:",
+                      result.error?.message,
+                    );
+                  }
+                })
+                .catch((error) => {
+                  logger.warn("Water prefetch error for track:", error);
+                });
+
+              // Prefetch landuse
+              this.vectorMapService
+                .prefetchRouteLanduse(trackAsRoute, 5000)
+                .then((result) => {
+                  if (result.success) {
+                    logger.info(
+                      `Prefetched ${result.data} landuse features for track`,
+                    );
+                    const allLanduse =
+                      this.vectorMapService?.getAllCachedLanduse() ?? [];
+                    this.setCachedLanduse(allLanduse);
+                  } else {
+                    logger.warn(
+                      "Failed to prefetch landuse for track:",
+                      result.error?.message,
+                    );
+                  }
+                })
+                .catch((error) => {
+                  logger.warn("Landuse prefetch error for track:", error);
+                });
+            }
           }
         }
 
@@ -624,6 +777,29 @@ export class TrackDisplayCoordinator {
       routingProfile: this.configService.getRoutingProfile(),
     };
 
+    // Get cached map features for rendering (filtered by config settings)
+    const roads = this.configService.getShowRoadsInTrackMode()
+      ? this.getCurrentRoads()
+      : undefined;
+
+    // Combine water bodies and waterways based on settings
+    let water: CachedWater[] | undefined;
+    const showWater = this.configService.getShowWaterInTrackMode();
+    const showWaterways = this.configService.getShowWaterwaysInTrackMode();
+    if (showWater || showWaterways) {
+      const allWater = this.getCurrentWater();
+      water = allWater.filter((w) => {
+        // Water bodies (lakes, ponds, reservoirs) have waterType !== 'river/stream/canal'
+        const isWaterBody = !["river", "stream", "canal"].includes(w.waterType);
+        const isWaterway = ["river", "stream", "canal"].includes(w.waterType);
+        return (showWater && isWaterBody) || (showWaterways && isWaterway);
+      });
+    }
+
+    const landuse = this.configService.getShowLanduseInTrackMode()
+      ? this.getCurrentLanduse()
+      : undefined;
+
     return this.svgService.renderDriveMapScreen(
       driveRoute,
       position,
@@ -631,6 +807,9 @@ export class TrackDisplayCoordinator {
       viewport,
       driveInfo,
       renderOptions,
+      roads,
+      water,
+      landuse,
     );
   }
 

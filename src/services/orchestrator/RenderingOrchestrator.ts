@@ -216,6 +216,7 @@ export class RenderingOrchestrator implements IRenderingOrchestrator {
       displayService,
       configService,
       driveNavigationService ?? null,
+      vectorMapService ?? null,
       this.simulationCoordinator,
       this.driveCoordinator,
     );

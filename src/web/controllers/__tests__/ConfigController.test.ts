@@ -65,6 +65,10 @@ const createMockConfigService = () => ({
   getShowSpeedLimit: jest.fn().mockReturnValue(true),
   getShowElevation: jest.fn().mockReturnValue(false),
   getRoutingProfile: jest.fn().mockReturnValue("car"),
+  getShowRoadsInTrackMode: jest.fn().mockReturnValue(false),
+  getShowWaterInTrackMode: jest.fn().mockReturnValue(false),
+  getShowWaterwaysInTrackMode: jest.fn().mockReturnValue(false),
+  getShowLanduseInTrackMode: jest.fn().mockReturnValue(false),
   setSpeedUnit: jest.fn(),
   setPOICategoryEnabled: jest.fn(),
   setRoutingProfile: jest.fn(),
@@ -133,6 +137,11 @@ describe("ConfigController", () => {
           showSpeedLimit: true,
           showElevation: false,
           routingProfile: "car",
+          // Track mode map feature settings
+          showRoadsInTrackMode: false,
+          showWaterInTrackMode: false,
+          showWaterwaysInTrackMode: false,
+          showLanduseInTrackMode: false,
         },
       });
     });

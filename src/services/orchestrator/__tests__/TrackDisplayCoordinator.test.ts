@@ -6,6 +6,7 @@ import {
   IConfigService,
   IDriveNavigationService,
   IDisplayService,
+  IVectorMapService,
 } from "@core/interfaces";
 import {
   GPSCoordinate,
@@ -43,6 +44,7 @@ describe("TrackDisplayCoordinator", () => {
   let mockDisplayService: jest.Mocked<IDisplayService>;
   let mockConfigService: jest.Mocked<IConfigService>;
   let mockDriveNavigationService: jest.Mocked<IDriveNavigationService>;
+  let mockVectorMapService: jest.Mocked<IVectorMapService>;
   let mockSimulationCoordinator: jest.Mocked<SimulationCoordinator>;
   let mockDriveCoordinator: jest.Mocked<DriveCoordinator>;
 
@@ -144,12 +146,26 @@ describe("TrackDisplayCoordinator", () => {
       getRotateWithBearing: jest.fn().mockReturnValue(true),
       getActiveScreen: jest.fn().mockReturnValue(ScreenType.TRACK),
       getRoutingProfile: jest.fn().mockReturnValue("car"),
+      // Track mode map feature settings
+      getShowRoadsInTrackMode: jest.fn().mockReturnValue(false),
+      getShowWaterInTrackMode: jest.fn().mockReturnValue(false),
+      getShowWaterwaysInTrackMode: jest.fn().mockReturnValue(false),
+      getShowLanduseInTrackMode: jest.fn().mockReturnValue(false),
     } as unknown as jest.Mocked<IConfigService>;
 
     mockDriveNavigationService = {
       isNavigating: jest.fn().mockReturnValue(false),
       getActiveRoute: jest.fn().mockReturnValue(null),
     } as unknown as jest.Mocked<IDriveNavigationService>;
+
+    mockVectorMapService = {
+      prefetchRouteRoads: jest.fn().mockResolvedValue(success(0)),
+      prefetchRouteWater: jest.fn().mockResolvedValue(success(0)),
+      prefetchRouteLanduse: jest.fn().mockResolvedValue(success(0)),
+      getAllCachedRoads: jest.fn().mockReturnValue([]),
+      getAllCachedWater: jest.fn().mockReturnValue([]),
+      getAllCachedLanduse: jest.fn().mockReturnValue([]),
+    } as unknown as jest.Mocked<IVectorMapService>;
 
     mockSimulationCoordinator = {
       isSimulating: jest.fn().mockReturnValue(false),
@@ -168,6 +184,7 @@ describe("TrackDisplayCoordinator", () => {
       mockDisplayService,
       mockConfigService,
       mockDriveNavigationService,
+      mockVectorMapService,
       mockSimulationCoordinator,
       mockDriveCoordinator,
     );
@@ -526,6 +543,9 @@ describe("TrackDisplayCoordinator", () => {
           distanceRemaining: expect.any(Number),
         }),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
 
@@ -673,6 +693,9 @@ describe("TrackDisplayCoordinator", () => {
           showPoints: true,
           rotateWithBearing: false,
         }),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
   });
@@ -703,6 +726,9 @@ describe("TrackDisplayCoordinator", () => {
           satellites: 12,
         }),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
 
@@ -722,6 +748,9 @@ describe("TrackDisplayCoordinator", () => {
           satellites: 0,
         }),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
   });
@@ -751,6 +780,9 @@ describe("TrackDisplayCoordinator", () => {
           speed: 36, // 10 m/s * 3.6
         }),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
 
@@ -772,6 +804,9 @@ describe("TrackDisplayCoordinator", () => {
           speed: 0,
         }),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
   });
@@ -802,6 +837,9 @@ describe("TrackDisplayCoordinator", () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
+        undefined, // roads (disabled in config)
+        undefined, // water (disabled in config)
+        undefined, // landuse (disabled in config)
       );
     });
   });

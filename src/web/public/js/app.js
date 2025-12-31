@@ -500,6 +500,38 @@ class PapertrailClient {
       });
     }
 
+    // Track mode map feature toggles
+    const showRoadsTrackToggle = document.getElementById("show-roads-track");
+    if (showRoadsTrackToggle) {
+      showRoadsTrackToggle.addEventListener("change", (e) => {
+        this.setShowRoadsInTrackMode(e.target.checked);
+      });
+    }
+
+    const showWaterTrackToggle = document.getElementById("show-water-track");
+    if (showWaterTrackToggle) {
+      showWaterTrackToggle.addEventListener("change", (e) => {
+        this.setShowWaterInTrackMode(e.target.checked);
+      });
+    }
+
+    const showWaterwaysTrackToggle = document.getElementById(
+      "show-waterways-track",
+    );
+    if (showWaterwaysTrackToggle) {
+      showWaterwaysTrackToggle.addEventListener("change", (e) => {
+        this.setShowWaterwaysInTrackMode(e.target.checked);
+      });
+    }
+
+    const showLanduseTrackToggle =
+      document.getElementById("show-landuse-track");
+    if (showLanduseTrackToggle) {
+      showLanduseTrackToggle.addEventListener("change", (e) => {
+        this.setShowLanduseInTrackMode(e.target.checked);
+      });
+    }
+
     // Screen selection
     const screenSelect = document.getElementById("screen-select");
     if (screenSelect) {
@@ -880,6 +912,35 @@ class PapertrailClient {
       const checkbox = document.getElementById("show-elevation");
       if (checkbox) {
         checkbox.checked = settings.showElevation;
+      }
+    }
+
+    // Update track mode map feature toggles
+    if (settings.showRoadsInTrackMode !== undefined) {
+      const checkbox = document.getElementById("show-roads-track");
+      if (checkbox) {
+        checkbox.checked = settings.showRoadsInTrackMode;
+      }
+    }
+
+    if (settings.showWaterInTrackMode !== undefined) {
+      const checkbox = document.getElementById("show-water-track");
+      if (checkbox) {
+        checkbox.checked = settings.showWaterInTrackMode;
+      }
+    }
+
+    if (settings.showWaterwaysInTrackMode !== undefined) {
+      const checkbox = document.getElementById("show-waterways-track");
+      if (checkbox) {
+        checkbox.checked = settings.showWaterwaysInTrackMode;
+      }
+    }
+
+    if (settings.showLanduseInTrackMode !== undefined) {
+      const checkbox = document.getElementById("show-landuse-track");
+      if (checkbox) {
+        checkbox.checked = settings.showLanduseInTrackMode;
       }
     }
 
@@ -1395,6 +1456,120 @@ class PapertrailClient {
       this.showMessage("Failed to change landuse setting", "error");
       // Revert the checkbox
       const checkbox = document.getElementById("show-landuse");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Track mode map feature settings
+
+  // Set show roads in track mode enabled/disabled
+  async setShowRoadsInTrackMode(enabled) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/config/show-roads-track-mode`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Track roads ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set track roads setting");
+      }
+    } catch (error) {
+      console.error("Failed to set track roads setting:", error);
+      this.showMessage("Failed to change track roads setting", "error");
+      const checkbox = document.getElementById("show-roads-track");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show water in track mode enabled/disabled
+  async setShowWaterInTrackMode(enabled) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/config/show-water-track-mode`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Track water ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set track water setting");
+      }
+    } catch (error) {
+      console.error("Failed to set track water setting:", error);
+      this.showMessage("Failed to change track water setting", "error");
+      const checkbox = document.getElementById("show-water-track");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show waterways in track mode enabled/disabled
+  async setShowWaterwaysInTrackMode(enabled) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/config/show-waterways-track-mode`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Track rivers ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set track rivers setting");
+      }
+    } catch (error) {
+      console.error("Failed to set track rivers setting:", error);
+      this.showMessage("Failed to change track rivers setting", "error");
+      const checkbox = document.getElementById("show-waterways-track");
+      if (checkbox) checkbox.checked = !enabled;
+    }
+  }
+
+  // Set show landuse in track mode enabled/disabled
+  async setShowLanduseInTrackMode(enabled) {
+    try {
+      const response = await fetch(
+        `${this.apiBase}/config/show-landuse-track-mode`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled }),
+        },
+      );
+
+      if (response.ok) {
+        this.showMessage(
+          `Track landuse ${enabled ? "enabled" : "disabled"}`,
+          "success",
+        );
+      } else {
+        throw new Error("Failed to set track landuse setting");
+      }
+    } catch (error) {
+      console.error("Failed to set track landuse setting:", error);
+      this.showMessage("Failed to change track landuse setting", "error");
+      const checkbox = document.getElementById("show-landuse-track");
       if (checkbox) checkbox.checked = !enabled;
     }
   }

@@ -393,6 +393,14 @@ function createMockConfigService(): IConfigService {
     setShowLanduse: jest.fn(),
     getShowRoadSurface: jest.fn().mockReturnValue(false),
     setShowRoadSurface: jest.fn(),
+    getShowRoadsInTrackMode: jest.fn().mockReturnValue(false),
+    setShowRoadsInTrackMode: jest.fn(),
+    getShowWaterInTrackMode: jest.fn().mockReturnValue(false),
+    setShowWaterInTrackMode: jest.fn(),
+    getShowWaterwaysInTrackMode: jest.fn().mockReturnValue(false),
+    setShowWaterwaysInTrackMode: jest.fn(),
+    getShowLanduseInTrackMode: jest.fn().mockReturnValue(false),
+    setShowLanduseInTrackMode: jest.fn(),
     getEnabledPOICategories: jest
       .fn()
       .mockReturnValue(["fuel", "parking", "food", "restroom", "viewpoint"]),

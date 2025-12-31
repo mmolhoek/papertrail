@@ -274,6 +274,56 @@ export interface IConfigService {
    */
   setShowRoadSurface(enabled: boolean): void;
 
+  // Track mode map feature settings (independent from drive mode)
+
+  /**
+   * Get show roads preference for track mode
+   * @returns true if road layer should be displayed in track mode
+   */
+  getShowRoadsInTrackMode(): boolean;
+
+  /**
+   * Set show roads preference for track mode
+   * @param enabled Whether to show road layer in track mode
+   */
+  setShowRoadsInTrackMode(enabled: boolean): void;
+
+  /**
+   * Get show water bodies preference for track mode
+   * @returns true if water bodies should be displayed in track mode
+   */
+  getShowWaterInTrackMode(): boolean;
+
+  /**
+   * Set show water bodies preference for track mode
+   * @param enabled Whether to show water bodies in track mode
+   */
+  setShowWaterInTrackMode(enabled: boolean): void;
+
+  /**
+   * Get show waterways preference for track mode
+   * @returns true if waterways should be displayed in track mode
+   */
+  getShowWaterwaysInTrackMode(): boolean;
+
+  /**
+   * Set show waterways preference for track mode
+   * @param enabled Whether to show waterways in track mode
+   */
+  setShowWaterwaysInTrackMode(enabled: boolean): void;
+
+  /**
+   * Get show landuse preference for track mode
+   * @returns true if landuse features should be displayed in track mode
+   */
+  getShowLanduseInTrackMode(): boolean;
+
+  /**
+   * Set show landuse preference for track mode
+   * @param enabled Whether to show landuse features in track mode
+   */
+  setShowLanduseInTrackMode(enabled: boolean): void;
+
   /**
    * Get enabled POI categories
    * @returns Array of enabled POI category names

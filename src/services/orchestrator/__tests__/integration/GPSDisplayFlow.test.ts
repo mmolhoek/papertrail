@@ -182,6 +182,11 @@ describe("GPS → Display Update Flow Integration", () => {
       getRenderOptions: jest.fn().mockReturnValue({ showLine: true }),
       save: jest.fn().mockResolvedValue(success(undefined)),
       getRoutingProfile: jest.fn().mockReturnValue("car"),
+      // Track mode map feature settings
+      getShowRoadsInTrackMode: jest.fn().mockReturnValue(false),
+      getShowWaterInTrackMode: jest.fn().mockReturnValue(false),
+      getShowWaterwaysInTrackMode: jest.fn().mockReturnValue(false),
+      getShowLanduseInTrackMode: jest.fn().mockReturnValue(false),
     };
 
     orchestrator = new RenderingOrchestrator(

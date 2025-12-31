@@ -636,6 +636,29 @@ export class WebController {
     return this.config.setShowRoadSurface(req, res);
   }
 
+  /** @see ConfigController.setShowRoadsInTrackMode */
+  async setShowRoadsInTrackMode(req: Request, res: Response): Promise<void> {
+    return this.config.setShowRoadsInTrackMode(req, res);
+  }
+
+  /** @see ConfigController.setShowWaterInTrackMode */
+  async setShowWaterInTrackMode(req: Request, res: Response): Promise<void> {
+    return this.config.setShowWaterInTrackMode(req, res);
+  }
+
+  /** @see ConfigController.setShowWaterwaysInTrackMode */
+  async setShowWaterwaysInTrackMode(
+    req: Request,
+    res: Response,
+  ): Promise<void> {
+    return this.config.setShowWaterwaysInTrackMode(req, res);
+  }
+
+  /** @see ConfigController.setShowLanduseInTrackMode */
+  async setShowLanduseInTrackMode(req: Request, res: Response): Promise<void> {
+    return this.config.setShowLanduseInTrackMode(req, res);
+  }
+
   /** @see ConfigController.setRoutingProfile */
   async setRoutingProfile(req: Request, res: Response): Promise<void> {
     return this.config.setRoutingProfile(req, res);
