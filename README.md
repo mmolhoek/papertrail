@@ -2,7 +2,29 @@
 
 A GPS tracker with e-paper display for Raspberry Pi 5, featuring a mobile web interface for control.
 
+<video src="static/screen-20260222-123540.mp4" controls width="100%"></video>
+
 > **[Read the story of how this project was built](article.md)** — 90,000 lines of TypeScript, built with Claude Code on a phone in your pocket.
+
+## Web Interface
+
+<table>
+  <tr>
+    <td align="center"><img src="static/Screenshot_20260222-120922.png" width="220"/><br/><b>Dashboard</b><br/>Live e-paper preview</td>
+    <td align="center"><img src="static/Screenshot_20260222-120938.png" width="220"/><br/><b>GPS</b><br/>Real-time position &amp; satellite status</td>
+    <td align="center"><img src="static/Screenshot_20260222-120943.png" width="220"/><br/><b>Track</b><br/>GPX route selection &amp; management</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="static/Screenshot_20260222-121010.png" width="220"/><br/><b>Drive</b><br/>Destination input &amp; route calculation</td>
+    <td align="center"><img src="static/Screenshot_20260222-121026.png" width="220"/><br/><b>Simulate</b><br/>Replay routes at drive, cycle, or walk speed</td>
+    <td align="center"><img src="static/Screenshot_20260222-121035.png" width="220"/><br/><b>Config</b><br/>Zoom, theme, mode, orientation &amp; routing profile</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="static/Screenshot_20260222-121044.png" width="220"/><br/><b>WiFi</b><br/>Mobile hotspot pairing</td>
+    <td align="center"><img src="static/Screenshot_20260222-121049.png" width="220"/><br/><b>System</b><br/>Factory reset</td>
+    <td align="center"><img src="static/Screenshot_20260222-121101.png" width="220"/><br/><b>Navigation</b><br/>Turn-by-turn on e-paper display</td>
+  </tr>
+</table>
 
 ## Features
 
