@@ -2,7 +2,7 @@
 
 A GPS tracker with e-paper display for Raspberry Pi 5, featuring a mobile web interface for control.
 
-https://github.com/mmolhoek/papertrail/static/screen-20260222-123540-small.mp4
+https://github.com/user-attachments/assets/401a7059-fb35-43b6-b386-12122479949b
 
 > **[Read the story of how this project was built](article.md)** — 90,000 lines of TypeScript, built with Claude Code on a phone in your pocket.
 
